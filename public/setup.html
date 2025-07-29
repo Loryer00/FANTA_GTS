@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Configurazione Sistema</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            margin-bottom: 20px;
+            color: #ffd700;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .squadre-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .squadra-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 5px solid;
+        }
+
+        .squadra-card.rosso { border-left-color: #ef4444; }
+        .squadra-card.blu { border-left-color: #3b82f6; }
+        .squadra-card.verde { border-left-color: #10b981; }
+        .squadra-card.giallo { border-left-color: #f59e0b; }
+        .squadra-card.arancione { border-left-color: #f97316; }
+        .squadra-card.viola { border-left-color: #8b5cf6; }
+        .squadra-card.rosa { border-left-color: #ec4899; }
+        .squadra-card.marrone { border-left-color: #a3a3a3; }
+
+        .squadra-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .giocatori-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .giocatore-input {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.8);
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .partecipanti-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .partecipanti-table th,
+        .partecipanti-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .partecipanti-table th {
+            background: rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.3);
+            border: 2px solid #10b981;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.3);
+            border: 2px solid #f59e0b;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.3);
+            border: 2px solid #ef4444;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            transition: width 0.3s ease;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #10b981;
+        }
+
+        .notification.error {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎾 FantaGTS - Configurazione Sistema</h1>
+            <p>Configura squadre del circolo e partecipanti prima di iniziare il torneo</p>
+        </div>
+
+        <!-- Stato Sistema -->
+        <div class="section">
+            <h2>📊 Stato Sistema</h2>
+            <div id="systemStatus" class="status-indicator status-warning">
+                <div class="loading"></div> Caricamento stato sistema...
+            </div>
+            <div class="progress-bar">
+                <div id="setupProgress" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <p id="setupDescription">Inizializzazione in corso...</p>
+        </div>
+
+        <!-- Setup Squadre Circolo -->
+        <div class="section">
+            <h2>🏆 Squadre del Circolo</h2>
+            <p>Configura le squadre del circolo tennis con i loro giocatori</p>
+            
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>Numero Squadra:</label>
+                    <input type="number" id="numeroSquadra" min="1" max="20" placeholder="1">
+                </div>
+                <div class="input-group">
+                    <label>Colore Squadra:</label>
+                    <input type="text" id="coloreSquadra" placeholder="es: rosso, verde, azzurro, fucsia...">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>M1:</label>
+                    <input type="text" id="m1" placeholder="Nome giocatore M1">
+                </div>
+                <div class="input-group">
+                    <label>M2:</label>
+                    <input type="text" id="m2" placeholder="Nome giocatore M2">
+                </div>
+                <div class="input-group">
+                    <label>M3:</label>
+                    <input type="text" id="m3" placeholder="Nome giocatore M3">
+                </div>
+                <div class="input-group">
+                    <label>M4:</label>
+                    <input type="text" id="m4" placeholder="Nome giocatore M4">
+                </div>
+                <div class="input-group">
+                    <label>M5:</label>
+                    <input type="text" id="m5" placeholder="Nome giocatore M5">
+                </div>
+                <div class="input-group">
+                    <label>M6:</label>
+                    <input type="text" id="m6" placeholder="Nome giocatore M6">
+                </div>
+                <div class="input-group">
+                    <label>M7:</label>
+                    <input type="text" id="m7" placeholder="Nome giocatore M7">
+                </div>
+                <div class="input-group">
+                    <label>F1:</label>
+                    <input type="text" id="f1" placeholder="Nome giocatrice F1">
+                </div>
+                <div class="input-group">
+                    <label>F2:</label>
+                    <input type="text" id="f2" placeholder="Nome giocatrice F2">
+                </div>
+                <div class="input-group">
+                    <label>F3:</label>
+                    <input type="text" id="f3" placeholder="Nome giocatrice F3">
+                </div>
+            </div>
+
+            <div>
+                <button class="btn btn-primary" onclick="aggiungiSquadra()">
+                    ➕ Aggiungi Squadra
+                </button>
+                <button class="btn btn-secondary" onclick="clearFormSquadra()">
+                    🗑️ Pulisci Form
+                </button>
+            </div>
+
+            <div id="squadreList" class="squadre-grid">
+                <!-- Le squadre verranno caricate qui -->
+            </div>
+        </div>
+
+        <!-- Setup Partecipanti FantaGTS -->
+        <div class="section">
+            <h2>👥 Partecipanti FantaGTS</h2>
+            <p>Registra i partecipanti che prenderanno parte al FantaGTS</p>
+            
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>Nome Completo:</label>
+                    <input type="text" id="nomePartecipante" placeholder="Lorenzo Buselli">
+                </div>
+                <div class="input-group">
+                    <label>Email (opzionale):</label>
+                    <input type="email" id="emailPartecipante" placeholder="lorenzo@email.com">
+                </div>
+                <div class="input-group">
+                    <label>Telefono (opzionale):</label>
+                    <input type="tel" id="telefonoPartecipante" placeholder="333-1234567">
+                </div>
+                <div class="input-group">
+                    <label>Crediti Iniziali:</label>
+                    <input type="number" id="creditiPartecipante" value="2000" min="500" max="5000">
+                </div>
+            </div>
+
+            <div>
+                <button class="btn btn-primary" onclick="aggiungiPartecipante()">
+                    ➕ Aggiungi Partecipante
+                </button>
+                <button class="btn btn-secondary" onclick="clearFormPartecipante()">
+                    🗑️ Pulisci Form
+                </button>
+            </div>
+
+            <table class="partecipanti-table" id="partecipantiTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Telefono</th>
+                        <th>Crediti</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="partecipantiList">
+                    <!-- I partecipanti verranno caricati qui -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Finalizzazione Setup -->
+        <div class="section">
+            <h2>🚀 Finalizzazione Setup</h2>
+            <p>Completa la configurazione e prepara il sistema per le aste</p>
+            
+            <div id="setupSummary">
+                <p>📊 <strong>Squadre configurate:</strong> <span id="countSquadre">0</span></p>
+                <p>👥 <strong>Partecipanti registrati:</strong> <span id="countPartecipanti">0</span></p>
+                <p>🎯 <strong>Slots da generare:</strong> <span id="countSlots">0</span></p>
+                <p>🔄 <strong>Ripetizioni necessarie:</strong> <span id="countRipetizioni">0</span></p>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="generaSlots()" id="btnGeneraSlots" disabled>
+                    🎯 Genera Slots Giocatori
+                </button>
+                <button class="btn btn-primary" onclick="vaiAMaster()" id="btnVaiMaster" disabled>
+                    🎮 Vai al Pannello Master
+                </button>
+                <button class="btn btn-danger" onclick="resetSistema()">
+                    🔄 Reset Completo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Conferma -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle">Conferma Azione</h3>
+            <p id="confirmMessage">Sei sicuro di voler procedere?</p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button class="btn btn-primary" id="confirmBtn" onclick="">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let squadre = [];
+        let partecipanti = [];
+        let systemReady = false;
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            caricaStato();
+            caricaSquadre();
+            caricaPartecipanti();
+        });
+
+        // Gestione stato sistema
+        async function caricaStato() {
+            try {
+                const response = await fetch('/api/stato');
+                const stato = await response.json();
+                
+                updateSystemStatus();
+            } catch (error) {
+                console.error('Errore caricamento stato:', error);
+                showNotification('Errore caricamento stato sistema', 'error');
+            }
+        }
+
+        function updateSystemStatus() {
+            const statusEl = document.getElementById('systemStatus');
+            const progressEl = document.getElementById('setupProgress');
+            const descEl = document.getElementById('setupDescription');
+            
+            let progress = 0;
+            let status = 'warning';
+            let message = 'Configurazione in corso...';
+
+            // Calcola progresso
+            if (squadre.length > 0) progress += 40;
+            if (partecipanti.length > 0) progress += 40;
+            if (systemReady) progress += 20;
+
+            if (progress === 100) {
+                status = 'success';
+                message = '✅ Sistema pronto per le aste!';
+            } else if (progress >= 80) {
+                status = 'warning';
+                message = '⚠️ Quasi pronto - genera gli slots giocatori';
+            } else if (progress >= 40) {
+                status = 'warning';
+                message = '🔄 Configurazione parziale - aggiungi partecipanti';
+            } else {
+                status = 'error';
+                message = '❌ Configurazione mancante - aggiungi squadre';
+            }
+
+            statusEl.className = `status-indicator status-${status}`;
+            statusEl.innerHTML = message;
+            progressEl.style.width = `${progress}%`;
+            descEl.textContent = getProgressDescription(progress);
+
+            updateButtons();
+            updateSummary();
+        }
+
+        function getProgressDescription(progress) {
+            if (progress >= 100) return 'Sistema completamente configurato e pronto!';
+            if (progress >= 80) return 'Configurazione quasi completa';
+            if (progress >= 40) return 'Squadre configurate, aggiungi partecipanti';
+            if (progress >= 20) return 'Inizia configurando le squadre del circolo';
+            return 'Configurazione non iniziata';
+        }
+
+        function updateButtons() {
+            const btnGenera = document.getElementById('btnGeneraSlots');
+            const btnMaster = document.getElementById('btnVaiMaster');
+            
+            btnGenera.disabled = squadre.length === 0 || partecipanti.length === 0;
+            btnMaster.disabled = !systemReady;
+        }
+
+        function updateSummary() {
+            document.getElementById('countSquadre').textContent = squadre.length;
+            document.getElementById('countPartecipanti').textContent = partecipanti.length;
+            document.getElementById('countSlots').textContent = squadre.length * 10;
+            
+            const giocatoriNecessari = partecipanti.length * 10;
+            const giocatoriDisponibili = squadre.length * 10;
+            const ripetizioni = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
+            document.getElementById('countRipetizioni').textContent = ripetizioni;
+        }
+
+        // Gestione squadre
+        async function caricaSquadre() {
+            try {
+                const response = await fetch('/api/squadre');
+                squadre = await response.json();
+                renderSquadre();
+                updateSystemStatus();
+            } catch (error) {
+                console.error('Errore caricamento squadre:', error);
+                showNotification('Errore caricamento squadre', 'error');
+            }
+        }
+
+        function renderSquadre() {
+            const container = document.getElementById('squadreList');
+            container.innerHTML = '';
+
+            squadre.forEach(squadra => {
+                const card = document.createElement('div');
+                card.className = `squadra-card ${squadra.colore}`;
+                card.innerHTML = `
+                    <div class="squadra-header">
+                        <h3>Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</h3>
+                        <button class="btn btn-danger btn-sm" onclick="eliminaSquadra(${squadra.numero})">
+                            🗑️
+                        </button>
+                    </div>
+                    <div class="giocatori-grid">
+                        <div><strong>M1:</strong> ${squadra.m1 || '-'}</div>
+                        <div><strong>M2:</strong> ${squadra.m2 || '-'}</div>
+                        <div><strong>M3:</strong> ${squadra.m3 || '-'}</div>
+                        <div><strong>M4:</strong> ${squadra.m4 || '-'}</div>
+                        <div><strong>M5:</strong> ${squadra.m5 || '-'}</div>
+                        <div><strong>M6:</strong> ${squadra.m6 || '-'}</div>
+                        <div><strong>M7:</strong> ${squadra.m7 || '-'}</div>
+                        <div><strong>F1:</strong> ${squadra.f1 || '-'}</div>
+                        <div><strong>F2:</strong> ${squadra.f2 || '-'}</div>
+                        <div><strong>F3:</strong> ${squadra.f3 || '-'}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function aggiungiSquadra() {
+            const numero = document.getElementById('numeroSquadra').value;
+            const colore = document.getElementById('coloreSquadra').value;
+            
+            if (!numero || !colore) {
+                showNotification('Inserisci numero e colore squadra', 'error');
+                return;
+            }
+
+            const squadra = {
+                numero: parseInt(numero),
+                colore: colore,
+                m1: document.getElementById('m1').value,
+                m2: document.getElementById('m2').value,
+                m3: document.getElementById('m3').value,
+                m4: document.getElementById('m4').value,
+                m5: document.getElementById('m5').value,
+                m6: document.getElementById('m6').value,
+                m7: document.getElementById('m7').value,
+                f1: document.getElementById('f1').value,
+                f2: document.getElementById('f2').value,
+                f3: document.getElementById('f3').value
+            };
+
+            try {
+                const response = await fetch('/api/squadre', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(squadra)
+                });
+
+                if (response.ok) {
+                    showNotification('Squadra aggiunta con successo!', 'success');
+                    clearFormSquadra();
+                    caricaSquadre();
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        function clearFormSquadra() {
+            ['numeroSquadra', 'coloreSquadra', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'f1', 'f2', 'f3']
+                .forEach(id => document.getElementById(id).value = '');
+        }
+
+        async function eliminaSquadra(numero) {
+            if (!confirm(`Eliminare la squadra ${numero}?`)) return;
+
+            try {
+                const response = await fetch(`/api/squadre/${numero}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showNotification('Squadra eliminata', 'success');
+                    caricaSquadre();
+                } else {
+                    showNotification('Errore eliminazione squadra', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Gestione partecipanti
+        async function caricaPartecipanti() {
+            try {
+                const response = await fetch('/api/partecipanti');
+                partecipanti = await response.json();
+                renderPartecipanti();
+                updateSystemStatus();
+            } catch (error) {
+                console.error('Errore caricamento partecipanti:', error);
+                showNotification('Errore caricamento partecipanti', 'error');
+            }
+        }
+
+        function renderPartecipanti() {
+            const tbody = document.getElementById('partecipantiList');
+            tbody.innerHTML = '';
+
+            partecipanti.forEach(p => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${p.nome}</strong></td>
+                    <td>${p.email || '-'}</td>
+                    <td>${p.telefono || '-'}</td>
+                    <td>${p.crediti} 💰</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="eliminaPartecipante('${p.id}')">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function aggiungiPartecipante() {
+            const nome = document.getElementById('nomePartecipante').value;
+            const email = document.getElementById('emailPartecipante').value;
+            const telefono = document.getElementById('telefonoPartecipante').value;
+            const crediti = document.getElementById('creditiPartecipante').value;
+
+            if (!nome.trim()) {
+                showNotification('Inserisci il nome del partecipante', 'error');
+                return;
+            }
+
+            const partecipante = { nome, email, telefono, crediti: parseInt(crediti) };
+
+            try {
+                const response = await fetch('/api/partecipanti', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(partecipante)
+                });
+
+                if (response.ok) {
+                    showNotification('Partecipante aggiunto con successo!', 'success');
+                    clearFormPartecipante();
+                    caricaPartecipanti();
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        function clearFormPartecipante() {
+            document.getElementById('nomePartecipante').value = '';
+            document.getElementById('emailPartecipante').value = '';
+            document.getElementById('telefonoPartecipante').value = '';
+            document.getElementById('creditiPartecipante').value = '2000';
+        }
+
+        async function eliminaPartecipante(id) {
+            if (!confirm('Eliminare questo partecipante?')) return;
+
+            try {
+                const response = await fetch(`/api/partecipanti/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showNotification('Partecipante eliminato', 'success');
+                    caricaPartecipanti();
+                } else {
+                    showNotification('Errore eliminazione partecipante', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Finalizzazione
+        async function generaSlots() {
+            if (squadre.length === 0 || partecipanti.length === 0) {
+                showNotification('Configura prima squadre e partecipanti', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/genera-slots', { method: 'POST' });
+                if (response.ok) {
+                    systemReady = true;
+					updateSystemStatus();
+                    showNotification('Slots generati con successo!', 'success');
+                    updateSystemStatus();
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        function vaiAMaster() {
+            if (systemReady) {
+                window.location.href = '/master';
+            }
+        }
+
+        async function resetSistema() {
+            showConfirmModal(
+                'Reset Completo Sistema',
+                'Questa azione eliminerà TUTTI i dati: squadre, partecipanti, aste e risultati. Procedere?',
+                async () => {
+                    try {
+                        const response = await fetch('/api/reset/totale', { method: 'POST' });
+                        if (response.ok) {
+                            showNotification('Sistema resettato completamente', 'success');
+                            location.reload();
+                        } else {
+                            showNotification('Errore durante il reset', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('Errore di connessione', 'error');
+                    }
+                }
+            );
+        }
+
+        // Utilities
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function showConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmBtn').onclick = () => {
+                closeModal();
+                onConfirm();
+            };
+            document.getElementById('confirmModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        // Aggiorna stato ogni 10 secondi
+        setInterval(caricaStato, 10000);
+    </script>
+</body>
+</html>
