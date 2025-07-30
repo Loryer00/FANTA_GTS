@@ -1,4 +1,4 @@
-// server.js - FantaGTS Server Completo
+// server.js - FantaGTS Server SENZA TIMER
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -68,10 +68,20 @@ db.serialize(() => {
         costo_finale INTEGER,
         premium REAL DEFAULT 0,
         vincitore BOOLEAN DEFAULT 0,
+        condiviso BOOLEAN DEFAULT 0,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id),
         FOREIGN KEY (slot_id) REFERENCES slots(id)
     )`);
+	
+	// Aggiorna tabella aste esistente per compatibilità
+db.run(`ALTER TABLE aste ADD COLUMN condiviso BOOLEAN DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.log('⚠️ Colonna condiviso già presente o errore:', err.message);
+    } else if (!err) {
+        console.log('✅ Colonna condiviso aggiunta alla tabella aste');
+    }
+});
 
     // Tabella sostituzioni
     db.run(`CREATE TABLE IF NOT EXISTS sostituzioni (
@@ -107,15 +117,13 @@ db.serialize(() => {
     console.log('✅ Database inizializzato con successo');
 });
 
-// Stato del gioco in memoria
+// Stato del gioco in memoria (SENZA TIMER)
 let gameState = {
-    fase: 'setup', // setup, aste, torneo, terminato
+    fase: 'setup',
     roundAttivo: null,
     asteAttive: false,
-    timer: null,
-    tempoRimasto: 0,
-    connessi: new Map(), // socketId -> {nome, tipo, stato}
-    offerteTemporanee: new Map() // socketId -> {slot, offerta}
+    connessi: new Map(),
+    offerteTemporanee: new Map()
 };
 
 // Funzioni utilità
@@ -211,7 +219,7 @@ app.get('/api/partecipanti', (req, res) => {
 
 app.post('/api/partecipanti', (req, res) => {
     const { nome, email, telefono, crediti = 2000 } = req.body;
-    const id = nome.toLowerCase().replace(/\s+/g, '_');
+    const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     
     const stmt = db.prepare(`INSERT OR REPLACE INTO partecipanti_fantagts 
         (id, nome, email, telefono, crediti) VALUES (?, ?, ?, ?, ?)`);
@@ -245,8 +253,19 @@ app.get('/api/stato', (req, res) => {
         fase: gameState.fase,
         roundAttivo: gameState.roundAttivo,
         asteAttive: gameState.asteAttive,
-        tempoRimasto: gameState.tempoRimasto,
         connessi: Array.from(gameState.connessi.values())
+    });
+});
+
+// API per info slot
+app.get('/api/slot-info/:slotId', (req, res) => {
+    const slotId = req.params.slotId;
+    
+    db.get("SELECT * FROM slots WHERE id = ?", slotId, (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Slot non trovato' });
+        
+        res.json(row);
     });
 });
 
@@ -260,18 +279,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
 
     gameState.roundAttivo = round;
     gameState.asteAttive = true;
-    gameState.tempoRimasto = 30; // 30 secondi per le aste
     gameState.offerteTemporanee.clear();
-
-    // Avvia timer
-    gameState.timer = setInterval(() => {
-        gameState.tempoRimasto--;
-        io.emit('timer_update', gameState.tempoRimasto);
-        
-        if (gameState.tempoRimasto <= 0) {
-            terminaRound();
-        }
-    }, 1000);
 
     // Ottieni slots disponibili per questo round
     db.all(`SELECT * FROM slots WHERE posizione = ? AND attivo = 1`, round, (err, slots) => {
@@ -282,20 +290,97 @@ app.post('/api/avvia-round/:round', (req, res) => {
         io.emit('round_started', {
             round: round,
             slots: slots,
-            tempo: 30
+            sistema: 'conferme' // Indica che è basato su conferme, non timer
         });
 
+        console.log(`Round ${round} avviato - Sistema basato su conferme di tutti i partecipanti`);
         res.json({ message: `Round ${round} avviato con successo` });
+        
+        // Inizia monitoraggio offerte
+        avviaMonitoraggioOfferte();
     });
 });
 
-function terminaRound() {
-    if (gameState.timer) {
-        clearInterval(gameState.timer);
-        gameState.timer = null;
+// API per controllare se tutti hanno fatto offerte
+app.get('/api/stato-offerte/:round', (req, res) => {
+    const round = req.params.round;
+    
+    // Conta partecipanti connessi di tipo 'partecipante'
+    const partecipantiConnessi = Array.from(gameState.connessi.values())
+        .filter(p => p.tipo === 'partecipante').length;
+    
+    // Conta offerte per questo round
+    const offerteRound = Array.from(gameState.offerteTemporanee.values())
+        .filter(o => o.round === round).length;
+    
+    const tuttiHannoOfferto = partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi;
+    
+    res.json({
+        partecipantiConnessi: partecipantiConnessi,
+        offerteRicevute: offerteRound,
+        mancano: Math.max(0, partecipantiConnessi - offerteRound),
+        tuttiHannoOfferto: tuttiHannoOfferto,
+        dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
+            partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+            offerta: offerta
+        }))
+    });
+});
+
+// NUOVO: Monitoraggio automatico offerte
+function avviaMonitoraggioOfferte() {
+    const monitorInterval = setInterval(() => {
+        if (!gameState.asteAttive) {
+            clearInterval(monitorInterval);
+            return;
+        }
+
+        // Controlla se tutti hanno offerto
+        const partecipantiConnessi = Array.from(gameState.connessi.values())
+            .filter(p => p.tipo === 'partecipante').length;
+        
+        const offerteRound = Array.from(gameState.offerteTemporanee.values())
+            .filter(o => o.round === gameState.roundAttivo).length;
+        
+        const statoOfferte = {
+            partecipantiConnessi: partecipantiConnessi,
+            offerteRicevute: offerteRound,
+            mancano: Math.max(0, partecipantiConnessi - offerteRound),
+            tuttiHannoOfferto: partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi
+        };
+
+        // Invia aggiornamento a tutti i client
+        io.emit('offerte_update', statoOfferte);
+
+        // Auto-chiusura se tutti hanno offerto (INCLUSO 1 SOLO PARTECIPANTE)
+if (statoOfferte.tuttiHannoOfferto && partecipantiConnessi > 0) {
+    console.log(`🎉 ${partecipantiConnessi} partecipante(i) hanno fatto offerte - chiusura automatica round`);
+    clearInterval(monitorInterval);
+    
+    // Chiusura immediata (no timeout problematico)
+    if (gameState.asteAttive) {
+        console.log('🔄 Avviando elaborazione risultati...');
+        terminaRound();
     }
+}
+    }, 1000); // Controlla ogni secondo
+}
+
+// API per forzare fine round
+app.post('/api/forza-fine-round', (req, res) => {
+    if (!gameState.asteAttive) {
+        return res.status(400).json({ error: 'Nessun round attivo' });
+    }
+    
+    terminaRound();
+    res.json({ message: 'Round terminato forzatamente' });
+});
+
+function terminaRound() {
+    if (gameState.asteAttive === false) return; // Già terminato
 
     gameState.asteAttive = false;
+    gameState.gamePhase = 'results';
     
     // Elabora risultati aste
     elaboraRisultatiAste();
@@ -303,12 +388,16 @@ function terminaRound() {
 
 function elaboraRisultatiAste() {
     const round = gameState.roundAttivo;
+    console.log(`🔄 Elaborando risultati per round ${round}...`);
     
     // Raggruppa offerte per slot
     const offertePerSlot = {};
+    
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
         if (connesso && offerta.round === round) {
+            console.log(`📝 Processando offerta: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
+            
             if (!offertePerSlot[offerta.slot]) {
                 offertePerSlot[offerta.slot] = [];
             }
@@ -321,104 +410,139 @@ function elaboraRisultatiAste() {
         }
     });
 
-    // Calcola ripetizioni necessarie
-    db.get("SELECT COUNT(*) as count FROM partecipanti_fantagts", (err, result) => {
-        if (err) {
-            console.error('Errore conteggio partecipanti:', err);
-            return;
-        }
+    console.log('🎯 Offerte raggruppate per slot:', offertePerSlot);
 
-        const numPartecipanti = result.count;
-        const ripetizioniPerCategoria = Math.floor(calcolaRipetizioniNecessarie(numPartecipanti) / 10);
+    // SEMPLIFICATO: Per ora vince sempre chi offre di più, senza condivisione
+    const risultati = [];
+    
+    Object.keys(offertePerSlot).forEach(slotId => {
+        const offerte = offertePerSlot[slotId];
         
-        // Calcola totali per slot e ordina
-        const slotConTotali = Object.keys(offertePerSlot).map(slotId => {
-            const offerte = offertePerSlot[slotId];
-            const totale = offerte.reduce((sum, o) => sum + o.offerta, 0);
-            return { slotId, offerte, totale };
-        }).sort((a, b) => b.totale - a.totale);
-
-        // Seleziona slot da replicare
-        const slotsReplicati = slotConTotali.slice(0, ripetizioniPerCategoria);
-        const slotsUnici = slotConTotali.slice(ripetizioniPerCategoria);
-
-        const risultati = [];
-
-        // Elabora slots replicati
-        slotsReplicati.forEach(item => {
-            item.offerte.sort((a, b) => b.offerta - a.offerta);
-            item.offerte.forEach((offerta, index) => {
-                const premium = index > 0 ? 0.10 : 0;
-                const costoFinale = index > 0 ? 
-                    arrotondaAlPariPiuVicino(offerta.offerta * (1 + premium)) : 
-                    offerta.offerta;
-
-                risultati.push({
-                    partecipante: offerta.partecipante,
-                    nome: offerta.nome,
-                    slot: item.slotId,
-                    offertaOriginale: offerta.offerta,
-                    costoFinale: costoFinale,
-                    premium: premium,
-                    condiviso: true
-                });
-            });
-        });
-
-        // Elabora slots unici
-        slotsUnici.forEach(item => {
-            const miglioreOfferta = item.offerte.sort((a, b) => b.offerta - a.offerta)[0];
+        if (offerte.length > 0) {
+            // Ordina per offerta decrescente
+            offerte.sort((a, b) => b.offerta - a.offerta);
+            const vincitore = offerte[0];
+            
             risultati.push({
-                partecipante: miglioreOfferta.partecipante,
-                nome: miglioreOfferta.nome,
-                slot: item.slotId,
-                offertaOriginale: miglioreOfferta.offerta,
-                costoFinale: miglioreOfferta.offerta,
+                partecipante: vincitore.partecipante,
+                nome: vincitore.nome,
+                slot: slotId,
+                offertaOriginale: vincitore.offerta,
+                costoFinale: vincitore.offerta,
                 premium: 0,
                 condiviso: false
             });
-        });
+            
+            console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+        }
+    });
 
-        // Salva risultati nel database
+    console.log('🎉 Risultati finali:', risultati);
+
+    // Salva risultati nel database
+    if (risultati.length > 0) {
         salvaRisultatiAste(round, risultati);
-        
-        // Invia risultati ai client
+    } else {
+        console.log('⚠️ Nessun risultato da salvare per il round', round);
+        // Comunque termina il round
         io.emit('round_ended', {
             round: round,
-            risultati: risultati
+            risultati: []
         });
-
         gameState.roundAttivo = null;
         gameState.offerteTemporanee.clear();
-    });
+    }
 }
 
 function salvaRisultatiAste(round, risultati) {
-    const stmt = db.prepare(`INSERT INTO aste 
-        (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore) 
-        VALUES (?, ?, ?, ?, ?, ?, 1)`);
+    if (risultati.length === 0) {
+        console.log('Nessun risultato da salvare per il round', round);
+        return;
+    }
 
-    risultati.forEach(r => {
-        stmt.run(round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium);
-        
-        // Aggiorna crediti partecipante
-        db.run(`UPDATE partecipanti_fantagts 
-                SET crediti = crediti - ? 
-                WHERE id = ?`, r.costoFinale, r.partecipante);
-    });
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
 
+        const stmt = db.prepare(`INSERT INTO aste 
+            (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)`);
+
+        let completati = 0;
+        const totale = risultati.length;
+
+        risultati.forEach(r => {
+            stmt.run(round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso ? 1 : 0, function(err) {
+                if (err) {
+                    console.error('Errore inserimento asta:', err);
+                    db.run("ROLLBACK");
+                    return;
+                }
+                
+                // Aggiorna crediti partecipante
+                db.run(`UPDATE partecipanti_fantagts 
+                        SET crediti = crediti - ? 
+                        WHERE id = ?`, r.costoFinale, r.partecipante, function(err) {
+                    if (err) {
+                        console.error('Errore aggiornamento crediti:', err);
+                        db.run("ROLLBACK");
+                        return;
+                    }
+
+                    completati++;
+                    console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
+                    
+                    if (completati === totale) {
     stmt.finalize();
+    db.run("COMMIT");
+    console.log(`🎉 Round ${round} completato - ${totale} assegnazioni salvate nel database`);
+    
+    // PRIMA: Reset stato del gioco
+    gameState.roundAttivo = null;
+    gameState.asteAttive = false;
+    gameState.offerteTemporanee.clear();
+    
+    // POI: Invia risultati ai client
+    console.log('📤 Invio risultati ai client:', risultati);
+    io.emit('round_ended', {
+        round: round,
+        risultati: risultati,
+        success: true
+    });
+    
+    // INFINE: Aggiorna crediti
+    aggiornaCreditiPartecipanti();
+}
+                });
+            });
+        });
+    });
+}
+
+// Funzione per inviare crediti aggiornati ai client
+function aggiornaCreditiPartecipanti() {
+    db.all("SELECT id, nome, crediti FROM partecipanti_fantagts", (err, partecipanti) => {
+        if (err) {
+            console.error('Errore caricamento partecipanti:', err);
+            return;
+        }
+
+        partecipanti.forEach(p => {
+            // Trova il socket del partecipante e invia crediti aggiornati
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === p.id) {
+                    io.to(socketId).emit('crediti_aggiornati', {
+                        crediti: p.crediti
+                    });
+                    break;
+                }
+            }
+        });
+    });
 }
 
 // Reset sistema
 app.post('/api/reset/:livello', (req, res) => {
     const livello = req.params.livello;
-    
-    // Ferma timer se attivo
-    if (gameState.timer) {
-        clearInterval(gameState.timer);
-        gameState.timer = null;
-    }
 
     switch (livello) {
         case 'round':
@@ -454,8 +578,6 @@ app.post('/api/reset/:livello', (req, res) => {
                                 fase: 'setup',
                                 roundAttivo: null,
                                 asteAttive: false,
-                                timer: null,
-                                tempoRimasto: 0,
                                 connessi: new Map(),
                                 offerteTemporanee: new Map()
                             };
@@ -488,13 +610,14 @@ io.on('connection', (socket) => {
             gameState: {
                 fase: gameState.fase,
                 roundAttivo: gameState.roundAttivo,
-                asteAttive: gameState.asteAttive,
-                tempoRimasto: gameState.tempoRimasto
+                asteAttive: gameState.asteAttive
             }
         });
 
         // Aggiorna contatori connessi
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
+        
+        console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
     });
 
     socket.on('place_bid', (data) => {
@@ -532,6 +655,26 @@ io.on('connection', (socket) => {
             socket.emit('bid_confirmed', {
                 slot: data.slot,
                 importo: data.importo
+            });
+            
+            console.log(`💰 Offerta ricevuta: ${connesso.nome} punta ${data.importo} su ${data.slot}`);
+            
+            // Aggiorna immediatamente il master sulle offerte
+            const partecipantiConnessi = Array.from(gameState.connessi.values())
+                .filter(p => p.tipo === 'partecipante').length;
+            
+            const offerteRound = Array.from(gameState.offerteTemporanee.values())
+                .filter(o => o.round === data.round).length;
+            
+            io.emit('offerte_update', {
+                partecipantiConnessi: partecipantiConnessi,
+                offerteRicevute: offerteRound,
+                mancano: Math.max(0, partecipantiConnessi - offerteRound),
+                tuttiHannoOfferto: partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi,
+                dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
+                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                    offerta: offerta
+                }))
             });
         });
     });

@@ -65,7 +65,7 @@
             font-weight: bold;
         }
 
-        .input-group input, .input-group select {
+        .input-group input {
             padding: 10px;
             border: none;
             border-radius: 8px;
@@ -138,7 +138,7 @@
 
         .squadra-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
@@ -148,33 +148,6 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             margin-bottom: 15px;
-        }
-
-        .giocatore-input {
-            padding: 8px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255,255,255,0.8);
-            color: #333;
-            font-size: 0.9em;
-        }
-
-        .partecipanti-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .partecipanti-table th,
-        .partecipanti-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .partecipanti-table th {
-            background: rgba(0,0,0,0.3);
-            font-weight: bold;
         }
 
         .status-indicator {
@@ -215,40 +188,17 @@
             transition: width 0.3s ease;
         }
 
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+        .info-box {
+            background: rgba(59, 130, 246, 0.3);
+            border: 2px solid #3b82f6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
-        .modal-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            color: white;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .info-box h3 {
+            color: #60a5fa;
+            margin-bottom: 10px;
         }
 
         .notification {
@@ -275,13 +225,27 @@
         .notification.error {
             background: #ef4444;
         }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎾 FantaGTS - Configurazione Sistema</h1>
-            <p>Configura squadre del circolo e partecipanti prima di iniziare il torneo</p>
+            <h1>🎾 FantaGTS - Configurazione Squadre</h1>
+            <p>Configura le squadre del circolo e prepara il sistema per le aste</p>
         </div>
 
         <!-- Stato Sistema -->
@@ -296,6 +260,14 @@
             <p id="setupDescription">Inizializzazione in corso...</p>
         </div>
 
+        <!-- Info Partecipanti -->
+        <div class="info-box">
+            <h3>👥 Registrazione Partecipanti</h3>
+            <p><strong>I partecipanti si registreranno autonomamente</strong> connettendosi all'app da smartphone/tablet/PC.</p>
+            <p>Condividi questo link con i partecipanti: <strong>http://[TUO_IP]:3000</strong></p>
+            <p>Potrai vedere i partecipanti connessi nel pannello Master una volta completata la configurazione.</p>
+        </div>
+
         <!-- Setup Squadre Circolo -->
         <div class="section">
             <h2>🏆 Squadre del Circolo</h2>
@@ -308,7 +280,7 @@
                 </div>
                 <div class="input-group">
                     <label>Colore Squadra:</label>
-                    <input type="text" id="coloreSquadra" placeholder="es: rosso, verde, azzurro, fucsia...">
+                    <input type="text" id="coloreSquadra" placeholder="es: rosso, verde, azzurro, fucsia..." autocomplete="off">
                 </div>
             </div>
 
@@ -369,55 +341,6 @@
             </div>
         </div>
 
-        <!-- Setup Partecipanti FantaGTS -->
-        <div class="section">
-            <h2>👥 Partecipanti FantaGTS</h2>
-            <p>Registra i partecipanti che prenderanno parte al FantaGTS</p>
-            
-            <div class="form-grid">
-                <div class="input-group">
-                    <label>Nome Completo:</label>
-                    <input type="text" id="nomePartecipante" placeholder="Lorenzo Buselli">
-                </div>
-                <div class="input-group">
-                    <label>Email (opzionale):</label>
-                    <input type="email" id="emailPartecipante" placeholder="lorenzo@email.com">
-                </div>
-                <div class="input-group">
-                    <label>Telefono (opzionale):</label>
-                    <input type="tel" id="telefonoPartecipante" placeholder="333-1234567">
-                </div>
-                <div class="input-group">
-                    <label>Crediti Iniziali:</label>
-                    <input type="number" id="creditiPartecipante" value="2000" min="500" max="5000">
-                </div>
-            </div>
-
-            <div>
-                <button class="btn btn-primary" onclick="aggiungiPartecipante()">
-                    ➕ Aggiungi Partecipante
-                </button>
-                <button class="btn btn-secondary" onclick="clearFormPartecipante()">
-                    🗑️ Pulisci Form
-                </button>
-            </div>
-
-            <table class="partecipanti-table" id="partecipantiTable">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Email</th>
-                        <th>Telefono</th>
-                        <th>Crediti</th>
-                        <th>Azioni</th>
-                    </tr>
-                </thead>
-                <tbody id="partecipantiList">
-                    <!-- I partecipanti verranno caricati qui -->
-                </tbody>
-            </table>
-        </div>
-
         <!-- Finalizzazione Setup -->
         <div class="section">
             <h2>🚀 Finalizzazione Setup</h2>
@@ -425,9 +348,8 @@
             
             <div id="setupSummary">
                 <p>📊 <strong>Squadre configurate:</strong> <span id="countSquadre">0</span></p>
-                <p>👥 <strong>Partecipanti registrati:</strong> <span id="countPartecipanti">0</span></p>
-                <p>🎯 <strong>Slots da generare:</strong> <span id="countSlots">0</span></p>
-                <p>🔄 <strong>Ripetizioni necessarie:</strong> <span id="countRipetizioni">0</span></p>
+                <p>🎯 <strong>Slots da generare:</strong> <span id="countSlots">0</span> (10 per squadra)</p>
+                <p>👥 <strong>Partecipanti:</strong> Si registreranno connettendosi all'app</p>
             </div>
 
             <div style="margin-top: 20px;">
@@ -444,28 +366,14 @@
         </div>
     </div>
 
-    <!-- Modal Conferma -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <h3 id="confirmTitle">Conferma Azione</h3>
-            <p id="confirmMessage">Sei sicuro di voler procedere?</p>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-secondary" onclick="closeModal()">Annulla</button>
-                <button class="btn btn-primary" id="confirmBtn" onclick="">Conferma</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         let squadre = [];
-        let partecipanti = [];
         let systemReady = false;
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
             caricaStato();
             caricaSquadre();
-            caricaPartecipanti();
         });
 
         // Gestione stato sistema
@@ -490,23 +398,19 @@
             let status = 'warning';
             let message = 'Configurazione in corso...';
 
-            // Calcola progresso
-            if (squadre.length > 0) progress += 40;
-            if (partecipanti.length > 0) progress += 40;
-            if (systemReady) progress += 20;
+            // Calcola progresso (ora solo squadre + slots)
+            if (squadre.length > 0) progress += 70; // Peso maggiore alle squadre
+            if (systemReady) progress += 30; // Slots generati
 
             if (progress === 100) {
                 status = 'success';
                 message = '✅ Sistema pronto per le aste!';
-            } else if (progress >= 80) {
+            } else if (progress >= 70) {
                 status = 'warning';
-                message = '⚠️ Quasi pronto - genera gli slots giocatori';
-            } else if (progress >= 40) {
-                status = 'warning';
-                message = '🔄 Configurazione parziale - aggiungi partecipanti';
+                message = '⚠️ Quasi pronto - genera i slots giocatori';
             } else {
                 status = 'error';
-                message = '❌ Configurazione mancante - aggiungi squadre';
+                message = '❌ Configura prima le squadre del circolo';
             }
 
             statusEl.className = `status-indicator status-${status}`;
@@ -520,29 +424,22 @@
 
         function getProgressDescription(progress) {
             if (progress >= 100) return 'Sistema completamente configurato e pronto!';
-            if (progress >= 80) return 'Configurazione quasi completa';
-            if (progress >= 40) return 'Squadre configurate, aggiungi partecipanti';
-            if (progress >= 20) return 'Inizia configurando le squadre del circolo';
-            return 'Configurazione non iniziata';
+            if (progress >= 70) return 'Squadre configurate, genera ora i slots';
+            if (progress >= 30) return 'Continua configurando le squadre del circolo';
+            return 'Inizia configurando le squadre del circolo';
         }
 
         function updateButtons() {
             const btnGenera = document.getElementById('btnGeneraSlots');
             const btnMaster = document.getElementById('btnVaiMaster');
             
-            btnGenera.disabled = squadre.length === 0 || partecipanti.length === 0;
+            btnGenera.disabled = squadre.length === 0;
             btnMaster.disabled = !systemReady;
         }
 
         function updateSummary() {
             document.getElementById('countSquadre').textContent = squadre.length;
-            document.getElementById('countPartecipanti').textContent = partecipanti.length;
             document.getElementById('countSlots').textContent = squadre.length * 10;
-            
-            const giocatoriNecessari = partecipanti.length * 10;
-            const giocatoriDisponibili = squadre.length * 10;
-            const ripetizioni = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
-            document.getElementById('countRipetizioni').textContent = ripetizioni;
         }
 
         // Gestione squadre
@@ -568,7 +465,7 @@
                 card.innerHTML = `
                     <div class="squadra-header">
                         <h3>Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</h3>
-                        <button class="btn btn-danger btn-sm" onclick="eliminaSquadra(${squadra.numero})">
+                        <button class="btn btn-danger btn-sm" onclick="eliminaSquadra(${squadra.numero})" style="padding: 5px 10px; margin: 0;">
                             🗑️
                         </button>
                     </div>
@@ -654,100 +551,10 @@
             }
         }
 
-        // Gestione partecipanti
-        async function caricaPartecipanti() {
-            try {
-                const response = await fetch('/api/partecipanti');
-                partecipanti = await response.json();
-                renderPartecipanti();
-                updateSystemStatus();
-            } catch (error) {
-                console.error('Errore caricamento partecipanti:', error);
-                showNotification('Errore caricamento partecipanti', 'error');
-            }
-        }
-
-        function renderPartecipanti() {
-            const tbody = document.getElementById('partecipantiList');
-            tbody.innerHTML = '';
-
-            partecipanti.forEach(p => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${p.nome}</strong></td>
-                    <td>${p.email || '-'}</td>
-                    <td>${p.telefono || '-'}</td>
-                    <td>${p.crediti} 💰</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" onclick="eliminaPartecipante('${p.id}')">
-                            🗑️
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function aggiungiPartecipante() {
-            const nome = document.getElementById('nomePartecipante').value;
-            const email = document.getElementById('emailPartecipante').value;
-            const telefono = document.getElementById('telefonoPartecipante').value;
-            const crediti = document.getElementById('creditiPartecipante').value;
-
-            if (!nome.trim()) {
-                showNotification('Inserisci il nome del partecipante', 'error');
-                return;
-            }
-
-            const partecipante = { nome, email, telefono, crediti: parseInt(crediti) };
-
-            try {
-                const response = await fetch('/api/partecipanti', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(partecipante)
-                });
-
-                if (response.ok) {
-                    showNotification('Partecipante aggiunto con successo!', 'success');
-                    clearFormPartecipante();
-                    caricaPartecipanti();
-                } else {
-                    const error = await response.json();
-                    showNotification('Errore: ' + error.error, 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
-        }
-
-        function clearFormPartecipante() {
-            document.getElementById('nomePartecipante').value = '';
-            document.getElementById('emailPartecipante').value = '';
-            document.getElementById('telefonoPartecipante').value = '';
-            document.getElementById('creditiPartecipante').value = '2000';
-        }
-
-        async function eliminaPartecipante(id) {
-            if (!confirm('Eliminare questo partecipante?')) return;
-
-            try {
-                const response = await fetch(`/api/partecipanti/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    showNotification('Partecipante eliminato', 'success');
-                    caricaPartecipanti();
-                } else {
-                    showNotification('Errore eliminazione partecipante', 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
-        }
-
         // Finalizzazione
         async function generaSlots() {
-            if (squadre.length === 0 || partecipanti.length === 0) {
-                showNotification('Configura prima squadre e partecipanti', 'error');
+            if (squadre.length === 0) {
+                showNotification('Configura prima le squadre', 'error');
                 return;
             }
 
@@ -755,7 +562,6 @@
                 const response = await fetch('/api/genera-slots', { method: 'POST' });
                 if (response.ok) {
                     systemReady = true;
-					updateSystemStatus();
                     showNotification('Slots generati con successo!', 'success');
                     updateSystemStatus();
                 } else {
@@ -774,23 +580,21 @@
         }
 
         async function resetSistema() {
-            showConfirmModal(
-                'Reset Completo Sistema',
-                'Questa azione eliminerà TUTTI i dati: squadre, partecipanti, aste e risultati. Procedere?',
-                async () => {
-                    try {
-                        const response = await fetch('/api/reset/totale', { method: 'POST' });
-                        if (response.ok) {
-                            showNotification('Sistema resettato completamente', 'success');
-                            location.reload();
-                        } else {
-                            showNotification('Errore durante il reset', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('Errore di connessione', 'error');
-                    }
+            if (!confirm('ATTENZIONE: Questa azione eliminerà TUTTI i dati del sistema. Procedere?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reset/totale', { method: 'POST' });
+                if (response.ok) {
+                    showNotification('Sistema resettato completamente', 'success');
+                    location.reload();
+                } else {
+                    showNotification('Errore durante il reset', 'error');
                 }
-            );
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
         }
 
         // Utilities
@@ -805,20 +609,6 @@
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
-        }
-
-        function showConfirmModal(title, message, onConfirm) {
-            document.getElementById('confirmTitle').textContent = title;
-            document.getElementById('confirmMessage').textContent = message;
-            document.getElementById('confirmBtn').onclick = () => {
-                closeModal();
-                onConfirm();
-            };
-            document.getElementById('confirmModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('confirmModal').style.display = 'none';
         }
 
         // Aggiorna stato ogni 10 secondi

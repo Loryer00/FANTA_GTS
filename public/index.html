@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Partecipante</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .registration-form {
+            background: rgba(255,255,255,0.15);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: rgba(16, 185, 129, 0.3);
+            border: 2px solid #10b981;
+        }
+
+        .status-waiting {
+            background: rgba(245, 158, 11, 0.3);
+            border: 2px solid #f59e0b;
+        }
+
+        .round-info {
+            background: rgba(239, 68, 68, 0.3);
+            border: 3px solid #ef4444;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .big-timer {
+            font-size: 3em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin: 15px 0;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .player-card {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #333;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .player-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .player-card.selected {
+            border-color: #059669;
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            color: white;
+        }
+
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .team-color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            border: 2px solid white;
+        }
+
+        .bid-section {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .selected-player-info {
+            background: rgba(16, 185, 129, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            border: 2px solid #10b981;
+        }
+
+        .bid-input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            font-size: 1.3em;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        
+		.confirm-bid {
+            width: 100%;
+            padding: 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .confirm-bid:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .my-team {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .team-slots {
+    display: grid;
+    grid-template-columns: 1fr; /* CAMBIATO: una sola colonna */
+    gap: 8px; /* RIDOTTO: gap più piccolo */
+    margin-top: 15px;
+}
+
+.team-slot {
+    background: rgba(255,255,255,0.1);
+    padding: 15px; /* AUMENTATO: padding più grande */
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid transparent;
+    min-height: 60px; /* AGGIUNTO: altezza minima */
+}
+
+.team-slot.filled {
+    background: rgba(16, 185, 129, 0.3);
+    border: 4px solid #10b981;
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    min-height: 70px; /* AGGIUNTO: più alto quando riempito */
+}
+
+.team-slot.filled small {
+    font-weight: normal;
+    opacity: 0.8;
+}
+
+.team-slot.empty {
+    background: rgba(107, 114, 128, 0.3);
+    border-color: #6b7280;
+    opacity: 0.7;
+}
+
+        @media (max-width: 480px) {
+            .players-grid {
+                grid-template-columns: 1fr;
+            }
+            .big-timer {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎾 FantaGTS</h1>
+            <p>Fantasy Tennis del Circolo</p>
+        </div>
+
+        <!-- Registrazione -->
+        <div id="registration-area">
+            <div class="registration-form">
+                <h2>👋 Benvenuto!</h2>
+                <p style="margin-bottom: 20px;">Inserisci i tuoi dati per partecipare al FantaGTS</p>
+                
+                <div class="input-group">
+                    <label>Il tuo nome:</label>
+                    <input type="text" id="playerName" placeholder="Lorenzo Buselli" autocomplete="name">
+                </div>
+                
+                <div class="input-group">
+                    <label>Email (opzionale):</label>
+                    <input type="email" id="playerEmail" placeholder="lorenzo@email.com" autocomplete="email">
+                </div>
+                
+                <div class="input-group">
+                    <label>Telefono (opzionale):</label>
+                    <input type="tel" id="playerPhone" placeholder="333-1234567" autocomplete="tel">
+                </div>
+                
+                <button class="btn btn-primary" onclick="registerPlayer()">
+                    🚀 Entra nel FantaGTS
+                </button>
+            </div>
+        </div>
+
+        <!-- Area di gioco -->
+        <div id="game-area" style="display: none;">
+            <!-- Stato connessione -->
+            <div id="connectionStatus" class="connection-status status-connected">
+                ✅ Connesso al FantaGTS
+            </div>
+
+            <!-- Info utente -->
+            <div class="user-info">
+                <div>
+                    <strong id="currentPlayer">--</strong>
+                </div>
+                <div>
+                    💰 <span id="playerCredits">2000</span> crediti
+                </div>
+            </div>
+
+            <!-- Attesa round -->
+            <div id="waiting-phase" class="section" style="display: none;">
+                <h2>⏳ In Attesa</h2>
+                <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
+                <p><strong>Prossimo round: <span id="nextRound">M1</span></strong></p>
+            </div>
+
+            <!-- Round attivo -->
+            <div id="bidding-phase" style="display: none;">
+                <div class="round-info">
+                    <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px;">
+                        Round <span id="currentRound">M1</span>
+                    </div>
+                    <div id="offersStatus" class="big-timer">
+                        Waiting...
+                    </div>
+                    <p id="offersMessage">In attesa che tutti facciano le loro offerte</p>
+                </div>
+
+                <!-- Griglia giocatori -->
+                <div class="players-grid" id="playersGrid">
+                    <!-- I giocatori verranno caricati qui -->
+                </div>
+
+                <!-- Sezione puntata -->
+                <div id="bidSection" class="bid-section" style="display: none;">
+    <div id="selectedPlayerInfo" class="selected-player-info">
+        <strong>Nessun giocatore selezionato</strong>
+    </div>
+    
+    <!-- AGGIUNGI questa sezione crediti -->
+    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
+        <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+    </div>
+    
+    <input type="number" class="bid-input" id="bidAmount" placeholder="Inserisci quanto vuoi puntare" min="1">
+                    
+    <button class="confirm-bid" id="confirmBidBtn" onclick="confirmBid()" disabled>
+        Conferma Puntata
+    </button>
+</div>
+            </div>
+
+            <!-- La mia squadra -->
+            <div class="my-team">
+                <h2>🏆 La Mia Squadra</h2>
+                <div id="myTeamStats">
+                    <p>Giocatori: <span id="teamCount">0</span>/10 | Punti: <span id="teamPoints">0</span></p>
+                </div>
+                <div class="team-slots" id="teamSlots">
+                    <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
+                    <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
+                    <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
+                    <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
+                    <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variabili globali
+        let socket;
+        let playerData = {
+            registered: false,
+            name: '',
+            id: '',
+            credits: 2000
+        };
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('FantaGTS Client caricato');
+            // Tentiamo connessione socket ma non bloccante
+            try {
+                initializeSocket();
+            } catch (error) {
+                console.log('Socket.io non disponibile, modalità base attiva');
+            }
+        });
+
+        // Connessione WebSocket (opzionale)
+        function initializeSocket() {
+            if (typeof io === 'undefined') {
+                console.log('Socket.io non caricato');
+                return;
+            }
+
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connesso al server via WebSocket');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnesso dal server');
+            });
+
+            socket.on('registered', (data) => {
+                if (data.success) {
+                    console.log('Registrazione WebSocket confermata');
+                }
+            });
+
+            socket.on('round_started', (data) => {
+                showBiddingPhase(data);
+            });
+
+            socket.on('offerte_update', (data) => {
+                updateOffersStatus(data);
+            });
+
+            socket.on('timer_update', (timeLeft) => {
+                // Timer non più utilizzato - manteniamo per compatibilità
+                console.log('Timer update (non utilizzato):', timeLeft);
+            });
+
+            socket.on('crediti_aggiornati', (data) => {
+    playerData.credits = data.crediti;
+    updateCreditsDisplay(); // AGGIUNTO: aggiorna entrambi i display
+    console.log('Crediti aggiornati:', data.crediti);
+});
+
+            socket.on('round_ended', (data) => {
+    console.log('Round terminato ricevuto:', data);
+    showResultsPhase(data);
+    updateMyTeamFromResults(data.round, data.risultati);
+    
+    // AGGIUNGI: Reset completo dell'interfaccia
+    resetBiddingInterface();
+    
+    // Torna alla modalità attesa
+    showWaitingPhase();
+
+});
+        }
+
+        // Registrazione giocatore
+        async function registerPlayer() {
+            const name = document.getElementById('playerName').value.trim();
+            const email = document.getElementById('playerEmail').value.trim();
+            const phone = document.getElementById('playerPhone').value.trim();
+
+            if (!name) {
+                alert('Inserisci il tuo nome!');
+                return;
+            }
+
+            try {
+                // Registra nel database
+                const response = await fetch('/api/partecipanti', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome: name,
+                        email: email,
+                        telefono: phone,
+                        crediti: 2000
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    playerData.name = name;
+                    playerData.id = result.id;
+                    playerData.credits = 2000;
+
+                    // Registra socket se disponibile
+                    if (socket && socket.connected) {
+                        socket.emit('register', {
+                            nome: name,
+                            tipo: 'partecipante',
+                            partecipanteId: result.id
+                        });
+                    }
+
+                    // Mostra area gioco
+                    document.getElementById('currentPlayer').textContent = name;
+                    document.getElementById('playerCredits').textContent = 2000;
+                    showGameArea();
+                    
+                    alert('✅ Registrato con successo!\n\nOra sei nel FantaGTS e in attesa che il Master avvii le aste.');
+                    
+                } else {
+                    const error = await response.json();
+                    alert('❌ Errore registrazione: ' + error.error);
+                }
+            } catch (error) {
+                alert('❌ Errore di connessione al server');
+                console.error('Errore registrazione:', error);
+            }
+        }
+
+        function showGameArea() {
+            document.getElementById('registration-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            showWaitingPhase();
+        }
+
+        function showWaitingPhase() {
+            document.getElementById('waiting-phase').style.display = 'block';
+            document.getElementById('bidding-phase').style.display = 'none';
+        }
+
+        function showBiddingPhase(data) {
+            document.getElementById('waiting-phase').style.display = 'none';
+            document.getElementById('bidding-phase').style.display = 'block';
+            
+            if (data && data.round) {
+                document.getElementById('currentRound').textContent = data.round;
+                loadAvailablePlayers(data.slots || []);
+            }
+        }
+		
+		function updateCreditsDisplay() {
+    document.getElementById('creditsDisplay').textContent = playerData.credits;
+    document.getElementById('playerCredits').textContent = playerData.credits;
+}
+
+function resetBiddingInterface() {
+    // Riabilita input crediti
+    document.getElementById('bidAmount').disabled = false;
+    document.getElementById('bidAmount').value = '';
+    
+    // Riabilita tutti i controlli
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.style.pointerEvents = 'auto';
+        card.style.opacity = '1';
+        card.classList.remove('selected');
+    });
+    
+    // Reset pulsante conferma
+    const confirmBtn = document.getElementById('confirmBidBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Conferma Puntata';
+    confirmBtn.style.background = '#ef4444';
+    
+    // Nascondi sezione bid
+    document.getElementById('bidSection').style.display = 'none';
+    
+    console.log('🔄 Interfaccia di puntata resettata');
+}
+
+        function loadAvailablePlayers(slots) {
+            const grid = document.getElementById('playersGrid');
+            grid.innerHTML = '';
+
+            // Se non abbiamo slots dal server, usa dati mock per test
+            const players = slots.length > 0 ? slots : [
+                { id: 'M1_ROSSO', giocatore_attuale: 'SPANO', colore: 'rosso' },
+                { id: 'M1_BLU', giocatore_attuale: 'BIANCHI', colore: 'blu' },
+                { id: 'M1_VERDE', giocatore_attuale: 'VERDI', colore: 'verde' }
+            ];
+
+            players.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.dataset.playerId = player.id;
+                
+                card.innerHTML = `
+                    <div class="team-color-dot" style="background-color: ${player.colore}"></div>
+                    <div class="player-name">${player.giocatore_attuale}</div>
+                    <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
+                `;
+                
+                card.addEventListener('click', () => selectPlayer(player));
+                grid.appendChild(card);
+            });
+        }
+
+        function selectPlayer(player) {
+    // Rimuovi selezione precedente
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+
+    // Seleziona nuovo giocatore
+    document.querySelector(`[data-player-id="${player.id}"]`).classList.add('selected');
+
+    // Mostra sezione puntata
+    document.getElementById('bidSection').style.display = 'block';
+    document.getElementById('selectedPlayerInfo').innerHTML = `
+        <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
+        <small>Squadra ${player.colore}</small>
+    `;
+
+    // AGGIUNTO: Aggiorna display crediti
+    updateCreditsDisplay();
+
+    // Abilita pulsante
+    updateBidButton();
+}
+
+        function updateBidButton() {
+            const button = document.getElementById('confirmBidBtn');
+            const amount = parseInt(document.getElementById('bidAmount').value) || 0;
+            const hasValidBid = amount > 0 && amount <= playerData.credits;
+            const hasSelection = document.querySelector('.player-card.selected') !== null;
+
+            button.disabled = !(hasSelection && hasValidBid);
+            
+            if (hasSelection && hasValidBid) {
+                const playerName = document.querySelector('.player-card.selected .player-name').textContent;
+                button.textContent = `Punta ${amount} su ${playerName}`;
+            } else {
+                button.textContent = 'Conferma Puntata';
+            }
+        }
+
+        function confirmBid() {
+            const amount = parseInt(document.getElementById('bidAmount').value);
+            const selectedCard = document.querySelector('.player-card.selected');
+            
+            if (!selectedCard || !amount || amount <= 0) {
+                alert('Seleziona un giocatore e inserisci un importo valido!');
+                return;
+            }
+
+            const playerId = selectedCard.dataset.playerId;
+            const playerName = selectedCard.querySelector('.player-name').textContent;
+
+            // CONFERMA A 2 STEP
+            const confirmMessage = `Stai per puntare\n\n${amount} crediti\n\nsu ${playerName}`;
+            
+            if (!confirm(confirmMessage)) {
+                return; // Utente ha annullato
+            }
+
+            // Invia offerta al server se socket disponibile
+            if (socket && socket.connected) {
+                socket.emit('place_bid', {
+                    round: document.getElementById('currentRound').textContent,
+                    slot: playerId,
+                    importo: amount
+                });
+            }
+
+            // Feedback visivo - PUNTATA CONFERMATA
+            const button = document.getElementById('confirmBidBtn');
+            button.disabled = true;
+            button.textContent = '✅ Puntata Confermata';
+            button.style.background = '#10b981';
+
+            // Disabilita tutta l'interfaccia di puntata
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.style.pointerEvents = 'none';
+                card.style.opacity = '0.7';
+            });
+            document.getElementById('bidAmount').disabled = true;
+            document.querySelectorAll('.quick-bid').forEach(btn => btn.disabled = true);
+
+            alert(`✅ Puntata confermata!\n\nOra attendi che tutti completino le loro offerte.`);
+        }
+
+        function updateOffersStatus(data) {
+            const statusEl = document.getElementById('offersStatus');
+            const messageEl = document.getElementById('offersMessage');
+            
+            if (data.mancano > 0) {
+                statusEl.textContent = `${data.offerteRicevute}/${data.totalePartecipanti}`;
+                statusEl.style.color = '#f59e0b';
+                messageEl.textContent = `Mancano ${data.mancano} offerte per proseguire`;
+            } else {
+                statusEl.textContent = '✅ Tutti hanno offerto!';
+                statusEl.style.color = '#10b981';
+                messageEl.textContent = 'Elaborazione risultati in corso...';
+            }
+        }
+
+        function updateTimer(timeLeft) {
+            // Funzione mantenuta per compatibilità ma non più utilizzata
+            console.log('Timer non utilizzato:', timeLeft);
+        }
+
+        function showResultsPhase(data) {
+            // TODO: Implementare visualizzazione risultati
+            alert('Round terminato!');
+            showWaitingPhase();
+        }
+
+function updateMyTeamFromResults(round, risultati) {
+    // Trova i miei acquisti in questo round
+    const mieiAcquisti = risultati.filter(r => r.nome === playerData.name);
+    
+    mieiAcquisti.forEach(acquisto => {
+        // Estrai informazioni dal slot (es: "M1_ROSSO")
+        const [posizione, coloreSquadra] = acquisto.slot.split('_');
+        
+        // Trova lo slot corrispondente nella UI
+        const slotElement = document.querySelector(`[data-position="${posizione}"]`);
+        if (slotElement) {
+            slotElement.classList.remove('empty');
+            slotElement.classList.add('filled');
+            
+            // Trova il nome del giocatore dal database
+            fetch(`/api/slot-info/${acquisto.slot}`)
+                .then(response => response.json())
+                .then(slotInfo => {
+                    slotElement.innerHTML = `
+                        <strong>${posizione}</strong><br>
+                        ${slotInfo.giocatore_attuale || 'N/A'}
+                    `;
+                    
+                    // SFONDO COLORATO al 50% + BORDO COLORATO
+                    const teamColor = getTeamColor(coloreSquadra);
+                    slotElement.style.borderColor = teamColor;
+                    slotElement.style.borderWidth = '4px';
+                    slotElement.style.borderStyle = 'solid';
+                    slotElement.style.backgroundColor = teamColor + '80'; // Aggiunge trasparenza 50%
+                })
+                .catch(() => {
+                    // Fallback se API non disponibile
+                    slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore`;
+                    const teamColor = getTeamColor(coloreSquadra);
+                    slotElement.style.borderColor = teamColor;
+                    slotElement.style.borderWidth = '4px';
+                    slotElement.style.borderStyle = 'solid';
+                    slotElement.style.backgroundColor = teamColor + '80'; // Trasparenza 50%
+                });
+        }
+    });
+    
+    // Aggiorna contatori
+    const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
+    document.getElementById('teamCount').textContent = slotsRiempiti;
+}
+
+function getTeamColor(nomeColore) {
+    const colori = {
+        'rosso': '#ef4444',
+        'blu': '#3b82f6', 
+        'verde': '#10b981',
+        'giallo': '#f59e0b',
+        'viola': '#8b5cf6',
+        'arancione': '#f97316',
+        'rosa': '#ec4899',
+        'azzurro': '#06b6d4',
+        'marrone': '#92400e',
+        'nero': '#374151',
+        'bianco': '#f3f4f6',
+        'grigio': '#6b7280',
+        'lime': '#84cc16',
+        'indaco': '#6366f1',
+        'fucsia': '#d946ef'
+    };
+    
+    return colori[nomeColore.toLowerCase()] || '#6b7280'; // Default grigio
+}
+
+        // Event listeners
+        document.getElementById('bidAmount').addEventListener('input', updateBidButton);
+
+        // Auto-focus
+        document.getElementById('playerName').focus();
+
+        console.log('✅ FantaGTS Client inizializzato correttamente');
+    </script>
+</body>
+</html>
