@@ -1,0 +1,11 @@
+Squadra Gialla
+M1 Spano
+M2 Cavo A
+M3 Paqualetto
+M4 Cosini
+M5 Cassanello
+M6 Paladino
+M7 Ferrari P
+F1 Tambroni B
+F2 Frojo F
+F3 Brunelli E

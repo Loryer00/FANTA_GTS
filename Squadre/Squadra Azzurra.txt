@@ -1,0 +1,11 @@
+Squadra Azzurra
+M1 Givri
+M2 Avogadro
+M3 Cesano
+M4 Cresta
+M5 Vinelli L
+M6 NAvarra
+M7 Berti
+F1 Bozano E
+F2 Maccaroni
+F3 Landini

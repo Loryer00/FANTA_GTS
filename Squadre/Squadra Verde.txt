@@ -1,0 +1,11 @@
+Squadra Verde
+M1 Enciso Mora
+M2 Gamenara
+M3 Mantero
+M4 Barbieri G
+M5 Castorina
+M6 Borghi G
+M7 Conte
+F1 Urbini
+F2 Pongiglione M
+F3 Musante

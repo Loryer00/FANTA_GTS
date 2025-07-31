@@ -269,6 +269,31 @@ app.get('/api/slot-info/:slotId', (req, res) => {
     });
 });
 
+// NUOVO ENDPOINT: Ottieni squadra di un partecipante
+app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
+    const partecipanteId = req.params.partecipanteId;
+    
+    db.all(`SELECT 
+        a.slot_id,
+        a.costo_finale,
+        s.posizione,
+        s.giocatore_attuale,
+        s.colore,
+        s.punti_totali
+        FROM aste a 
+        JOIN slots s ON a.slot_id = s.id 
+        WHERE a.partecipante_id = ? AND a.vincitore = 1 
+        ORDER BY s.posizione`, partecipanteId, (err, rows) => {
+        
+        if (err) {
+            console.error('Errore query squadra partecipante:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        res.json(rows);
+    });
+});
+
 // Controllo aste
 app.post('/api/avvia-round/:round', (req, res) => {
     const round = req.params.round;
@@ -327,6 +352,69 @@ app.get('/api/stato-offerte/:round', (req, res) => {
     });
 });
 
+// NUOVO ENDPOINT: Ottieni risultati aste per round specifico
+app.get('/api/aste-round/:round', (req, res) => {
+    const round = req.params.round;
+    
+    db.all(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+            FROM aste a 
+            JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
+            JOIN slots s ON a.slot_id = s.id 
+            WHERE a.round = ? AND a.vincitore = 1 
+            ORDER BY a.costo_finale DESC`, round, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// NUOVO ENDPOINT: Ottieni tutti i risultati partite
+app.get('/api/risultati-partite', (req, res) => {
+    db.all(`SELECT r.*, 
+            s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
+            FROM risultati_partite r 
+            JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
+            JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
+            ORDER BY r.turno DESC, r.timestamp DESC`, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Parse JSON vincitori
+        rows.forEach(row => {
+            try {
+                row.vincitori = JSON.parse(row.vincitori || '[]');
+            } catch (e) {
+                row.vincitori = [];
+            }
+        });
+        
+        res.json(rows);
+    });
+});
+
+// NUOVO ENDPOINT: Ottieni classifica generale
+app.get('/api/classifica', (req, res) => {
+    db.all(`SELECT 
+        p.id, p.nome, p.crediti, 
+        COUNT(a.id) as giocatori_totali,
+        COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+        COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
+        FROM partecipanti_fantagts p 
+        LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = 1
+        LEFT JOIN slots s ON a.slot_id = s.id 
+        WHERE p.attivo = 1
+        GROUP BY p.id, p.nome, p.crediti 
+        ORDER BY punti_totali DESC, crediti_spesi ASC`, (err, rows) => {
+        
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Aggiungi posizione in classifica
+        rows.forEach((row, index) => {
+            row.posizione = index + 1;
+        });
+        
+        res.json(rows);
+    });
+});
+
 // NUOVO: Monitoraggio automatico offerte
 function avviaMonitoraggioOfferte() {
     const monitorInterval = setInterval(() => {
@@ -338,10 +426,10 @@ function avviaMonitoraggioOfferte() {
         // Controlla se tutti hanno offerto
         const partecipantiConnessi = Array.from(gameState.connessi.values())
             .filter(p => p.tipo === 'partecipante').length;
-        
+
         const offerteRound = Array.from(gameState.offerteTemporanee.values())
             .filter(o => o.round === gameState.roundAttivo).length;
-        
+
         const statoOfferte = {
             partecipantiConnessi: partecipantiConnessi,
             offerteRicevute: offerteRound,
@@ -353,16 +441,16 @@ function avviaMonitoraggioOfferte() {
         io.emit('offerte_update', statoOfferte);
 
         // Auto-chiusura se tutti hanno offerto (INCLUSO 1 SOLO PARTECIPANTE)
-if (statoOfferte.tuttiHannoOfferto && partecipantiConnessi > 0) {
-    console.log(`🎉 ${partecipantiConnessi} partecipante(i) hanno fatto offerte - chiusura automatica round`);
-    clearInterval(monitorInterval);
-    
-    // Chiusura immediata (no timeout problematico)
-    if (gameState.asteAttive) {
-        console.log('🔄 Avviando elaborazione risultati...');
-        terminaRound();
-    }
-}
+        if (statoOfferte.tuttiHannoOfferto && partecipantiConnessi > 0) {
+            console.log(`🎉 ${partecipantiConnessi} partecipante(i) hanno fatto offerte - chiusura automatica round`);
+            clearInterval(monitorInterval);
+
+            // Chiusura immediata (no timeout problematico)
+            if (gameState.asteAttive) {
+                console.log('🔄 Avviando elaborazione risultati...');
+                terminaRound();
+            }
+        }
     }, 1000); // Controlla ogni secondo
 }
 
@@ -381,7 +469,7 @@ function terminaRound() {
 
     gameState.asteAttive = false;
     gameState.gamePhase = 'results';
-    
+
     // Elabora risultati aste
     elaboraRisultatiAste();
 }

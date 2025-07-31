@@ -14,9 +14,9 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
             min-height: 100vh;
-            color: white;
+            color: #e2e8f0;
             padding: 15px;
         }
 
@@ -29,9 +29,10 @@
             text-align: center;
             margin-bottom: 25px;
             padding: 20px;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.4);
             border-radius: 15px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .dashboard-grid {
@@ -42,37 +43,48 @@
         }
 
         .section {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             border-radius: 15px;
             padding: 20px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .section h2 {
             margin-bottom: 15px;
-            color: #ffd700;
-            border-bottom: 2px solid #ffd700;
+            color: #4299e1;
+            border-bottom: 2px solid #4299e1;
             padding-bottom: 8px;
             font-size: 1.3em;
         }
 
         .status-card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
             border-left: 4px solid;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .status-active { border-left-color: #10b981; }
-        .status-waiting { border-left-color: #f59e0b; }
-        .status-error { border-left-color: #ef4444; }
+        .status-active { 
+            border-left-color: #48bb78; 
+            background: rgba(72, 187, 120, 0.1);
+        }
+        .status-waiting { 
+            border-left-color: #ed8936; 
+            background: rgba(237, 137, 54, 0.1);
+        }
+        .status-error { 
+            border-left-color: #f56565; 
+            background: rgba(245, 101, 101, 0.1);
+        }
 
         .big-display {
             font-size: 3em;
             text-align: center;
             font-weight: bold;
-            color: #ffd700;
+            color: #4299e1;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             margin: 20px 0;
         }
@@ -92,28 +104,33 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 0.9em;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .round-btn.available {
-            background: #10b981;
+            background: #48bb78;
             color: white;
+            border-color: #48bb78;
         }
 
         .round-btn.active {
-            background: #ef4444;
+            background: #f56565;
             color: white;
             animation: pulse 2s infinite;
+            border-color: #f56565;
         }
 
         .round-btn.completed {
-            background: #6b7280;
-            color: white;
+            background: #4a5568;
+            color: #a0aec0;
             cursor: not-allowed;
+            border-color: #4a5568;
         }
 
         .round-btn:hover:not(.completed):not(.active) {
-            background: #059669;
+            background: #38a169;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
         }
 
         @keyframes pulse {
@@ -131,40 +148,49 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin: 5px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .btn-primary {
-            background: #10b981;
+            background: #4299e1;
             color: white;
+            border-color: #4299e1;
         }
 
         .btn-primary:hover {
-            background: #059669;
+            background: #3182ce;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
         }
 
         .btn-danger {
-            background: #ef4444;
+            background: #f56565;
             color: white;
+            border-color: #f56565;
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: #e53e3e;
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
         }
 
         .btn-warning {
-            background: #f59e0b;
+            background: #ed8936;
             color: white;
+            border-color: #ed8936;
         }
 
         .btn-warning:hover {
-            background: #d97706;
+            background: #dd6b20;
+            box-shadow: 0 4px 12px rgba(237, 137, 54, 0.4);
         }
 
         .btn:disabled {
-            background: #6b7280;
+            background: #4a5568;
             cursor: not-allowed;
             transform: none;
+            border-color: #4a5568;
+            color: #a0aec0;
         }
 
         .participants-grid {
@@ -174,30 +200,31 @@
         }
 
         .participant-card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             padding: 15px;
             border-radius: 10px;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #4299e1;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .participant-card.bid-confirmed {
-            border-left-color: #10b981;
-            background: rgba(16, 185, 129, 0.2);
+            border-left-color: #48bb78;
+            background: rgba(72, 187, 120, 0.15);
         }
 
         .participant-card.bid-pending {
-            border-left-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.2);
+            border-left-color: #ed8936;
+            background: rgba(237, 137, 54, 0.15);
         }
 
         .participant-card.offline {
-            border-left-color: #6b7280;
+            border-left-color: #4a5568;
             opacity: 0.6;
         }
 
         .current-round-display {
-            background: rgba(239, 68, 68, 0.3);
-            border: 3px solid #ef4444;
+            background: rgba(245, 101, 101, 0.2);
+            border: 3px solid #f56565;
             padding: 20px;
             border-radius: 15px;
             text-align: center;
@@ -208,7 +235,7 @@
             display: inline-block;
             width: 10px;
             height: 10px;
-            background: #ef4444;
+            background: #f56565;
             border-radius: 50%;
             animation: blink 1s infinite;
             margin-right: 8px;
@@ -227,21 +254,23 @@
         }
 
         .stat-card {
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
             padding: 15px;
             border-radius: 10px;
             text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .stat-number {
             font-size: 2em;
             font-weight: bold;
-            color: #ffd700;
+            color: #4299e1;
         }
 
         .stat-label {
             font-size: 0.9em;
             opacity: 0.8;
+            color: #cbd5e0;
         }
 
         .notification {
@@ -262,15 +291,15 @@
         }
 
         .notification.success {
-            background: #10b981;
+            background: #48bb78;
         }
 
         .notification.error {
-            background: #ef4444;
+            background: #f56565;
         }
 
         .notification.warning {
-            background: #f59e0b;
+            background: #ed8936;
         }
 
         .modal {
@@ -287,14 +316,15 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
             padding: 30px;
             border-radius: 15px;
             max-width: 600px;
             width: 90%;
-            color: white;
+            color: #e2e8f0;
             max-height: 80vh;
             overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .results-table {
@@ -314,6 +344,7 @@
         .results-table th {
             background: rgba(0,0,0,0.3);
             font-weight: bold;
+            color: #4299e1;
         }
 
         .bid-status {
@@ -324,20 +355,21 @@
         }
 
         .bid-confirmed {
-            background: #10b981;
+            background: #48bb78;
             color: white;
         }
 
         .bid-pending {
-            background: #f59e0b;
+            background: #ed8936;
             color: white;
         }
 
         .bid-none {
-            background: #6b7280;
-            color: white;
+            background: #4a5568;
+            color: #a0aec0;
         }
-    </style>
+</style>
+
 </head>
 <body>
     <div class="container">
@@ -355,7 +387,7 @@
             <!-- Controllo Aste -->
             <div class="section">
                 <h2>🎯 Controllo Aste</h2>
-                
+
                 <div id="currentRoundInfo" class="current-round-display" style="display: none;">
                     <h3>Round Attivo: <span id="activeRoundName">M1</span></h3>
                     <div class="big-display" id="offersDisplay">0/0</div>
@@ -428,6 +460,14 @@
             </div>
         </div>
 
+        <!-- Squadre in Formazione -->
+        <div class="section">
+            <h2>👥 Squadre in Formazione</h2>
+            <div id="squadreInFormazione">
+                <p>Nessuna squadra ancora formata</p>
+            </div>
+        </div>
+
         <!-- Strumenti Admin -->
         <div class="section">
             <h2>🔧 Strumenti Amministrazione</h2>
@@ -487,16 +527,191 @@
 
     <script>
         // Variabili globali
-        let socket;
-        let gameState = {
-            fase: 'waiting',
-            roundAttivo: null,
-            asteAttive: false,
-            connessi: [],
-            ultimiRisultati: null
+let socket;
+let gameState = {
+    fase: 'waiting',
+    roundAttivo: null,
+    asteAttive: false,
+    connessi: [],
+    ultimiRisultati: null
+};
+let roundSelezionato = null;
+let participantsBids = new Map(); // Traccia le offerte dei partecipanti
+
+// NUOVO: Sistema di persistenza per Master
+const MASTER_STORAGE_KEYS = {
+    GAME_STATE: 'fantagts_master_game_state',
+    COMPLETED_ROUNDS: 'fantagts_completed_rounds',
+    LAST_UPDATE: 'fantagts_last_update'
+};
+
+// NUOVA FUNZIONE: Salva stato completo del gioco
+async function saveMasterState() {
+    try {
+        // Raccogli tutti i dati necessari dal server
+        const [squadre, partecipanti, risultatiPartite, classifica] = await Promise.all([
+            fetch('/api/squadre').then(r => r.json()).catch(() => []),
+            fetch('/api/partecipanti').then(r => r.json()).catch(() => []),
+            fetch('/api/risultati-partite').then(r => r.json()).catch(() => []),
+            fetch('/api/classifica').then(r => r.json()).catch(() => [])
+        ]);
+
+        // Ottieni tutti i risultati delle aste per round
+        const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+        const astePerRound = {};
+        
+        for (const round of rounds) {
+            try {
+                const response = await fetch(`/api/aste-round/${round}`);
+                if (response.ok) {
+                    astePerRound[round] = await response.json();
+                }
+            } catch (error) {
+                console.log(`Round ${round} non ancora completato`);
+                astePerRound[round] = [];
+            }
+        }
+
+        const masterStateData = {
+            gameState: gameState,
+            squadre: squadre,
+            partecipanti: partecipanti,
+            risultatiPartite: risultatiPartite,
+            classifica: classifica,
+            astePerRound: astePerRound,
+            roundsCompletati: rounds.filter(r => astePerRound[r].length > 0),
+            timestamp: new Date().getTime()
         };
-        let roundSelezionato = null;
-        let participantsBids = new Map(); // Traccia le offerte dei partecipanti
+
+        localStorage.setItem(MASTER_STORAGE_KEYS.GAME_STATE, JSON.stringify(masterStateData));
+        localStorage.setItem(MASTER_STORAGE_KEYS.LAST_UPDATE, new Date().getTime().toString());
+        
+        console.log('✅ Stato Master salvato:', masterStateData);
+    } catch (error) {
+        console.error('❌ Errore salvataggio stato Master:', error);
+    }
+}
+
+// NUOVA FUNZIONE: Carica stato salvato del Master
+async function loadMasterState() {
+    try {
+        const savedState = localStorage.getItem(MASTER_STORAGE_KEYS.GAME_STATE);
+        const lastUpdate = localStorage.getItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
+        
+        if (!savedState || !lastUpdate) {
+            console.log('Nessuno stato Master salvato trovato');
+            return false;
+        }
+
+        // Controlla se lo stato non è troppo vecchio (7 giorni)
+        const now = new Date().getTime();
+        const savedTime = parseInt(lastUpdate);
+        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 giorni
+
+        if (now - savedTime > maxAge) {
+            console.log('Stato Master scaduto, rimuovo dati salvati');
+            clearMasterState();
+            return false;
+        }
+
+        const parsedState = JSON.parse(savedState);
+        console.log('📊 Stato Master caricato:', parsedState);
+
+        // Ripristina stato del gioco
+        gameState = parsedState.gameState || gameState;
+        
+        // Ripristina rounds completati
+        if (parsedState.roundsCompletati) {
+            parsedState.roundsCompletati.forEach(round => {
+                const btn = document.querySelector(`[data-round="${round}"]`);
+                if (btn) {
+                    btn.classList.remove('active', 'available');
+                    btn.classList.add('completed');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.style.pointerEvents = 'none';
+                    btn.style.cursor = 'not-allowed';
+                }
+            });
+        }
+
+        // Ripristina ultimo risultato se disponibile
+        if (parsedState.roundsCompletati.length > 0) {
+            const ultimoRound = parsedState.roundsCompletati[parsedState.roundsCompletati.length - 1];
+            const ultimiRisultati = parsedState.astePerRound[ultimoRound];
+            
+            if (ultimiRisultati && ultimiRisultati.length > 0) {
+                updateLastRoundResults(ultimoRound, ultimiRisultati);
+            }
+        }
+
+        // Aggiorna statistiche
+        updateStatsFromSavedData(parsedState);
+        
+        showNotification('🔄 Stato del gioco ripristinato!', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Errore caricamento stato Master:', error);
+        clearMasterState();
+        return false;
+    }
+}
+
+// NUOVA FUNZIONE: Aggiorna statistiche da dati salvati
+function updateStatsFromSavedData(parsedState) {
+    try {
+        // Aggiorna contatori
+        document.getElementById('statRounds').textContent = parsedState.roundsCompletati.length;
+        
+        // Calcola crediti spesi totali
+        let creditiSpesiTotali = 0;
+        Object.values(parsedState.astePerRound).forEach(roundResults => {
+            roundResults.forEach(risultato => {
+                creditiSpesiTotali += risultato.costo_finale || 0;
+            });
+        });
+        document.getElementById('statCrediti').textContent = creditiSpesiTotali;
+        
+        // Aggiorna partecipanti connessi (verrà aggiornato quando si riconnettono)
+        document.getElementById('statConnessi').textContent = '0';
+        document.getElementById('statOfferte').textContent = '0';
+        
+    } catch (error) {
+        console.error('Errore aggiornamento statistiche:', error);
+    }
+}
+
+// NUOVA FUNZIONE: Aggiorna display ultimo round
+function updateLastRoundResults(round, risultati) {
+    let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
+    html += '<table class="results-table"><thead><tr>';
+    html += '<th>Slot</th><th>Vincitore</th><th>Offerta</th><th>Costo</th>';
+    html += '</tr></thead><tbody>';
+
+    risultati.forEach(r => {
+        html += `<tr>
+            <td><strong>${r.slot_id || r.slot}</strong></td>
+            <td>${r.partecipante_nome || r.nome}</td>
+            <td>${r.offerta || r.offertaOriginale}</td>
+            <td>${r.costo_finale}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('lastRoundResults').innerHTML = html;
+}
+
+// NUOVA FUNZIONE: Pulisci stato Master
+function clearMasterState() {
+    try {
+        localStorage.removeItem(MASTER_STORAGE_KEYS.GAME_STATE);
+        localStorage.removeItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
+        console.log('🗑️ Stato Master rimosso');
+    } catch (error) {
+        console.error('Errore rimozione stato Master:', error);
+    }
+}
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
@@ -545,7 +760,8 @@
                 updatePartecipantiWithBids(data);
             });
 
-            socket.on('round_ended', (data) => {
+            // Modifica la funzione che gestisce fine round
+socket.on('round_ended', (data) => {
     gameState.asteAttive = false;
     gameState.roundAttivo = null;
     updateUI();
@@ -565,8 +781,12 @@
     
     stopOffersDisplay();
     mostraRisultatiRound(data.round, data.risultati);
+    
+    setTimeout(() => {
+        caricaSquadreInFormazione();
+        saveMasterState();
+    }, 1000);
 });
-
             socket.on('connessi_update', (connessi) => {
                 gameState.connessi = connessi;
                 updatePartecipanti();
@@ -585,17 +805,157 @@
             }
         }
 
-        // Caricamento stato iniziale
+        // Caricamento stato iniziale MODIFICATO
+        // Caricamento stato iniziale MODIFICATO
         async function caricaStatoIniziale() {
             try {
+                // Prima prova a caricare stato salvato
+                const statoRipristinato = await loadMasterState();
+
+                // Poi carica stato corrente dal server
                 const response = await fetch('/api/stato');
                 const stato = await response.json();
                 gameState = { ...gameState, ...stato };
                 updateUI();
+
+                // NUOVO: Carica squadre in formazione
+                await caricaSquadreInFormazione();
+
+                // Salva stato dopo ogni caricamento
+                await saveMasterState();
+
             } catch (error) {
                 console.error('Errore caricamento stato:', error);
                 showNotification('Errore caricamento stato', 'error');
             }
+        }
+
+        // NUOVA FUNZIONE: Carica e mostra tutte le squadre in formazione
+        async function caricaSquadreInFormazione() {
+            try {
+                const partecipanti = await fetch('/api/partecipanti').then(r => r.json());
+                const container = document.getElementById('squadreInFormazione');
+                container.innerHTML = '';
+
+                if (partecipanti.length === 0) {
+                    container.innerHTML = '<p>Nessun partecipante registrato</p>';
+                    return;
+                }
+
+                const squadreGrid = document.createElement('div');
+                squadreGrid.style.display = 'grid';
+                squadreGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                squadreGrid.style.gap = '20px';
+
+                for (const partecipante of partecipanti) {
+                    const squadraCard = await creaCardSquadra(partecipante);
+                    squadreGrid.appendChild(squadraCard);
+                }
+
+                container.appendChild(squadreGrid);
+            } catch (error) {
+                console.error('Errore caricamento squadre:', error);
+                document.getElementById('squadreInFormazione').innerHTML = '<p>Errore caricamento squadre</p>';
+            }
+        }
+
+        // NUOVA FUNZIONE: Crea card per una squadra
+        async function creaCardSquadra(partecipante) {
+            const card = document.createElement('div');
+            card.style.cssText = `
+        background: rgba(255,255,255,0.08);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+    `;
+
+            try {
+                // Carica i giocatori del partecipante
+                const squadra = await fetch(`/api/squadra-partecipante/${partecipante.id}`).then(r => r.json());
+
+                const giocatoriAcquistati = squadra.length;
+                const creditiSpesi = squadra.reduce((sum, g) => sum + (g.costo_finale || 0), 0);
+                const creditiRimasti = partecipante.crediti;
+
+                card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #4299e1; margin: 0;">${partecipante.nome}</h3>
+                <div style="font-size: 0.9em; opacity: 0.8;">
+                    ${giocatoriAcquistati}/10 giocatori
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+                ${['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'].map(pos => {
+                    const giocatore = squadra.find(g => g.slot_id.startsWith(pos + '_'));
+                    if (giocatore) {
+                        const teamColor = getTeamColorForMaster(giocatore.colore);
+                        return `
+                            <div style="
+                                background: ${teamColor}40;
+                                border: 2px solid ${teamColor};
+                                padding: 8px;
+                                border-radius: 6px;
+                                text-align: center;
+                                font-size: 0.8em;
+                            ">
+                                <strong>${pos}</strong><br>
+                                ${giocatore.giocatore_attuale}<br>
+                                <small>${giocatore.colore} - ${giocatore.costo_finale}€</small>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div style="
+                                background: rgba(74,85,104,0.3);
+                                border: 1px solid #4a5568;
+                                padding: 8px;
+                                border-radius: 6px;
+                                text-align: center;
+                                font-size: 0.8em;
+                                opacity: 0.6;
+                            ">
+                                <strong>${pos}</strong><br>
+                                -
+                            </div>
+                        `;
+                    }
+                }).join('')}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
+                <span>💰 Rimasti: ${creditiRimasti}</span>
+                <span>💸 Spesi: ${creditiSpesi}</span>
+                <span>🏆 Punti: ${squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0)}</span>
+            </div>
+        `;
+            } catch (error) {
+                card.innerHTML = `
+            <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+            <p style="opacity: 0.7;">Squadra non ancora formata</p>
+            <div style="font-size: 0.9em; opacity: 0.9;">
+                💰 Crediti: ${partecipante.crediti}
+            </div>
+        `;
+            }
+
+            return card;
+        }
+
+        // NUOVA FUNZIONE: Gestione colori per Master
+        function getTeamColorForMaster(nomeColore) {
+            const colori = {
+                'rosso': '#ef4444', 'blu': '#3b82f6', 'verde': '#10b981',
+                'giallo': '#f59e0b', 'viola': '#8b5cf6', 'arancione': '#f97316',
+                'rosa': '#ec4899', 'azzurro': '#06b6d4', 'marrone': '#92400e',
+                'nero': '#374151', 'bianco': '#f3f4f6', 'grigio': '#6b7280',
+                'smeraldo': '#10b981', 'royal': '#1e40af', 'ciano': '#06b6d4',
+                'lime': '#84cc16', 'bordeaux': '#7c2d12', 'crema': '#fef3c7',
+                'lilla': '#c4b5fd'
+            };
+
+            const coloreLowerCase = nomeColore.toLowerCase().trim();
+            return colori[coloreLowerCase] || '#4299e1';
         }
 
         // Setup event listeners
@@ -1020,6 +1380,19 @@ function setupEventListeners() {
 
         // Aggiorna stato ogni 30 secondi
         setInterval(caricaStatoIniziale, 30000);
+		
+		// Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti
+setInterval(async () => {
+    if (gameState.asteAttive || document.querySelectorAll('.team-slot.filled').length > 0) {
+        await saveMasterState();
+    }
+}, 30000);
+
+// Salva stato quando si chiude la finestra
+window.addEventListener('beforeunload', () => {
+    saveMasterState();
+});
+		
     </script>
 </body>
 </html>

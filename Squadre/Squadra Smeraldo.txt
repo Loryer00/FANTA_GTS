@@ -1,0 +1,11 @@
+Squadra Smeraldo
+M1 Castagnola
+M2 Cevasco
+M3 Scarpa
+M4 Airenti
+M5 Buselli
+M6 Montefiori
+M7 Tyron
+F1 Marre
+F2 Cuni
+F3 Bardi

@@ -13,9 +13,9 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
             min-height: 100vh;
-            color: white;
+            color: #e2e8f0;
             padding: 20px;
         }
 
@@ -28,23 +28,25 @@
             text-align: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
             border-radius: 15px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .section {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 25px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .section h2 {
             margin-bottom: 20px;
-            color: #ffd700;
-            border-bottom: 2px solid #ffd700;
+            color: #4299e1;
+            border-bottom: 2px solid #4299e1;
             padding-bottom: 10px;
         }
 
@@ -63,15 +65,17 @@
         .input-group label {
             margin-bottom: 5px;
             font-weight: bold;
+            color: #cbd5e0;
         }
 
         .input-group input {
             padding: 10px;
             border: none;
             border-radius: 8px;
-            background: rgba(255,255,255,0.9);
-            color: #333;
+            background: rgba(255,255,255,0.95);
+            color: #2d3748;
             font-size: 1em;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .btn {
@@ -83,34 +87,41 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin: 5px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .btn-primary {
-            background: #10b981;
+            background: #4299e1;
             color: white;
+            border-color: #4299e1;
         }
 
         .btn-primary:hover {
-            background: #059669;
+            background: #3182ce;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
         }
 
         .btn-secondary {
-            background: #6b7280;
-            color: white;
+            background: #4a5568;
+            color: #e2e8f0;
+            border-color: #4a5568;
         }
 
         .btn-secondary:hover {
-            background: #4b5563;
+            background: #2d3748;
+            box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
         }
 
         .btn-danger {
-            background: #ef4444;
+            background: #f56565;
             color: white;
+            border-color: #f56565;
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: #e53e3e;
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
         }
 
         .squadre-grid {
@@ -121,20 +132,28 @@
         }
 
         .squadra-card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             border-radius: 10px;
             padding: 15px;
             border-left: 5px solid;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .squadra-card.rosso { border-left-color: #ef4444; }
-        .squadra-card.blu { border-left-color: #3b82f6; }
-        .squadra-card.verde { border-left-color: #10b981; }
-        .squadra-card.giallo { border-left-color: #f59e0b; }
-        .squadra-card.arancione { border-left-color: #f97316; }
-        .squadra-card.viola { border-left-color: #8b5cf6; }
-        .squadra-card.rosa { border-left-color: #ec4899; }
-        .squadra-card.marrone { border-left-color: #a3a3a3; }
+        .squadra-card.rosso { border-left-color: #f56565; }
+        .squadra-card.blu { border-left-color: #4299e1; }
+        .squadra-card.verde { border-left-color: #48bb78; }
+        .squadra-card.giallo { border-left-color: #ed8936; }
+        .squadra-card.arancione { border-left-color: #f6ad55; }
+        .squadra-card.viola { border-left-color: #9f7aea; }
+        .squadra-card.rosa { border-left-color: #ed64a6; }
+        .squadra-card.marrone { border-left-color: #a0aec0; }
+		.squadra-card.smeraldo { border-left-color: #10b981; }
+        .squadra-card.royal { border-left-color: #1e40af; }
+        .squadra-card.ciano { border-left-color: #06b6d4; }
+        .squadra-card.lime { border-left-color: #84cc16; }
+        .squadra-card.bordeaux { border-left-color: #7c2d12; }
+        .squadra-card.crema { border-left-color: #fef3c7; }
+        .squadra-card.lilla { border-left-color: #c4b5fd; }
 
         .squadra-header {
             display: flex;
@@ -159,18 +178,21 @@
         }
 
         .status-success {
-            background: rgba(16, 185, 129, 0.3);
-            border: 2px solid #10b981;
+            background: rgba(72, 187, 120, 0.2);
+            border: 2px solid #48bb78;
+            color: #68d391;
         }
 
         .status-warning {
-            background: rgba(245, 158, 11, 0.3);
-            border: 2px solid #f59e0b;
+            background: rgba(237, 137, 54, 0.2);
+            border: 2px solid #ed8936;
+            color: #f6ad55;
         }
 
         .status-error {
-            background: rgba(239, 68, 68, 0.3);
-            border: 2px solid #ef4444;
+            background: rgba(245, 101, 101, 0.2);
+            border: 2px solid #f56565;
+            color: #fc8181;
         }
 
         .progress-bar {
@@ -184,20 +206,20 @@
 
         .progress-fill {
             height: 100%;
-            background: #10b981;
+            background: #4299e1;
             transition: width 0.3s ease;
         }
 
         .info-box {
-            background: rgba(59, 130, 246, 0.3);
-            border: 2px solid #3b82f6;
+            background: rgba(66, 153, 225, 0.15);
+            border: 2px solid #4299e1;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
         }
 
         .info-box h3 {
-            color: #60a5fa;
+            color: #63b3ed;
             margin-bottom: 10px;
         }
 
@@ -219,11 +241,11 @@
         }
 
         .notification.success {
-            background: #10b981;
+            background: #48bb78;
         }
 
         .notification.error {
-            background: #ef4444;
+            background: #f56565;
         }
 
         .loading {
@@ -232,14 +254,15 @@
             height: 20px;
             border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            border-top-color: white;
+            border-top-color: #4299e1;
             animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-    </style>
+</style>
+
 </head>
 <body>
     <div class="container">
@@ -269,77 +292,127 @@
         </div>
 
         <!-- Setup Squadre Circolo -->
-        <div class="section">
-            <h2>🏆 Squadre del Circolo</h2>
-            <p>Configura le squadre del circolo tennis con i loro giocatori</p>
-            
-            <div class="form-grid">
-                <div class="input-group">
-                    <label>Numero Squadra:</label>
-                    <input type="number" id="numeroSquadra" min="1" max="20" placeholder="1">
-                </div>
-                <div class="input-group">
-                    <label>Colore Squadra:</label>
-                    <input type="text" id="coloreSquadra" placeholder="es: rosso, verde, azzurro, fucsia..." autocomplete="off">
-                </div>
-            </div>
+<div class="section">
+    <h2>🏆 Squadre del Circolo</h2>
+    <p>Configura le squadre del circolo tennis con i loro giocatori</p>
+    
+    <!-- Bottone principale per aggiungere squadra -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="btn btn-primary" onclick="mostraOpzioniAggiunta()" id="btnAggiungiSquadra">
+            ➕ Aggiungi Squadra
+        </button>
+    </div>
 
-            <div class="form-grid">
-                <div class="input-group">
-                    <label>M1:</label>
-                    <input type="text" id="m1" placeholder="Nome giocatore M1">
-                </div>
-                <div class="input-group">
-                    <label>M2:</label>
-                    <input type="text" id="m2" placeholder="Nome giocatore M2">
-                </div>
-                <div class="input-group">
-                    <label>M3:</label>
-                    <input type="text" id="m3" placeholder="Nome giocatore M3">
-                </div>
-                <div class="input-group">
-                    <label>M4:</label>
-                    <input type="text" id="m4" placeholder="Nome giocatore M4">
-                </div>
-                <div class="input-group">
-                    <label>M5:</label>
-                    <input type="text" id="m5" placeholder="Nome giocatore M5">
-                </div>
-                <div class="input-group">
-                    <label>M6:</label>
-                    <input type="text" id="m6" placeholder="Nome giocatore M6">
-                </div>
-                <div class="input-group">
-                    <label>M7:</label>
-                    <input type="text" id="m7" placeholder="Nome giocatore M7">
-                </div>
-                <div class="input-group">
-                    <label>F1:</label>
-                    <input type="text" id="f1" placeholder="Nome giocatrice F1">
-                </div>
-                <div class="input-group">
-                    <label>F2:</label>
-                    <input type="text" id="f2" placeholder="Nome giocatrice F2">
-                </div>
-                <div class="input-group">
-                    <label>F3:</label>
-                    <input type="text" id="f3" placeholder="Nome giocatrice F3">
-                </div>
-            </div>
+    <!-- Opzioni di aggiunta (inizialmente nascoste) -->
+    <div id="opzioniAggiunta" style="display: none; text-align: center; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+        <h3>Come vuoi aggiungere la squadra?</h3>
+        <div style="margin-top: 15px;">
+            <button class="btn btn-primary" onclick="mostraUploadFile()" style="margin: 0 10px;">
+                📁 Da File (.txt)
+            </button>
+            <button class="btn btn-primary" onclick="mostraFormManuale()" style="margin: 0 10px;">
+                ✏️ Da Interfaccia
+            </button>
+        </div>
+        <button class="btn btn-secondary" onclick="nascondiOpzioni()" style="margin-top: 10px;">
+            ❌ Annulla
+        </button>
+    </div>
 
-            <div>
-                <button class="btn btn-primary" onclick="aggiungiSquadra()">
-                    ➕ Aggiungi Squadra
-                </button>
-                <button class="btn btn-secondary" onclick="clearFormSquadra()">
-                    🗑️ Pulisci Form
-                </button>
-            </div>
+    <!-- Upload da file -->
+    <div id="uploadSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+        <h3>📁 Upload Squadra da File</h3>
+        <div class="info-box" style="margin-bottom: 15px;">
+            <h4>Formato file .txt richiesto:</h4>
+            <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em;">Squadra Gialla
+M1 Spano
+M2 Cavo A
+M3 Paqualetto
+M4 Cosini
+M5 Cassanello
+M6 Paladino
+M7 Ferrari P
+F1 Tambroni B
+F2 Frojo F
+F3 Brunelli E</pre>
+        </div>
+        <input type="file" id="fileSquadra" accept=".txt" style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
+        <div>
+            <button class="btn btn-primary" onclick="caricaSquadraDaFile()">
+                🚀 Carica Squadra
+            </button>
+            <button class="btn btn-secondary" onclick="annullaUpload()">
+                ❌ Annulla
+            </button>
+        </div>
+    </div>
 
-            <div id="squadreList" class="squadre-grid">
-                <!-- Le squadre verranno caricate qui -->
+    <!-- Form manuale (versione semplificata) -->
+    <div id="formManualeSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+        <h3>✏️ Inserimento Manuale</h3>
+        
+        <div class="input-group" style="margin-bottom: 15px;">
+            <label>Colore Squadra:</label>
+            <input type="text" id="coloreSquadraManuale" placeholder="es: rosso, verde, azzurro, fucsia..." autocomplete="off" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); color: #333;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;">
+            <div class="input-group">
+                <label>M1:</label>
+                <input type="text" id="m1_manuale" placeholder="Nome giocatore M1">
+            </div>
+            <div class="input-group">
+                <label>M2:</label>
+                <input type="text" id="m2_manuale" placeholder="Nome giocatore M2">
+            </div>
+            <div class="input-group">
+                <label>M3:</label>
+                <input type="text" id="m3_manuale" placeholder="Nome giocatore M3">
+            </div>
+            <div class="input-group">
+                <label>M4:</label>
+                <input type="text" id="m4_manuale" placeholder="Nome giocatore M4">
+            </div>
+            <div class="input-group">
+                <label>M5:</label>
+                <input type="text" id="m5_manuale" placeholder="Nome giocatore M5">
+            </div>
+            <div class="input-group">
+                <label>M6:</label>
+                <input type="text" id="m6_manuale" placeholder="Nome giocatore M6">
+            </div>
+            <div class="input-group">
+                <label>M7:</label>
+                <input type="text" id="m7_manuale" placeholder="Nome giocatore M7">
+            </div>
+            <div class="input-group">
+                <label>F1:</label>
+                <input type="text" id="f1_manuale" placeholder="Nome giocatrice F1">
+            </div>
+            <div class="input-group">
+                <label>F2:</label>
+                <input type="text" id="f2_manuale" placeholder="Nome giocatrice F2">
+            </div>
+            <div class="input-group">
+                <label>F3:</label>
+                <input type="text" id="f3_manuale" placeholder="Nome giocatrice F3">
             </div>
         </div>
+
+        <div>
+            <button class="btn btn-primary" onclick="aggiungiSquadraManuale()">
+                ➕ Aggiungi Squadra
+            </button>
+            <button class="btn btn-secondary" onclick="clearFormManualeEChiudi()">
+                ❌ Annulla
+            </button>
+        </div>
+    </div>
+
+    <div id="squadreList" class="squadre-grid">
+        <!-- Le squadre verranno caricate qui -->
+    </div>
+</div>
 
         <!-- Finalizzazione Setup -->
         <div class="section">
@@ -454,6 +527,174 @@
                 showNotification('Errore caricamento squadre', 'error');
             }
         }
+
+// Gestione opzioni aggiunta squadra
+function mostraOpzioniAggiunta() {
+    document.getElementById('opzioniAggiunta').style.display = 'block';
+    document.getElementById('btnAggiungiSquadra').style.display = 'none';
+}
+
+function nascondiOpzioni() {
+    document.getElementById('opzioniAggiunta').style.display = 'none';
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('formManualeSection').style.display = 'none';
+    document.getElementById('btnAggiungiSquadra').style.display = 'block';
+}
+
+function mostraUploadFile() {
+    document.getElementById('opzioniAggiunta').style.display = 'none';
+    document.getElementById('uploadSection').style.display = 'block';
+}
+
+function mostraFormManuale() {
+    document.getElementById('opzioniAggiunta').style.display = 'none';
+    document.getElementById('formManualeSection').style.display = 'block';
+}
+
+// Upload da file
+async function caricaSquadraDaFile() {
+    const fileInput = document.getElementById('fileSquadra');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showNotification('Seleziona un file .txt', 'error');
+        return;
+    }
+    
+    if (!file.name.endsWith('.txt')) {
+        showNotification('Il file deve avere estensione .txt', 'error');
+        return;
+    }
+    
+    try {
+        const text = await file.text();
+        const squadra = parseFileSquadra(text);
+        
+        if (squadra) {
+            await salvaSquadra(squadra);
+            annullaUpload();
+            caricaSquadre();
+            showNotification('Squadra caricata con successo dal file!', 'success');
+        }
+    } catch (error) {
+        console.error('Errore lettura file:', error);
+        showNotification('Errore nella lettura del file', 'error');
+    }
+}
+
+function parseFileSquadra(text) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    if (lines.length < 1) {
+        showNotification('File vuoto o non valido', 'error');
+        return null;
+    }
+    
+    // Prima riga: nome squadra (es: "Squadra Gialla")
+    const nomeCompleto = lines[0];
+    const colore = nomeCompleto.replace(/^squadra\s+/i, '').trim();
+    
+    if (!colore) {
+        showNotification('Nome squadra non valido. Formato: "Squadra Colore"', 'error');
+        return null;
+    }
+    
+    const squadra = {
+        numero: getNextSquadraNumber(),
+        colore: colore.toLowerCase(),
+        m1: '', m2: '', m3: '', m4: '', m5: '', m6: '', m7: '',
+        f1: '', f2: '', f3: ''
+    };
+    
+    // Parse giocatori
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(/^([MF]\d+)\s+(.+)$/);
+        
+        if (match) {
+            const posizione = match[1].toLowerCase();
+            const nome = match[2].trim();
+            
+            if (squadra.hasOwnProperty(posizione)) {
+                squadra[posizione] = nome;
+            } else {
+                console.warn(`Posizione non riconosciuta: ${posizione}`);
+            }
+        } else {
+            console.warn(`Riga non valida: ${line}`);
+        }
+    }
+    
+    return squadra;
+}
+
+function getNextSquadraNumber() {
+    // Trova il numero più alto tra le squadre esistenti e aggiungi 1
+    let maxNumber = 0;
+    squadre.forEach(squadra => {
+        if (squadra.numero > maxNumber) {
+            maxNumber = squadra.numero;
+        }
+    });
+    return maxNumber + 1;
+}
+
+// Form manuale
+async function aggiungiSquadraManuale() {
+    const colore = document.getElementById('coloreSquadraManuale').value.trim();
+    
+    if (!colore) {
+        showNotification('Inserisci il colore della squadra', 'error');
+        return;
+    }
+    
+    const squadra = {
+        numero: getNextSquadraNumber(),
+        colore: colore.toLowerCase(),
+        m1: document.getElementById('m1_manuale').value.trim(),
+        m2: document.getElementById('m2_manuale').value.trim(),
+        m3: document.getElementById('m3_manuale').value.trim(),
+        m4: document.getElementById('m4_manuale').value.trim(),
+        m5: document.getElementById('m5_manuale').value.trim(),
+        m6: document.getElementById('m6_manuale').value.trim(),
+        m7: document.getElementById('m7_manuale').value.trim(),
+        f1: document.getElementById('f1_manuale').value.trim(),
+        f2: document.getElementById('f2_manuale').value.trim(),
+        f3: document.getElementById('f3_manuale').value.trim()
+    };
+    
+    await salvaSquadra(squadra);
+    clearFormManualeEChiudi();
+    caricaSquadre();
+    showNotification('Squadra aggiunta con successo!', 'success');
+}
+
+function clearFormManualeEChiudi() {
+    ['coloreSquadraManuale', 'm1_manuale', 'm2_manuale', 'm3_manuale', 'm4_manuale', 'm5_manuale', 'm6_manuale', 'm7_manuale', 'f1_manuale', 'f2_manuale', 'f3_manuale']
+        .forEach(id => document.getElementById(id).value = '');
+    nascondiOpzioni();
+}
+
+// Funzione comune per salvare squadra
+async function salvaSquadra(squadra) {
+    const response = await fetch('/api/squadre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(squadra)
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Errore salvataggio squadra');
+    }
+    
+    return response.json();
+}
+
+function annullaUpload() {
+    document.getElementById('fileSquadra').value = '';
+    nascondiOpzioni();
+}
 
         function renderSquadre() {
             const container = document.getElementById('squadreList');

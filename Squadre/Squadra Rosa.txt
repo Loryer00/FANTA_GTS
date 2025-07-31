@@ -1,0 +1,11 @@
+Squadra Rosa
+M1 Genta
+M2 Clavarino
+M3 Berlingeri
+M4 Alessi
+M5 Pongiglione G
+M6 Papagna
+M7 Grotti
+F1 Pongiglione C
+F2 Campese
+F3 Maltese

@@ -1,0 +1,11 @@
+Squadra Rossa
+M1 Castagnasso
+M2 Faso
+M3 Pedrini
+M4 Beltrami
+M5 Andreani
+M6 Morasso
+M7 Mori
+F1 Vassallo
+F2 Martino
+F3 Carassale
