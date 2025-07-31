@@ -582,55 +582,57 @@ function clearSavedSession() {
 }
 
 // NUOVA FUNZIONE: Carica squadra del giocatore
-async function loadPlayerTeam() {
-    try {
-        // Questo endpoint dovrà essere creato nel server
-        const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
-        if (!response.ok) {
-            console.log('Squadra non ancora formata o endpoint non disponibile');
-            return;
-        }
-        
-        const squadra = await response.json();
-        console.log('Squadra caricata:', squadra);
-        
-        // Aggiorna la UI con i giocatori della squadra
-        squadra.forEach(giocatore => {
-            const [posizione] = giocatore.slot_id.split('_');
-            const slotElement = document.querySelector(`[data-position="${posizione}"]`);
-            
-            if (slotElement) {
-                slotElement.classList.remove('empty');
-                slotElement.classList.add('filled');
-                
-                const teamColor = getTeamColor(giocatore.colore);
-                const textColor = getTextColorForTeam(giocatore.colore);
-                
-                slotElement.innerHTML = `
-                    <strong style="color: ${textColor};">${posizione}</strong><br>
-                    <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
-                    <small style="opacity: 0.8; color: ${textColor};">Squadra: ${giocatore.colore}</small>
-                `;
-                
-                slotElement.style.borderColor = teamColor;
-                slotElement.style.borderWidth = '4px';
-                slotElement.style.borderStyle = 'solid';
-                
-                if (teamColor.startsWith('#')) {
-                    slotElement.style.backgroundColor = teamColor + '80';
-                } else {
-                    slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+        async function loadPlayerTeam() {
+            try {
+                // Questo endpoint dovrà essere creato nel server
+                const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+                if (!response.ok) {
+                    console.log('Squadra non ancora formata o endpoint non disponibile');
+                    return;
                 }
+
+                const squadra = await response.json();
+                console.log('Squadra caricata:', squadra);
+
+                // Aggiorna la UI con i giocatori della squadra
+                squadra.forEach(giocatore => {
+                    const [posizione] = giocatore.slot_id.split('_');
+                    const slotElement = document.querySelector(`[data-position="${posizione}"]`);
+
+                    if (slotElement) {
+                        slotElement.classList.remove('empty');
+                        slotElement.classList.add('filled');
+
+                        // AGGIUNGI: Calcola colori
+                        const teamColor = getTeamColor(giocatore.colore);
+                        const textColor = getTextColorForTeam(giocatore.colore);
+                        console.log(`🎨 Squadra: "${giocatore.colore}" → Sfondo: ${teamColor}, Testo: ${textColor}`);
+
+                        slotElement.innerHTML = `
+                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                    <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
+                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
+                `;
+
+                        slotElement.style.borderColor = teamColor;
+                        slotElement.style.borderWidth = '4px';
+                        slotElement.style.borderStyle = 'solid';
+
+                        if (teamColor.startsWith('#')) {
+                            slotElement.style.backgroundColor = teamColor + '80';
+                        } else {
+                            slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                        }
+                    }
+                });
+
+                // Aggiorna contatori
+                const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
+                document.getElementById('teamCount').textContent = slotsRiempiti;
+
+            } catch (error) {
+                console.error('Errore caricamento squadra:', error);
             }
-        });
-        
-        // Aggiorna contatori
-        const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
-        document.getElementById('teamCount').textContent = slotsRiempiti;
-        
-    } catch (error) {
-        console.error('Errore caricamento squadra:', error);
-    }
         }
 
         // NUOVA FUNZIONE: Registra socket quando è pronto
@@ -1033,10 +1035,10 @@ function updateMyTeamFromResults(round, risultati) {
                     const textColor = getTextColorForTeam(slotInfo.colore);
                     
                     slotElement.innerHTML = `
-                        <strong style="color: ${textColor};">${posizione}</strong><br>
-                        <span style="color: ${textColor};">${slotInfo.giocatore_attuale || 'N/A'}</span><br>
-                        <small style="opacity: 0.8; color: ${textColor};">Squadra: ${slotInfo.colore}</small>
-                    `;
+                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                    <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
+                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
+                `;
                     
                     // PROVA ENTRAMBI i colori per vedere quale è corretto
                     const teamColorFromSlot = getTeamColor(coloreSquadra);
@@ -1242,9 +1244,9 @@ function getTeamColor(nomeColore) {
         function getTextColorForTeam(nomeColore) {
             // Colori chiari che necessitano testo scuro
             const coloriChiari = [
-                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'bianco', 'bianca', 'crema',
                 'giallo chiaro', 'gialla chiara', 'lime chiaro', 'lime chiara',
-                'rosa', 'rosa chiaro', 'rosa chiara',
+                'rosa chiaro', 'rosa chiara',
                 'celeste', 'azzurro chiaro', 'azzurra chiara',
                 'verde chiaro', 'verde chiara', 'viola chiaro', 'viola chiara',
                 'arancione chiaro', 'arancione chiara', 'grigio chiaro', 'grigia chiara',
@@ -1252,7 +1254,7 @@ function getTeamColor(nomeColore) {
                 'fucsia chiara', 'magenta chiara', 'oro', 'dorato', 'dorata'
             ];
 
-            // Colori scuri che necessitano testo bianco (lista più completa)
+            // Colori scuri che necessitano testo bianco
             const coloriScuri = [
                 'nero', 'nera', 'blu', 'azzurro', 'azzurra', 'verde', 'verde scuro', 'verde scura',
                 'rosso', 'rossa', 'rosso scuro', 'rossa scura', 'viola', 'viola scuro', 'viola scura',
@@ -1260,7 +1262,8 @@ function getTeamColor(nomeColore) {
                 'bordeaux', 'navy', 'militare', 'petrolio', 'indaco', 'blu scuro', 'blu scura',
                 'grigio', 'grigia', 'grigio scuro', 'grigia scura', 'bronzo',
                 'smeraldo', 'royal', 'ciano', 'turchese', 'fucsia', 'magenta',
-                'lime scuro', 'lime scura'
+                'lime scuro', 'lime scura', 'nera opaca', 'azzurra scura', 'celeste scura',
+                'rosa', 'giallo', 'gialla'
             ];
 
             const coloreLowerCase = nomeColore.toLowerCase().trim();

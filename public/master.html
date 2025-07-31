@@ -489,6 +489,28 @@
                 </button>
             </div>
         </div>
+
+        <!-- Gestione Sessioni -->
+        <div class="section">
+            <h2>📅 Gestione Sessioni</h2>
+            <div id="sessionInfo" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <p><strong>Sessione corrente:</strong> <span id="currentSession">Caricamento...</span></p>
+                <p><strong>Data inizio:</strong> <span id="sessionDate">-</span></p>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-primary" onclick="mostraPulisciTest()">
+                    🧹 Pulisci Dati Test
+                </button>
+                <button class="btn btn-warning" onclick="mostraNuovaSessione()">
+                    📅 Nuova Sessione Annuale
+                </button>
+                <button class="btn btn-primary" onclick="mostraBackupList()">
+                    📦 Visualizza Backup
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal Risultati Round -->
@@ -525,193 +547,247 @@
         </div>
     </div>
 
+    <!-- Modal Pulisci Test -->
+    <div id="pulisciTestModal" class="modal">
+        <div class="modal-content">
+            <h3>🧹 Pulisci Dati di Test</h3>
+            <p>Seleziona i partecipanti <strong>REALI</strong> da mantenere. Tutti gli altri verranno eliminati:</p>
+            <div id="participantsList" style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
+                <!-- Lista partecipanti verrà caricata qui -->
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal('pulisciTestModal')">Annulla</button>
+                <button class="btn btn-danger" onclick="eseguiPuliziaTest()">🧹 Pulisci Test</button>
+                <button class="btn btn-warning" onclick="eliminaTuttiPartecipanti()">❌ Elimina Tutti</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuova Sessione -->
+    <div id="nuovaSessioneModal" class="modal">
+        <div class="modal-content">
+            <h3>📅 Crea Nuova Sessione Annuale</h3>
+            <p><strong>ATTENZIONE:</strong> Questa azione creerà un backup dei dati attuali e inizializzerà un nuovo FantaGTS pulito.</p>
+
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Anno:</label>
+                <input type="number" id="nuovoAnno" placeholder="2025" min="2024" max="2030"
+                       style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+            </div>
+
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Descrizione (opzionale):</label>
+                <input type="text" id="nuovaDescrizione" placeholder="FantaGTS 2025 - Torneo Primavera"
+                       style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeModal('nuovaSessioneModal')">Annulla</button>
+                <button class="btn btn-warning" onclick="creaNuovaSessione()">📅 Crea Nuova Sessione</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Lista Backup -->
+    <div id="backupListModal" class="modal">
+        <div class="modal-content">
+            <h3>📦 Backup Sessioni Precedenti</h3>
+            <div id="backupContent">
+                <p>Caricamento backup...</p>
+            </div>
+            <button class="btn btn-primary" onclick="closeModal('backupListModal')" style="margin-top: 20px;">
+                Chiudi
+            </button>
+        </div>
+    </div>
+
     <script>
         // Variabili globali
-let socket;
-let gameState = {
-    fase: 'waiting',
-    roundAttivo: null,
-    asteAttive: false,
-    connessi: [],
-    ultimiRisultati: null
-};
-let roundSelezionato = null;
-let participantsBids = new Map(); // Traccia le offerte dei partecipanti
+        let socket;
+        let gameState = {
+            fase: 'waiting',
+            roundAttivo: null,
+            asteAttive: false,
+            connessi: [],
+            ultimiRisultati: null
+        };
+        let roundSelezionato = null;
+        let participantsBids = new Map(); // Traccia le offerte dei partecipanti
 
-// NUOVO: Sistema di persistenza per Master
-const MASTER_STORAGE_KEYS = {
-    GAME_STATE: 'fantagts_master_game_state',
-    COMPLETED_ROUNDS: 'fantagts_completed_rounds',
-    LAST_UPDATE: 'fantagts_last_update'
-};
-
-// NUOVA FUNZIONE: Salva stato completo del gioco
-async function saveMasterState() {
-    try {
-        // Raccogli tutti i dati necessari dal server
-        const [squadre, partecipanti, risultatiPartite, classifica] = await Promise.all([
-            fetch('/api/squadre').then(r => r.json()).catch(() => []),
-            fetch('/api/partecipanti').then(r => r.json()).catch(() => []),
-            fetch('/api/risultati-partite').then(r => r.json()).catch(() => []),
-            fetch('/api/classifica').then(r => r.json()).catch(() => [])
-        ]);
-
-        // Ottieni tutti i risultati delle aste per round
-        const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-        const astePerRound = {};
-        
-        for (const round of rounds) {
-            try {
-                const response = await fetch(`/api/aste-round/${round}`);
-                if (response.ok) {
-                    astePerRound[round] = await response.json();
-                }
-            } catch (error) {
-                console.log(`Round ${round} non ancora completato`);
-                astePerRound[round] = [];
-            }
-        }
-
-        const masterStateData = {
-            gameState: gameState,
-            squadre: squadre,
-            partecipanti: partecipanti,
-            risultatiPartite: risultatiPartite,
-            classifica: classifica,
-            astePerRound: astePerRound,
-            roundsCompletati: rounds.filter(r => astePerRound[r].length > 0),
-            timestamp: new Date().getTime()
+        // NUOVO: Sistema di persistenza per Master
+        const MASTER_STORAGE_KEYS = {
+            GAME_STATE: 'fantagts_master_game_state',
+            COMPLETED_ROUNDS: 'fantagts_completed_rounds',
+            LAST_UPDATE: 'fantagts_last_update'
         };
 
-        localStorage.setItem(MASTER_STORAGE_KEYS.GAME_STATE, JSON.stringify(masterStateData));
-        localStorage.setItem(MASTER_STORAGE_KEYS.LAST_UPDATE, new Date().getTime().toString());
-        
-        console.log('✅ Stato Master salvato:', masterStateData);
-    } catch (error) {
-        console.error('❌ Errore salvataggio stato Master:', error);
-    }
-}
+        // NUOVA FUNZIONE: Salva stato completo del gioco
+        async function saveMasterState() {
+            try {
+                // Raccogli tutti i dati necessari dal server
+                const [squadre, partecipanti, risultatiPartite, classifica] = await Promise.all([
+                    fetch('/api/squadre').then(r => r.json()).catch(() => []),
+                    fetch('/api/partecipanti').then(r => r.json()).catch(() => []),
+                    fetch('/api/risultati-partite').then(r => r.json()).catch(() => []),
+                    fetch('/api/classifica').then(r => r.json()).catch(() => [])
+                ]);
 
-// NUOVA FUNZIONE: Carica stato salvato del Master
-async function loadMasterState() {
-    try {
-        const savedState = localStorage.getItem(MASTER_STORAGE_KEYS.GAME_STATE);
-        const lastUpdate = localStorage.getItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
-        
-        if (!savedState || !lastUpdate) {
-            console.log('Nessuno stato Master salvato trovato');
-            return false;
-        }
+                // Ottieni tutti i risultati delle aste per round
+                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const astePerRound = {};
 
-        // Controlla se lo stato non è troppo vecchio (7 giorni)
-        const now = new Date().getTime();
-        const savedTime = parseInt(lastUpdate);
-        const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 giorni
-
-        if (now - savedTime > maxAge) {
-            console.log('Stato Master scaduto, rimuovo dati salvati');
-            clearMasterState();
-            return false;
-        }
-
-        const parsedState = JSON.parse(savedState);
-        console.log('📊 Stato Master caricato:', parsedState);
-
-        // Ripristina stato del gioco
-        gameState = parsedState.gameState || gameState;
-        
-        // Ripristina rounds completati
-        if (parsedState.roundsCompletati) {
-            parsedState.roundsCompletati.forEach(round => {
-                const btn = document.querySelector(`[data-round="${round}"]`);
-                if (btn) {
-                    btn.classList.remove('active', 'available');
-                    btn.classList.add('completed');
-                    btn.disabled = true;
-                    btn.style.opacity = '0.6';
-                    btn.style.pointerEvents = 'none';
-                    btn.style.cursor = 'not-allowed';
+                for (const round of rounds) {
+                    try {
+                        const response = await fetch(`/api/aste-round/${round}`);
+                        if (response.ok) {
+                            astePerRound[round] = await response.json();
+                        }
+                    } catch (error) {
+                        console.log(`Round ${round} non ancora completato`);
+                        astePerRound[round] = [];
+                    }
                 }
-            });
-        }
 
-        // Ripristina ultimo risultato se disponibile
-        if (parsedState.roundsCompletati.length > 0) {
-            const ultimoRound = parsedState.roundsCompletati[parsedState.roundsCompletati.length - 1];
-            const ultimiRisultati = parsedState.astePerRound[ultimoRound];
-            
-            if (ultimiRisultati && ultimiRisultati.length > 0) {
-                updateLastRoundResults(ultimoRound, ultimiRisultati);
+                const masterStateData = {
+                    gameState: gameState,
+                    squadre: squadre,
+                    partecipanti: partecipanti,
+                    risultatiPartite: risultatiPartite,
+                    classifica: classifica,
+                    astePerRound: astePerRound,
+                    roundsCompletati: rounds.filter(r => astePerRound[r].length > 0),
+                    timestamp: new Date().getTime()
+                };
+
+                localStorage.setItem(MASTER_STORAGE_KEYS.GAME_STATE, JSON.stringify(masterStateData));
+                localStorage.setItem(MASTER_STORAGE_KEYS.LAST_UPDATE, new Date().getTime().toString());
+
+                console.log('✅ Stato Master salvato:', masterStateData);
+            } catch (error) {
+                console.error('❌ Errore salvataggio stato Master:', error);
             }
         }
 
-        // Aggiorna statistiche
-        updateStatsFromSavedData(parsedState);
-        
-        showNotification('🔄 Stato del gioco ripristinato!', 'success');
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Errore caricamento stato Master:', error);
-        clearMasterState();
-        return false;
-    }
-}
+        // NUOVA FUNZIONE: Carica stato salvato del Master
+        async function loadMasterState() {
+            try {
+                const savedState = localStorage.getItem(MASTER_STORAGE_KEYS.GAME_STATE);
+                const lastUpdate = localStorage.getItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
 
-// NUOVA FUNZIONE: Aggiorna statistiche da dati salvati
-function updateStatsFromSavedData(parsedState) {
-    try {
-        // Aggiorna contatori
-        document.getElementById('statRounds').textContent = parsedState.roundsCompletati.length;
-        
-        // Calcola crediti spesi totali
-        let creditiSpesiTotali = 0;
-        Object.values(parsedState.astePerRound).forEach(roundResults => {
-            roundResults.forEach(risultato => {
-                creditiSpesiTotali += risultato.costo_finale || 0;
+                if (!savedState || !lastUpdate) {
+                    console.log('Nessuno stato Master salvato trovato');
+                    return false;
+                }
+
+                // Controlla se lo stato non è troppo vecchio (7 giorni)
+                const now = new Date().getTime();
+                const savedTime = parseInt(lastUpdate);
+                const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 giorni
+
+                if (now - savedTime > maxAge) {
+                    console.log('Stato Master scaduto, rimuovo dati salvati');
+                    clearMasterState();
+                    return false;
+                }
+
+                const parsedState = JSON.parse(savedState);
+                console.log('📊 Stato Master caricato:', parsedState);
+
+                // Ripristina stato del gioco
+                gameState = parsedState.gameState || gameState;
+
+                // Ripristina rounds completati
+                if (parsedState.roundsCompletati) {
+                    parsedState.roundsCompletati.forEach(round => {
+                        const btn = document.querySelector(`[data-round="${round}"]`);
+                        if (btn) {
+                            btn.classList.remove('active', 'available');
+                            btn.classList.add('completed');
+                            btn.disabled = true;
+                            btn.style.opacity = '0.6';
+                            btn.style.pointerEvents = 'none';
+                            btn.style.cursor = 'not-allowed';
+                        }
+                    });
+                }
+
+                // Ripristina ultimo risultato se disponibile
+                if (parsedState.roundsCompletati.length > 0) {
+                    const ultimoRound = parsedState.roundsCompletati[parsedState.roundsCompletati.length - 1];
+                    const ultimiRisultati = parsedState.astePerRound[ultimoRound];
+
+                    if (ultimiRisultati && ultimiRisultati.length > 0) {
+                        updateLastRoundResults(ultimoRound, ultimiRisultati);
+                    }
+                }
+
+                // Aggiorna statistiche
+                updateStatsFromSavedData(parsedState);
+
+                showNotification('🔄 Stato del gioco ripristinato!', 'success');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Errore caricamento stato Master:', error);
+                clearMasterState();
+                return false;
+            }
+        }
+
+        // NUOVA FUNZIONE: Aggiorna statistiche da dati salvati
+        function updateStatsFromSavedData(parsedState) {
+            try {
+                // Aggiorna contatori
+                document.getElementById('statRounds').textContent = parsedState.roundsCompletati.length;
+
+                // Calcola crediti spesi totali
+                let creditiSpesiTotali = 0;
+                Object.values(parsedState.astePerRound).forEach(roundResults => {
+                    roundResults.forEach(risultato => {
+                        creditiSpesiTotali += risultato.costo_finale || 0;
+                    });
+                });
+                document.getElementById('statCrediti').textContent = creditiSpesiTotali;
+
+                // Aggiorna partecipanti connessi (verrà aggiornato quando si riconnettono)
+                document.getElementById('statConnessi').textContent = '0';
+                document.getElementById('statOfferte').textContent = '0';
+
+            } catch (error) {
+                console.error('Errore aggiornamento statistiche:', error);
+            }
+        }
+
+        // NUOVA FUNZIONE: Aggiorna display ultimo round
+        function updateLastRoundResults(round, risultati) {
+            let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
+            html += '<table class="results-table"><thead><tr>';
+            html += '<th>Slot</th><th>Vincitore</th><th>Offerta</th><th>Costo</th>';
+            html += '</tr></thead><tbody>';
+
+            risultati.forEach(r => {
+                html += `<tr>
+                <td><strong>${r.slot_id || r.slot}</strong></td>
+                <td>${r.partecipante_nome || r.nome}</td>
+                <td>${r.offerta || r.offertaOriginale}</td>
+                <td>${r.costo_finale}</td>
+            </tr>`;
             });
-        });
-        document.getElementById('statCrediti').textContent = creditiSpesiTotali;
-        
-        // Aggiorna partecipanti connessi (verrà aggiornato quando si riconnettono)
-        document.getElementById('statConnessi').textContent = '0';
-        document.getElementById('statOfferte').textContent = '0';
-        
-    } catch (error) {
-        console.error('Errore aggiornamento statistiche:', error);
-    }
-}
 
-// NUOVA FUNZIONE: Aggiorna display ultimo round
-function updateLastRoundResults(round, risultati) {
-    let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
-    html += '<table class="results-table"><thead><tr>';
-    html += '<th>Slot</th><th>Vincitore</th><th>Offerta</th><th>Costo</th>';
-    html += '</tr></thead><tbody>';
+            html += '</tbody></table>';
+            document.getElementById('lastRoundResults').innerHTML = html;
+        }
 
-    risultati.forEach(r => {
-        html += `<tr>
-            <td><strong>${r.slot_id || r.slot}</strong></td>
-            <td>${r.partecipante_nome || r.nome}</td>
-            <td>${r.offerta || r.offertaOriginale}</td>
-            <td>${r.costo_finale}</td>
-        </tr>`;
-    });
-
-    html += '</tbody></table>';
-    document.getElementById('lastRoundResults').innerHTML = html;
-}
-
-// NUOVA FUNZIONE: Pulisci stato Master
-function clearMasterState() {
-    try {
-        localStorage.removeItem(MASTER_STORAGE_KEYS.GAME_STATE);
-        localStorage.removeItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
-        console.log('🗑️ Stato Master rimosso');
-    } catch (error) {
-        console.error('Errore rimozione stato Master:', error);
-    }
-}
+        // NUOVA FUNZIONE: Pulisci stato Master
+        function clearMasterState() {
+            try {
+                localStorage.removeItem(MASTER_STORAGE_KEYS.GAME_STATE);
+                localStorage.removeItem(MASTER_STORAGE_KEYS.LAST_UPDATE);
+                console.log('🗑️ Stato Master rimosso');
+            } catch (error) {
+                console.error('Errore rimozione stato Master:', error);
+            }
+        }
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
@@ -727,7 +803,7 @@ function clearMasterState() {
             socket.on('connect', () => {
                 showNotification('Connesso al server', 'success');
                 updateServerStatus(true);
-                
+
                 // Registra come master
                 socket.emit('register', {
                     nome: 'Master Control',
@@ -761,32 +837,32 @@ function clearMasterState() {
             });
 
             // Modifica la funzione che gestisce fine round
-socket.on('round_ended', (data) => {
-    gameState.asteAttive = false;
-    gameState.roundAttivo = null;
-    updateUI();
-    showNotification(`Round ${data.round} terminato!`, 'success');
-    
-    // AGGIUNGI QUESTE RIGHE PER BLOCCARE IL PULSANTE:
-    const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
-    if (completedBtn) {
-        completedBtn.classList.remove('active', 'available');
-        completedBtn.classList.add('completed');
-        completedBtn.disabled = true;
-        completedBtn.style.opacity = '0.6';
-        completedBtn.style.pointerEvents = 'none';
-        completedBtn.style.cursor = 'not-allowed';
-        console.log(`🔒 Pulsante ${data.round} bloccato`);
-    }
-    
-    stopOffersDisplay();
-    mostraRisultatiRound(data.round, data.risultati);
-    
-    setTimeout(() => {
-        caricaSquadreInFormazione();
-        saveMasterState();
-    }, 1000);
-});
+            socket.on('round_ended', (data) => {
+                gameState.asteAttive = false;
+                gameState.roundAttivo = null;
+                updateUI();
+                showNotification(`Round ${data.round} terminato!`, 'success');
+
+                // AGGIUNGI QUESTE RIGHE PER BLOCCARE IL PULSANTE:
+                const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
+                if (completedBtn) {
+                    completedBtn.classList.remove('active', 'available');
+                    completedBtn.classList.add('completed');
+                    completedBtn.disabled = true;
+                    completedBtn.style.opacity = '0.6';
+                    completedBtn.style.pointerEvents = 'none';
+                    completedBtn.style.cursor = 'not-allowed';
+                    console.log(`🔒 Pulsante ${data.round} bloccato`);
+                }
+
+                stopOffersDisplay();
+                mostraRisultatiRound(data.round, data.risultati);
+
+                setTimeout(() => {
+                    caricaSquadreInFormazione();
+                    saveMasterState();
+                }, 1000);
+            });
             socket.on('connessi_update', (connessi) => {
                 gameState.connessi = connessi;
                 updatePartecipanti();
@@ -818,6 +894,9 @@ socket.on('round_ended', (data) => {
                 gameState = { ...gameState, ...stato };
                 updateUI();
 
+                // NUOVO: Carica info sessione
+                await caricaInfoSessione();
+
                 // NUOVO: Carica squadre in formazione
                 await caricaSquadreInFormazione();
 
@@ -830,9 +909,11 @@ socket.on('round_ended', (data) => {
             }
         }
 
-        // NUOVA FUNZIONE: Carica e mostra tutte le squadre in formazione
+        // CORREZIONE: Carica squadre sempre, anche senza connessi
         async function caricaSquadreInFormazione() {
             try {
+                console.log('🔄 Caricando squadre in formazione...');
+
                 const partecipanti = await fetch('/api/partecipanti').then(r => r.json());
                 const container = document.getElementById('squadreInFormazione');
                 container.innerHTML = '';
@@ -842,19 +923,25 @@ socket.on('round_ended', (data) => {
                     return;
                 }
 
+                console.log(`📊 Trovati ${partecipanti.length} partecipanti:`, partecipanti);
+
                 const squadreGrid = document.createElement('div');
                 squadreGrid.style.display = 'grid';
                 squadreGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
                 squadreGrid.style.gap = '20px';
 
+                // CARICA TUTTE LE SQUADRE, anche se l'utente non è connesso
                 for (const partecipante of partecipanti) {
+                    console.log(`🎯 Caricando squadra per: ${partecipante.nome} (ID: ${partecipante.id})`);
                     const squadraCard = await creaCardSquadra(partecipante);
                     squadreGrid.appendChild(squadraCard);
                 }
 
                 container.appendChild(squadreGrid);
+                console.log('✅ Squadre caricate nel Master');
+
             } catch (error) {
-                console.error('Errore caricamento squadre:', error);
+                console.error('❌ Errore caricamento squadre:', error);
                 document.getElementById('squadreInFormazione').innerHTML = '<p>Errore caricamento squadre</p>';
             }
         }
@@ -863,19 +950,74 @@ socket.on('round_ended', (data) => {
         async function creaCardSquadra(partecipante) {
             const card = document.createElement('div');
             card.style.cssText = `
-        background: rgba(255,255,255,0.08);
-        border-radius: 15px;
-        padding: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-    `;
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
 
             try {
-                // Carica i giocatori del partecipante
-                const squadra = await fetch(`/api/squadra-partecipante/${partecipante.id}`).then(r => r.json());
+                // CORREZIONE: Carica sempre i giocatori del partecipante
+                console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
+
+                const response = await fetch(`/api/squadra-partecipante/${partecipante.id}`);
+                let squadra = [];
+
+                if (response.ok) {
+                    squadra = await response.json();
+                    console.log(`✅ Squadra caricata per ${partecipante.nome}:`, squadra);
+                } else {
+                    console.log(`⚠️ Squadra non ancora formata per ${partecipante.nome}`);
+                }
 
                 const giocatoriAcquistati = squadra.length;
                 const creditiSpesi = squadra.reduce((sum, g) => sum + (g.costo_finale || 0), 0);
                 const creditiRimasti = partecipante.crediti;
+                const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
+
+                // Crea la griglia delle posizioni
+                const posizioniHTML = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'].map(pos => {
+                    const giocatore = squadra.find(g => g.slot_id && g.slot_id.startsWith(pos + '_'));
+
+                    if (giocatore) {
+                        const teamColor = getTeamColorForMaster(giocatore.colore);
+                        const textColor = getTextColorForTeamMaster(giocatore.colore);
+
+                        console.log(`🎨 Colori per ${giocatore.colore}: sfondo=${teamColor}, testo=${textColor}`);
+
+                        return `
+                    <div style="
+                        background: ${teamColor}60;
+                        border: 2px solid ${teamColor};
+                        padding: 8px;
+                        border-radius: 6px;
+                        text-align: center;
+                        font-size: 0.8em;
+                        color: ${textColor};
+                    ">
+                        <strong style="color: ${textColor};">${pos}</strong><br>
+                        <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
+                        <small style="color: ${textColor}; opacity: 0.9;">${giocatore.colore} - ${giocatore.costo_finale}€</small>
+                    </div>
+                `;
+                    } else {
+                        return `
+                    <div style="
+                        background: rgba(74,85,104,0.3);
+                        border: 1px solid #4a5568;
+                        padding: 8px;
+                        border-radius: 6px;
+                        text-align: center;
+                        font-size: 0.8em;
+                        opacity: 0.6;
+                        color: #a0aec0;
+                    ">
+                        <strong>${pos}</strong><br>
+                        -
+                    </div>
+                `;
+                    }
+                }).join('');
 
                 card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -884,95 +1026,296 @@ socket.on('round_ended', (data) => {
                     ${giocatoriAcquistati}/10 giocatori
                 </div>
             </div>
-            
+
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
-                ${['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'].map(pos => {
-                    const giocatore = squadra.find(g => g.slot_id.startsWith(pos + '_'));
-                    if (giocatore) {
-                        const teamColor = getTeamColorForMaster(giocatore.colore);
-                        return `
-                            <div style="
-                                background: ${teamColor}40;
-                                border: 2px solid ${teamColor};
-                                padding: 8px;
-                                border-radius: 6px;
-                                text-align: center;
-                                font-size: 0.8em;
-                            ">
-                                <strong>${pos}</strong><br>
-                                ${giocatore.giocatore_attuale}<br>
-                                <small>${giocatore.colore} - ${giocatore.costo_finale}€</small>
-                            </div>
-                        `;
-                    } else {
-                        return `
-                            <div style="
-                                background: rgba(74,85,104,0.3);
-                                border: 1px solid #4a5568;
-                                padding: 8px;
-                                border-radius: 6px;
-                                text-align: center;
-                                font-size: 0.8em;
-                                opacity: 0.6;
-                            ">
-                                <strong>${pos}</strong><br>
-                                -
-                            </div>
-                        `;
-                    }
-                }).join('')}
+                ${posizioniHTML}
             </div>
-            
+
             <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
                 <span>💰 Rimasti: ${creditiRimasti}</span>
                 <span>💸 Spesi: ${creditiSpesi}</span>
-                <span>🏆 Punti: ${squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0)}</span>
+                <span>🏆 Punti: ${puntiTotali}</span>
             </div>
         `;
             } catch (error) {
                 card.innerHTML = `
-            <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
-            <p style="opacity: 0.7;">Squadra non ancora formata</p>
-            <div style="font-size: 0.9em; opacity: 0.9;">
-                💰 Crediti: ${partecipante.crediti}
-            </div>
-        `;
+                <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+                <p style="opacity: 0.7;">Squadra non ancora formata</p>
+                <div style="font-size: 0.9em; opacity: 0.9;">
+                    💰 Crediti: ${partecipante.crediti}
+                </div>
+            `;
             }
 
             return card;
         }
 
-        // NUOVA FUNZIONE: Gestione colori per Master
+        // CORREZIONE: Funzione colori Master con mappatura completa
         function getTeamColorForMaster(nomeColore) {
             const colori = {
-                'rosso': '#ef4444', 'blu': '#3b82f6', 'verde': '#10b981',
-                'giallo': '#f59e0b', 'viola': '#8b5cf6', 'arancione': '#f97316',
-                'rosa': '#ec4899', 'azzurro': '#06b6d4', 'marrone': '#92400e',
-                'nero': '#374151', 'bianco': '#f3f4f6', 'grigio': '#6b7280',
-                'smeraldo': '#10b981', 'royal': '#1e40af', 'ciano': '#06b6d4',
-                'lime': '#84cc16', 'bordeaux': '#7c2d12', 'crema': '#fef3c7',
-                'lilla': '#c4b5fd'
+                // Colori base - MASCHILI
+                'rosso': '#ef4444',
+                'blu': '#3b82f6',
+                'verde': '#10b981',
+                'giallo': '#f59e0b',
+                'viola': '#8b5cf6',
+                'arancione': '#f97316',
+                'rosa': '#ec4899',
+                'azzurro': '#06b6d4',
+                'marrone': '#92400e',
+                'nero': '#374151',
+                'bianco': '#f3f4f6',
+                'grigio': '#6b7280',
+                'lime': '#84cc16',
+                'indaco': '#6366f1',
+                'fucsia': '#d946ef',
+
+                // NUOVI COLORI PARTICOLARI
+                'smeraldo': '#10b981',
+                'royal': '#1e40af',
+                'ciano': '#06b6d4',
+                'bordeaux': '#7c2d12',
+                'crema': '#fef3c7',
+                'lilla': '#c4b5fd',
+                'gialla': '#f59e0b',
+
+                // Colori base - FEMMINILI
+                'rossa': '#ef4444',
+                'gialla': '#f59e0b',
+                'azzurra': '#06b6d4',
+                'nera': '#374151',
+                'bianca': '#f3f4f6',
+                'grigia': '#6b7280',
+
+                // Varianti e sinonimi
+                'celeste': '#06b6d4',
+                'cielo': '#06b6d4',
+                'blu chiaro': '#60a5fa',
+                'blu chiara': '#60a5fa',
+                'blu scuro': '#1e40af',
+                'blu scura': '#1e40af',
+                'rosso chiaro': '#f87171',
+                'rossa chiara': '#f87171',
+                'rosso scuro': '#b91c1c',
+                'rossa scura': '#b91c1c',
+                'verde chiaro': '#34d399',
+                'verde chiara': '#34d399',
+                'verde scuro': '#047857',
+                'verde scura': '#047857',
+                'giallo chiaro': '#fbbf24',
+                'gialla chiara': '#fbbf24',
+                'giallo scuro': '#d97706',
+                'gialla scura': '#d97706',
+                'viola chiaro': '#a78bfa',
+                'viola chiara': '#a78bfa',
+                'viola scuro': '#6d28d9',
+                'viola scura': '#6d28d9',
+                'arancio': '#f97316',
+                'arancione chiaro': '#fb923c',
+                'arancione chiara': '#fb923c',
+                'arancione scuro': '#ea580c',
+                'arancione scura': '#ea580c',
+                'rosa chiaro': '#f9a8d4',
+                'rosa chiara': '#f9a8d4',
+                'rosa scuro': '#be185d',
+                'rosa scura': '#be185d',
+                'magenta': '#e879f9',
+                'turchese': '#14b8a6',
+                'oro': '#eab308',
+                'dorato': '#eab308',
+                'dorata': '#eab308',
+                'argento': '#9ca3af',
+                'argentato': '#9ca3af',
+                'argentata': '#9ca3af',
+                'bronzo': '#a16207',
+                'beige': '#d6d3d1',
+                'lavanda': '#c4b5fd',
+                'menta': '#6ee7b7',
+                'corallo': '#fb7185',
+                'salmone': '#fca5a5',
+                'petrolio': '#0f766e',
+                'navy': '#1e3a8a',
+                'militare': '#365314',
+                'sabbia': '#fef3c7',
+
+                // Altri sinonimi femminili
+                'azzurra chiara': '#60a5fa',
+                'azzurra scura': '#1e40af',
+                'celeste chiara': '#60a5fa',
+                'celeste scura': '#1e40af',
+                'grigia chiara': '#9ca3af',
+                'grigia scura': '#4b5563',
+                'marrone chiaro': '#d2b48c',
+                'marrone chiara': '#d2b48c',
+                'marrone scuro': '#8b4513',
+                'marrone scura': '#8b4513',
+                'nera opaca': '#1f2937',
+                'bianca pura': '#ffffff',
+
+                // Colori particolari con varianti
+                'fucsia chiara': '#f0abfc',
+                'fucsia scura': '#a21caf',
+                'magenta chiara': '#f0abfc',
+                'magenta scura': '#a21caf',
+                'lime chiaro': '#bef264',
+                'lime chiara': '#bef264',
+                'lime scuro': '#65a30d',
+                'lime scura': '#65a30d'
             };
 
             const coloreLowerCase = nomeColore.toLowerCase().trim();
-            return colori[coloreLowerCase] || '#4299e1';
+
+            // Prima cerca corrispondenza diretta esatta
+            if (colori[coloreLowerCase]) {
+                console.log(`✅ Master - Colore trovato: "${coloreLowerCase}" → ${colori[coloreLowerCase]}`);
+                return colori[coloreLowerCase];
+            }
+
+            // Poi cerca corrispondenze parziali
+            for (const [nome, codice] of Object.entries(colori)) {
+                if (coloreLowerCase.includes(nome) || nome.includes(coloreLowerCase)) {
+                    console.log(`⚠️ Master - Colore parziale: "${coloreLowerCase}" tramite "${nome}" → ${codice}`);
+                    return codice;
+                }
+            }
+
+            // Ultimo resort: genera colore hash
+            console.log(`❌ Master - Colore non riconosciuto: "${coloreLowerCase}" → generando colore casuale`);
+            return generaColoreHashMaster(nomeColore);
+        }
+
+        // NUOVA FUNZIONE: Determina colore testo ottimale per Master
+        // CORREZIONE: Funzione colore testo per Mobile - Sostituire completamente
+        function getTextColorForTeam(nomeColore) {
+            // Colori chiari che necessitano testo scuro
+            const coloriChiari = [
+                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'giallo chiaro', 'gialla chiara', 'lime chiaro', 'lime chiara',
+                'rosa', 'rosa chiaro', 'rosa chiara',
+                'celeste', 'azzurro chiaro', 'azzurra chiara',
+                'verde chiaro', 'verde chiara', 'viola chiaro', 'viola chiara',
+                'arancione chiaro', 'arancione chiara', 'grigio chiaro', 'grigia chiara',
+                'argento', 'argentato', 'argentata', 'sabbia', 'beige', 'lavanda',
+                'fucsia chiara', 'magenta chiara', 'oro', 'dorato', 'dorata',
+                'bianca pura', 'menta'
+            ];
+
+            // Colori scuri che necessitano testo bianco
+            const coloriScuri = [
+                'nero', 'nera', 'blu', 'azzurro', 'azzurra', 'verde', 'verde scuro', 'verde scura',
+                'rosso', 'rossa', 'rosso scuro', 'rossa scura', 'viola', 'viola scuro', 'viola scura',
+                'marrone', 'marrone scuro', 'marrone scura', 'arancione', 'arancione scuro', 'arancione scura',
+                'bordeaux', 'navy', 'militare', 'petrolio', 'indaco', 'blu scuro', 'blu scura',
+                'grigio', 'grigia', 'grigio scuro', 'grigia scura', 'bronzo',
+                'smeraldo', 'royal', 'ciano', 'turchese', 'fucsia', 'magenta',
+                'lime scuro', 'lime scura', 'nera opaca', 'azzurra scura', 'celeste scura'
+            ];
+
+            const coloreLowerCase = nomeColore.toLowerCase().trim();
+
+            // Prima controlla se è esplicitamente un colore chiaro
+            const isColoreChiaro = coloriChiari.some(colore =>
+                coloreLowerCase === colore || coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
+            );
+
+            if (isColoreChiaro) {
+                return '#1a202c'; // Testo scuro per sfondi chiari
+            }
+
+            // Poi controlla se è esplicitamente un colore scuro
+            const isColoreScuro = coloriScuri.some(colore =>
+                coloreLowerCase === colore || coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
+            );
+
+            if (isColoreScuro) {
+                return '#ffffff'; // Testo bianco per sfondi scuri
+            }
+
+            // Default: testo bianco per colori non riconosciuti
+            return '#ffffff';
+        }
+
+        // Funzione helper per generare colore hash nel Master
+        function generaColoreHashMaster(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+
+            const hue = Math.abs(hash) % 360;
+            const saturation = 65 + (Math.abs(hash) % 35);
+            const lightness = 45 + (Math.abs(hash) % 20);
+
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // NUOVA FUNZIONE: Determina colore testo ottimale per Master
+        function getTextColorForTeamMaster(nomeColore) {
+            // Colori chiari che necessitano testo scuro
+            const coloriChiari = [
+                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'giallo chiaro', 'gialla chiara', 'lime chiaro', 'lime chiara',
+                'rosa', 'rosa chiaro', 'rosa chiara',
+                'celeste', 'azzurro chiaro', 'azzurra chiara',
+                'verde chiaro', 'verde chiara', 'viola chiaro', 'viola chiara',
+                'arancione chiaro', 'arancione chiara', 'grigio chiaro', 'grigia chiara',
+                'argento', 'argentato', 'argentata', 'sabbia', 'beige', 'lavanda',
+                'fucsia chiara', 'magenta chiara', 'oro', 'dorato', 'dorata',
+                'bianca pura', 'menta'
+            ];
+
+            // Colori scuri che necessitano testo bianco
+            const coloriScuri = [
+                'nero', 'nera', 'blu', 'azzurro', 'azzurra', 'verde', 'verde scuro', 'verde scura',
+                'rosso', 'rossa', 'rosso scuro', 'rossa scura', 'viola', 'viola scuro', 'viola scura',
+                'marrone', 'marrone scuro', 'marrone scura', 'arancione', 'arancione scuro', 'arancione scura',
+                'bordeaux', 'navy', 'militare', 'petrolio', 'indaco', 'blu scuro', 'blu scura',
+                'grigio', 'grigia', 'grigio scuro', 'grigia scura', 'bronzo',
+                'smeraldo', 'royal', 'ciano', 'turchese', 'fucsia', 'magenta',
+                'lime scuro', 'lime scura', 'nera opaca', 'azzurra scura', 'celeste scura'
+            ];
+
+            const coloreLowerCase = nomeColore.toLowerCase().trim();
+
+            // Prima controlla se è esplicitamente un colore chiaro
+            const isColoreChiaro = coloriChiari.some(colore =>
+                coloreLowerCase === colore || coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
+            );
+
+            if (isColoreChiaro) {
+                return '#1a202c'; // Testo scuro per sfondi chiari
+            }
+
+            // Poi controlla se è esplicitamente un colore scuro
+            const isColoreScuro = coloriScuri.some(colore =>
+                coloreLowerCase === colore || coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
+            );
+
+            if (isColoreScuro) {
+                return '#ffffff'; // Testo bianco per sfondi scuri
+            }
+
+            // Default: testo bianco per colori non riconosciuti
+            return '#ffffff';
         }
 
         // Setup event listeners
         // Setup event listeners
-function setupEventListeners() {
-    // Selezione round - SOLO SELEZIONE, non avvio
-    document.querySelectorAll('.round-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // AGGIUNTO: controlla se è completato
-            if (!btn.classList.contains('completed') && 
-                !btn.classList.contains('active') && 
-                !btn.disabled) {
-                selectRound(btn.dataset.round);
-            }
-        });
-    });
-}
+        function setupEventListeners() {
+            // Selezione round - SOLO SELEZIONE, non avvio
+            document.querySelectorAll('.round-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // AGGIUNTO: controlla se è completato
+                    if (!btn.classList.contains('completed') &&
+                        !btn.classList.contains('active') &&
+                        !btn.disabled) {
+                        selectRound(btn.dataset.round);
+                    }
+                });
+            });
+        }
 
         // Gestione round
         function selectRound(round) {
@@ -986,7 +1329,7 @@ function setupEventListeners() {
             const btn = document.querySelector(`[data-round="${round}"]`);
             btn.style.outline = '3px solid #ffd700';
             btn.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
-            
+
             roundSelezionato = round;
             document.getElementById('selectedRoundDisplay').textContent = round;
             document.getElementById('btnAvviaRound').disabled = false;
@@ -1014,7 +1357,7 @@ function setupEventListeners() {
                     document.querySelector(`[data-round="${round}"]`).classList.add('active');
                     document.getElementById('btnAvviaRound').disabled = true;
                     document.getElementById('btnFermaRound').disabled = false;
-                    
+
                     // Reset selezione e tracciamento offerte
                     roundSelezionato = null;
                     participantsBids.clear();
@@ -1060,7 +1403,7 @@ function setupEventListeners() {
         function startOffersDisplay() {
             document.getElementById('currentRoundInfo').style.display = 'block';
             document.getElementById('activeRoundName').textContent = gameState.roundAttivo;
-            
+
             // Reset display
             updateOffersDisplay({
                 partecipantiConnessi: gameState.connessi.filter(p => p.tipo === 'partecipante').length,
@@ -1072,9 +1415,9 @@ function setupEventListeners() {
         function updateOffersDisplay(data) {
             const displayEl = document.getElementById('offersDisplay');
             const messageEl = document.getElementById('offersStatusMessage');
-            
+
             displayEl.textContent = `${data.offerteRicevute}/${data.partecipantiConnessi}`;
-            
+
             if (data.mancano > 0) {
                 displayEl.style.color = '#f59e0b';
                 messageEl.textContent = `Mancano ${data.mancano} offerte per proseguire`;
@@ -1095,64 +1438,64 @@ function setupEventListeners() {
         }
 
         function stopOffersDisplay() {
-    document.getElementById('currentRoundInfo').style.display = 'none';
-    
-    // Aggiorna stato round button - MARCA COME COMPLETATO
-    if (gameState.roundAttivo) {
-        const btn = document.querySelector(`[data-round="${gameState.roundAttivo}"]`);
-        if (btn) {
-            btn.classList.remove('active', 'available');
-            btn.classList.add('completed');
-            btn.style.outline = 'none';
-            btn.style.boxShadow = 'none';
-            btn.disabled = true;  // AGGIUNTO: disabilita fisicamente
-            btn.style.opacity = '0.6';
-            btn.style.cursor = 'not-allowed';
-            btn.style.pointerEvents = 'none';
+            document.getElementById('currentRoundInfo').style.display = 'none';
+
+            // Aggiorna stato round button - MARCA COME COMPLETATO
+            if (gameState.roundAttivo) {
+                const btn = document.querySelector(`[data-round="${gameState.roundAttivo}"]`);
+                if (btn) {
+                    btn.classList.remove('active', 'available');
+                    btn.classList.add('completed');
+                    btn.style.outline = 'none';
+                    btn.style.boxShadow = 'none';
+                    btn.disabled = true;  // AGGIUNTO: disabilita fisicamente
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                    btn.style.pointerEvents = 'none';
+                }
+            }
+
+            // Reset selezione e tracciamento
+            participantsBids.clear();
+            document.getElementById('selectedRoundDisplay').textContent = 'Nessuno';
+            document.getElementById('btnAvviaRound').disabled = true;
+            document.getElementById('btnFermaRound').disabled = true;
         }
-    }
-    
-    // Reset selezione e tracciamento
-    participantsBids.clear();
-    document.getElementById('selectedRoundDisplay').textContent = 'Nessuno';
-    document.getElementById('btnAvviaRound').disabled = true;
-    document.getElementById('btnFermaRound').disabled = true;
-}
 
         // Update UI
         function updateUI() {
-    updateRoundButtons();
-    updateControlButtons();
-    updatePartecipanti();
-    updateStats();
-    
-    // AGGIUNTO: Mantieni stato completed dopo aggiornamenti
-    document.querySelectorAll('.round-btn.completed').forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.style.pointerEvents = 'none';
-        btn.style.cursor = 'not-allowed';
-    });
-}
+            updateRoundButtons();
+            updateControlButtons();
+            updatePartecipanti();
+            updateStats();
+
+            // AGGIUNTO: Mantieni stato completed dopo aggiornamenti
+            document.querySelectorAll('.round-btn.completed').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.pointerEvents = 'none';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
 
         function updateRoundButtons() {
-    document.querySelectorAll('.round-btn').forEach(btn => {
-        const round = btn.dataset.round;
-        
-        // AGGIUNTO: Non toccare i pulsanti già completati
-        if (btn.classList.contains('completed')) {
-            return; // Salta questo pulsante se è già completato
+            document.querySelectorAll('.round-btn').forEach(btn => {
+                const round = btn.dataset.round;
+
+                // AGGIUNTO: Non toccare i pulsanti già completati
+                if (btn.classList.contains('completed')) {
+                    return; // Salta questo pulsante se è già completato
+                }
+
+                btn.classList.remove('available', 'active');
+
+                if (round === gameState.roundAttivo && gameState.asteAttive) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.add('available');
+                }
+            });
         }
-        
-        btn.classList.remove('available', 'active');
-        
-        if (round === gameState.roundAttivo && gameState.asteAttive) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.add('available');
-        }
-    });
-}
 
         function updateControlButtons() {
             document.getElementById('btnAvviaRound').disabled = gameState.asteAttive || !roundSelezionato;
@@ -1161,9 +1504,9 @@ function setupEventListeners() {
 
         function updatePartecipanti() {
             const container = document.getElementById('participantsContainer');
-            
+
             const partecipanti = gameState.connessi.filter(p => p.tipo === 'partecipante');
-            
+
             if (partecipanti.length === 0) {
                 container.innerHTML = '<p>Nessun partecipante connesso</p>';
                 return;
@@ -1176,11 +1519,11 @@ function setupEventListeners() {
             partecipanti.forEach(p => {
                 const card = document.createElement('div');
                 card.className = 'participant-card';
-                
+
                 // Stato della puntata
                 let bidStatus = 'Nessuna offerta';
                 let bidClass = 'bid-none';
-                
+
                 if (gameState.asteAttive && participantsBids.has(p.nome)) {
                     bidStatus = '✅ Offerta confermata';
                     bidClass = 'bid-confirmed';
@@ -1190,13 +1533,13 @@ function setupEventListeners() {
                     bidClass = 'bid-pending';
                     card.classList.add('bid-pending');
                 }
-                
+
                 card.innerHTML = `
-                    <div><strong>${p.nome}</strong></div>
-                    <div>Stato: ${p.stato}</div>
-                    <div class="bid-status ${bidClass}">${bidStatus}</div>
-                `;
-                
+                        <div><strong>${p.nome}</strong></div>
+                        <div>Stato: ${p.stato}</div>
+                        <div class="bid-status ${bidClass}">${bidStatus}</div>
+                    `;
+
                 grid.appendChild(card);
             });
 
@@ -1206,10 +1549,10 @@ function setupEventListeners() {
         function updateStats() {
             const connessi = gameState.connessi.filter(p => p.tipo === 'partecipante').length;
             document.getElementById('statConnessi').textContent = connessi;
-            
+
             const offerte = participantsBids.size;
             document.getElementById('statOfferte').textContent = offerte;
-            
+
             // TODO: Aggiornare altre statistiche dal database
             document.getElementById('statRounds').textContent = '0';
             document.getElementById('statCrediti').textContent = '0';
@@ -1222,30 +1565,30 @@ function setupEventListeners() {
             const content = document.getElementById('resultsContent');
 
             title.textContent = `Risultati Round ${round}`;
-            
+
             let html = '<table class="results-table"><thead><tr>';
             html += '<th>Giocatore</th><th>Vincitore</th><th>Offerta</th><th>Costo Finale</th><th>Condiviso</th>';
             html += '</tr></thead><tbody>';
 
             risultati.forEach(r => {
                 html += `<tr>
-                    <td><strong>${r.slot.replace('_', ' ')}</strong></td>
-                    <td>${r.nome}</td>
-                    <td>${r.offertaOriginale}</td>
-                    <td>${r.costoFinale}</td>
-                    <td>${r.condiviso ? '✅' : '❌'}</td>
-                </tr>`;
+                        <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                        <td>${r.nome}</td>
+                        <td>${r.offertaOriginale}</td>
+                        <td>${r.costoFinale}</td>
+                        <td>${r.condiviso ? '✅' : '❌'}</td>
+                    </tr>`;
             });
 
             html += '</tbody></table>';
             content.innerHTML = html;
             modal.style.display = 'flex';
-            
+
             // Aggiorna anche la sezione risultati nella pagina
             document.getElementById('lastRoundResults').innerHTML = `
-                <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
-                ${html}
-            `;
+                    <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
+                    ${html}
+                `;
         }
 
         async function mostraClassifica() {
@@ -1254,7 +1597,7 @@ function setupEventListeners() {
                 if (!response.ok) {
                     throw new Error('API non disponibile');
                 }
-                
+
                 const classifica = await response.json();
 
                 const modal = document.getElementById('classificaModal');
@@ -1266,12 +1609,12 @@ function setupEventListeners() {
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-                        <td><strong>${index + 1}°</strong></td>
-                        <td>${p.nome}</td>
-                        <td>${p.punti_totali}</td>
-                        <td>${p.giocatori_totali}/10</td>
-                        <td>${p.crediti}</td>
-                    </tr>`;
+                            <td><strong>${index + 1}°</strong></td>
+                            <td>${p.nome}</td>
+                            <td>${p.punti_totali}</td>
+                            <td>${p.giocatori_totali}/10</td>
+                            <td>${p.crediti}</td>
+                        </tr>`;
                 });
 
                 html += '</tbody></table>';
@@ -1293,9 +1636,9 @@ function setupEventListeners() {
                 if (!response.ok) {
                     throw new Error('Export non disponibile');
                 }
-                
+
                 const data = await response.json();
-                
+
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1303,7 +1646,7 @@ function setupEventListeners() {
                 a.download = `fantagts_export_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
-                
+
                 showNotification('Dati esportati con successo', 'success');
             } catch (error) {
                 showNotification('Export non ancora disponibile', 'warning');
@@ -1350,6 +1693,167 @@ function setupEventListeners() {
             );
         }
 
+        // Carica info sessione corrente
+        async function caricaInfoSessione() {
+            try {
+                const response = await fetch('/api/sessione-info');
+                const sessionInfo = await response.json();
+
+                document.getElementById('currentSession').textContent =
+                    sessionInfo.sessione_descrizione || `Anno ${sessionInfo.sessione_anno || 'Non definito'}`;
+
+                if (sessionInfo.sessione_data_inizio) {
+                    const date = new Date(sessionInfo.sessione_data_inizio);
+                    document.getElementById('sessionDate').textContent = date.toLocaleDateString('it-IT');
+                }
+
+            } catch (error) {
+                console.error('Errore caricamento info sessione:', error);
+                document.getElementById('currentSession').textContent = 'Errore caricamento';
+            }
+        }
+
+        // Mostra modal pulisci test
+        async function mostraPulisciTest() {
+            try {
+                const response = await fetch('/api/partecipanti');
+                const partecipanti = await response.json();
+
+                const container = document.getElementById('participantsList');
+                container.innerHTML = '';
+
+                if (partecipanti.length === 0) {
+                    container.innerHTML = '<p>Nessun partecipante registrato</p>';
+                } else {
+                    partecipanti.forEach(p => {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
+                        div.innerHTML = `
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
+                        <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
+                    </label>
+                `;
+                        container.appendChild(div);
+                    });
+                }
+
+                document.getElementById('pulisciTestModal').style.display = 'flex';
+            } catch (error) {
+                showNotification('Errore caricamento partecipanti', 'error');
+            }
+        }
+
+        // Esegui pulizia test
+        async function eseguiPuliziaTest() {
+            const checkboxes = document.querySelectorAll('#participantsList input[type="checkbox"]:checked');
+            const mantieni = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!confirm(`Eliminare tutti i partecipanti tranne ${mantieni.length} selezionati?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/pulisci-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mantieni: mantieni })
+                });
+
+                if (response.ok) {
+                    showNotification('Dati di test puliti con successo!', 'success');
+                    closeModal('pulisciTestModal');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Elimina tutti i partecipanti
+        async function eliminaTuttiPartecipanti() {
+            if (!confirm('ATTENZIONE: Eliminare TUTTI i partecipanti? Questa azione è irreversibile!')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/pulisci-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mantieni: [] })
+                });
+
+                if (response.ok) {
+                    showNotification('Tutti i partecipanti eliminati', 'success');
+                    closeModal('pulisciTestModal');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Errore durante eliminazione', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Mostra modal nuova sessione
+        function mostraNuovaSessione() {
+            const currentYear = new Date().getFullYear();
+            document.getElementById('nuovoAnno').value = currentYear;
+            document.getElementById('nuovaDescrizione').value = `FantaGTS ${currentYear}`;
+            document.getElementById('nuovaSessioneModal').style.display = 'flex';
+        }
+
+        // Crea nuova sessione
+        async function creaNuovaSessione() {
+            const anno = document.getElementById('nuovoAnno').value;
+            const descrizione = document.getElementById('nuovaDescrizione').value;
+
+            if (!anno) {
+                alert('Inserisci un anno valido');
+                return;
+            }
+
+            if (!confirm(`Creare una nuova sessione per l'anno ${anno}?\n\nI dati attuali verranno salvati come backup e il sistema verrà resettato.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/nuova-sessione', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anno: anno, descrizione: descrizione })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification(result.message, 'success');
+                    closeModal('nuovaSessioneModal');
+
+                    if (result.redirectTo) {
+                        setTimeout(() => window.location.href = result.redirectTo, 2000);
+                    }
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Mostra lista backup (placeholder)
+        function mostraBackupList() {
+            document.getElementById('backupContent').innerHTML = `
+        <p>Funzionalità di visualizzazione backup in sviluppo.</p>
+        <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
+        <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
+    `;
+            document.getElementById('backupListModal').style.display = 'flex';
+        }
+
         // Utilities
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
@@ -1380,19 +1884,27 @@ function setupEventListeners() {
 
         // Aggiorna stato ogni 30 secondi
         setInterval(caricaStatoIniziale, 30000);
-		
-		// Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti
-setInterval(async () => {
-    if (gameState.asteAttive || document.querySelectorAll('.team-slot.filled').length > 0) {
-        await saveMasterState();
-    }
-}, 30000);
 
-// Salva stato quando si chiude la finestra
-window.addEventListener('beforeunload', () => {
-    saveMasterState();
-});
-		
+        // Refresh squadre ogni 10 secondi se ci sono partecipanti
+        setInterval(async () => {
+            const partecipanti = await fetch('/api/partecipanti').then(r => r.json()).catch(() => []);
+            if (partecipanti.length > 0) {
+                await caricaSquadreInFormazione();
+            }
+        }, 10000);
+
+        // Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti
+        setInterval(async () => {
+            if (gameState.asteAttive || document.querySelectorAll('.team-slot.filled').length > 0) {
+                await saveMasterState();
+            }
+        }, 30000);
+
+        // Salva stato quando si chiude la finestra
+        window.addEventListener('beforeunload', () => {
+            saveMasterState();
+        });
+
     </script>
 </body>
 </html>

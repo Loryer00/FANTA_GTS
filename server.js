@@ -400,17 +400,20 @@ app.get('/api/classifica', (req, res) => {
         FROM partecipanti_fantagts p 
         LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = 1
         LEFT JOIN slots s ON a.slot_id = s.id 
-        WHERE p.attivo = 1
         GROUP BY p.id, p.nome, p.crediti 
         ORDER BY punti_totali DESC, crediti_spesi ASC`, (err, rows) => {
-        
-        if (err) return res.status(500).json({ error: err.message });
-        
+
+        if (err) {
+            console.error('❌ Errore query classifica:', err);
+            return res.status(500).json({ error: err.message });
+        }
+
         // Aggiungi posizione in classifica
         rows.forEach((row, index) => {
             row.posizione = index + 1;
         });
-        
+
+        console.log('✅ Classifica caricata:', rows.length, 'partecipanti');
         res.json(rows);
     });
 });
@@ -627,6 +630,158 @@ function aggiornaCreditiPartecipanti() {
         });
     });
 }
+
+// API per pulire dati di test
+app.post('/api/pulisci-test', (req, res) => {
+    const { mantieni } = req.body; // Array di IDs da mantenere
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        // Se non ci sono partecipanti da mantenere, elimina tutto
+        if (!mantieni || mantieni.length === 0) {
+            db.run("DELETE FROM aste", (err) => {
+                if (err) {
+                    db.run("ROLLBACK");
+                    return res.status(500).json({ error: err.message });
+                }
+
+                db.run("DELETE FROM partecipanti_fantagts", (err) => {
+                    if (err) {
+                        db.run("ROLLBACK");
+                        return res.status(500).json({ error: err.message });
+                    }
+
+                    db.run("COMMIT");
+
+                    // Reset stato del gioco
+                    gameState.connessi.clear();
+                    gameState.offerteTemporanee.clear();
+                    gameState.asteAttive = false;
+                    gameState.roundAttivo = null;
+
+                    res.json({ message: 'Tutti i partecipanti di test eliminati' });
+                });
+            });
+        } else {
+            // Elimina solo i partecipanti non nella lista "mantieni"
+            const placeholders = mantieni.map(() => '?').join(',');
+
+            // Prima elimina le aste dei partecipanti da rimuovere
+            db.run(`DELETE FROM aste WHERE partecipante_id NOT IN (${placeholders})`, mantieni, (err) => {
+                if (err) {
+                    db.run("ROLLBACK");
+                    return res.status(500).json({ error: err.message });
+                }
+
+                // Poi elimina i partecipanti
+                db.run(`DELETE FROM partecipanti_fantagts WHERE id NOT IN (${placeholders})`, mantieni, (err) => {
+                    if (err) {
+                        db.run("ROLLBACK");
+                        return res.status(500).json({ error: err.message });
+                    }
+
+                    db.run("COMMIT");
+                    res.json({ message: `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` });
+                });
+            });
+        }
+    });
+});
+
+// API per creare nuova sessione annuale
+app.post('/api/nuova-sessione', (req, res) => {
+    const { anno, descrizione } = req.body;
+
+    if (!anno) {
+        return res.status(400).json({ error: 'Anno richiesto' });
+    }
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        // Backup della sessione precedente se esistono dati
+        db.get("SELECT COUNT(*) as count FROM partecipanti_fantagts", (err, row) => {
+            if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: err.message });
+            }
+
+            if (row.count > 0) {
+                // Crea tabelle di backup con timestamp
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const suffix = `_backup_${anno}_${timestamp}`;
+
+                db.run(`CREATE TABLE partecipanti_fantagts${suffix} AS SELECT * FROM partecipanti_fantagts`, (err) => {
+                    if (err) console.log('Errore backup partecipanti:', err);
+                });
+
+                db.run(`CREATE TABLE aste${suffix} AS SELECT * FROM aste`, (err) => {
+                    if (err) console.log('Errore backup aste:', err);
+                });
+
+                db.run(`CREATE TABLE squadre_circolo${suffix} AS SELECT * FROM squadre_circolo`, (err) => {
+                    if (err) console.log('Errore backup squadre:', err);
+                });
+            }
+
+            // Pulisci tutte le tabelle per la nuova sessione
+            db.run("DELETE FROM aste", () => {
+                db.run("DELETE FROM partecipanti_fantagts", () => {
+                    db.run("DELETE FROM squadre_circolo", () => {
+                        db.run("DELETE FROM slots", () => {
+                            db.run("DELETE FROM risultati_partite", () => {
+
+                                // Inserisci metadata della nuova sessione
+                                db.run(`INSERT OR REPLACE INTO configurazione (chiave, valore) VALUES 
+                                    ('sessione_anno', ?),
+                                    ('sessione_descrizione', ?),
+                                    ('sessione_data_inizio', ?)`,
+                                    [anno, descrizione || `FantaGTS ${anno}`, new Date().toISOString()], (err) => {
+
+                                        if (err) {
+                                            db.run("ROLLBACK");
+                                            return res.status(500).json({ error: err.message });
+                                        }
+
+                                        db.run("COMMIT");
+
+                                        // Reset completo stato del gioco
+                                        gameState = {
+                                            fase: 'setup',
+                                            roundAttivo: null,
+                                            asteAttive: false,
+                                            connessi: new Map(),
+                                            offerteTemporanee: new Map()
+                                        };
+
+                                        res.json({
+                                            message: `Nuova sessione ${anno} creata con successo`,
+                                            redirectTo: '/setup'
+                                        });
+                                    });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// API per ottenere info sessione corrente
+app.get('/api/sessione-info', (req, res) => {
+    db.all("SELECT * FROM configurazione WHERE chiave LIKE 'sessione_%'", (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const sessionInfo = {};
+        rows.forEach(row => {
+            sessionInfo[row.chiave] = row.valore;
+        });
+
+        res.json(sessionInfo);
+    });
+});
 
 // Reset sistema
 app.post('/api/reset/:livello', (req, res) => {
