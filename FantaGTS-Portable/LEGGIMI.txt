@@ -1,0 +1,22 @@
+FANTAGTS - Fantasy Tennis del Circolo 
+============================================== 
+ 
+COME AVVIARE: 
+  - Doppio click su: AVVIA FANTAGTS.bat 
+  - Apri browser su: http://localhost:3000 
+ 
+ACCESSO DA ALTRI DISPOSITIVI: 
+  - Trova l'IP del PC (ipconfig) 
+  - Usa: http://[IP-DEL-PC]:3000 
+ 
+DATABASE: 
+  - Salvato automaticamente in: data/fantagts.db 
+ 
+REQUISITI: 
+  - Nessuno! Tutto incluso nel pacchetto 
+ 
+PRIMA CONFIGURAZIONE: 
+  1. Avvia FantaGTS 
+  2. Vai su http://localhost:3000/setup 
+  3. Configura le squadre del circolo 
+  4. Vai al Master panel per gestire le aste! 
