@@ -1,0 +1,29 @@
+{
+  "name": "FantaGTS - Fantasy Tennis",
+  "short_name": "FantaGTS",
+  "description": "Fantasy Tennis del Circolo",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#4299e1",
+  "orientation": "portrait-primary",
+
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%234299e1' rx='24'/%3E%3Ctext x='96' y='120' font-size='60' text-anchor='middle' fill='white'%3E🎾%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%234299e1' rx='64'/%3E%3Ctext x='256' y='320' font-size='160' text-anchor='middle' fill='white'%3E🎾%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "categories": [ "games", "sports", "entertainment" ],
+  "lang": "it"
+}

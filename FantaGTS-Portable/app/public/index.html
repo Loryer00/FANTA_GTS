@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FantaGTS - Partecipante</title>
+
+    <!-- PWA Configuration -->
+    <meta name="theme-color" content="#4299e1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FantaGTS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FantaGTS">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72x72.png">
+
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
@@ -47,24 +72,24 @@
             margin-bottom: 15px;
         }
 
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #cbd5e0;
-        }
+            .input-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+                color: #cbd5e0;
+            }
 
-        .input-group input {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.95);
-            color: #2d3748;
-            font-size: 1.1em;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+            .input-group input {
+                width: 100%;
+                padding: 15px;
+                border: none;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.95);
+                color: #2d3748;
+                font-size: 1.1em;
+                text-align: center;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
 
         .btn {
             width: 100%;
@@ -84,11 +109,11 @@
             border: 1px solid #4299e1;
         }
 
-        .btn-primary:hover {
-            background: #3182ce;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
-        }
+            .btn-primary:hover {
+                background: #3182ce;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
 
         .section {
             background: rgba(255,255,255,0.08);
@@ -165,17 +190,17 @@
             border: 3px solid transparent;
         }
 
-        .player-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-            border-color: #4299e1;
-        }
+            .player-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+                border-color: #4299e1;
+            }
 
-        .player-card.selected {
-            border-color: #4299e1;
-            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-            color: white;
-        }
+            .player-card.selected {
+                border-color: #4299e1;
+                background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+                color: white;
+            }
 
         .player-name {
             font-weight: bold;
@@ -235,11 +260,11 @@
             border: 1px solid #f56565;
         }
 
-        .confirm-bid:disabled {
-            background: #4a5568;
-            cursor: not-allowed;
-            border-color: #4a5568;
-        }
+            .confirm-bid:disabled {
+                background: #4a5568;
+                cursor: not-allowed;
+                border-color: #4a5568;
+            }
 
         .my-team {
             background: rgba(255,255,255,0.08);
@@ -264,37 +289,37 @@
             min-height: 60px;
         }
 
-        .team-slot.filled {
-            background: rgba(72, 187, 120, 0.2);
-            border: 4px solid #48bb78;
-            color: #68d391;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            min-height: 70px;
-        }
+            .team-slot.filled {
+                background: rgba(72, 187, 120, 0.2);
+                border: 4px solid #48bb78;
+                color: #68d391;
+                font-weight: bold;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                min-height: 70px;
+            }
 
-        .team-slot.filled small {
-            font-weight: normal;
-            opacity: 0.8;
-        }
+                .team-slot.filled small {
+                    font-weight: normal;
+                    opacity: 0.8;
+                }
 
-        .team-slot.empty {
-            background: rgba(74, 85, 104, 0.3);
-            border-color: #4a5568;
-            opacity: 0.7;
-            color: #a0aec0;
-        }
+            .team-slot.empty {
+                background: rgba(74, 85, 104, 0.3);
+                border-color: #4a5568;
+                opacity: 0.7;
+                color: #a0aec0;
+            }
 
         @media (max-width: 480px) {
             .players-grid {
                 grid-template-columns: 1fr;
             }
+
             .big-timer {
                 font-size: 2.5em;
             }
         }
-</style>
-
+    </style>
 </head>
 <body>
     <div class="container">
@@ -308,22 +333,22 @@
             <div class="registration-form">
                 <h2>👋 Benvenuto!</h2>
                 <p style="margin-bottom: 20px;">Inserisci i tuoi dati per partecipare al FantaGTS</p>
-                
+
                 <div class="input-group">
                     <label>Il tuo nome:</label>
                     <input type="text" id="playerName" placeholder="Lorenzo Buselli" autocomplete="name">
                 </div>
-                
+
                 <div class="input-group">
                     <label>Email (opzionale):</label>
                     <input type="email" id="playerEmail" placeholder="lorenzo@email.com" autocomplete="email">
                 </div>
-                
+
                 <div class="input-group">
                     <label>Telefono (opzionale):</label>
                     <input type="tel" id="playerPhone" placeholder="333-1234567" autocomplete="tel">
                 </div>
-                
+
                 <button class="btn btn-primary" onclick="registerPlayer()">
                     🚀 Entra nel FantaGTS
                 </button>
@@ -346,13 +371,13 @@
                     💰 <span id="playerCredits">2000</span> crediti
                 </div>
             </div>
-			
-			<!-- NUOVO: Pulsante logout -->
-<div style="text-align: center; margin-bottom: 15px;">
-    <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
-        🚪 Cambia Utente
-    </button>
-</div>
+
+            <!-- Pulsante logout -->
+            <div style="text-align: center; margin-bottom: 15px;">
+                <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
+                    🚪 Cambia Utente
+                </button>
+            </div>
 
             <!-- Attesa round -->
             <div id="waiting-phase" class="section" style="display: none;">
@@ -379,22 +404,22 @@
                 </div>
 
                 <!-- Sezione puntata -->
-<div id="bidSection" class="bid-section" style="display: none;">
-    <div id="selectedPlayerInfo" class="selected-player-info">
-        <strong>Nessun giocatore selezionato</strong>
-    </div>
-    
-    <!-- AGGIUNGI questa sezione crediti -->
-    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-        <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
-    </div>
-    
-    <input type="number" class="bid-input" id="bidAmount" placeholder="Inserisci quanto vuoi puntare" min="1">
-                    
-    <button class="confirm-bid" id="confirmBidBtn" onclick="confirmBid()" disabled>
-        Conferma Puntata
-    </button>
-</div>
+                <div id="bidSection" class="bid-section" style="display: none;">
+                    <div id="selectedPlayerInfo" class="selected-player-info">
+                        <strong>Nessun giocatore selezionato</strong>
+                    </div>
+
+                    <!-- Sezione crediti -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
+                        <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+                    </div>
+
+                    <input type="number" class="bid-input" id="bidAmount" placeholder="Inserisci quanto vuoi puntare" min="1">
+
+                    <button class="confirm-bid" id="confirmBidBtn" onclick="confirmBid()" disabled>
+                        Conferma Puntata
+                    </button>
+                </div>
             </div>
 
             <!-- La mia squadra -->
@@ -421,36 +446,359 @@
 
     <script>
         // Variabili globali
-let socket;
-let playerData = {
-    registered: false,
-    name: '',
-    id: '',
-    credits: 2000
-};
+        let socket;
+        let playerData = {
+            registered: false,
+            name: '',
+            id: '',
+            credits: 2000
+        };
 
-// NUOVO: Chiavi per localStorage
-const STORAGE_KEYS = {
-    PLAYER_DATA: 'fantagts_player_data',
-    REGISTRATION_TIME: 'fantagts_registration_time'
-};
+        // SISTEMA DI PERSISTENZA CONNESSIONE AVANZATO
+        let connectionPersistence = {
+            wakeLock: null,
+            heartbeatInterval: null,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 50,
+            isReconnecting: false,
+            lastServerResponse: Date.now()
+        };
 
-// Inizializzazione MODIFICATA
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('FantaGTS Client caricato');
-    
-    // NUOVO: Controlla se esiste una sessione salvata
-    checkExistingSession();
-    
-    // Tentiamo connessione socket ma non bloccante
-    try {
-        initializeSocket();
-    } catch (error) {
-        console.log('Socket.io non disponibile, modalità base attiva');
-    }
-});
+        // NUOVO: Chiavi per localStorage
+        const STORAGE_KEYS = {
+            PLAYER_DATA: 'fantagts_player_data',
+            REGISTRATION_TIME: 'fantagts_registration_time'
+        };
 
-        // NUOVA FUNZIONE: Controlla sessione esistente
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('FantaGTS Client caricato');
+
+            // Controlla se esiste una sessione salvata
+            checkExistingSession();
+
+            // Tenta connessione socket
+            try {
+                initializeSocket();
+            } catch (error) {
+                console.log('Socket.io non disponibile, modalità base attiva');
+            }
+        });
+
+        // Funzione per mantenere persistente la connessione
+        async function startConnectionPersistence() {
+            console.log('🔗 Avviando sistema di persistenza PWA...');
+
+            // 1. Wake Lock con gestione errori migliorata
+            try {
+                if ('wakeLock' in navigator) {
+                    connectionPersistence.wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('✅ Wake Lock attivato');
+
+                    // Riattiva wake lock quando la pagina diventa visibile
+                    document.addEventListener('visibilitychange', async () => {
+                        if (document.visibilityState === 'visible' && connectionPersistence.wakeLock?.released) {
+                            connectionPersistence.wakeLock = await navigator.wakeLock.request('screen');
+                            console.log('🔄 Wake Lock riattivato');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log('⚠️ Wake Lock non disponibile:', err.message);
+            }
+
+            // 2. Heartbeat con strategia PWA
+            connectionPersistence.heartbeatInterval = setInterval(() => {
+                maintainConnectionPWA();
+            }, document.visibilityState === 'visible' ? 3000 : 1500);
+
+            // 3. Service Worker per background processing
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                // Invia messaggi periodici al SW per mantenerlo attivo
+                setInterval(() => {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'KEEP_ALIVE',
+                        timestamp: Date.now(),
+                        playerData: {
+                            name: playerData.name,
+                            credits: playerData.credits
+                        }
+                    });
+                }, 10000);
+            }
+
+            // 4. Background Sync per azioni offline
+            if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                navigator.serviceWorker.ready.then(registration => {
+                    console.log('✅ Background Sync disponibile');
+                });
+            }
+
+            // 5. Push Notifications (se supportate)
+            if ('Notification' in window && 'serviceWorker' in navigator) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('✅ Notifiche push autorizzate');
+                    subscribeToPushNotifications();
+                }
+            }
+
+            // 6. Network state listeners migliorati
+            setupNetworkListeners();
+
+            console.log('✅ Sistema di persistenza PWA completo attivato');
+        }
+
+        // AGGIUNGI queste nuove funzioni:
+        function maintainConnectionPWA() {
+            if (!socket) {
+                attemptReconnection();
+                return;
+            }
+
+            if (socket.connected) {
+                // Connesso: invia heartbeat con più dati
+                socket.emit('heartbeat', {
+                    timestamp: Date.now(),
+                    type: 'pwa_persistence',
+                    visibilityState: document.visibilityState,
+                    onLine: navigator.onLine,
+                    credits: playerData.credits
+                });
+                connectionPersistence.reconnectAttempts = 0;
+                connectionPersistence.lastServerResponse = Date.now();
+            } else {
+                // Disconnesso: tenta riconnessione
+                attemptReconnection();
+            }
+        }
+
+        async function subscribeToPushNotifications() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+
+                // Genera chiavi VAPID (in produzione dovrebbero essere sul server)
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' // VAPID public key
+                });
+
+                // Invia subscription al server
+                await fetch('/api/subscribe-notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription,
+                        partecipanteId: playerData.id
+                    })
+                });
+
+                console.log('✅ Push notifications configurate');
+            } catch (error) {
+                console.log('⚠️ Push notifications non disponibili:', error);
+            }
+        }
+
+        function setupNetworkListeners() {
+            // Network change events
+            window.addEventListener('online', () => {
+                console.log('🌐 Rete disponibile - riconnessione...');
+                connectionPersistence.reconnectAttempts = 0;
+                if (!socket || !socket.connected) {
+                    attemptReconnection();
+                }
+                updateConnectionStatus(true);
+            });
+
+            window.addEventListener('offline', () => {
+                console.log('📡 Rete non disponibile');
+                updateConnectionStatus(false);
+            });
+
+            // Page visibility optimizations
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.log('👁️ App in foreground - ottimizzando connessione...');
+
+                    // Riduci frequenza heartbeat quando in foreground
+                    if (connectionPersistence.heartbeatInterval) {
+                        clearInterval(connectionPersistence.heartbeatInterval);
+                        connectionPersistence.heartbeatInterval = setInterval(maintainConnectionPWA, 3000);
+                    }
+
+                    // Verifica connessione immediata
+                    if (!socket || !socket.connected) {
+                        attemptReconnection();
+                    }
+                } else {
+                    console.log('📱 App in background - modalità risparmio...');
+
+                    // Aumenta frequenza heartbeat quando in background
+                    if (connectionPersistence.heartbeatInterval) {
+                        clearInterval(connectionPersistence.heartbeatInterval);
+                        connectionPersistence.heartbeatInterval = setInterval(maintainConnectionPWA, 1500);
+                    }
+                }
+            });
+        }
+
+        function updateConnectionStatus(isOnline) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+                if (isOnline) {
+                    statusEl.className = 'connection-status status-connected';
+                    statusEl.textContent = '✅ Connesso al FantaGTS';
+                } else {
+                    statusEl.className = 'connection-status status-waiting';
+                    statusEl.textContent = '📡 Riconnessione in corso...';
+                }
+            }
+        }
+
+        // Mantieni connessione attiva
+        function maintainConnection() {
+            if (!socket) {
+                attemptReconnection();
+                return;
+            }
+
+            if (socket.connected) {
+                // Connesso: invia heartbeat
+                socket.emit('heartbeat', {
+                    timestamp: Date.now(),
+                    type: 'persistence_check'
+                });
+                connectionPersistence.reconnectAttempts = 0;
+                connectionPersistence.lastServerResponse = Date.now();
+            } else {
+                // Disconnesso: tenta riconnessione
+                attemptReconnection();
+            }
+        }
+
+        // Tentativo di riconnessione intelligente
+        function attemptReconnection() {
+            if (connectionPersistence.isReconnecting) return;
+            if (connectionPersistence.reconnectAttempts >= connectionPersistence.maxReconnectAttempts) return;
+
+            connectionPersistence.isReconnecting = true;
+            connectionPersistence.reconnectAttempts++;
+
+            console.log(`🔄 Tentativo riconnessione #${connectionPersistence.reconnectAttempts}`);
+
+            // Strategia di backoff esponenziale
+            const delay = Math.min(1000 * Math.pow(1.5, connectionPersistence.reconnectAttempts), 10000);
+
+            setTimeout(() => {
+                try {
+                    initializeSocket();
+                    connectionPersistence.isReconnecting = false;
+                } catch (err) {
+                    console.error('Errore riconnessione:', err);
+                    connectionPersistence.isReconnecting = false;
+                }
+            }, delay);
+        }
+
+        // Service Worker per background processing
+        function registerServiceWorkerForBackground() {
+            if ('serviceWorker' in navigator) {
+                // Crea un service worker inline
+                const swCode = `
+                    self.addEventListener('message', function(event) {
+                        if (event.data && event.data.type === 'KEEP_ALIVE') {
+                            // Mantieni il service worker attivo
+                            console.log('Service Worker: Keep alive ricevuto');
+                        }
+                    });
+
+                    self.addEventListener('sync', function(event) {
+                        if (event.tag === 'background-sync') {
+                            console.log('Service Worker: Background sync');
+                        }
+                    });
+                `;
+
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+
+                navigator.serviceWorker.register(swUrl).then(registration => {
+                    console.log('✅ Service Worker registrato per background');
+
+                    // Invia messaggi periodici al service worker
+                    setInterval(() => {
+                        if (registration.active) {
+                            registration.active.postMessage({
+                                type: 'KEEP_ALIVE',
+                                timestamp: Date.now()
+                            });
+                        }
+                    }, 10000);
+
+                }).catch(err => {
+                    console.log('Service Worker non disponibile:', err);
+                });
+            }
+        }
+
+        // Setup listeners per stati del dispositivo
+        function setupDeviceStateListeners() {
+            // Quando la pagina diventa invisibile
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    console.log('📱 App in background - mantenendo connessione...');
+                    // Aumenta frequenza heartbeat quando in background
+                    if (connectionPersistence.heartbeatInterval) {
+                        clearInterval(connectionPersistence.heartbeatInterval);
+                        connectionPersistence.heartbeatInterval = setInterval(maintainConnection, 1500);
+                    }
+                } else if (document.visibilityState === 'visible') {
+                    console.log('📱 App tornata in foreground');
+                    // Riduci frequenza heartbeat quando in foreground
+                    if (connectionPersistence.heartbeatInterval) {
+                        clearInterval(connectionPersistence.heartbeatInterval);
+                        connectionPersistence.heartbeatInterval = setInterval(maintainConnection, 3000);
+                    }
+                    // Riconnetti se necessario
+                    if (!socket || !socket.connected) {
+                        attemptReconnection();
+                    }
+                }
+            });
+
+            // Quando la finestra perde/guadagna focus
+            window.addEventListener('focus', () => {
+                console.log('🔍 Finestra in focus - verificando connessione...');
+                if (!socket || !socket.connected) {
+                    attemptReconnection();
+                }
+            });
+
+            // Prima di chiudere/ricaricare la pagina
+            window.addEventListener('beforeunload', () => {
+                stopConnectionPersistence();
+            });
+        }
+
+        // Ferma il sistema di persistenza
+        function stopConnectionPersistence() {
+            console.log('🛑 Fermando sistema di persistenza...');
+
+            if (connectionPersistence.wakeLock) {
+                connectionPersistence.wakeLock.release();
+                connectionPersistence.wakeLock = null;
+            }
+
+            if (connectionPersistence.heartbeatInterval) {
+                clearInterval(connectionPersistence.heartbeatInterval);
+                connectionPersistence.heartbeatInterval = null;
+            }
+
+            connectionPersistence.reconnectAttempts = 0;
+            connectionPersistence.isReconnecting = false;
+        }
+
+        // Controlla sessione esistente
         async function checkExistingSession() {
             try {
                 const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
@@ -522,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // NUOVA FUNZIONE: Registra socket quando è pronto
+        // Registra socket quando è pronto
         function registerSocketWhenReady() {
             const tryRegister = () => {
                 if (socket && socket.connected) {
@@ -552,43 +900,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-// NUOVA FUNZIONE: Salva sessione
-function saveSession() {
-    try {
-        const dataToSave = {
-            name: playerData.name,
-            id: playerData.id,
-            credits: playerData.credits
-        };
-        
-        localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
-        localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
-        
-        console.log('✅ Sessione salvata per:', playerData.name);
-    } catch (error) {
-        console.error('Errore salvataggio sessione:', error);
-    }
-}
+        // Salva sessione
+        function saveSession() {
+            try {
+                const dataToSave = {
+                    name: playerData.name,
+                    id: playerData.id,
+                    credits: playerData.credits
+                };
 
-// NUOVA FUNZIONE: Pulisci sessione salvata
-function clearSavedSession() {
-    try {
-        localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
-        localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
-        console.log('🗑️ Sessione salvata rimossa');
-    } catch (error) {
-        console.error('Errore rimozione sessione:', error);
-    }
-}
+                localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
+                localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
 
-// NUOVA FUNZIONE: Carica squadra del giocatore
+                console.log('✅ Sessione salvata per:', playerData.name);
+            } catch (error) {
+                console.error('Errore salvataggio sessione:', error);
+            }
+        }
+
+        // Pulisci sessione salvata
+        function clearSavedSession() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
+                localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
+                console.log('🗑️ Sessione salvata rimossa');
+            } catch (error) {
+                console.error('Errore rimozione sessione:', error);
+            }
+        }
+
+        // Carica squadra del giocatore
         async function loadPlayerTeam() {
             try {
-                // Questo endpoint dovrà essere creato nel server
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
                 if (!response.ok) {
                     console.log('Squadra non ancora formata o endpoint non disponibile');
-                    // NUOVO: Reset UI se non ci sono dati
                     resetTeamUI();
                     return;
                 }
@@ -605,16 +951,15 @@ function clearSavedSession() {
                         slotElement.classList.remove('empty');
                         slotElement.classList.add('filled');
 
-                        // AGGIUNGI: Calcola colori
+                        // Calcola colori
                         const teamColor = getTeamColor(giocatore.colore);
                         const textColor = getTextColorForTeam(giocatore.colore);
-                        console.log(`🎨 Squadra: "${giocatore.colore}" → Sfondo: ${teamColor}, Testo: ${textColor}`);
 
                         slotElement.innerHTML = `
-                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                    <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
-                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
-                `;
+                            <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                            <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
+                            <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
+                        `;
 
                         slotElement.style.borderColor = teamColor;
                         slotElement.style.borderWidth = '4px';
@@ -637,7 +982,7 @@ function clearSavedSession() {
             }
         }
 
-        // NUOVA FUNZIONE: Reset UI squadra
+        // Reset UI squadra
         function resetTeamUI() {
             document.querySelectorAll('.team-slot').forEach(slot => {
                 slot.classList.remove('filled');
@@ -654,37 +999,7 @@ function clearSavedSession() {
             document.getElementById('teamPoints').textContent = '0';
         }
 
-        // NUOVA FUNZIONE: Registra socket quando è pronto
-        function registerSocketWhenReady() {
-            const tryRegister = () => {
-                if (socket && socket.connected) {
-                    console.log('🔌 Registrando socket come partecipante:', playerData.name);
-                    socket.emit('register', {
-                        nome: playerData.name,
-                        tipo: 'partecipante',
-                        partecipanteId: playerData.id
-                    });
-                } else {
-                    console.log('🔌 Socket non ancora pronto, riprovo...');
-                    setTimeout(tryRegister, 500);
-                }
-            };
-
-            // Se il socket è già connesso, registra subito
-            if (socket && socket.connected) {
-                tryRegister();
-            } else {
-                // Altrimenti aspetta che si connetta
-                if (socket) {
-                    socket.on('connect', tryRegister);
-                } else {
-                    // Socket non ancora inizializzato, riprova
-                    setTimeout(tryRegister, 1000);
-                }
-            }
-        }
-
-        // Connessione WebSocket (opzionale)
+        // Connessione WebSocket
         function initializeSocket() {
             if (typeof io === 'undefined') {
                 console.log('Socket.io non caricato');
@@ -717,37 +1032,22 @@ function clearSavedSession() {
                 updateOffersStatus(data);
             });
 
-            socket.on('timer_update', (timeLeft) => {
-                // Timer non più utilizzato - manteniamo per compatibilità
-                console.log('Timer update (non utilizzato):', timeLeft);
+            socket.on('crediti_aggiornati', (data) => {
+                playerData.credits = data.crediti;
+                updateCreditsDisplay();
+                saveSession();
+                console.log('Crediti aggiornati:', data.crediti);
             });
 
-            socket.on('crediti_aggiornati', (data) => {
-    playerData.credits = data.crediti;
-    updateCreditsDisplay(); // AGGIUNTO: aggiorna entrambi i display
-    
-    // NUOVO: Salva crediti aggiornati
-    saveSession();
-    
-    console.log('Crediti aggiornati:', data.crediti);
-});
+            socket.on('round_ended', (data) => {
+                console.log('Round terminato ricevuto:', data);
+                showResultsPhase(data);
+                updateMyTeamFromResults(data.round, data.risultati);
+                resetBiddingInterface();
+                saveSession();
+                showWaitingPhase();
+            });
 
-socket.on('round_ended', (data) => {
-    console.log('Round terminato ricevuto:', data);
-    showResultsPhase(data);
-    updateMyTeamFromResults(data.round, data.risultati);
-    
-    // AGGIUNGI: Reset completo dell'interfaccia
-    resetBiddingInterface();
-    
-    // NUOVO: Salva sessione aggiornata
-    saveSession();
-    
-    // Torna alla modalità attesa
-    showWaitingPhase();
-});
-
-// NUOVO: Gestisci conferma puntata
             socket.on('bid_confirmed', (data) => {
                 console.log('✅ Puntata confermata dal server:', data);
 
@@ -773,12 +1073,9 @@ socket.on('round_ended', (data) => {
             socket.on('bid_error', (data) => {
                 console.error('❌ Errore puntata:', data);
                 alert('❌ Errore: ' + data.message);
-
-                // Riabilita interfaccia in caso di errore
                 resetBiddingInterface();
             });
 
-            // NUOVO: Aggiungi questo event listener qui
             socket.on('aste_resettate', (data) => {
                 console.log('🔄 Aste resettate dal server:', data);
 
@@ -787,19 +1084,7 @@ socket.on('round_ended', (data) => {
                 updateCreditsDisplay();
 
                 // Reset completo della squadra
-                document.querySelectorAll('.team-slot').forEach(slot => {
-                    slot.classList.remove('filled');
-                    slot.classList.add('empty');
-                    slot.style.borderColor = '#4a5568';
-                    slot.style.backgroundColor = 'rgba(74, 85, 104, 0.3)';
-
-                    const position = slot.dataset.position;
-                    slot.innerHTML = `<strong>${position}</strong><br>-`;
-                });
-
-                // Aggiorna contatori
-                document.getElementById('teamCount').textContent = '0';
-                document.getElementById('teamPoints').textContent = '0';
+                resetTeamUI();
 
                 // Pulisci sessione salvata e risalva
                 clearSavedSession();
@@ -808,9 +1093,13 @@ socket.on('round_ended', (data) => {
                 // Mostra notifica
                 alert('🔄 Le aste sono state resettate dal Master!\n\nLa tua squadra è stata azzerata e i crediti ripristinati.');
             });
+
+            socket.on('heartbeat_response', (data) => {
+                connectionPersistence.lastServerResponse = Date.now();
+            });
         }
 
-        // Registrazione giocatore MODIFICATA
+        // Registrazione giocatore
         async function registerPlayer() {
             const name = document.getElementById('playerName').value.trim();
             const email = document.getElementById('playerEmail').value.trim();
@@ -841,7 +1130,7 @@ socket.on('round_ended', (data) => {
                     playerData.id = result.id;
                     playerData.credits = 2000;
 
-                    // NUOVO: Salva la sessione
+                    // Salva la sessione
                     saveSession();
 
                     // Registra socket quando è pronto
@@ -851,9 +1140,7 @@ socket.on('round_ended', (data) => {
                     document.getElementById('currentPlayer').textContent = name;
                     document.getElementById('playerCredits').textContent = 2000;
 
-                    // NUOVO: Aggiorna anche il display crediti nella sezione bid
                     updateCreditsDisplay();
-
                     showGameArea();
 
                     alert('✅ Registrato con successo!\n\nOra sei nel FantaGTS e in attesa che il Master avvii le aste.\n\n💡 La tua sessione verrà salvata automaticamente.');
@@ -872,6 +1159,9 @@ socket.on('round_ended', (data) => {
             document.getElementById('registration-area').style.display = 'none';
             document.getElementById('game-area').style.display = 'block';
             showWaitingPhase();
+
+            // AVVIA SISTEMA DI PERSISTENZA CONNESSIONE
+            startConnectionPersistence();
         }
 
         function showWaitingPhase() {
@@ -882,41 +1172,41 @@ socket.on('round_ended', (data) => {
         function showBiddingPhase(data) {
             document.getElementById('waiting-phase').style.display = 'none';
             document.getElementById('bidding-phase').style.display = 'block';
-            
+
             if (data && data.round) {
                 document.getElementById('currentRound').textContent = data.round;
                 loadAvailablePlayers(data.slots || []);
             }
         }
-		
-		function updateCreditsDisplay() {
-    document.getElementById('creditsDisplay').textContent = playerData.credits;
-    document.getElementById('playerCredits').textContent = playerData.credits;
-}
 
-function resetBiddingInterface() {
-    // Riabilita input crediti
-    document.getElementById('bidAmount').disabled = false;
-    document.getElementById('bidAmount').value = '';
-    
-    // Riabilita tutti i controlli
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.style.pointerEvents = 'auto';
-        card.style.opacity = '1';
-        card.classList.remove('selected');
-    });
-    
-    // Reset pulsante conferma
-    const confirmBtn = document.getElementById('confirmBidBtn');
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Conferma Puntata';
-    confirmBtn.style.background = '#ef4444';
-    
-    // Nascondi sezione bid
-    document.getElementById('bidSection').style.display = 'none';
-    
-    console.log('🔄 Interfaccia di puntata resettata');
-}
+        function updateCreditsDisplay() {
+            document.getElementById('creditsDisplay').textContent = playerData.credits;
+            document.getElementById('playerCredits').textContent = playerData.credits;
+        }
+
+        function resetBiddingInterface() {
+            // Riabilita input crediti
+            document.getElementById('bidAmount').disabled = false;
+            document.getElementById('bidAmount').value = '';
+
+            // Riabilita tutti i controlli
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.style.pointerEvents = 'auto';
+                card.style.opacity = '1';
+                card.classList.remove('selected');
+            });
+
+            // Reset pulsante conferma
+            const confirmBtn = document.getElementById('confirmBidBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Conferma Puntata';
+            confirmBtn.style.background = '#ef4444';
+
+            // Nascondi sezione bid
+            document.getElementById('bidSection').style.display = 'none';
+
+            console.log('🔄 Interfaccia di puntata resettata');
+        }
 
         function loadAvailablePlayers(slots) {
             const grid = document.getElementById('playersGrid');
@@ -933,40 +1223,37 @@ function resetBiddingInterface() {
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.dataset.playerId = player.id;
-                
+
                 card.innerHTML = `
-                    <div class="team-color-dot" style="background-color: ${player.colore}"></div>
-                    <div class="player-name">${player.giocatore_attuale}</div>
-                    <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
-                `;
-                
+                            <div class="team-color-dot" style="background-color: ${player.colore}"></div>
+                            <div class="player-name">${player.giocatore_attuale}</div>
+                            <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
+                        `;
+
                 card.addEventListener('click', () => selectPlayer(player));
                 grid.appendChild(card);
             });
         }
 
         function selectPlayer(player) {
-    // Rimuovi selezione precedente
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.classList.remove('selected');
-    });
+            // Rimuovi selezione precedente
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('selected');
+            });
 
-    // Seleziona nuovo giocatore
-    document.querySelector(`[data-player-id="${player.id}"]`).classList.add('selected');
+            // Seleziona nuovo giocatore
+            document.querySelector(`[data-player-id="${player.id}"]`).classList.add('selected');
 
-    // Mostra sezione puntata
-    document.getElementById('bidSection').style.display = 'block';
-    document.getElementById('selectedPlayerInfo').innerHTML = `
-        <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
-        <small>Squadra ${player.colore}</small>
-    `;
+            // Mostra sezione puntata
+            document.getElementById('bidSection').style.display = 'block';
+            document.getElementById('selectedPlayerInfo').innerHTML = `
+                        <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
+                        <small>Squadra ${player.colore}</small>
+                    `;
 
-    // AGGIUNTO: Aggiorna display crediti
-    updateCreditsDisplay();
-
-    // Abilita pulsante
-    updateBidButton();
-}
+            updateCreditsDisplay();
+            updateBidButton();
+        }
 
         function updateBidButton() {
             const button = document.getElementById('confirmBidBtn');
@@ -975,7 +1262,7 @@ function resetBiddingInterface() {
             const hasSelection = document.querySelector('.player-card.selected') !== null;
 
             button.disabled = !(hasSelection && hasValidBid);
-            
+
             if (hasSelection && hasValidBid) {
                 const playerName = document.querySelector('.player-card.selected .player-name').textContent;
                 button.textContent = `Punta ${amount} su ${playerName}`;
@@ -987,7 +1274,7 @@ function resetBiddingInterface() {
         function confirmBid() {
             const amount = parseInt(document.getElementById('bidAmount').value);
             const selectedCard = document.querySelector('.player-card.selected');
-            
+
             if (!selectedCard || !amount || amount <= 0) {
                 alert('Seleziona un giocatore e inserisci un importo valido!');
                 return;
@@ -998,7 +1285,7 @@ function resetBiddingInterface() {
 
             // CONFERMA A 2 STEP
             const confirmMessage = `Stai per puntare\n\n${amount} crediti\n\nsu ${playerName}`;
-            
+
             if (!confirm(confirmMessage)) {
                 return; // Utente ha annullato
             }
@@ -1012,29 +1299,19 @@ function resetBiddingInterface() {
                 });
             }
 
-            // Feedback visivo - PUNTATA CONFERMATA
+            // Feedback visivo immediato
             const button = document.getElementById('confirmBidBtn');
             button.disabled = true;
-            button.textContent = '✅ Puntata Confermata';
-            button.style.background = '#10b981';
-
-            // Disabilita tutta l'interfaccia di puntata
-            document.querySelectorAll('.player-card').forEach(card => {
-                card.style.pointerEvents = 'none';
-                card.style.opacity = '0.7';
-            });
-            document.getElementById('bidAmount').disabled = true;
-            document.querySelectorAll('.quick-bid').forEach(btn => btn.disabled = true);
-
-            alert(`✅ Puntata confermata!\n\nOra attendi che tutti completino le loro offerte.`);
+            button.textContent = '⏳ Invio in corso...';
+            button.style.background = '#ed8936';
         }
 
         function updateOffersStatus(data) {
             const statusEl = document.getElementById('offersStatus');
             const messageEl = document.getElementById('offersMessage');
-            
+
             if (data.mancano > 0) {
-                statusEl.textContent = `${data.offerteRicevute}/${data.totalePartecipanti}`;
+                statusEl.textContent = `${data.offerteRicevute}/${data.partecipantiConnessi}`;
                 statusEl.style.color = '#f59e0b';
                 messageEl.textContent = `Mancano ${data.mancano} offerte per proseguire`;
             } else {
@@ -1044,347 +1321,323 @@ function resetBiddingInterface() {
             }
         }
 
-        function updateTimer(timeLeft) {
-            // Funzione mantenuta per compatibilità ma non più utilizzata
-            console.log('Timer non utilizzato:', timeLeft);
-        }
-
         function showResultsPhase(data) {
-            // TODO: Implementare visualizzazione risultati
             alert('Round terminato!');
             showWaitingPhase();
         }
 
-function updateMyTeamFromResults(round, risultati) {
-    // Trova i miei acquisti in questo round
-    const mieiAcquisti = risultati.filter(r => r.nome === playerData.name);
-    
-    console.log('🎯 Risultati completi ricevuti:', risultati);
-    console.log('🎯 I miei acquisti:', mieiAcquisti);
-    
-    mieiAcquisti.forEach(acquisto => {
-        // Estrai informazioni dal slot (es: "M1_ROSSO")
-        const [posizione, coloreSquadra] = acquisto.slot.split('_');
-        
-        console.log(`🔍 Debug slot: "${acquisto.slot}" → posizione: "${posizione}", colore: "${coloreSquadra}"`);
-        
-        // Trova lo slot corrispondente nella UI
-        const slotElement = document.querySelector(`[data-position="${posizione}"]`);
-        if (slotElement) {
-            slotElement.classList.remove('empty');
-            slotElement.classList.add('filled');
-            
-            // Trova il nome del giocatore dal database
-            fetch(`/api/slot-info/${acquisto.slot}`)
-                .then(response => response.json())
-                .then(slotInfo => {
-                    console.log(`📊 Slot info ricevuto:`, slotInfo);
-                    console.log(`🎨 Colore da slotInfo: "${slotInfo.colore}" vs colore da slot: "${coloreSquadra}"`);
-                    
-                    // Determina colore del testo in base al colore di sfondo
-                    const textColor = getTextColorForTeam(slotInfo.colore);
-                    
-                    slotElement.innerHTML = `
-                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                    <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
-                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
-                `;
-                    
-                    // PROVA ENTRAMBI i colori per vedere quale è corretto
-                    const teamColorFromSlot = getTeamColor(coloreSquadra);
-                    const teamColorFromAPI = getTeamColor(slotInfo.colore);
-                    
-                    console.log(`🎨 Colore da slot "${coloreSquadra}" → ${teamColorFromSlot}`);
-                    console.log(`🎨 Colore da API "${slotInfo.colore}" → ${teamColorFromAPI}`);
-                    
-                    // Usa il colore dall'API che dovrebbe essere più accurato
-                    const teamColor = teamColorFromAPI;
-                    
-                    slotElement.style.borderColor = teamColor;
-                    slotElement.style.borderWidth = '4px';
-                    slotElement.style.borderStyle = 'solid';
-                    
-                    // Gestisce sia codici esadecimali che HSL
-                    if (teamColor.startsWith('#')) {
-                        slotElement.style.backgroundColor = teamColor + '80'; // Hex + trasparenza
-                    } else {
-                        // Per colori HSL, usa rgba con trasparenza
-                        slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                    }
-                })
-                .catch((error) => {
-                    console.error('❌ Errore fetch slot-info:', error);
-                    // Fallback se API non disponibile
-                    slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore`;
-                    const teamColor = getTeamColor(coloreSquadra);
-                    console.log(`🎨 Fallback colore: "${coloreSquadra}" → ${teamColor}`);
-                    
-                    slotElement.style.borderColor = teamColor;
-                    slotElement.style.borderWidth = '4px';
-                    slotElement.style.borderStyle = 'solid';
-                    
-                    if (teamColor.startsWith('#')) {
-                        slotElement.style.backgroundColor = teamColor + '80';
-                    } else {
-                        slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                    }
-                });
-        }
-    });
-    
-    // Aggiorna contatori
-    const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
-    document.getElementById('teamCount').textContent = slotsRiempiti;
-}
+        function updateMyTeamFromResults(round, risultati) {
+            // Trova i miei acquisti in questo round
+            const mieiAcquisti = risultati.filter(r => r.nome === playerData.name);
 
-function getTeamColor(nomeColore) {
-    const colori = {
-        // Colori base - MASCHILI
-        'rosso': '#ef4444',
-        'blu': '#3b82f6', 
-        'verde': '#10b981',
-        'giallo': '#f59e0b',
-        'viola': '#8b5cf6',
-        'arancione': '#f97316',
-        'rosa': '#ec4899',
-        'azzurro': '#06b6d4',
-        'marrone': '#92400e',
-        'nero': '#374151',
-        'bianco': '#f3f4f6',
-        'grigio': '#6b7280',
-        'lime': '#84cc16',
-        'indaco': '#6366f1',
-        'fucsia': '#d946ef',
-		
-		// NUOVI COLORI PARTICOLARI
-        'smeraldo': '#10b981',
-        'royal': '#1e40af',
-        'ciano': '#06b6d4',
-        'lime': '#84cc16',
-        'bordeaux': '#7c2d12',
-        'crema': '#fef3c7',
-        'lilla': '#c4b5fd',
-        
-        // Colori base - FEMMINILI
-        'rossa': '#ef4444',
-        'blu': '#3b82f6',        // blu non cambia
-        'verde': '#10b981',      // verde non cambia  
-        'gialla': '#f59e0b',
-        'viola': '#8b5cf6',      // viola non cambia
-        'arancione': '#f97316',  // arancione non cambia
-        'rosa': '#ec4899',       // rosa non cambia
-        'azzurra': '#06b6d4',
-        'marrone': '#92400e',    // marrone non cambia
-        'nera': '#374151',
-        'bianca': '#f3f4f6',
-        'grigia': '#6b7280',
-        'lime': '#84cc16',       // lime non cambia
-        'indaco': '#6366f1',     // indaco non cambia
-        'fucsia': '#d946ef',     // fucsia non cambia
-		
-		// NUOVI COLORI PARTICOLARI - FEMMINILI
-        'smeraldo': '#10b981',    // smeraldo non cambia
-        'royal': '#1e40af',       // royal non cambia  
-        'ciano': '#06b6d4',       // ciano non cambia
-        'lime': '#84cc16',        // lime non cambia
-        'bordeaux': '#7c2d12',    // bordeaux non cambia
-        'crema': '#fef3c7',       // crema non cambia
-        'lilla': '#c4b5fd',       // lilla non cambia
-        
-        // Varianti e sinonimi
-        'celeste': '#06b6d4',
-        'cielo': '#06b6d4',
-        'blu chiaro': '#60a5fa',
-        'blu chiara': '#60a5fa',
-        'blu scuro': '#1e40af',
-        'blu scura': '#1e40af',
-        'rosso chiaro': '#f87171',
-        'rossa chiara': '#f87171',
-        'rosso scuro': '#b91c1c',
-        'rossa scura': '#b91c1c',
-        'verde chiaro': '#34d399',
-        'verde chiara': '#34d399',
-        'verde scuro': '#047857',
-        'verde scura': '#047857',
-        'giallo chiaro': '#fbbf24',
-        'gialla chiara': '#fbbf24',
-        'giallo scuro': '#d97706',
-        'gialla scura': '#d97706',
-        'viola chiaro': '#a78bfa',
-        'viola chiara': '#a78bfa',
-        'viola scuro': '#6d28d9',
-        'viola scura': '#6d28d9',
-        'arancio': '#f97316',
-        'arancione chiaro': '#fb923c',
-        'arancione chiara': '#fb923c',
-        'arancione scuro': '#ea580c',
-        'arancione scura': '#ea580c',
-        'rosa chiaro': '#f9a8d4',
-        'rosa chiara': '#f9a8d4',
-        'rosa scuro': '#be185d',
-        'rosa scura': '#be185d',
-        'bordeaux': '#7c2d12',
-        'magenta': '#e879f9',
-        'ciano': '#22d3ee',
-        'turchese': '#14b8a6',
-        'oro': '#eab308',
-        'dorato': '#eab308',
-        'dorata': '#eab308',
-        'argento': '#9ca3af',
-        'argentato': '#9ca3af',
-        'argentata': '#9ca3af',
-        'bronzo': '#a16207',
-        'beige': '#d6d3d1',
-        'crema': '#fef3c7',
-        'lavanda': '#c4b5fd',
-        'menta': '#6ee7b7',
-        'corallo': '#fb7185',
-        'salmone': '#fca5a5',
-        'petrolio': '#0f766e',
-        'navy': '#1e3a8a',
-        'militare': '#365314',
-        'sabbia': '#fef3c7',
-        
-        // Altri sinonimi femminili
-        'azzurra chiara': '#60a5fa',
-        'azzurra scura': '#1e40af',
-        'celeste chiara': '#60a5fa',
-        'celeste scura': '#1e40af',
-        'grigia chiara': '#9ca3af',
-        'grigia scura': '#4b5563',
-        'marrone chiaro': '#d2b48c',
-        'marrone chiara': '#d2b48c',
-        'marrone scuro': '#8b4513',
-        'marrone scura': '#8b4513',
-        'nera opaca': '#1f2937',
-        'bianca pura': '#ffffff',
-        
-        // Colori particolari con varianti
-        'fucsia chiara': '#f0abfc',
-        'fucsia scura': '#a21caf',
-        'magenta chiara': '#f0abfc',
-        'magenta scura': '#a21caf',
-        'lime chiaro': '#bef264',
-        'lime chiara': '#bef264',
-        'lime scuro': '#65a30d',
-        'lime scura': '#65a30d'
-    };
-    
-    const coloreLowerCase = nomeColore.toLowerCase().trim();
-    
-    // ✅ PRIMA: Cerca corrispondenza diretta esatta
-    if (colori[coloreLowerCase]) {
-        console.log(`✅ Colore trovato direttamente: "${coloreLowerCase}" → ${colori[coloreLowerCase]}`);
-        return colori[coloreLowerCase];
-    }
-    
-    // ✅ SECONDO: Cerca corrispondenze parziali solo se non trova quella esatta
-    for (const [nome, codice] of Object.entries(colori)) {
-        if (coloreLowerCase.includes(nome) || nome.includes(coloreLowerCase)) {
-            console.log(`⚠️ Colore trovato parzialmente: "${coloreLowerCase}" tramite "${nome}" → ${codice}`);
-            return codice;
+            console.log('🎯 I miei acquisti:', mieiAcquisti);
+
+            mieiAcquisti.forEach(acquisto => {
+                // Estrai informazioni dal slot (es: "M1_ROSSO")
+                const [posizione, coloreSquadra] = acquisto.slot.split('_');
+
+                // Trova lo slot corrispondente nella UI
+                const slotElement = document.querySelector(`[data-position="${posizione}"]`);
+                if (slotElement) {
+                    slotElement.classList.remove('empty');
+                    slotElement.classList.add('filled');
+
+                    // Trova il nome del giocatore dal database
+                    fetch(`/api/slot-info/${acquisto.slot}`)
+                        .then(response => response.json())
+                        .then(slotInfo => {
+                            const teamColor = getTeamColor(slotInfo.colore);
+                            const textColor = getTextColorForTeam(slotInfo.colore);
+
+                            slotElement.innerHTML = `
+                                <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                                <span style="color: ${textColor} !important;">${slotInfo.giocatore_attuale}</span><br>
+                                <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${slotInfo.colore}</small>
+                            `;
+
+                            slotElement.style.borderColor = teamColor;
+                            slotElement.style.borderWidth = '4px';
+                            slotElement.style.borderStyle = 'solid';
+
+                            if (teamColor.startsWith('#')) {
+                                slotElement.style.backgroundColor = teamColor + '80';
+                            } else {
+                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('❌ Errore fetch slot-info:', error);
+                            // Fallback se API non disponibile
+                            slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore`;
+                            const teamColor = getTeamColor(coloreSquadra);
+
+                            slotElement.style.borderColor = teamColor;
+                            slotElement.style.borderWidth = '4px';
+                            slotElement.style.borderStyle = 'solid';
+
+                            if (teamColor.startsWith('#')) {
+                                slotElement.style.backgroundColor = teamColor + '80';
+                            } else {
+                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                            }
+                        });
+                }
+            });
+
+            // Aggiorna contatori
+            const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
+            document.getElementById('teamCount').textContent = slotsRiempiti;
         }
-    }
-    
-    // ✅ ULTIMO RESORT: Genera colore solo se davvero non trova niente
-    console.log(`❌ Colore non riconosciuto: "${coloreLowerCase}" → generando colore casuale`);
-    return generaColoreHash(nomeColore);
-}
+
+        function getTeamColor(nomeColore) {
+            const colori = {
+                'rosso': '#ef4444', 'rossa': '#ef4444',
+                'blu': '#3b82f6', 'azzurro': '#06b6d4', 'azzurra': '#06b6d4',
+                'verde': '#10b981', 'giallo': '#f59e0b', 'gialla': '#f59e0b',
+                'viola': '#8b5cf6', 'arancione': '#f97316', 'rosa': '#ec4899',
+                'marrone': '#92400e', 'nero': '#374151', 'nera': '#374151',
+                'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
+                'grigio': '#6b7280', 'grigia': '#6b7280',
+                'lime': '#84cc16', 'indaco': '#6366f1', 'fucsia': '#d946ef',
+                'smeraldo': '#10b981', 'royal': '#1e40af', 'ciano': '#06b6d4',
+                'bordeaux': '#7c2d12', 'crema': '#fef3c7', 'lilla': '#c4b5fd',
+                'celeste': '#06b6d4', 'cielo': '#06b6d4',
+                'oro': '#eab308', 'dorato': '#eab308', 'dorata': '#eab308',
+                'argento': '#9ca3af', 'beige': '#d6d3d1', 'lavanda': '#c4b5fd'
+            };
+
+            const coloreLowerCase = nomeColore.toLowerCase().trim();
+
+            if (colori[coloreLowerCase]) {
+                return colori[coloreLowerCase];
+            }
+
+            // Fallback: genera colore hash
+            return generaColoreHash(nomeColore);
+        }
 
         function getTextColorForTeam(nomeColore) {
-            // Colori chiari che necessitano testo scuro
             const coloriChiari = [
-                'bianco', 'bianca', 'crema',
-                'giallo chiaro', 'gialla chiara', 'lime chiaro', 'lime chiara',
-                'rosa chiaro', 'rosa chiara',
-                'celeste', 'azzurro chiaro', 'azzurra chiara',
-                'verde chiaro', 'verde chiara', 'viola chiaro', 'viola chiara',
-                'arancione chiaro', 'arancione chiara', 'grigio chiaro', 'grigia chiara',
-                'argento', 'argentato', 'argentata', 'sabbia', 'beige', 'lavanda',
-                'fucsia chiara', 'magenta chiara', 'oro', 'dorato', 'dorata'
-            ];
-
-            // Colori scuri che necessitano testo bianco
-            const coloriScuri = [
-                'nero', 'nera', 'blu', 'azzurro', 'azzurra', 'verde', 'verde scuro', 'verde scura',
-                'rosso', 'rossa', 'rosso scuro', 'rossa scura', 'viola', 'viola scuro', 'viola scura',
-                'marrone', 'marrone scuro', 'marrone scura', 'arancione', 'arancione scuro', 'arancione scura',
-                'bordeaux', 'navy', 'militare', 'petrolio', 'indaco', 'blu scuro', 'blu scura',
-                'grigio', 'grigia', 'grigio scuro', 'grigia scura', 'bronzo',
-                'smeraldo', 'royal', 'ciano', 'turchese', 'fucsia', 'magenta',
-                'lime scuro', 'lime scura', 'nera opaca', 'azzurra scura', 'celeste scura',
-                'rosa', 'giallo', 'gialla'
+                'bianco', 'bianca', 'crema', 'giallo', 'gialla',
+                'lime', 'oro', 'dorato', 'dorata', 'argento', 'beige'
             ];
 
             const coloreLowerCase = nomeColore.toLowerCase().trim();
 
-            // Prima controlla se è esplicitamente un colore chiaro
             const isColoreChiaro = coloriChiari.some(colore =>
                 coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
             );
 
-            if (isColoreChiaro) {
-                return '#1a202c'; // Testo scuro per sfondi chiari
-            }
-
-            // Poi controlla se è esplicitamente un colore scuro
-            const isColoreScuro = coloriScuri.some(colore =>
-                coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
-            );
-
-            if (isColoreScuro) {
-                return '#ffffff'; // Testo bianco per sfondi scuri
-            }
-
-            // Default: testo bianco per colori non riconosciuti
-            return '#ffffff';
+            return isColoreChiaro ? '#1a202c' : '#ffffff';
         }
 
-function generaColoreHash(str) {
-    // Genera un colore consistente basato sul nome del colore
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Converte a 32-bit integer
-    }
-    
-    // Converte l'hash in un colore HSL per garantire colori vivaci
-    const hue = Math.abs(hash) % 360;
-    const saturation = 65 + (Math.abs(hash) % 35); // 65-100%
-    const lightness = 45 + (Math.abs(hash) % 20);  // 45-65%
-    
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
+        function generaColoreHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
 
-// NUOVA FUNZIONE: Logout
-function logout() {
-    if (confirm('Sei sicuro di voler uscire?\n\nDovrai reinserire i tuoi dati per rientrare.')) {
-        clearSavedSession();
-        playerData = {
-            registered: false,
-            name: '',
-            id: '',
-            credits: 2000
-        };
-        
-        // Disconnetti socket
-        if (socket && socket.connected) {
-            socket.disconnect();
+            const hue = Math.abs(hash) % 360;
+            const saturation = 65 + (Math.abs(hash) % 35);
+            const lightness = 45 + (Math.abs(hash) % 20);
+
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
         }
-        
-        // Ricarica la pagina
-        location.reload();
-    }
-}
+
+        function logout() {
+            if (confirm('Sei sicuro di voler uscire?\n\nDovrai reinserire i tuoi dati per rientrare.')) {
+                stopConnectionPersistence();
+
+                clearSavedSession();
+                playerData = {
+                    registered: false,
+                    name: '',
+                    id: '',
+                    credits: 2000
+                };
+
+                if (socket && socket.connected) {
+                    socket.disconnect();
+                }
+
+                location.reload();
+            }
+        }
 
         // Event listeners
         document.getElementById('bidAmount').addEventListener('input', updateBidButton);
-
-        // Auto-focus
         document.getElementById('playerName').focus();
 
         console.log('✅ FantaGTS Client inizializzato correttamente');
     </script>
+
+    <!-- PWA Registration -->
+    <script>
+        // Registrazione Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registrato:', registration.scope);
+
+                        // Controlla aggiornamenti
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Nuovo SW disponibile
+                                    if (confirm('🔄 Nuova versione disponibile! Vuoi aggiornarla?')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.log('❌ Errore registrazione Service Worker:', error);
+                    });
+            });
+
+            // Ricarica quando nuovo SW prende controllo
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('💾 PWA installabile rilevata');
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Mostra banner di installazione personalizzato dopo 5 secondi
+            setTimeout(showInstallBanner, 5000);
+        });
+
+        function showInstallBanner() {
+            // Controlla se è già stata "installata" (icona creata)
+            if (localStorage.getItem('pwa_homescreen_added') ||
+                localStorage.getItem('install_instructions_shown')) {
+                return; // Non mostrare più il banner
+            }
+
+            const installBanner = document.createElement('div');
+            installBanner.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(66, 153, 225, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.3s ease;
+        `;
+
+            installBanner.innerHTML = `
+            <div>
+                <strong>📱 Aggiungi FantaGTS alla Home</strong><br>
+                <small>Per accesso rapido e connessione stabile</small>
+            </div>
+            <div>
+                <button onclick="showInstructions()" style="background: white; color: #4299e1; border: none; padding: 8px 15px; border-radius: 5px; margin-right: 10px; font-weight: bold;">Come fare</button>
+                <button onclick="dismissInstallPermanently()" style="background: transparent; color: white; border: 1px solid white; padding: 8px 10px; border-radius: 5px;">✕</button>
+            </div>
+        `;
+
+            document.body.appendChild(installBanner);
+        }
+
+        function showInstructions() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const instructions = isIOS ?
+                "📤 1. Tocca 'Condividi' in basso\n📱 2. Scegli 'Aggiungi alla schermata Home'\n✅ 3. Tocca 'Aggiungi'" :
+                "⋮ 1. Tocca 'Menu' (3 puntini) in alto\n📱 2. Scegli 'Aggiungi alla schermata Home'\n✅ 3. Tocca 'Aggiungi'";
+
+            alert("🏠 Come aggiungere FantaGTS alla Home:\n\n" + instructions +
+                "\n\n💡 Una volta aggiunta, aprila sempre dall'icona per la migliore esperienza!");
+
+            dismissInstallPermanently();
+        }
+
+        function dismissInstallPermanently() {
+            const banner = document.querySelector('[style*="slideUp"]');
+            if (banner) banner.remove();
+
+            // Segna come "installata" per non mostrare più il banner
+            localStorage.setItem('install_instructions_shown', 'true');
+            localStorage.setItem('pwa_homescreen_added', 'true');
+        }
+
+        // E modifica la rilevazione appinstalled:
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('✅ FantaGTS aggiunta alla Home Screen!');
+            localStorage.setItem('pwa_homescreen_added', 'true');
+
+            setTimeout(() => {
+                alert('🎉 FantaGTS aggiunta alla Home!\n\n💡 Usa sempre l\'icona dalla Home per aprirla.');
+            }, 1000);
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('✅ PWA installata dall\'utente');
+                    }
+                    deferredPrompt = null;
+                    dismissInstall();
+                });
+            }
+        }
+
+        function dismissInstall() {
+            const banner = document.querySelector('[style*="slideUp"]');
+            if (banner) banner.remove();
+            localStorage.setItem('pwa_install_dismissed', 'true');
+        }
+
+        // Rileva quando l'app viene installata
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('✅ FantaGTS PWA installata con successo!');
+            localStorage.setItem('pwa_installed', 'true');
+            // Mostra messaggio di benvenuto
+            setTimeout(() => {
+                alert('🎉 FantaGTS installata!\n\nOra puoi trovarla nella tua home screen.');
+            }, 1000);
+        });
+
+        // DEBUG PWA - AGGIUNGI QUI
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ PWA installabile rilevata dal debug!');
+            alert('🎉 DEBUG: PWA installabile rilevata! Menu dovrebbe avere "Installa app".');
+        });
+
+        // Test modalità standalone vs browser
+        setTimeout(() => {
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('🏠 DEBUG: App in modalità standalone - SUCCESSO!');
+                document.body.style.border = '5px solid green';
+                alert('✅ SUCCESSO! App installata correttamente (bordo verde)');
+            } else {
+                console.log('🌐 DEBUG: App in modalità browser - ancora da installare');
+                document.body.style.border = '5px solid red';
+                console.log('🔍 Cerca nel menu Chrome "Installa app" o icona ⊕ nella barra indirizzi');
+            }
+        }, 2000);
+
+    </script>
+
 </body>
 </html>

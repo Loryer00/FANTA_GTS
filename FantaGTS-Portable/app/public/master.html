@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FantaGTS - Master Control</title>
+
+    <!-- PWA Configuration -->
+    <meta name="theme-color" content="#4299e1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FantaGTS">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72x72.png">
+
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
@@ -50,13 +71,13 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .section h2 {
-            margin-bottom: 15px;
-            color: #4299e1;
-            border-bottom: 2px solid #4299e1;
-            padding-bottom: 8px;
-            font-size: 1.3em;
-        }
+            .section h2 {
+                margin-bottom: 15px;
+                color: #4299e1;
+                border-bottom: 2px solid #4299e1;
+                padding-bottom: 8px;
+                font-size: 1.3em;
+            }
 
         .status-card {
             background: rgba(255,255,255,0.08);
@@ -67,16 +88,18 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .status-active { 
-            border-left-color: #48bb78; 
+        .status-active {
+            border-left-color: #48bb78;
             background: rgba(72, 187, 120, 0.1);
         }
-        .status-waiting { 
-            border-left-color: #ed8936; 
+
+        .status-waiting {
+            border-left-color: #ed8936;
             background: rgba(237, 137, 54, 0.1);
         }
-        .status-error { 
-            border-left-color: #f56565; 
+
+        .status-error {
+            border-left-color: #f56565;
             background: rgba(245, 101, 101, 0.1);
         }
 
@@ -107,36 +130,44 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
 
-        .round-btn.available {
-            background: #48bb78;
-            color: white;
-            border-color: #48bb78;
-        }
+            .round-btn.available {
+                background: #48bb78;
+                color: white;
+                border-color: #48bb78;
+            }
 
-        .round-btn.active {
-            background: #f56565;
-            color: white;
-            animation: pulse 2s infinite;
-            border-color: #f56565;
-        }
+            .round-btn.active {
+                background: #f56565;
+                color: white;
+                animation: pulse 2s infinite;
+                border-color: #f56565;
+            }
 
-        .round-btn.completed {
-            background: #4a5568;
-            color: #a0aec0;
-            cursor: not-allowed;
-            border-color: #4a5568;
-        }
+            .round-btn.completed {
+                background: #4a5568;
+                color: #a0aec0;
+                cursor: not-allowed;
+                border-color: #4a5568;
+            }
 
-        .round-btn:hover:not(.completed):not(.active) {
-            background: #38a169;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
-        }
+            .round-btn:hover:not(.completed):not(.active) {
+                background: #38a169;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+            }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .btn {
@@ -157,11 +188,11 @@
             border-color: #4299e1;
         }
 
-        .btn-primary:hover {
-            background: #3182ce;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
-        }
+            .btn-primary:hover {
+                background: #3182ce;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
 
         .btn-danger {
             background: #f56565;
@@ -169,10 +200,10 @@
             border-color: #f56565;
         }
 
-        .btn-danger:hover {
-            background: #e53e3e;
-            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
-        }
+            .btn-danger:hover {
+                background: #e53e3e;
+                box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+            }
 
         .btn-warning {
             background: #ed8936;
@@ -180,10 +211,10 @@
             border-color: #ed8936;
         }
 
-        .btn-warning:hover {
-            background: #dd6b20;
-            box-shadow: 0 4px 12px rgba(237, 137, 54, 0.4);
-        }
+            .btn-warning:hover {
+                background: #dd6b20;
+                box-shadow: 0 4px 12px rgba(237, 137, 54, 0.4);
+            }
 
         .btn:disabled {
             background: #4a5568;
@@ -207,20 +238,20 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .participant-card.bid-confirmed {
-            border-left-color: #48bb78;
-            background: rgba(72, 187, 120, 0.15);
-        }
+            .participant-card.bid-confirmed {
+                border-left-color: #48bb78;
+                background: rgba(72, 187, 120, 0.15);
+            }
 
-        .participant-card.bid-pending {
-            border-left-color: #ed8936;
-            background: rgba(237, 137, 54, 0.15);
-        }
+            .participant-card.bid-pending {
+                border-left-color: #ed8936;
+                background: rgba(237, 137, 54, 0.15);
+            }
 
-        .participant-card.offline {
-            border-left-color: #4a5568;
-            opacity: 0.6;
-        }
+            .participant-card.offline {
+                border-left-color: #4a5568;
+                opacity: 0.6;
+            }
 
         .current-round-display {
             background: rgba(245, 101, 101, 0.2);
@@ -242,8 +273,13 @@
         }
 
         @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
+            0%, 50% {
+                opacity: 1;
+            }
+
+            51%, 100% {
+                opacity: 0.3;
+            }
         }
 
         .stats-grid {
@@ -286,21 +322,21 @@
             transition: transform 0.3s ease;
         }
 
-        .notification.show {
-            transform: translateX(0);
-        }
+            .notification.show {
+                transform: translateX(0);
+            }
 
-        .notification.success {
-            background: #48bb78;
-        }
+            .notification.success {
+                background: #48bb78;
+            }
 
-        .notification.error {
-            background: #f56565;
-        }
+            .notification.error {
+                background: #f56565;
+            }
 
-        .notification.warning {
-            background: #ed8936;
-        }
+            .notification.warning {
+                background: #ed8936;
+            }
 
         .modal {
             position: fixed;
@@ -333,19 +369,19 @@
             margin-top: 15px;
         }
 
-        .results-table th,
-        .results-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            font-size: 0.9em;
-        }
+            .results-table th,
+            .results-table td {
+                padding: 10px;
+                text-align: left;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
+                font-size: 0.9em;
+            }
 
-        .results-table th {
-            background: rgba(0,0,0,0.3);
-            font-weight: bold;
-            color: #4299e1;
-        }
+            .results-table th {
+                background: rgba(0,0,0,0.3);
+                font-weight: bold;
+                color: #4299e1;
+            }
 
         .bid-status {
             font-size: 0.8em;
@@ -368,7 +404,7 @@
             background: #4a5568;
             color: #a0aec0;
         }
-</style>
+    </style>
 
 </head>
 <body>
@@ -767,11 +803,11 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                <td><strong>${r.slot_id || r.slot}</strong></td>
-                <td>${r.partecipante_nome || r.nome}</td>
-                <td>${r.offerta || r.offertaOriginale}</td>
-                <td>${r.costo_finale}</td>
-            </tr>`;
+                    <td><strong>${r.slot_id || r.slot}</strong></td>
+                    <td>${r.partecipante_nome || r.nome}</td>
+                    <td>${r.offerta || r.offertaOriginale}</td>
+                    <td>${r.costo_finale}</td>
+                </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1049,11 +1085,11 @@
         async function creaCardSquadra(partecipante) {
             const card = document.createElement('div');
             card.style.cssText = `
-            background: rgba(255,255,255,0.08);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        `;
+                background: rgba(255,255,255,0.08);
+                border-radius: 15px;
+                padding: 20px;
+                border: 1px solid rgba(255,255,255,0.1);
+            `;
 
             try {
                 // CORREZIONE: Carica sempre i giocatori del partecipante
@@ -1085,65 +1121,65 @@
                         console.log(`🎨 Colori per ${giocatore.colore}: sfondo=${teamColor}, testo=${textColor}`);
 
                         return `
-                    <div style="
-                        background: ${teamColor}60;
-                        border: 2px solid ${teamColor};
-                        padding: 8px;
-                        border-radius: 6px;
-                        text-align: center;
-                        font-size: 0.8em;
-                        color: ${textColor};
-                    ">
-                        <strong style="color: ${textColor};">${pos}</strong><br>
-                        <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
-                        <small style="color: ${textColor}; opacity: 0.9;">${giocatore.colore} - ${giocatore.costo_finale}€</small>
-                    </div>
-                `;
+                        <div style="
+                            background: ${teamColor}60;
+                            border: 2px solid ${teamColor};
+                            padding: 8px;
+                            border-radius: 6px;
+                            text-align: center;
+                            font-size: 0.8em;
+                            color: ${textColor};
+                        ">
+                            <strong style="color: ${textColor};">${pos}</strong><br>
+                            <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
+                            <small style="color: ${textColor}; opacity: 0.9;">${giocatore.colore} - ${giocatore.costo_finale}€</small>
+                        </div>
+                    `;
                     } else {
                         return `
-                    <div style="
-                        background: rgba(74,85,104,0.3);
-                        border: 1px solid #4a5568;
-                        padding: 8px;
-                        border-radius: 6px;
-                        text-align: center;
-                        font-size: 0.8em;
-                        opacity: 0.6;
-                        color: #a0aec0;
-                    ">
-                        <strong>${pos}</strong><br>
-                        -
-                    </div>
-                `;
+                        <div style="
+                            background: rgba(74,85,104,0.3);
+                            border: 1px solid #4a5568;
+                            padding: 8px;
+                            border-radius: 6px;
+                            text-align: center;
+                            font-size: 0.8em;
+                            opacity: 0.6;
+                            color: #a0aec0;
+                        ">
+                            <strong>${pos}</strong><br>
+                            -
+                        </div>
+                    `;
                     }
                 }).join('');
 
                 card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="color: #4299e1; margin: 0;">${partecipante.nome}</h3>
-                <div style="font-size: 0.9em; opacity: 0.8;">
-                    ${giocatoriAcquistati}/10 giocatori
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: #4299e1; margin: 0;">${partecipante.nome}</h3>
+                    <div style="font-size: 0.9em; opacity: 0.8;">
+                        ${giocatoriAcquistati}/10 giocatori
+                    </div>
                 </div>
-            </div>
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
-                ${posizioniHTML}
-            </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+                    ${posizioniHTML}
+                </div>
 
-            <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
-                <span>💰 Rimasti: ${creditiRimasti}</span>
-                <span>💸 Spesi: ${creditiSpesi}</span>
-                <span>🏆 Punti: ${puntiTotali}</span>
-            </div>
-        `;
-            } catch (error) {
-                card.innerHTML = `
-                <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
-                <p style="opacity: 0.7;">Squadra non ancora formata</p>
-                <div style="font-size: 0.9em; opacity: 0.9;">
-                    💰 Crediti: ${partecipante.crediti}
+                <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
+                    <span>💰 Rimasti: ${creditiRimasti}</span>
+                    <span>💸 Spesi: ${creditiSpesi}</span>
+                    <span>🏆 Punti: ${puntiTotali}</span>
                 </div>
             `;
+            } catch (error) {
+                card.innerHTML = `
+                    <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+                    <p style="opacity: 0.7;">Squadra non ancora formata</p>
+                    <div style="font-size: 0.9em; opacity: 0.9;">
+                        💰 Crediti: ${partecipante.crediti}
+                    </div>
+                `;
             }
 
             return card;
@@ -1672,10 +1708,10 @@
                 }
 
                 card.innerHTML = `
-                        <div><strong>${p.nome}</strong></div>
-                        <div>Stato: ${p.stato}</div>
-                        <div class="bid-status ${bidClass}">${bidStatus}</div>
-                    `;
+                            <div><strong>${p.nome}</strong></div>
+                            <div>Stato: ${p.stato}</div>
+                            <div class="bid-status ${bidClass}">${bidStatus}</div>
+                        `;
 
                 grid.appendChild(card);
             });
@@ -1709,12 +1745,12 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                        <td><strong>${r.slot.replace('_', ' ')}</strong></td>
-                        <td>${r.nome}</td>
-                        <td>${r.offertaOriginale}</td>
-                        <td>${r.costoFinale}</td>
-                        <td>${r.condiviso ? '✅' : '❌'}</td>
-                    </tr>`;
+                            <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                            <td>${r.nome}</td>
+                            <td>${r.offertaOriginale}</td>
+                            <td>${r.costoFinale}</td>
+                            <td>${r.condiviso ? '✅' : '❌'}</td>
+                        </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1723,9 +1759,9 @@
 
             // Aggiorna anche la sezione risultati nella pagina
             document.getElementById('lastRoundResults').innerHTML = `
-                    <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
-                    ${html}
-                `;
+                        <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
+                        ${html}
+                    `;
         }
 
         async function mostraClassifica() {
@@ -1747,12 +1783,12 @@
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-                    <td><strong>${index + 1}°</strong></td>
-                    <td>${p.nome}</td>
-                    <td>${p.punti_totali}</td>
-                    <td>${p.giocatori_totali}/10</td>
-                    <td>${p.crediti}</td>
-                </tr>`;
+                        <td><strong>${index + 1}°</strong></td>
+                        <td>${p.nome}</td>
+                        <td>${p.punti_totali}</td>
+                        <td>${p.giocatori_totali}/10</td>
+                        <td>${p.crediti}</td>
+                    </tr>`;
                 });
 
                 html += '</tbody></table>';
@@ -1815,18 +1851,37 @@
 
         function resetPulsantiManuale() {
             document.querySelectorAll('.round-btn').forEach(btn => {
+                // RIMUOVI TUTTE LE CLASSI
                 btn.classList.remove('active', 'completed', 'available');
 
-                // Stato originale: grigio neutro  
+                // RIPRISTINA STATO ORIGINALE NEUTRO
                 btn.style.background = '#4a5568';
                 btn.style.color = '#a0aec0';
                 btn.style.borderColor = '#4a5568';
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
+                btn.style.filter = 'none';
+                btn.style.boxShadow = 'none';
                 btn.disabled = false;
                 btn.style.pointerEvents = 'auto';
                 btn.style.outline = 'none';
-                btn.style.boxShadow = 'none';
+
+                // Reset hover effects
+                btn.onmouseover = function () {
+                    if (!this.classList.contains('completed') && !this.classList.contains('active')) {
+                        this.style.background = '#38a169';
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = '0 4px 12px rgba(72, 187, 120, 0.4)';
+                    }
+                };
+
+                btn.onmouseout = function () {
+                    if (!this.classList.contains('completed') && !this.classList.contains('active')) {
+                        this.style.background = '#4a5568';
+                        this.style.transform = 'none';
+                        this.style.boxShadow = 'none';
+                    }
+                };
             });
 
             // Reset selezione
@@ -1841,6 +1896,8 @@
             // Reset statistiche
             document.getElementById('statRounds').textContent = '0';
             document.getElementById('statCrediti').textContent = '0';
+
+            console.log('🔄 Pulsanti ripristinati allo stato originale uniforme');
         }
 
         function resetTotale() {
@@ -1899,11 +1956,11 @@
                         const div = document.createElement('div');
                         div.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
                         div.innerHTML = `
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
-                        <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
-                    </label>
-                `;
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
+                            <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
+                        </label>
+                    `;
                         container.appendChild(div);
                     });
                 }
@@ -2017,10 +2074,10 @@
         // Mostra lista backup (placeholder)
         function mostraBackupList() {
             document.getElementById('backupContent').innerHTML = `
-        <p>Funzionalità di visualizzazione backup in sviluppo.</p>
-        <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
-        <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
-    `;
+            <p>Funzionalità di visualizzazione backup in sviluppo.</p>
+            <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
+            <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
+        `;
             document.getElementById('backupListModal').style.display = 'flex';
         }
 
@@ -2052,7 +2109,7 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
-       // Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti
+        // Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti
         setInterval(async () => {
             if (gameState.asteAttive || document.querySelectorAll('.team-slot.filled').length > 0) {
                 await saveMasterState();
@@ -2065,5 +2122,16 @@
         });
 
     </script>
+
+    <!-- PWA Registration -->
+    <script>
+        // Registrazione Service Worker (versione semplificata per Master/Setup)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => console.log('✅ SW registrato:', registration.scope))
+                .catch(error => console.log('❌ Errore SW:', error));
+        }
+    </script>
+
 </body>
 </html>

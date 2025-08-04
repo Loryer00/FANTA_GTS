@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const app = express();
 const server = http.createServer(app);
@@ -982,9 +983,59 @@ io.on('connection', (socket) => {
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
         console.log('Disconnesso:', socket.id);
     });
+
+    socket.on('heartbeat', (data) => {
+        // Rispondi immediatamente per confermare connessione
+        socket.emit('heartbeat_response', {
+            timestamp: Date.now(),
+            serverTime: new Date().toISOString(),
+            type: data.type || 'standard'
+        });
+
+        // Log solo per heartbeat di persistenza
+        if (data.type === 'persistence_check') {
+            console.log(`💓 Heartbeat persistenza da ${gameState.connessi.get(socket.id)?.nome || 'Sconosciuto'}`);
+        }
+    });
 });
 
-// Serve file statici
+// PWA Routes - INSERISCI QUI PRIMA DEI FILE STATICI
+app.get('/manifest.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
+app.get('/offline', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'offline.html'));
+});
+
+// PWA Web Push Notifications API
+app.post('/api/subscribe-notifications', (req, res) => {
+    const { subscription, partecipanteId } = req.body;
+
+    // Salva subscription nel database per invii futuri
+    // TODO: Implementare storage subscription
+    console.log('📨 Nuova subscription push:', partecipanteId);
+
+    res.json({ success: true, message: 'Notifiche attivate' });
+});
+
+app.post('/api/send-notification', (req, res) => {
+    const { title, body, url, targetUsers } = req.body;
+
+    // TODO: Implementare invio push notifications
+    console.log('📤 Invio notifica:', { title, body, targetUsers });
+
+    res.json({ success: true, message: 'Notifica inviata' });
+});
+
+// Serve file statici - QUESTE RIGHE ERANO GIÀ PRESENTI
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -997,15 +1048,46 @@ app.get('/setup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'setup.html'));
 });
 
+// Funzione per ottenere l'IP locale
+function getLocalIP() {
+    const os = require('os');
+    const interfaces = os.networkInterfaces();
+
+    for (const name of Object.keys(interfaces)) {
+        for (const interface of interfaces[name]) {
+            // Salta indirizzi interni e non IPv4
+            if (interface.family === 'IPv4' && !interface.internal) {
+                return interface.address;
+            }
+        }
+    }
+    return 'localhost'; // Fallback se non trova IP
+}
+
 // Avvio server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
+    const localIP = getLocalIP();
+
     console.log('\n🎾 FantaGTS Server Avviato!');
     console.log(`📱 Client: http://localhost:${PORT}`);
     console.log(`⚙️  Setup: http://localhost:${PORT}/setup`);
     console.log(`🎮 Master: http://localhost:${PORT}/master`);
-    console.log(`🔗 Rete locale: http://[TUO_IP]:${PORT}`);
+    console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
     console.log('\n✅ Sistema pronto per la configurazione!');
+
+    // BONUS: Mostra anche tutti gli IP disponibili
+    console.log('\n📋 Altri indirizzi disponibili:');
+    const os = require('os');
+    const interfaces = os.networkInterfaces();
+
+    for (const [name, nets] of Object.entries(interfaces)) {
+        for (const net of nets) {
+            if (net.family === 'IPv4' && !net.internal) {
+                console.log(`   ${name}: http://${net.address}:${PORT}`);
+            }
+        }
+    }
 });
 
 // Gestione errori

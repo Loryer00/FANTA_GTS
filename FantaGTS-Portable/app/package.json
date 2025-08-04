@@ -1,19 +1,22 @@
 {
-  "name": "fanta_gts",
+  "name": "fantagts",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Fantasy Tennis del Circolo",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build step required'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "multer": "^2.0.2",
-    "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7"
-  }
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "sqlite3": "^5.1.6"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "keywords": ["fantasy", "tennis", "aste", "pwa"],
+  "author": "FantaGTS",
+  "license": "MIT"
 }
