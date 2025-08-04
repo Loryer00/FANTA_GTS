@@ -22,7 +22,7 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Inizializza database - CORREZIONE qui
+// Inizializza database
 const dbPath = path.join(__dirname, 'data', 'fantagts.db');
 
 // Crea cartella data se non esiste
@@ -30,17 +30,13 @@ if (!fs.existsSync(path.join(__dirname, 'data'))) {
     fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 }
 
-console.log('🔍 Percorso database:', dbPath);
-console.log('🔍 Database esiste?', fs.existsSync(dbPath));
-
-// CORREZIONE: better-sqlite3 non usa callback
+let db;
 try {
-    const db = new Database(dbPath);
+    db = new Database(dbPath);
     console.log('✅ Database aperto correttamente dal percorso:', dbPath);
 } catch (err) {
     console.error('❌ Errore database:', err);
-    // Fallback: database in memoria per Render
-    const db = new Database(':memory:');
+    db = new Database(':memory:');
     console.log('⚠️ Usando database in memoria');
 }
 
