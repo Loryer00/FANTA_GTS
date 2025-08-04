@@ -2,7 +2,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -21,19 +21,28 @@ app.use(express.static('public'));
 app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
-console.log('🔍 Percorso database:', path.join(__dirname, 'data', 'fantagts.db'));
-console.log('🔍 Database esiste?', fs.existsSync(path.join(__dirname, 'data', 'fantagts.db')));
 
-// Inizializza database
-const dbPath = path.join(__dirname, '..', 'data', 'fantagts.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('❌ Errore specifico database:', err);
-        console.log('🔍 Tentativo con percorso assoluto...');
-    } else {
-        console.log('✅ Database aperto correttamente dal percorso:', dbPath);
-    }
-});
+// Inizializza database - CORREZIONE qui
+const dbPath = path.join(__dirname, 'data', 'fantagts.db');
+
+// Crea cartella data se non esiste
+if (!fs.existsSync(path.join(__dirname, 'data'))) {
+    fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+}
+
+console.log('🔍 Percorso database:', dbPath);
+console.log('🔍 Database esiste?', fs.existsSync(dbPath));
+
+// CORREZIONE: better-sqlite3 non usa callback
+try {
+    const db = new Database(dbPath);
+    console.log('✅ Database aperto correttamente dal percorso:', dbPath);
+} catch (err) {
+    console.error('❌ Errore database:', err);
+    // Fallback: database in memoria per Render
+    const db = new Database(':memory:');
+    console.log('⚠️ Usando database in memoria');
+}
 
 // Crea tabelle se non esistono
 db.serialize(() => {
