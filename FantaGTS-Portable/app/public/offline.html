@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 400px;
+            background: rgba(255,255,255,0.08);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .offline-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .offline-title {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #4299e1;
+        }
+
+        .offline-message {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .retry-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .retry-btn:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+        }
+
+        .status-indicator {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .status-offline {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid #f56565;
+            color: #fc8181;
+        }
+
+        .status-online {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid #48bb78;
+            color: #68d391;
+        }
+
+        .offline-tips {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .offline-tips h3 {
+            margin-bottom: 15px;
+            color: #4299e1;
+        }
+
+        .offline-tips ul {
+            text-align: left;
+            margin-left: 20px;
+        }
+
+        .offline-tips li {
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #4299e1;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .cached-data {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cached-data h4 {
+            color: #4299e1;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1 class="offline-title">Sei Offline</h1>
+        <p class="offline-message">
+            Non riesco a connettermi al server FantaGTS. 
+            Controlla la tua connessione internet e riprova.
+        </p>
+        
+        <button class="retry-btn" onclick="retryConnection()">
+            🔄 Riprova Connessione
+            <span id="loading" class="loading" style="display: none;"></span>
+        </button>
+        
+        <div id="connectionStatus" class="status-indicator status-offline">
+            ❌ Disconnesso dal server
+        </div>
+
+        <div class="cached-data" id="cachedData" style="display: none;">
+            <h4>📦 Dati Disponibili Offline</h4>
+            <p id="cachedInfo">Caricamento dati locali...</p>
+        </div>
+
+        <div class="offline-tips">
+            <h3>💡 Suggerimenti</h3>
+            <ul>
+                <li>Controlla la connessione WiFi o dati mobili</li>
+                <li>Verifica che il server FantaGTS sia attivo</li>
+                <li>Alcuni dati sono disponibili anche offline</li>
+                <li>L'app si riconnetterà automaticamente</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let retryAttempts = 0;
+        const maxRetryAttempts = 10;
+
+        // Controlla connessione automaticamente
+        function checkConnection() {
+            fetch('/api/stato')
+                .then(response => {
+                    if (response.ok) {
+                        showOnlineStatus();
+                        // Reindirizza alla home dopo 2 secondi
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                    } else {
+                        throw new Error('Server non disponibile');
+                    }
+                })
+                .catch(() => {
+                    showOfflineStatus();
+                    // Riprova automaticamente con backoff esponenziale
+                    if (retryAttempts < maxRetryAttempts) {
+                        const delay = Math.min(1000 * Math.pow(1.5, retryAttempts), 30000);
+                        setTimeout(checkConnection, delay);
+                        retryAttempts++;
+                    }
+                });
+        }
+
+        function retryConnection() {
+            const button = document.querySelector('.retry-btn');
+            const loading = document.getElementById('loading');
+            
+            button.disabled = true;
+            loading.style.display = 'inline-block';
+            
+            retryAttempts = 0;
+            checkConnection();
+            
+            // Riabilita pulsante dopo 3 secondi
+            setTimeout(() => {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }, 3000);
+        }
+
+        function showOnlineStatus() {
+            const status = document.getElementById('connectionStatus');
+            status.className = 'status-indicator status-online';
+            status.innerHTML = '✅ Connesso! Reindirizzamento in corso...';
+        }
+
+        function showOfflineStatus() {
+            const status = document.getElementById('connectionStatus');
+            status.className = 'status-indicator status-offline';
+            status.innerHTML = '❌ Ancora offline - Riprovo automaticamente...';
+        }
+
+        // Carica dati dalla cache se disponibili
+        async function loadCachedData() {
+            try {
+                if ('caches' in window) {
+                    const cache = await caches.open('fantagts-v1.0.0');
+                    const cachedUrls = await cache.keys();
+                    
+                    if (cachedUrls.length > 0) {
+                        document.getElementById('cachedData').style.display = 'block';
+                        document.getElementById('cachedInfo').textContent = 
+                            `${cachedUrls.length} file disponibili offline`;
+                        
+                        // Prova a caricare dati utente dalla cache
+                        try {
+                            const response = await cache.match('/api/stato');
+                            if (response) {
+                                const data = await response.json();
+                                document.getElementById('cachedInfo').innerHTML += 
+                                    `<br><small>Ultimo aggiornamento: ${new Date(data.timestamp || Date.now()).toLocaleString('it-IT')}</small>`;
+                            }
+                        } catch (e) {
+                            console.log('Nessun dato stato in cache');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento dati cache:', error);
+            }
+        }
+
+        // Event listeners
+        window.addEventListener('online', () => {
+            console.log('Browser rilevato online');
+            checkConnection();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('Browser rilevato offline');
+            showOfflineStatus();
+        });
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCachedData();
+            
+            // Controlla connessione dopo 1 secondo
+            setTimeout(checkConnection, 1000);
+            
+            // Controlla periodicamente ogni 10 secondi
+            setInterval(checkConnection, 10000);
+        });
+
+        console.log('📡 Pagina offline FantaGTS caricata');
+    </script>
+</body>
+</html>
