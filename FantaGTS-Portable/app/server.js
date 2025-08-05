@@ -1,8 +1,8 @@
-// server.js - FantaGTS Server con Better-SQLite3
+// server.js - FantaGTS Server con SQLite3
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -32,102 +32,113 @@ if (!fs.existsSync(path.join(__dirname, 'data'))) {
 
 let db;
 try {
-    db = new Database(dbPath);
-    console.log('✅ Database aperto correttamente dal percorso:', dbPath);
+    db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error('❌ Errore database:', err);
+            db = new sqlite3.Database(':memory:', (err) => {
+                if (err) {
+                    console.error('❌ Errore database memoria:', err);
+                } else {
+                    console.log('⚠️ Usando database in memoria');
+                    initializeDatabase();
+                }
+            });
+        } else {
+            console.log('✅ Database aperto correttamente dal percorso:', dbPath);
+            initializeDatabase();
+        }
+    });
 } catch (err) {
     console.error('❌ Errore database:', err);
-    db = new Database(':memory:');
-    console.log('⚠️ Usando database in memoria');
 }
 
-// Crea tabelle se non esistono
-try {
-    db.exec(`CREATE TABLE IF NOT EXISTS squadre_circolo (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        numero INTEGER UNIQUE,
-        colore TEXT,
-        m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
-        f1 TEXT, f2 TEXT, f3 TEXT,
-        attiva BOOLEAN DEFAULT 1
-    )`);
+// Inizializza struttura database
+function initializeDatabase() {
+    db.serialize(() => {
+        db.run(`CREATE TABLE IF NOT EXISTS squadre_circolo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero INTEGER UNIQUE,
+            colore TEXT,
+            m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
+            f1 TEXT, f2 TEXT, f3 TEXT,
+            attiva BOOLEAN DEFAULT 1
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
-        id TEXT PRIMARY KEY,
-        nome TEXT,
-        email TEXT,
-        telefono TEXT,
-        crediti INTEGER DEFAULT 2000,
-        punti_totali INTEGER DEFAULT 0,
-        posizione_classifica INTEGER
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT,
+            email TEXT,
+            telefono TEXT,
+            crediti INTEGER DEFAULT 2000,
+            punti_totali INTEGER DEFAULT 0,
+            posizione_classifica INTEGER
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS slots (
-        id TEXT PRIMARY KEY,
-        squadra_numero INTEGER,
-        colore TEXT,
-        posizione TEXT,
-        giocatore_attuale TEXT,
-        punti_totali INTEGER DEFAULT 0,
-        attivo BOOLEAN DEFAULT 1,
-        FOREIGN KEY (squadra_numero) REFERENCES squadre_circolo(numero)
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS slots (
+            id TEXT PRIMARY KEY,
+            squadra_numero INTEGER,
+            colore TEXT,
+            posizione TEXT,
+            giocatore_attuale TEXT,
+            punti_totali INTEGER DEFAULT 0,
+            attivo BOOLEAN DEFAULT 1,
+            FOREIGN KEY (squadra_numero) REFERENCES squadre_circolo(numero)
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS aste (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        round TEXT,
-        partecipante_id TEXT,
-        slot_id TEXT,
-        offerta INTEGER,
-        costo_finale INTEGER,
-        premium REAL DEFAULT 0,
-        vincitore BOOLEAN DEFAULT 0,
-        condiviso BOOLEAN DEFAULT 0,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id),
-        FOREIGN KEY (slot_id) REFERENCES slots(id)
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS aste (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            round TEXT,
+            partecipante_id TEXT,
+            slot_id TEXT,
+            offerta INTEGER,
+            costo_finale INTEGER,
+            premium REAL DEFAULT 0,
+            vincitore BOOLEAN DEFAULT 0,
+            condiviso BOOLEAN DEFAULT 0,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id),
+            FOREIGN KEY (slot_id) REFERENCES slots(id)
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS sostituzioni (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slot_id TEXT,
-        giocatore_vecchio TEXT,
-        giocatore_nuovo TEXT,
-        dal_turno INTEGER,
-        motivo TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (slot_id) REFERENCES slots(id)
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS sostituzioni (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            slot_id TEXT,
+            giocatore_vecchio TEXT,
+            giocatore_nuovo TEXT,
+            dal_turno INTEGER,
+            motivo TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (slot_id) REFERENCES slots(id)
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS risultati_partite (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        turno INTEGER,
-        squadra_1 INTEGER,
-        squadra_2 INTEGER,
-        risultato TEXT,
-        vincitori TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (squadra_1) REFERENCES squadre_circolo(numero),
-        FOREIGN KEY (squadra_2) REFERENCES squadre_circolo(numero)
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS risultati_partite (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            turno INTEGER,
+            squadra_1 INTEGER,
+            squadra_2 INTEGER,
+            risultato TEXT,
+            vincitori TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (squadra_1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra_2) REFERENCES squadre_circolo(numero)
+        )`);
 
-    db.exec(`CREATE TABLE IF NOT EXISTS configurazione (
-        chiave TEXT PRIMARY KEY,
-        valore TEXT
-    )`);
+        db.run(`CREATE TABLE IF NOT EXISTS configurazione (
+            chiave TEXT PRIMARY KEY,
+            valore TEXT
+        )`);
 
-    // Aggiorna tabella aste per compatibilità
-    try {
-        db.exec(`ALTER TABLE aste ADD COLUMN condiviso BOOLEAN DEFAULT 0`);
-        console.log('✅ Colonna condiviso aggiunta alla tabella aste');
-    } catch (alterError) {
-        if (alterError.message.includes('duplicate column name')) {
-            console.log('⚠️ Colonna condiviso già presente');
-        }
-    }
+        // Aggiorna tabella aste per compatibilità
+        db.run(`ALTER TABLE aste ADD COLUMN condiviso BOOLEAN DEFAULT 0`, (err) => {
+            if (err && !err.message.includes('duplicate column name')) {
+                console.log('⚠️ Errore aggiunta colonna condiviso:', err.message);
+            } else {
+                console.log('✅ Colonna condiviso gestita correttamente');
+            }
+        });
 
-    console.log('✅ Database inizializzato con successo');
-} catch (error) {
-    console.error('❌ Errore inizializzazione database:', error);
+        console.log('✅ Database inizializzato con successo');
+    });
 }
 
 // Stato del gioco in memoria
@@ -160,25 +171,51 @@ function arrotondaAlPariPiuVicino(numero) {
 function generaSlots() {
     return new Promise((resolve, reject) => {
         try {
-            const squadre = db.prepare("SELECT * FROM squadre_circolo WHERE attiva = 1").all();
-            const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-            
-            // Cancella slots esistenti
-            db.prepare("DELETE FROM slots").run();
+            db.all("SELECT * FROM squadre_circolo WHERE attiva = 1", (err, squadre) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
 
-            const stmt = db.prepare("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)");
-            
-            let inserimenti = 0;
-            squadre.forEach(squadra => {
-                posizioni.forEach(pos => {
-                    const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
-                    const giocatore = squadra[pos.toLowerCase()];
-                    stmt.run(slotId, squadra.numero, squadra.colore, pos, giocatore);
-                    inserimenti++;
+                const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                
+                // Cancella slots esistenti
+                db.run("DELETE FROM slots", (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    let inserimenti = 0;
+                    const totaleInserimenti = squadre.length * posizioni.length;
+
+                    if (totaleInserimenti === 0) {
+                        resolve(0);
+                        return;
+                    }
+
+                    squadre.forEach(squadra => {
+                        posizioni.forEach(pos => {
+                            const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
+                            const giocatore = squadra[pos.toLowerCase()];
+                            
+                            db.run("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)", 
+                                   [slotId, squadra.numero, squadra.colore, pos, giocatore], 
+                                   (err) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+                                
+                                inserimenti++;
+                                if (inserimenti === totaleInserimenti) {
+                                    resolve(inserimenti);
+                                }
+                            });
+                        });
+                    });
                 });
             });
-
-            resolve(inserimenti);
         } catch (error) {
             reject(error);
         }
@@ -189,91 +226,104 @@ function generaSlots() {
 
 // Setup squadre circolo
 app.get('/api/squadre', (req, res) => {
-    try {
-        const rows = db.prepare("SELECT * FROM squadre_circolo ORDER BY numero").all();
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    db.all("SELECT * FROM squadre_circolo ORDER BY numero", (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows || []);
+        }
+    });
 });
 
 app.get('/api/squadre-complete', (req, res) => {
-    try {
-        const squadre = db.prepare("SELECT * FROM squadre_circolo WHERE attiva = 1 ORDER BY numero").all();
-        
-        squadre.forEach(squadra => {
-            try {
-                const result = db.prepare("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = ?").get(squadra.numero);
-                squadra.slots_generati = result ? result.slots_count : 0;
-            } catch (err) {
-                squadra.slots_generati = 0;
-            }
-        });
+    db.all("SELECT * FROM squadre_circolo WHERE attiva = 1 ORDER BY numero", (err, squadre) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
 
-        res.json(squadre);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        let processedCount = 0;
+        const totalSquadre = squadre.length;
+
+        if (totalSquadre === 0) {
+            res.json([]);
+            return;
+        }
+
+        squadre.forEach(squadra => {
+            db.get("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = ?", [squadra.numero], (err, result) => {
+                squadra.slots_generati = result ? result.slots_count : 0;
+                processedCount++;
+                
+                if (processedCount === totalSquadre) {
+                    res.json(squadre);
+                }
+            });
+        });
+    });
 });
 
 app.post('/api/squadre', (req, res) => {
-    try {
-        const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
-        
-        const stmt = db.prepare(`INSERT OR REPLACE INTO squadre_circolo 
-            (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-        
-        const result = stmt.run(numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3);
-        res.json({ id: result.lastInsertRowid, message: 'Squadra salvata con successo' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
+    
+    db.run(`INSERT OR REPLACE INTO squadre_circolo 
+        (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3], 
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json({ id: this.lastID, message: 'Squadra salvata con successo' });
+            }
+        });
 });
 
 app.delete('/api/squadre/:numero', (req, res) => {
-    try {
-        const stmt = db.prepare("DELETE FROM squadre_circolo WHERE numero = ?");
-        const result = stmt.run(req.params.numero);
-        res.json({ message: 'Squadra eliminata con successo' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    db.run("DELETE FROM squadre_circolo WHERE numero = ?", [req.params.numero], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json({ message: 'Squadra eliminata con successo' });
+        }
+    });
 });
 
 // Setup partecipanti
 app.get('/api/partecipanti', (req, res) => {
-    try {
-        const rows = db.prepare("SELECT * FROM partecipanti_fantagts ORDER BY nome").all();
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    db.all("SELECT * FROM partecipanti_fantagts ORDER BY nome", (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows || []);
+        }
+    });
 });
 
 app.post('/api/partecipanti', (req, res) => {
-    try {
-        const { nome, email, telefono, crediti = 2000 } = req.body;
-        const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        
-        const stmt = db.prepare(`INSERT OR REPLACE INTO partecipanti_fantagts 
-            (id, nome, email, telefono, crediti) VALUES (?, ?, ?, ?, ?)`);
-        
-        const result = stmt.run(id, nome, email, telefono, crediti);
-        res.json({ id: id, message: 'Partecipante registrato con successo' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    const { nome, email, telefono, crediti = 2000 } = req.body;
+    const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    
+    db.run(`INSERT OR REPLACE INTO partecipanti_fantagts 
+        (id, nome, email, telefono, crediti) VALUES (?, ?, ?, ?, ?)`, 
+        [id, nome, email, telefono, crediti], 
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json({ id: id, message: 'Partecipante registrato con successo' });
+            }
+        });
 });
 
 app.delete('/api/partecipanti/:id', (req, res) => {
-    try {
-        const stmt = db.prepare("DELETE FROM partecipanti_fantagts WHERE id = ?");
-        const result = stmt.run(req.params.id);
-        res.json({ message: 'Partecipante eliminato con successo' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    db.run("DELETE FROM partecipanti_fantagts WHERE id = ?", [req.params.id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json({ message: 'Partecipante eliminato con successo' });
+        }
+    });
 });
 
 // Generazione slots
@@ -298,42 +348,40 @@ app.get('/api/stato', (req, res) => {
 
 // API per info slot
 app.get('/api/slot-info/:slotId', (req, res) => {
-    try {
-        const slotId = req.params.slotId;
-        const row = db.prepare("SELECT * FROM slots WHERE id = ?").get(slotId);
-        
-        if (!row) {
-            return res.status(404).json({ error: 'Slot non trovato' });
+    const slotId = req.params.slotId;
+    db.get("SELECT * FROM slots WHERE id = ?", [slotId], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else if (!row) {
+            res.status(404).json({ error: 'Slot non trovato' });
+        } else {
+            res.json(row);
         }
-        
-        res.json(row);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    });
 });
 
 // Ottieni squadra di un partecipante
 app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
-    try {
-        const partecipanteId = req.params.partecipanteId;
-        
-        const rows = db.prepare(`SELECT 
-            a.slot_id,
-            a.costo_finale,
-            s.posizione,
-            s.giocatore_attuale,
-            s.colore,
-            s.punti_totali
-            FROM aste a 
-            JOIN slots s ON a.slot_id = s.id 
-            WHERE a.partecipante_id = ? AND a.vincitore = 1 
-            ORDER BY s.posizione`).all(partecipanteId);
-        
-        res.json(rows);
-    } catch (err) {
-        console.error('Errore query squadra partecipante:', err);
-        res.status(500).json({ error: err.message });
-    }
+    const partecipanteId = req.params.partecipanteId;
+    
+    db.all(`SELECT 
+        a.slot_id,
+        a.costo_finale,
+        s.posizione,
+        s.giocatore_attuale,
+        s.colore,
+        s.punti_totali
+        FROM aste a 
+        JOIN slots s ON a.slot_id = s.id 
+        WHERE a.partecipante_id = ? AND a.vincitore = 1 
+        ORDER BY s.posizione`, [partecipanteId], (err, rows) => {
+        if (err) {
+            console.error('Errore query squadra partecipante:', err);
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows || []);
+        }
+    });
 });
 
 // Controllo aste
@@ -348,8 +396,11 @@ app.post('/api/avvia-round/:round', (req, res) => {
     gameState.asteAttive = true;
     gameState.offerteTemporanee.clear();
 
-    try {
-        const slots = db.prepare("SELECT * FROM slots WHERE posizione = ? AND attivo = 1").all(round);
+    db.all("SELECT * FROM slots WHERE posizione = ? AND attivo = 1", [round], (err, slots) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
 
         io.emit('round_started', {
             round: round,
@@ -361,9 +412,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
         res.json({ message: `Round ${round} avviato con successo` });
         
         avviaMonitoraggioOfferte();
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    });
 });
 
 // API per controllare se tutti hanno fatto offerte
@@ -392,72 +441,73 @@ app.get('/api/stato-offerte/:round', (req, res) => {
 
 // Ottieni risultati aste per round specifico
 app.get('/api/aste-round/:round', (req, res) => {
-    try {
-        const round = req.params.round;
-        
-        const rows = db.prepare(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
-                FROM aste a 
-                JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
-                JOIN slots s ON a.slot_id = s.id 
-                WHERE a.round = ? AND a.vincitore = 1 
-                ORDER BY a.costo_finale DESC`).all(round);
-        
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    const round = req.params.round;
+    
+    db.all(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+            FROM aste a 
+            JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
+            JOIN slots s ON a.slot_id = s.id 
+            WHERE a.round = ? AND a.vincitore = 1 
+            ORDER BY a.costo_finale DESC`, [round], (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows || []);
+        }
+    });
 });
 
 // Ottieni tutti i risultati partite
 app.get('/api/risultati-partite', (req, res) => {
-    try {
-        const rows = db.prepare(`SELECT r.*, 
-                s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
-                FROM risultati_partite r 
-                JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
-                JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
-                ORDER BY r.turno DESC, r.timestamp DESC`).all();
-        
-        // Parse JSON vincitori
-        rows.forEach(row => {
-            try {
-                row.vincitori = JSON.parse(row.vincitori || '[]');
-            } catch (e) {
-                row.vincitori = [];
-            }
-        });
-        
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    db.all(`SELECT r.*, 
+            s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
+            FROM risultati_partite r 
+            JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
+            JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
+            ORDER BY r.turno DESC, r.timestamp DESC`, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            // Parse JSON vincitori
+            const processedRows = (rows || []).map(row => {
+                try {
+                    row.vincitori = JSON.parse(row.vincitori || '[]');
+                } catch (e) {
+                    row.vincitori = [];
+                }
+                return row;
+            });
+            res.json(processedRows);
+        }
+    });
 });
 
 // Ottieni classifica generale
 app.get('/api/classifica', (req, res) => {
-    try {
-        const rows = db.prepare(`SELECT 
-            p.id, p.nome, p.crediti, 
-            COUNT(a.id) as giocatori_totali,
-            COALESCE(SUM(s.punti_totali), 0) as punti_totali,
-            COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
-            FROM partecipanti_fantagts p 
-            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = 1
-            LEFT JOIN slots s ON a.slot_id = s.id 
-            GROUP BY p.id, p.nome, p.crediti 
-            ORDER BY punti_totali DESC, crediti_spesi ASC`).all();
+    db.all(`SELECT 
+        p.id, p.nome, p.crediti, 
+        COUNT(a.id) as giocatori_totali,
+        COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+        COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
+        FROM partecipanti_fantagts p 
+        LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = 1
+        LEFT JOIN slots s ON a.slot_id = s.id 
+        GROUP BY p.id, p.nome, p.crediti 
+        ORDER BY punti_totali DESC, crediti_spesi ASC`, (err, rows) => {
+        if (err) {
+            console.error('❌ Errore query classifica:', err);
+            res.status(500).json({ error: err.message });
+        } else {
+            // Aggiungi posizione in classifica
+            const classifica = (rows || []).map((row, index) => {
+                row.posizione = index + 1;
+                return row;
+            });
 
-        // Aggiungi posizione in classifica
-        rows.forEach((row, index) => {
-            row.posizione = index + 1;
-        });
-
-        console.log('✅ Classifica caricata:', rows.length, 'partecipanti');
-        res.json(rows);
-    } catch (err) {
-        console.error('❌ Errore query classifica:', err);
-        res.status(500).json({ error: err.message });
-    }
+            console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
+            res.json(classifica);
+        }
+    });
 });
 
 // Monitoraggio automatico offerte
@@ -583,48 +633,73 @@ function salvaRisultatiAste(round, risultati) {
         return;
     }
 
-    try {
-        db.transaction(() => {
-            const stmt = db.prepare(`INSERT INTO aste 
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        let completati = 0;
+        const totale = risultati.length;
+
+        risultati.forEach(r => {
+            db.run(`INSERT INTO aste 
                 (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`);
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`, 
+                [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso ? 1 : 0], 
+                function(err) {
+                    if (err) {
+                        db.run("ROLLBACK");
+                        console.error('❌ Errore salvataggio asta:', err);
+                        return;
+                    }
+                    
+                    // Aggiorna crediti partecipante
+                    db.run(`UPDATE partecipanti_fantagts 
+                            SET crediti = crediti - ? 
+                            WHERE id = ?`, [r.costoFinale, r.partecipante], (err) => {
+                        if (err) {
+                            db.run("ROLLBACK");
+                            console.error('❌ Errore aggiornamento crediti:', err);
+                            return;
+                        }
 
-            const updateCredits = db.prepare(`UPDATE partecipanti_fantagts 
-                    SET crediti = crediti - ? 
-                    WHERE id = ?`);
-
-            risultati.forEach(r => {
-                stmt.run(round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso ? 1 : 0);
-                updateCredits.run(r.costoFinale, r.partecipante);
-                console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
-            });
-        })();
-
-        console.log(`🎉 Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
-        
-        gameState.roundAttivo = null;
-        gameState.asteAttive = false;
-        gameState.offerteTemporanee.clear();
-        
-        console.log('📤 Invio risultati ai client:', risultati);
-        io.emit('round_ended', {
-            round: round,
-            risultati: risultati,
-            success: true
+                        completati++;
+                        console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
+                        
+                        if (completati === totale) {
+                            db.run("COMMIT", (err) => {
+                                if (err) {
+                                    console.error('❌ Errore commit transazione:', err);
+                                } else {
+                                    console.log(`🎉 Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
+                                    
+                                    gameState.roundAttivo = null;
+                                    gameState.asteAttive = false;
+                                    gameState.offerteTemporanee.clear();
+                                    
+                                    console.log('📤 Invio risultati ai client:', risultati);
+                                    io.emit('round_ended', {
+                                        round: round,
+                                        risultati: risultati,
+                                        success: true
+                                    });
+                                    
+                                    aggiornaCreditiPartecipanti();
+                                }
+                            });
+                        }
+                    });
+                });
         });
-        
-        aggiornaCreditiPartecipanti();
-
-    } catch (error) {
-        console.error('❌ Errore salvataggio risultati:', error);
-    }
+    });
 }
 
 function aggiornaCreditiPartecipanti() {
-    try {
-        const partecipanti = db.prepare("SELECT id, nome, crediti FROM partecipanti_fantagts").all();
+    db.all("SELECT id, nome, crediti FROM partecipanti_fantagts", (err, partecipanti) => {
+        if (err) {
+            console.error('Errore aggiornamento crediti:', err);
+            return;
+        }
 
-        partecipanti.forEach(p => {
+        (partecipanti || []).forEach(p => {
             for (let [socketId, connesso] of gameState.connessi.entries()) {
                 if (connesso.partecipanteId === p.id) {
                     io.to(socketId).emit('crediti_aggiornati', {
@@ -634,38 +709,75 @@ function aggiornaCreditiPartecipanti() {
                 }
             }
         });
-    } catch (error) {
-        console.error('Errore aggiornamento crediti:', error);
-    }
+    });
 }
 
 // API per pulire dati di test
 app.post('/api/pulisci-test', (req, res) => {
     const { mantieni } = req.body;
 
-    try {
-        db.transaction(() => {
-            if (!mantieni || mantieni.length === 0) {
-                db.prepare("DELETE FROM aste").run();
-                db.prepare("DELETE FROM partecipanti_fantagts").run();
-            } else {
-                const placeholders = mantieni.map(() => '?').join(',');
-                db.prepare(`DELETE FROM aste WHERE partecipante_id NOT IN (${placeholders})`).run(mantieni);
-                db.prepare(`DELETE FROM partecipanti_fantagts WHERE id NOT IN (${placeholders})`).run(mantieni);
-            }
-        })();
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
 
-        gameState.connessi.clear();
-        gameState.offerteTemporanee.clear();
-        gameState.asteAttive = false;
-        gameState.roundAttivo = null;
-
-        res.json({ message: mantieni && mantieni.length > 0 ? 
-            `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` : 
-            'Tutti i partecipanti di test eliminati' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+        if (!mantieni || mantieni.length === 0) {
+            db.run("DELETE FROM aste", (err) => {
+                if (err) {
+                    db.run("ROLLBACK");
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
+                
+                db.run("DELETE FROM partecipanti_fantagts", (err) => {
+                    if (err) {
+                        db.run("ROLLBACK");
+                        res.status(500).json({ error: err.message });
+                        return;
+                    }
+                    
+                    db.run("COMMIT", (err) => {
+                        if (err) {
+                            res.status(500).json({ error: err.message });
+                        } else {
+                            gameState.connessi.clear();
+                            gameState.offerteTemporanee.clear();
+                            gameState.asteAttive = false;
+                            gameState.roundAttivo = null;
+                            res.json({ message: 'Tutti i partecipanti di test eliminati' });
+                        }
+                    });
+                });
+            });
+        } else {
+            const placeholders = mantieni.map(() => '?').join(',');
+            db.run(`DELETE FROM aste WHERE partecipante_id NOT IN (${placeholders})`, mantieni, (err) => {
+                if (err) {
+                    db.run("ROLLBACK");
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
+                
+                db.run(`DELETE FROM partecipanti_fantagts WHERE id NOT IN (${placeholders})`, mantieni, (err) => {
+                    if (err) {
+                        db.run("ROLLBACK");
+                        res.status(500).json({ error: err.message });
+                        return;
+                    }
+                    
+                    db.run("COMMIT", (err) => {
+                        if (err) {
+                            res.status(500).json({ error: err.message });
+                        } else {
+                            gameState.connessi.clear();
+                            gameState.offerteTemporanee.clear();
+                            gameState.asteAttive = false;
+                            gameState.roundAttivo = null;
+                            res.json({ message: `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` });
+                        }
+                    });
+                });
+            });
+        }
+    });
 });
 
 // Reset sistema
@@ -682,49 +794,96 @@ app.post('/api/reset/:livello', (req, res) => {
                 break;
                 
             case 'aste':
-                db.transaction(() => {
-                    db.prepare("DELETE FROM aste").run();
-                    db.prepare("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0").run();
-                    db.prepare("UPDATE slots SET punti_totali = 0").run();
-                })();
+                db.serialize(() => {
+                    db.run("BEGIN TRANSACTION");
+                    
+                    db.run("DELETE FROM aste", (err) => {
+                        if (err) {
+                            db.run("ROLLBACK");
+                            res.status(500).json({ error: err.message });
+                            return;
+                        }
+                        
+                        db.run("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0", (err) => {
+                            if (err) {
+                                db.run("ROLLBACK");
+                                res.status(500).json({ error: err.message });
+                                return;
+                            }
+                            
+                            db.run("UPDATE slots SET punti_totali = 0", (err) => {
+                                if (err) {
+                                    db.run("ROLLBACK");
+                                    res.status(500).json({ error: err.message });
+                                    return;
+                                }
+                                
+                                db.run("COMMIT", (err) => {
+                                    if (err) {
+                                        res.status(500).json({ error: err.message });
+                                    } else {
+                                        gameState.asteAttive = false;
+                                        gameState.roundAttivo = null;
+                                        gameState.offerteTemporanee.clear();
+                                        gameState.fase = 'setup';
 
-                gameState.asteAttive = false;
-                gameState.roundAttivo = null;
-                gameState.offerteTemporanee.clear();
-                gameState.fase = 'setup';
+                                        console.log('🔄 Reset aste completato - inviando notifica ai client');
 
-                console.log('🔄 Reset aste completato - inviando notifica ai client');
+                                        io.emit('aste_resettate', {
+                                            message: 'Le aste sono state resettate',
+                                            creditiRipristinati: 2000,
+                                            resetCompleto: true
+                                        });
 
-                io.emit('aste_resettate', {
-                    message: 'Le aste sono state resettate',
-                    creditiRipristinati: 2000,
-                    resetCompleto: true
+                                        io.emit('master_reset_ui', {
+                                            message: 'Reset interfaccia Master',
+                                            resetRounds: true
+                                        });
+
+                                        res.json({ message: 'Tutte le aste resettate' });
+                                    }
+                                });
+                            });
+                        });
+                    });
                 });
-
-                io.emit('master_reset_ui', {
-                    message: 'Reset interfaccia Master',
-                    resetRounds: true
-                });
-
-                res.json({ message: 'Tutte le aste resettate' });
                 break;
                 
             case 'totale':
-                db.transaction(() => {
-                    db.prepare("DELETE FROM aste").run();
-                    db.prepare("DELETE FROM partecipanti_fantagts").run();
-                    db.prepare("DELETE FROM squadre_circolo").run();
-                    db.prepare("DELETE FROM slots").run();
-                })();
-                
-                gameState = {
-                    fase: 'setup',
-                    roundAttivo: null,
-                    asteAttive: false,
-                    connessi: new Map(),
-                    offerteTemporanee: new Map()
-                };
-                res.json({ message: 'Sistema completamente resettato' });
+                db.serialize(() => {
+                    db.run("BEGIN TRANSACTION");
+                    
+                    const tables = ['aste', 'partecipanti_fantagts', 'squadre_circolo', 'slots'];
+                    let deletedTables = 0;
+                    
+                    tables.forEach(table => {
+                        db.run(`DELETE FROM ${table}`, (err) => {
+                            if (err) {
+                                db.run("ROLLBACK");
+                                res.status(500).json({ error: err.message });
+                                return;
+                            }
+                            
+                            deletedTables++;
+                            if (deletedTables === tables.length) {
+                                db.run("COMMIT", (err) => {
+                                    if (err) {
+                                        res.status(500).json({ error: err.message });
+                                    } else {
+                                        gameState = {
+                                            fase: 'setup',
+                                            roundAttivo: null,
+                                            asteAttive: false,
+                                            connessi: new Map(),
+                                            offerteTemporanee: new Map()
+                                        };
+                                        res.json({ message: 'Sistema completamente resettato' });
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
                 break;
                 
             default:
@@ -816,9 +975,13 @@ io.on('connection', (socket) => {
         }
 
         // Verifica crediti disponibili
-        try {
-            const row = db.prepare("SELECT crediti FROM partecipanti_fantagts WHERE id = ?").get(connesso.partecipanteId);
-            
+        db.get("SELECT crediti FROM partecipanti_fantagts WHERE id = ?", [connesso.partecipanteId], (err, row) => {
+            if (err) {
+                console.error('Errore verifica crediti:', err);
+                socket.emit('bid_error', { message: 'Errore del server' });
+                return;
+            }
+
             if (!row) {
                 socket.emit('bid_error', { message: 'Partecipante non trovato' });
                 return;
@@ -860,10 +1023,7 @@ io.on('connection', (socket) => {
                     offerta: offerta
                 }))
             });
-        } catch (err) {
-            console.error('Errore verifica crediti:', err);
-            socket.emit('bid_error', { message: 'Errore del server' });
-        }
+        });
     });
 
     socket.on('disconnect', () => {
@@ -930,4 +1090,39 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     console.log('Unhandled Rejection:', reason);
+});
+
+// Chiusura pulita del database
+process.on('SIGINT', () => {
+    console.log('\n🔄 Chiusura server in corso...');
+    
+    if (db) {
+        db.close((err) => {
+            if (err) {
+                console.error('Errore chiusura database:', err);
+            } else {
+                console.log('✅ Database chiuso correttamente');
+            }
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
+});
+
+process.on('SIGTERM', () => {
+    console.log('\n🔄 Terminazione server ricevuta...');
+    
+    if (db) {
+        db.close((err) => {
+            if (err) {
+                console.error('Errore chiusura database:', err);
+            } else {
+                console.log('✅ Database chiuso correttamente');
+            }
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
 });
