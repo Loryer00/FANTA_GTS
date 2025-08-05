@@ -545,9 +545,6 @@ app.get('/api/classifica', (req, res) => {
     }
 });
 
-// Continua con il resto delle funzioni...
-// (Monitoraggio offerte, gestione round, reset, etc.)
-
 // Monitoraggio automatico offerte
 function avviaMonitoraggioOfferte() {
     const monitorInterval = setInterval(() => {
@@ -727,14 +724,24 @@ function aggiornaCreditiPartecipanti() {
     }
 }
 
-// Resto delle API (reset, PWA, websocket...)
-
+// Reset sistema
 app.post('/api/reset/:livello', (req, res) => {
     const livello = req.params.livello;
 
     try {
         switch (livello) {
             case 'round':
+                gameState.asteAttive = false;
+                gameState.roundAttivo = null;
+                gameState.offerteTemporanee.clear();
+                res.json({ message: 'Round resettato' });
+                break;
+                
+            case 'aste':
+                queryRun("DELETE FROM aste");
+                queryRun("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
+                queryRun("UPDATE slots SET punti_totali = 0");
+
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
                 gameState.offerteTemporanee.clear();
@@ -1023,14 +1030,3 @@ process.on('SIGTERM', () => {
     saveDatabase();
     process.exit(0);
 });
-                gameState.offerteTemporanee.clear();
-                res.json({ message: 'Round resettato' });
-                break;
-                
-            case 'aste':
-                queryRun("DELETE FROM aste");
-                queryRun("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
-                queryRun("UPDATE slots SET punti_totali = 0");
-
-                gameState.asteAttive = false;
-                gameState.roundAttivo = null;
