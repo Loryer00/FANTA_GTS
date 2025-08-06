@@ -584,25 +584,25 @@ app.post('/api/avvia-round/:round', (req, res) => {
 
         console.log(`Round ${round} avviato - Sistema basato su conferme`);
 
-        // Invia notifiche push ai partecipanti
+        // NOTIFICHE A TUTTI I PARTECIPANTI REGISTRATI (non solo connessi)
         try {
-            const partecipantiConnessi = Array.from(gameState.connessi.values())
-                .filter(p => p.tipo === 'partecipante')
-                .map(p => p.partecipanteId)
-                .filter(id => id);
+            const tuttiPartecipanti = queryAll("SELECT id FROM partecipanti_fantagts WHERE attivo = 1 OR attivo IS NULL");
+            const partecipantiIds = tuttiPartecipanti.map(p => p.id);
 
-            if (partecipantiConnessi.length > 0) {
-                console.log(`📨 Invio notifiche round ${round} a:`, partecipantiConnessi);
+            console.log(`📨 INVIO NOTIFICHE ROUND ${round} A TUTTI I PARTECIPANTI:`, partecipantiIds);
 
+            if (partecipantiIds.length > 0) {
                 inviaNotifichePush({
                     title: `FantaGTS - Round ${round}`,
                     body: `È iniziato il round ${round}! Fai la tua offerta!`,
                     url: '/',
-                    targetUsers: partecipantiConnessi
+                    targetUsers: partecipantiIds
                 });
+            } else {
+                console.log('⚠️ Nessun partecipante trovato nel database');
             }
         } catch (error) {
-            console.error('❌ Errore invio notifiche:', error);
+            console.error('❌ ERRORE INVIO NOTIFICHE:', error);
         }
 
         res.json({ message: `Round ${round} avviato con successo` });
