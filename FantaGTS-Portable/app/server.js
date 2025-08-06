@@ -1,4 +1,4 @@
-// server.js - FantaGTS Server con SQL.js
+// server.js - FantaGTS Server con SQL.js CORRETTO
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -153,7 +153,7 @@ function saveDatabase() {
     }
 }
 
-// Funzioni di query helper - VERSIONE CORRETTA
+// Funzioni di query helper - CORRETTE per SQL.js
 function queryAll(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
@@ -172,7 +172,7 @@ function queryAll(sql, params = []) {
         stmt.free();
         return result;
     } catch (error) {
-        console.error('Errore queryAll:', error);
+        console.error('Errore queryAll:', sql, error);
         return [];
     }
 }
@@ -194,7 +194,7 @@ function queryGet(sql, params = []) {
         stmt.free();
         return result;
     } catch (error) {
-        console.error('Errore queryGet:', error);
+        console.error('Errore queryGet:', sql, error);
         return null;
     }
 }
@@ -215,7 +215,7 @@ function queryRun(sql, params = []) {
         saveDatabase(); // Salva dopo ogni modifica
         return { changes, lastID: null };
     } catch (error) {
-        console.error('Errore queryRun:', error);
+        console.error('Errore queryRun:', sql, error);
         throw error;
     }
 }
@@ -250,10 +250,7 @@ function arrotondaAlPariPiuVicino(numero) {
 function generaSlots() {
     return new Promise((resolve, reject) => {
         try {
-            const stmt = db.prepare("SELECT * FROM squadre_circolo WHERE attiva = 1");
-            const squadre = stmt.getAsObject();
-            stmt.free();
-
+            const squadre = queryAll("SELECT * FROM squadre_circolo WHERE attiva = 1");
             const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
             
             // Cancella slots esistenti
@@ -283,36 +280,22 @@ function generaSlots() {
 // Setup squadre circolo
 app.get('/api/squadre', (req, res) => {
     try {
-        const stmt = db.prepare("SELECT * FROM squadre_circolo ORDER BY numero");
-        const rows = stmt.getAsObject();
-        stmt.free();
+        const rows = queryAll("SELECT * FROM squadre_circolo ORDER BY numero");
         res.json(rows);
     } catch (err) {
+        console.error('Errore API squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// API per info sessione
-app.get('/api/sessione-info', (req, res) => {
-    res.json({
-        sessione_anno: new Date().getFullYear(),
-        sessione_descrizione: `FantaGTS ${new Date().getFullYear()}`,
-        sessione_data_inizio: new Date().toISOString()
-    });
-});
-
 app.get('/api/squadre-complete', (req, res) => {
     try {
-        const stmt = db.prepare("SELECT * FROM squadre_circolo WHERE attiva = 1 ORDER BY numero");
-        const squadre = stmt.getAsObject();
-        stmt.free();
+        const squadre = queryAll("SELECT * FROM squadre_circolo WHERE attiva = 1 ORDER BY numero");
 
         squadre.forEach(squadra => {
             try {
-                const countStmt = db.prepare("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = ?");
-                const result = countStmt.getAsObject([squadra.numero]);
-                countStmt.free();
-                squadra.slots_generati = result[0] ? result[0].slots_count : 0;
+                const result = queryGet("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = ?", [squadra.numero]);
+                squadra.slots_generati = result ? result.slots_count : 0;
             } catch (err) {
                 squadra.slots_generati = 0;
             }
@@ -320,6 +303,7 @@ app.get('/api/squadre-complete', (req, res) => {
 
         res.json(squadre);
     } catch (err) {
+        console.error('Errore API squadre-complete:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -335,6 +319,7 @@ app.post('/api/squadre', (req, res) => {
         
         res.json({ message: 'Squadra salvata con successo' });
     } catch (err) {
+        console.error('Errore POST squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -344,6 +329,7 @@ app.delete('/api/squadre/:numero', (req, res) => {
         queryRun("DELETE FROM squadre_circolo WHERE numero = ?", [req.params.numero]);
         res.json({ message: 'Squadra eliminata con successo' });
     } catch (err) {
+        console.error('Errore DELETE squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -351,11 +337,10 @@ app.delete('/api/squadre/:numero', (req, res) => {
 // Setup partecipanti
 app.get('/api/partecipanti', (req, res) => {
     try {
-        const stmt = db.prepare("SELECT * FROM partecipanti_fantagts ORDER BY nome");
-        const rows = stmt.getAsObject();
-        stmt.free();
+        const rows = queryAll("SELECT * FROM partecipanti_fantagts ORDER BY nome");
         res.json(rows);
     } catch (err) {
+        console.error('Errore API partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -371,6 +356,7 @@ app.post('/api/partecipanti', (req, res) => {
         
         res.json({ id: id, message: 'Partecipante registrato con successo' });
     } catch (err) {
+        console.error('Errore POST partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -380,6 +366,7 @@ app.delete('/api/partecipanti/:id', (req, res) => {
         queryRun("DELETE FROM partecipanti_fantagts WHERE id = ?", [req.params.id]);
         res.json({ message: 'Partecipante eliminato con successo' });
     } catch (err) {
+        console.error('Errore DELETE partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -390,6 +377,7 @@ app.post('/api/genera-slots', async (req, res) => {
         const result = await generaSlots();
         res.json({ message: 'Slots generati con successo', count: result });
     } catch (err) {
+        console.error('Errore genera-slots:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -408,16 +396,15 @@ app.get('/api/stato', (req, res) => {
 app.get('/api/slot-info/:slotId', (req, res) => {
     try {
         const slotId = req.params.slotId;
-        const stmt = db.prepare("SELECT * FROM slots WHERE id = ?");
-        const row = stmt.getAsObject([slotId]);
-        stmt.free();
+        const row = queryGet("SELECT * FROM slots WHERE id = ?", [slotId]);
         
-        if (!row || row.length === 0) {
+        if (!row) {
             return res.status(404).json({ error: 'Slot non trovato' });
         }
         
-        res.json(row[0]);
+        res.json(row);
     } catch (err) {
+        console.error('Errore slot-info:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -427,7 +414,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
         
-        const stmt = db.prepare(`SELECT 
+        const rows = queryAll(`SELECT 
             a.slot_id,
             a.costo_finale,
             s.posizione,
@@ -437,13 +424,11 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
             WHERE a.partecipante_id = ? AND a.vincitore = 1 
-            ORDER BY s.posizione`);
-        const rows = stmt.getAsObject([partecipanteId]);
-        stmt.free();
+            ORDER BY s.posizione`, [partecipanteId]);
         
         res.json(rows);
     } catch (err) {
-        console.error('Errore query squadra partecipante:', err);
+        console.error('Errore squadra-partecipante:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -461,9 +446,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
     gameState.offerteTemporanee.clear();
 
     try {
-        const stmt = db.prepare("SELECT * FROM slots WHERE posizione = ? AND attivo = 1");
-        const slots = stmt.getAsObject([round]);
-        stmt.free();
+        const slots = queryAll("SELECT * FROM slots WHERE posizione = ? AND attivo = 1", [round]);
 
         io.emit('round_started', {
             round: round,
@@ -476,6 +459,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
         
         avviaMonitoraggioOfferte();
     } catch (err) {
+        console.error('Errore avvia-round:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -509,17 +493,16 @@ app.get('/api/aste-round/:round', (req, res) => {
     try {
         const round = req.params.round;
         
-        const stmt = db.prepare(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+        const rows = queryAll(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
                 FROM aste a 
                 JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
                 JOIN slots s ON a.slot_id = s.id 
                 WHERE a.round = ? AND a.vincitore = 1 
-                ORDER BY a.costo_finale DESC`);
-        const rows = stmt.getAsObject([round]);
-        stmt.free();
+                ORDER BY a.costo_finale DESC`, [round]);
         
         res.json(rows);
     } catch (err) {
+        console.error('Errore aste-round:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -527,14 +510,12 @@ app.get('/api/aste-round/:round', (req, res) => {
 // Ottieni tutti i risultati partite
 app.get('/api/risultati-partite', (req, res) => {
     try {
-        const stmt = db.prepare(`SELECT r.*, 
+        const rows = queryAll(`SELECT r.*, 
                 s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
                 FROM risultati_partite r 
                 JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
                 JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
                 ORDER BY r.turno DESC, r.timestamp DESC`);
-        const rows = stmt.getAsObject();
-        stmt.free();
         
         // Parse JSON vincitori
         const processedRows = rows.map(row => {
@@ -548,6 +529,7 @@ app.get('/api/risultati-partite', (req, res) => {
         
         res.json(processedRows);
     } catch (err) {
+        console.error('Errore risultati-partite:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -555,7 +537,7 @@ app.get('/api/risultati-partite', (req, res) => {
 // Ottieni classifica generale
 app.get('/api/classifica', (req, res) => {
     try {
-        const stmt = db.prepare(`SELECT 
+        const rows = queryAll(`SELECT 
             p.id, p.nome, p.crediti, 
             COUNT(a.id) as giocatori_totali,
             COALESCE(SUM(s.punti_totali), 0) as punti_totali,
@@ -565,8 +547,6 @@ app.get('/api/classifica', (req, res) => {
             LEFT JOIN slots s ON a.slot_id = s.id 
             GROUP BY p.id, p.nome, p.crediti 
             ORDER BY punti_totali DESC, crediti_spesi ASC`);
-        const rows = stmt.getAsObject();
-        stmt.free();
 
         // Aggiungi posizione in classifica
         const classifica = rows.map((row, index) => {
@@ -577,9 +557,18 @@ app.get('/api/classifica', (req, res) => {
         console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
         res.json(classifica);
     } catch (err) {
-        console.error('❌ Errore query classifica:', err);
+        console.error('Errore classifica:', err);
         res.status(500).json({ error: err.message });
     }
+});
+
+// API per info sessione
+app.get('/api/sessione-info', (req, res) => {
+    res.json({
+        sessione_anno: new Date().getFullYear(),
+        sessione_descrizione: `FantaGTS ${new Date().getFullYear()}`,
+        sessione_data_inizio: new Date().toISOString()
+    });
 });
 
 // Monitoraggio automatico offerte
@@ -742,9 +731,7 @@ function salvaRisultatiAste(round, risultati) {
 
 function aggiornaCreditiPartecipanti() {
     try {
-        const stmt = db.prepare("SELECT id, nome, crediti FROM partecipanti_fantagts");
-        const partecipanti = stmt.getAsObject();
-        stmt.free();
+        const partecipanti = queryAll("SELECT id, nome, crediti FROM partecipanti_fantagts");
 
         partecipanti.forEach(p => {
             for (let [socketId, connesso] of gameState.connessi.entries()) {
@@ -820,6 +807,7 @@ app.post('/api/reset/:livello', (req, res) => {
                 res.status(400).json({ error: 'Livello reset non valido' });
         }
     } catch (error) {
+        console.error('Errore reset:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -847,6 +835,7 @@ app.post('/api/pulisci-test', (req, res) => {
             `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` : 
             'Tutti i partecipanti di test eliminati' });
     } catch (error) {
+        console.error('Errore pulisci-test:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -933,16 +922,14 @@ io.on('connection', (socket) => {
 
         // Verifica crediti disponibili
         try {
-            const stmt = db.prepare("SELECT crediti FROM partecipanti_fantagts WHERE id = ?");
-            const row = stmt.getAsObject([connesso.partecipanteId]);
-            stmt.free();
+            const row = queryGet("SELECT crediti FROM partecipanti_fantagts WHERE id = ?", [connesso.partecipanteId]);
             
-            if (!row || row.length === 0) {
+            if (!row) {
                 socket.emit('bid_error', { message: 'Partecipante non trovato' });
                 return;
             }
 
-            if (data.importo > row[0].crediti) {
+            if (data.importo > row.crediti) {
                 socket.emit('bid_error', { message: 'Crediti insufficienti' });
                 return;
             }
