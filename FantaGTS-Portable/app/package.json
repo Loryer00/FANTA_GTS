@@ -1,7 +1,7 @@
 {
   "name": "fantagts",
   "version": "1.0.0",
-  "description": "Fantasy Tennis del Circolo",
+  "description": "FantaGTS - Fantasy Tennis del Circolo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,10 +13,25 @@
     "socket.io": "^4.7.2",
     "sql.js": "^1.8.0"
   },
+  "devDependencies": {},
   "engines": {
-    "node": "18.x"
+    "node": ">=18.0.0"
   },
-  "keywords": ["fantasy", "tennis", "aste", "pwa"],
-  "author": "FantaGTS",
-  "license": "MIT"
+  "keywords": [
+    "fantasy",
+    "tennis",
+    "aste",
+    "circolo",
+    "webapp"
+  ],
+  "author": "FantaGTS Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fantagts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/fantagts/issues"
+  },
+  "homepage": "https://github.com/yourusername/fantagts#readme"
 }

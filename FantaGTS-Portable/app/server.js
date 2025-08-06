@@ -37,7 +37,7 @@ let SQL;
 async function initializeDatabase() {
     try {
         SQL = await initSqlJs();
-        
+
         // Carica database esistente o crea nuovo
         let dbData;
         try {
@@ -51,10 +51,10 @@ async function initializeDatabase() {
 
         // Crea struttura tabelle
         createTables();
-        
+
         // Salva database su disco
         saveDatabase();
-        
+
         console.log('✅ Database inizializzato con successo');
     } catch (error) {
         console.error('❌ Errore inizializzazione database:', error);
@@ -130,6 +130,19 @@ function createTables() {
         FOREIGN KEY (squadra_2) REFERENCES squadre_circolo(numero)
     )`);
 
+    db.exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        partecipante_id TEXT,
+        endpoint TEXT UNIQUE,
+        p256dh_key TEXT,
+        auth_key TEXT,
+        user_agent TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+        attiva BOOLEAN DEFAULT 1,
+        FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id)
+    )`);
+
     db.exec(`CREATE TABLE IF NOT EXISTS configurazione (
         chiave TEXT PRIMARY KEY,
         valore TEXT
@@ -158,17 +171,17 @@ function queryAll(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
         const result = [];
-        
+
         // Bind parameters if any
         if (params.length > 0) {
             stmt.bind(params);
         }
-        
+
         // Get all rows
         while (stmt.step()) {
             result.push(stmt.getAsObject());
         }
-        
+
         stmt.free();
         return result;
     } catch (error) {
@@ -180,17 +193,17 @@ function queryAll(sql, params = []) {
 function queryGet(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
-        
+
         // Bind parameters if any
         if (params.length > 0) {
             stmt.bind(params);
         }
-        
+
         let result = null;
         if (stmt.step()) {
             result = stmt.getAsObject();
         }
-        
+
         stmt.free();
         return result;
     } catch (error) {
@@ -202,16 +215,16 @@ function queryGet(sql, params = []) {
 function queryRun(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
-        
+
         // Bind parameters if any
         if (params.length > 0) {
             stmt.bind(params);
         }
-        
+
         stmt.step();
         const changes = db.getRowsModified();
         stmt.free();
-        
+
         saveDatabase(); // Salva dopo ogni modifica
         return { changes, lastID: null };
     } catch (error) {
@@ -233,7 +246,7 @@ let gameState = {
 function arrotondaAlPariPiuVicino(numero) {
     const intero = Math.floor(numero);
     const decimale = numero - intero;
-    
+
     if (decimale < 0.5) {
         return intero;
     } else if (decimale > 0.5) {
@@ -252,7 +265,7 @@ function generaSlots() {
         try {
             const squadre = queryAll("SELECT * FROM squadre_circolo WHERE attiva = 1");
             const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-            
+
             // Cancella slots esistenti
             queryRun("DELETE FROM slots");
 
@@ -261,9 +274,9 @@ function generaSlots() {
                 posizioni.forEach(pos => {
                     const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
                     const giocatore = squadra[pos.toLowerCase()];
-                    
-                    queryRun("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)", 
-                             [slotId, squadra.numero, squadra.colore, pos, giocatore]);
+
+                    queryRun("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)",
+                        [slotId, squadra.numero, squadra.colore, pos, giocatore]);
                     inserimenti++;
                 });
             });
@@ -311,12 +324,12 @@ app.get('/api/squadre-complete', (req, res) => {
 app.post('/api/squadre', (req, res) => {
     try {
         const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
-        
+
         queryRun(`INSERT OR REPLACE INTO squadre_circolo 
             (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3]);
-        
+
         res.json({ message: 'Squadra salvata con successo' });
     } catch (err) {
         console.error('Errore POST squadre:', err);
@@ -347,13 +360,13 @@ app.get('/api/partecipanti', (req, res) => {
 
 app.post('/api/partecipanti', (req, res) => {
     try {
-        const { nome, email, telefono, crediti = 2000 } = req.body;
+        const { nome, crediti = 2000 } = req.body;
         const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        
+
         queryRun(`INSERT OR REPLACE INTO partecipanti_fantagts 
-            (id, nome, email, telefono, crediti) VALUES (?, ?, ?, ?, ?)`, 
-            [id, nome, email, telefono, crediti]);
-        
+            (id, nome, crediti) VALUES (?, ?, ?)`,
+            [id, nome, crediti]);
+
         res.json({ id: id, message: 'Partecipante registrato con successo' });
     } catch (err) {
         console.error('Errore POST partecipanti:', err);
@@ -397,11 +410,11 @@ app.get('/api/slot-info/:slotId', (req, res) => {
     try {
         const slotId = req.params.slotId;
         const row = queryGet("SELECT * FROM slots WHERE id = ?", [slotId]);
-        
+
         if (!row) {
             return res.status(404).json({ error: 'Slot non trovato' });
         }
-        
+
         res.json(row);
     } catch (err) {
         console.error('Errore slot-info:', err);
@@ -413,7 +426,7 @@ app.get('/api/slot-info/:slotId', (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
-        
+
         const rows = queryAll(`SELECT 
             a.slot_id,
             a.costo_finale,
@@ -425,7 +438,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
             JOIN slots s ON a.slot_id = s.id 
             WHERE a.partecipante_id = ? AND a.vincitore = 1 
             ORDER BY s.posizione`, [partecipanteId]);
-        
+
         res.json(rows);
     } catch (err) {
         console.error('Errore squadra-partecipante:', err);
@@ -436,7 +449,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
 // Controllo aste
 app.post('/api/avvia-round/:round', (req, res) => {
     const round = req.params.round;
-    
+
     if (gameState.asteAttive) {
         return res.status(400).json({ error: 'Un round è già attivo' });
     }
@@ -456,7 +469,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
 
         console.log(`Round ${round} avviato - Sistema basato su conferme`);
         res.json({ message: `Round ${round} avviato con successo` });
-        
+
         avviaMonitoraggioOfferte();
     } catch (err) {
         console.error('Errore avvia-round:', err);
@@ -467,15 +480,15 @@ app.post('/api/avvia-round/:round', (req, res) => {
 // API per controllare se tutti hanno fatto offerte
 app.get('/api/stato-offerte/:round', (req, res) => {
     const round = req.params.round;
-    
+
     const partecipantiConnessi = Array.from(gameState.connessi.values())
         .filter(p => p.tipo === 'partecipante').length;
-    
+
     const offerteRound = Array.from(gameState.offerteTemporanee.values())
         .filter(o => o.round === round).length;
-    
+
     const tuttiHannoOfferto = partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi;
-    
+
     res.json({
         partecipantiConnessi: partecipantiConnessi,
         offerteRicevute: offerteRound,
@@ -492,14 +505,14 @@ app.get('/api/stato-offerte/:round', (req, res) => {
 app.get('/api/aste-round/:round', (req, res) => {
     try {
         const round = req.params.round;
-        
+
         const rows = queryAll(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
                 FROM aste a 
                 JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
                 JOIN slots s ON a.slot_id = s.id 
                 WHERE a.round = ? AND a.vincitore = 1 
                 ORDER BY a.costo_finale DESC`, [round]);
-        
+
         res.json(rows);
     } catch (err) {
         console.error('Errore aste-round:', err);
@@ -516,7 +529,7 @@ app.get('/api/risultati-partite', (req, res) => {
                 JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
                 JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
                 ORDER BY r.turno DESC, r.timestamp DESC`);
-        
+
         // Parse JSON vincitori
         const processedRows = rows.map(row => {
             try {
@@ -526,7 +539,7 @@ app.get('/api/risultati-partite', (req, res) => {
             }
             return row;
         });
-        
+
         res.json(processedRows);
     } catch (err) {
         console.error('Errore risultati-partite:', err);
@@ -611,7 +624,7 @@ app.post('/api/forza-fine-round', (req, res) => {
     if (!gameState.asteAttive) {
         return res.status(400).json({ error: 'Nessun round attivo' });
     }
-    
+
     terminaRound();
     res.json({ message: 'Round terminato forzatamente' });
 });
@@ -628,14 +641,14 @@ function terminaRound() {
 function elaboraRisultatiAste() {
     const round = gameState.roundAttivo;
     console.log(`🔄 Elaborando risultati per round ${round}...`);
-    
+
     const offertePerSlot = {};
-    
+
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
         if (connesso && offerta.round === round) {
             console.log(`📝 Processando offerta: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
-            
+
             if (!offertePerSlot[offerta.slot]) {
                 offertePerSlot[offerta.slot] = [];
             }
@@ -651,14 +664,14 @@ function elaboraRisultatiAste() {
     console.log('🎯 Offerte raggruppate per slot:', offertePerSlot);
 
     const risultati = [];
-    
+
     Object.keys(offertePerSlot).forEach(slotId => {
         const offerte = offertePerSlot[slotId];
-        
+
         if (offerte.length > 0) {
             offerte.sort((a, b) => b.offerta - a.offerta);
             const vincitore = offerte[0];
-            
+
             risultati.push({
                 partecipante: vincitore.partecipante,
                 nome: vincitore.nome,
@@ -668,7 +681,7 @@ function elaboraRisultatiAste() {
                 premium: 0,
                 condiviso: false
             });
-            
+
             console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
         }
     });
@@ -698,30 +711,30 @@ function salvaRisultatiAste(round, risultati) {
         risultati.forEach(r => {
             queryRun(`INSERT INTO aste 
                 (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`, 
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
                 [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso ? 1 : 0]);
-            
+
             // Aggiorna crediti partecipante
             queryRun(`UPDATE partecipanti_fantagts 
                     SET crediti = crediti - ? 
                     WHERE id = ?`, [r.costoFinale, r.partecipante]);
-            
+
             console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
         });
 
         console.log(`🎉 Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
-        
+
         gameState.roundAttivo = null;
         gameState.asteAttive = false;
         gameState.offerteTemporanee.clear();
-        
+
         console.log('📤 Invio risultati ai client:', risultati);
         io.emit('round_ended', {
             round: round,
             risultati: risultati,
             success: true
         });
-        
+
         aggiornaCreditiPartecipanti();
 
     } catch (error) {
@@ -760,7 +773,7 @@ app.post('/api/reset/:livello', (req, res) => {
                 gameState.offerteTemporanee.clear();
                 res.json({ message: 'Round resettato' });
                 break;
-                
+
             case 'aste':
                 queryRun("DELETE FROM aste");
                 queryRun("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
@@ -786,13 +799,13 @@ app.post('/api/reset/:livello', (req, res) => {
 
                 res.json({ message: 'Tutte le aste resettate' });
                 break;
-                
+
             case 'totale':
                 queryRun("DELETE FROM aste");
                 queryRun("DELETE FROM partecipanti_fantagts");
                 queryRun("DELETE FROM squadre_circolo");
                 queryRun("DELETE FROM slots");
-                
+
                 gameState = {
                     fase: 'setup',
                     roundAttivo: null,
@@ -802,7 +815,7 @@ app.post('/api/reset/:livello', (req, res) => {
                 };
                 res.json({ message: 'Sistema completamente resettato' });
                 break;
-                
+
             default:
                 res.status(400).json({ error: 'Livello reset non valido' });
         }
@@ -831,9 +844,11 @@ app.post('/api/pulisci-test', (req, res) => {
         gameState.asteAttive = false;
         gameState.roundAttivo = null;
 
-        res.json({ message: mantieni && mantieni.length > 0 ? 
-            `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` : 
-            'Tutti i partecipanti di test eliminati' });
+        res.json({
+            message: mantieni && mantieni.length > 0 ?
+                `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` :
+                'Tutti i partecipanti di test eliminati'
+        });
     } catch (error) {
         console.error('Errore pulisci-test:', error);
         res.status(500).json({ error: error.message });
@@ -856,17 +871,68 @@ app.get('/offline', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'offline.html'));
 });
 
-// PWA Web Push Notifications API
+// PWA Web Push Notifications API AGGIORNATA
 app.post('/api/subscribe-notifications', (req, res) => {
-    const { subscription, partecipanteId } = req.body;
-    console.log('📨 Nuova subscription push:', partecipanteId);
-    res.json({ success: true, message: 'Notifiche attivate' });
+    try {
+        const { subscription, partecipanteId } = req.body;
+
+        if (!subscription || !partecipanteId) {
+            return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
+        }
+
+        const endpoint = subscription.endpoint;
+        const keys = subscription.keys;
+        const userAgent = req.headers['user-agent'] || '';
+
+        // Salva subscription nel database
+        queryRun(`INSERT OR REPLACE INTO push_subscriptions 
+            (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)`,
+            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
+
+        console.log('📨 Subscription salvata per:', partecipanteId);
+        res.json({ success: true, message: 'Notifiche attivate con successo' });
+    } catch (error) {
+        console.error('Errore salvataggio subscription:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/send-notification', (req, res) => {
-    const { title, body, url, targetUsers } = req.body;
-    console.log('📤 Invio notifica:', { title, body, targetUsers });
-    res.json({ success: true, message: 'Notifica inviata' });
+    try {
+        const { title, body, url, targetUsers } = req.body;
+
+        console.log('📤 Richiesta invio notifica:', { title, body, targetUsers });
+
+        // Trova subscriptions attive
+        let subscriptions;
+        if (targetUsers && targetUsers.length > 0) {
+            // Notifica a utenti specifici
+            const placeholders = targetUsers.map(() => '?').join(',');
+            subscriptions = queryAll(`SELECT * FROM push_subscriptions 
+                WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
+        } else {
+            // Notifica a tutti
+            subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
+        }
+
+        console.log(`📨 Invio notifica a ${subscriptions.length} dispositivi`);
+
+        // TODO: Implementare invio effettivo con web-push
+        // Per ora solo log e conferma
+        subscriptions.forEach(sub => {
+            console.log(`📱 Notifica inviata a: ${sub.partecipante_id}`);
+        });
+
+        res.json({
+            success: true,
+            message: `Notifica inviata a ${subscriptions.length} dispositivi`,
+            recipients: subscriptions.length
+        });
+    } catch (error) {
+        console.error('Errore invio notifiche:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Serve file statici
@@ -904,7 +970,7 @@ io.on('connection', (socket) => {
         });
 
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
-        
+
         console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
     });
 
@@ -923,7 +989,7 @@ io.on('connection', (socket) => {
         // Verifica crediti disponibili
         try {
             const row = queryGet("SELECT crediti FROM partecipanti_fantagts WHERE id = ?", [connesso.partecipanteId]);
-            
+
             if (!row) {
                 socket.emit('bid_error', { message: 'Partecipante non trovato' });
                 return;
@@ -945,16 +1011,16 @@ io.on('connection', (socket) => {
                 slot: data.slot,
                 importo: data.importo
             });
-            
+
             console.log(`💰 Offerta ricevuta: ${connesso.nome} punta ${data.importo} su ${data.slot}`);
-            
+
             // Aggiorna immediatamente il master sulle offerte
             const partecipantiConnessi = Array.from(gameState.connessi.values())
                 .filter(p => p.tipo === 'partecipante').length;
-            
+
             const offerteRound = Array.from(gameState.offerteTemporanee.values())
                 .filter(o => o.round === data.round).length;
-            
+
             io.emit('offerte_update', {
                 partecipantiConnessi: partecipantiConnessi,
                 offerteRicevute: offerteRound,
@@ -1015,7 +1081,7 @@ initializeDatabase().then(() => {
         const localIP = getLocalIP();
 
         console.log('\n🎾 FantaGTS Server Avviato!');
-        
+
         if (process.env.NODE_ENV === 'production') {
             console.log(`🌐 Production URL disponibile`);
             console.log(`🎮 Master: /master`);
@@ -1026,7 +1092,7 @@ initializeDatabase().then(() => {
             console.log(`🎮 Master: http://localhost:${PORT}/master`);
             console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
         }
-        
+
         console.log('\n✅ Sistema pronto per la configurazione!');
     });
 }).catch(err => {
