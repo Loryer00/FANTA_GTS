@@ -6,6 +6,13 @@ const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const webpush = require('web-push');
+// Configurazione Web Push
+webpush.setVapidDetails(
+    'mailto:fantagts@example.com',
+    'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U', // Public Key
+    'adSBSFK6reHw0_2C98Y27ajUOJoG-gHlYoF62-eFWOM' // Private Key (da generare)
+);
 
 const app = express();
 const server = http.createServer(app);
@@ -234,7 +241,7 @@ function queryRun(sql, params = []) {
 }
 
 // AGGIUNGI QUESTA FUNZIONE nel server.js (dopo le altre funzioni)
-function inviaNotifichePush(notificationData) {
+async function inviaNotifichePush(notificationData) {
     try {
         const { title, body, url, targetUsers } = notificationData;
         console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
@@ -255,7 +262,7 @@ function inviaNotifichePush(notificationData) {
             }
         }
 
-        // 2. CONTROLLA SUBSCRIPTION NEL DATABASE
+        // 2. TROVA SUBSCRIPTION NEL DATABASE
         let subscriptions = [];
         try {
             if (targetUsers && targetUsers.length > 0) {
@@ -265,22 +272,78 @@ function inviaNotifichePush(notificationData) {
             } else {
                 subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
             }
-            console.log(`📱 SUBSCRIPTION NEL DB: ${subscriptions.length}`);
+            console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
         } catch (dbError) {
             console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
+            return { success: false, error: 'Errore database subscriptions' };
         }
 
-        // 3. LOG RISULTATI
-        console.log(`✅ NOTIFICHE INVIATE: ${notificheTramiteSocket} via WebSocket, ${subscriptions.length} subscription trovate nel DB`);
+        // 3. INVIA NOTIFICHE PUSH REALI
+        let pushInviate = 0;
+        let pushFallite = 0;
+
+        const payload = JSON.stringify({
+            title: title,
+            body: body,
+            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+            vibrate: [100, 50, 100],
+            data: {
+                url: url || '/',
+                timestamp: Date.now()
+            },
+            actions: [
+                {
+                    action: 'open',
+                    title: 'Apri FantaGTS'
+                }
+            ]
+        });
+
+        for (const subscription of subscriptions) {
+            try {
+                const pushSubscription = {
+                    endpoint: subscription.endpoint,
+                    keys: {
+                        p256dh: subscription.p256dh_key,
+                        auth: subscription.auth_key
+                    }
+                };
+
+                console.log(`🚀 Invio push a: ${subscription.partecipante_id}`);
+
+                await webpush.sendNotification(pushSubscription, payload);
+                pushInviate++;
+
+                console.log(`✅ Push inviata a: ${subscription.partecipante_id}`);
+
+                // Aggiorna last_seen
+                queryRun("UPDATE push_subscriptions SET last_seen = datetime('now') WHERE id = ?", [subscription.id]);
+
+            } catch (pushError) {
+                console.error(`❌ Errore push per ${subscription.partecipante_id}:`, pushError);
+                pushFallite++;
+
+                // Se l'endpoint è scaduto/invalido, disattiva la subscription
+                if (pushError.statusCode === 410 || pushError.statusCode === 404) {
+                    console.log(`🗑️ Disattivando subscription scaduta per: ${subscription.partecipante_id}`);
+                    queryRun("UPDATE push_subscriptions SET attiva = 0 WHERE id = ?", [subscription.id]);
+                }
+            }
+        }
+
+        console.log(`✅ NOTIFICHE COMPLETATE: ${notificheTramiteSocket} WebSocket + ${pushInviate} Push (${pushFallite} fallite)`);
 
         return {
             success: true,
-            sent: notificheTramiteSocket,
-            subscriptions: subscriptions.length,
-            method: 'websocket_only'
+            websocket: notificheTramiteSocket,
+            push_sent: pushInviate,
+            push_failed: pushFallite,
+            total_subscriptions: subscriptions.length
         };
+
     } catch (error) {
-        console.error('❌ ERRORE INVIO NOTIFICHE:', error);
+        console.error('❌ ERRORE GENERALE NOTIFICHE:', error);
         return { success: false, error: error.message };
     }
 }
