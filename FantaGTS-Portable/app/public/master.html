@@ -905,7 +905,9 @@
                     completedBtn.style.filter = 'grayscale(50%)';
                     completedBtn.style.outline = 'none';
                     completedBtn.style.boxShadow = 'none';
-                    console.log(`🔒 Pulsante ${data.round} opacizzato (completato)`);
+                    completedBtn.onclick = null;  // Rimuovi event listener
+                    completedBtn.removeEventListener('click', () => selectRound(data.round));
+                    console.log(`🔒 Pulsante ${data.round} completamente disabilitato`);
                 }
 
                 // NUOVO: Seleziona automaticamente il prossimo round disponibile
@@ -1332,8 +1334,7 @@
             return generaColoreHashMaster(nomeColore);
         }
 
-        // NUOVA FUNZIONE: Determina colore testo ottimale per Master
-        // CORREZIONE: Funzione colore testo per Mobile - Sostituire completamente
+        // Funzione colore testo per Mobile - Sostituire completamente
         function getTextColorForTeam(nomeColore) {
             // Colori chiari che necessitano testo scuro
             const coloriChiari = [
@@ -1450,14 +1451,22 @@
         }
 
         // Setup event listeners
-        // Setup event listeners
         function setupEventListeners() {
             // Selezione round - SOLO SELEZIONE, non avvio
             document.querySelectorAll('.round-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // AGGIUNTO: controlla se è completato
-                    if (!btn.classList.contains('completed') &&
-                        !btn.classList.contains('active') &&
+                btn.addEventListener('click', (e) => {
+                    // CONTROLLO RAFFORZATO: se è completato, ignora completamente
+                    if (btn.classList.contains('completed') ||
+                        btn.disabled ||
+                        btn.style.pointerEvents === 'none') {
+                        console.log(`❌ Click ignorato su ${btn.dataset.round} - Round completato`);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+
+                    // AGGIUNTO: controlla se è attivo
+                    if (!btn.classList.contains('active') &&
                         !btn.disabled) {
                         selectRound(btn.dataset.round);
                     }

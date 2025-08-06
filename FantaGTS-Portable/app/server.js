@@ -233,6 +233,51 @@ function queryRun(sql, params = []) {
     }
 }
 
+// AGGIUNGI QUESTA NUOVA FUNZIONE:
+async function inviaNotifichePush(notificationData) {
+    try {
+        const { title, body, url, targetUsers } = notificationData;
+
+        console.log('📨 Tentativo invio notifiche push:', { title, body, targetUsers });
+
+        // Trova subscriptions attive per gli utenti target
+        let subscriptions;
+        if (targetUsers && targetUsers.length > 0) {
+            const placeholders = targetUsers.map(() => '?').join(',');
+            subscriptions = queryAll(`SELECT * FROM push_subscriptions 
+                WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
+        } else {
+            subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
+        }
+
+        console.log(`📱 Trovate ${subscriptions.length} subscription attive`);
+
+        // Per ora: invia evento ai client connessi come fallback
+        subscriptions.forEach(sub => {
+            // Trova il socket del partecipante
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === sub.partecipante_id) {
+                    io.to(socketId).emit('show_notification', {
+                        title: title,
+                        body: body,
+                        url: url || '/'
+                    });
+                    console.log(`📨 Notifica inviata via socket a: ${connesso.nome}`);
+                    break;
+                }
+            }
+        });
+
+        // TODO: Qui implementeremo le notifiche push native in futuro
+        console.log('✅ Notifiche elaborate (via WebSocket per ora)');
+
+        return { success: true, sent: subscriptions.length };
+    } catch (error) {
+        console.error('❌ Errore invio notifiche push:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Stato del gioco in memoria
 let gameState = {
     fase: 'setup',
@@ -468,6 +513,29 @@ app.post('/api/avvia-round/:round', (req, res) => {
         });
 
         console.log(`Round ${round} avviato - Sistema basato su conferme`);
+
+        // Invia notifiche push ai partecipanti
+        try {
+            const partecipantiConnessi = Array.from(gameState.connessi.values())
+                .filter(p => p.tipo === 'partecipante')
+                .map(p => p.partecipanteId)
+                .filter(id => id);
+
+            if (partecipantiConnessi.length > 0) {
+                console.log(`📨 Invio notifiche round ${round} a:`, partecipantiConnessi);
+
+                // Simula invio notifica (per ora log)
+                await inviaNotifichePush({
+                    title: `FantaGTS - Round ${round}`,
+                    body: `È iniziato il round ${round}! Fai la tua offerta!`,
+                    url: '/',
+                    targetUsers: partecipantiConnessi
+                });
+            }
+        } catch (error) {
+            console.error('❌ Errore invio notifiche:', error);
+        }
+
         res.json({ message: `Round ${round} avviato con successo` });
 
         avviaMonitoraggioOfferte();
