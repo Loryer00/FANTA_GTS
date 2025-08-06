@@ -524,8 +524,7 @@ app.post('/api/avvia-round/:round', (req, res) => {
             if (partecipantiConnessi.length > 0) {
                 console.log(`📨 Invio notifiche round ${round} a:`, partecipantiConnessi);
 
-                // Simula invio notifica (per ora log)
-                await inviaNotifichePush({
+                inviaNotifichePush({
                     title: `FantaGTS - Round ${round}`,
                     body: `È iniziato il round ${round}! Fai la tua offerta!`,
                     url: '/',
