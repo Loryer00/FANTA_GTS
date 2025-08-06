@@ -233,12 +233,12 @@ function queryRun(sql, params = []) {
     }
 }
 
-// AGGIUNGI QUESTA NUOVA FUNZIONE:
-async function inviaNotifichePush(notificationData) {
+// AGGIUNGI QUESTA FUNZIONE nel server.js (dopo le altre funzioni)
+function inviaNotifichePush(notificationData) {
     try {
         const { title, body, url, targetUsers } = notificationData;
 
-        console.log('📨 Tentativo invio notifiche push:', { title, body, targetUsers });
+        console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
 
         // Trova subscriptions attive per gli utenti target
         let subscriptions;
@@ -250,30 +250,27 @@ async function inviaNotifichePush(notificationData) {
             subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
         }
 
-        console.log(`📱 Trovate ${subscriptions.length} subscription attive`);
+        console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
 
-        // Per ora: invia evento ai client connessi come fallback
-        subscriptions.forEach(sub => {
-            // Trova il socket del partecipante
-            for (let [socketId, connesso] of gameState.connessi.entries()) {
-                if (connesso.partecipanteId === sub.partecipante_id) {
-                    io.to(socketId).emit('show_notification', {
-                        title: title,
-                        body: body,
-                        url: url || '/'
-                    });
-                    console.log(`📨 Notifica inviata via socket a: ${connesso.nome}`);
-                    break;
-                }
+        // Invia notifiche ai client connessi
+        for (let [socketId, connesso] of gameState.connessi.entries()) {
+            if (connesso.tipo === 'partecipante' &&
+                (!targetUsers || targetUsers.includes(connesso.partecipanteId))) {
+
+                console.log(`📨 Invio notifica a: ${connesso.nome}`);
+
+                io.to(socketId).emit('show_notification', {
+                    title: title,
+                    body: body,
+                    url: url || '/'
+                });
             }
-        });
+        }
 
-        // TODO: Qui implementeremo le notifiche push native in futuro
-        console.log('✅ Notifiche elaborate (via WebSocket per ora)');
-
+        console.log('✅ NOTIFICHE ELABORATE');
         return { success: true, sent: subscriptions.length };
     } catch (error) {
-        console.error('❌ Errore invio notifiche push:', error);
+        console.error('❌ ERRORE INVIO NOTIFICHE:', error);
         return { success: false, error: error.message };
     }
 }

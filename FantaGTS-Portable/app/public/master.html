@@ -892,22 +892,25 @@
                 updateUI();
                 showNotification(`Round ${data.round} terminato!`, 'success');
 
-                // AGGIUNGI QUESTE RIGHE PER BLOCCARE IL PULSANTE:
-                // MODIFICA: Rendi il pulsante opacizzato e non cliccabile
+                // SOSTITUISCI il blocco const completedBtn = document.querySelector... con questo:
                 const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
                 if (completedBtn) {
+                    // DISABILITAZIONE TOTALE
                     completedBtn.classList.remove('active', 'available');
                     completedBtn.classList.add('completed');
                     completedBtn.disabled = true;
-                    completedBtn.style.opacity = '0.4';
+                    completedBtn.style.opacity = '0.3';
                     completedBtn.style.pointerEvents = 'none';
                     completedBtn.style.cursor = 'not-allowed';
-                    completedBtn.style.filter = 'grayscale(50%)';
+                    completedBtn.style.filter = 'grayscale(100%)';
                     completedBtn.style.outline = 'none';
                     completedBtn.style.boxShadow = 'none';
-                    completedBtn.onclick = null;  // Rimuovi event listener
-                    completedBtn.removeEventListener('click', () => selectRound(data.round));
-                    console.log(`🔒 Pulsante ${data.round} completamente disabilitato`);
+
+                    // RIMUOVI TUTTI GLI EVENT LISTENERS
+                    const newBtn = completedBtn.cloneNode(true);
+                    completedBtn.parentNode.replaceChild(newBtn, completedBtn);
+
+                    console.log(`🔒 Pulsante ${data.round} TOTALMENTE disabilitato`);
                 }
 
                 // NUOVO: Seleziona automaticamente il prossimo round disponibile
@@ -1450,24 +1453,26 @@
             return '#ffffff';
         }
 
-        // Setup event listeners
+        // Setup event listeners - VERSIONE CORRETTA
         function setupEventListeners() {
-            // Selezione round - SOLO SELEZIONE, non avvio
+            // Selezione round - CON CONTROLLO RAFFORZATO
             document.querySelectorAll('.round-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    // CONTROLLO RAFFORZATO: se è completato, ignora completamente
+                    // CONTROLLO SUPER RAFFORZATO
                     if (btn.classList.contains('completed') ||
                         btn.disabled ||
-                        btn.style.pointerEvents === 'none') {
-                        console.log(`❌ Click ignorato su ${btn.dataset.round} - Round completato`);
+                        btn.style.pointerEvents === 'none' ||
+                        btn.style.opacity === '0.4') {
+
+                        console.log(`❌ CLICK BLOCCATO su ${btn.dataset.round} - Round completato`);
                         e.preventDefault();
                         e.stopPropagation();
+                        e.stopImmediatePropagation();
                         return false;
                     }
 
-                    // AGGIUNTO: controlla se è attivo
-                    if (!btn.classList.contains('active') &&
-                        !btn.disabled) {
+                    // Solo se non è attivo e non è disabilitato
+                    if (!btn.classList.contains('active') && !btn.disabled) {
                         selectRound(btn.dataset.round);
                     }
                 });
