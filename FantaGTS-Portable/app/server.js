@@ -153,15 +153,26 @@ function saveDatabase() {
     }
 }
 
-// Funzioni di query helper
+// Funzioni di query helper - VERSIONE CORRETTA
 function queryAll(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
-        const result = stmt.getAsObject(params);
+        const result = [];
+        
+        // Bind parameters if any
+        if (params.length > 0) {
+            stmt.bind(params);
+        }
+        
+        // Get all rows
+        while (stmt.step()) {
+            result.push(stmt.getAsObject());
+        }
+        
         stmt.free();
-        return result.length ? result : [];
+        return result;
     } catch (error) {
-        console.error('Errore query:', error);
+        console.error('Errore queryAll:', error);
         return [];
     }
 }
@@ -169,11 +180,21 @@ function queryAll(sql, params = []) {
 function queryGet(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
-        const result = stmt.getAsObject(params);
+        
+        // Bind parameters if any
+        if (params.length > 0) {
+            stmt.bind(params);
+        }
+        
+        let result = null;
+        if (stmt.step()) {
+            result = stmt.getAsObject();
+        }
+        
         stmt.free();
-        return result[0] || null;
+        return result;
     } catch (error) {
-        console.error('Errore query:', error);
+        console.error('Errore queryGet:', error);
         return null;
     }
 }
@@ -181,13 +202,20 @@ function queryGet(sql, params = []) {
 function queryRun(sql, params = []) {
     try {
         const stmt = db.prepare(sql);
-        stmt.run(params);
+        
+        // Bind parameters if any
+        if (params.length > 0) {
+            stmt.bind(params);
+        }
+        
+        stmt.step();
         const changes = db.getRowsModified();
         stmt.free();
+        
         saveDatabase(); // Salva dopo ogni modifica
         return { changes, lastID: null };
     } catch (error) {
-        console.error('Errore query:', error);
+        console.error('Errore queryRun:', error);
         throw error;
     }
 }
@@ -262,6 +290,15 @@ app.get('/api/squadre', (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// API per info sessione
+app.get('/api/sessione-info', (req, res) => {
+    res.json({
+        sessione_anno: new Date().getFullYear(),
+        sessione_descrizione: `FantaGTS ${new Date().getFullYear()}`,
+        sessione_data_inizio: new Date().toISOString()
+    });
 });
 
 app.get('/api/squadre-complete', (req, res) => {
