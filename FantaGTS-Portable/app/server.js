@@ -237,38 +237,48 @@ function queryRun(sql, params = []) {
 function inviaNotifichePush(notificationData) {
     try {
         const { title, body, url, targetUsers } = notificationData;
-
         console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
 
-        // Trova subscriptions attive per gli utenti target
-        let subscriptions;
-        if (targetUsers && targetUsers.length > 0) {
-            const placeholders = targetUsers.map(() => '?').join(',');
-            subscriptions = queryAll(`SELECT * FROM push_subscriptions 
-                WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
-        } else {
-            subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
-        }
-
-        console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
-
-        // Invia notifiche ai client connessi
+        // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket)
+        let notificheTramiteSocket = 0;
         for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.tipo === 'partecipante' &&
                 (!targetUsers || targetUsers.includes(connesso.partecipanteId))) {
 
-                console.log(`📨 Invio notifica a: ${connesso.nome}`);
-
+                console.log(`📨 Invio notifica WebSocket a: ${connesso.nome}`);
                 io.to(socketId).emit('show_notification', {
                     title: title,
                     body: body,
                     url: url || '/'
                 });
+                notificheTramiteSocket++;
             }
         }
 
-        console.log('✅ NOTIFICHE ELABORATE');
-        return { success: true, sent: subscriptions.length };
+        // 2. CONTROLLA SUBSCRIPTION NEL DATABASE
+        let subscriptions = [];
+        try {
+            if (targetUsers && targetUsers.length > 0) {
+                const placeholders = targetUsers.map(() => '?').join(',');
+                subscriptions = queryAll(`SELECT * FROM push_subscriptions 
+                    WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
+            } else {
+                subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
+            }
+            console.log(`📱 SUBSCRIPTION NEL DB: ${subscriptions.length}`);
+        } catch (dbError) {
+            console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
+        }
+
+        // 3. LOG RISULTATI
+        console.log(`✅ NOTIFICHE INVIATE: ${notificheTramiteSocket} via WebSocket, ${subscriptions.length} subscription trovate nel DB`);
+
+        return {
+            success: true,
+            sent: notificheTramiteSocket,
+            subscriptions: subscriptions.length,
+            method: 'websocket_only'
+        };
     } catch (error) {
         console.error('❌ ERRORE INVIO NOTIFICHE:', error);
         return { success: false, error: error.message };
@@ -648,6 +658,20 @@ app.get('/api/sessione-info', (req, res) => {
     });
 });
 
+app.get('/api/debug/subscriptions', (req, res) => {
+    try {
+        const subscriptions = queryAll("SELECT * FROM push_subscriptions");
+        console.log('🔍 SUBSCRIPTION NEL DB:', subscriptions);
+        res.json({
+            count: subscriptions.length,
+            subscriptions: subscriptions
+        });
+    } catch (err) {
+        console.error('❌ Errore query subscriptions:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Monitoraggio automatico offerte
 function avviaMonitoraggioOfferte() {
     const monitorInterval = setInterval(() => {
@@ -939,6 +963,7 @@ app.get('/offline', (req, res) => {
 app.post('/api/subscribe-notifications', (req, res) => {
     try {
         const { subscription, partecipanteId } = req.body;
+        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
 
         if (!subscription || !partecipanteId) {
             return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
@@ -948,16 +973,36 @@ app.post('/api/subscribe-notifications', (req, res) => {
         const keys = subscription.keys;
         const userAgent = req.headers['user-agent'] || '';
 
-        // Salva subscription nel database
-        queryRun(`INSERT OR REPLACE INTO push_subscriptions 
+        if (!keys || !keys.p256dh || !keys.auth) {
+            return res.status(400).json({ error: 'Chiavi subscription mancanti' });
+        }
+
+        console.log('💾 SALVANDO NEL DB:', {
+            partecipanteId,
+            endpoint: endpoint.substring(0, 50) + '...',
+            p256dh: keys.p256dh.substring(0, 20) + '...',
+            auth: keys.auth.substring(0, 20) + '...'
+        });
+
+        // SALVATAGGIO EFFETTIVO
+        const result = queryRun(`INSERT OR REPLACE INTO push_subscriptions 
             (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)`,
+            VALUES (?, ?, ?, ?, ?, datetime('now'), 1)`,
             [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
 
-        console.log('📨 Subscription salvata per:', partecipanteId);
-        res.json({ success: true, message: 'Notifiche attivate con successo' });
+        console.log('✅ SUBSCRIPTION SALVATA - Result:', result);
+
+        // VERIFICA IMMEDIATA
+        const saved = queryGet("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = ?", [partecipanteId]);
+        console.log('🔍 VERIFICA SALVATAGGIO:', saved);
+
+        res.json({
+            success: true,
+            message: 'Notifiche attivate con successo',
+            saved: saved?.count || 0
+        });
     } catch (error) {
-        console.error('Errore salvataggio subscription:', error);
+        console.error('❌ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
         res.status(500).json({ error: error.message });
     }
 });
