@@ -1054,7 +1054,7 @@
                 // Aggiorna la sezione setup se siamo nella fase iniziale
                 if (squadreCircolo.length > 0) {
                     gameState.fase = 'ready'; // Sistema pronto se ci sono squadre
-                    updateSystemStatus();
+                    console.log('✅ Sistema pronto con', squadreCircolo.length, 'squadre');
                 }
 
             } catch (error) {

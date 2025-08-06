@@ -735,6 +735,21 @@ app.get('/api/debug/subscriptions', (req, res) => {
     }
 });
 
+app.get('/api/debug/slots', (req, res) => {
+    try {
+        const slots = queryAll("SELECT * FROM slots LIMIT 10");
+        const count = queryGet("SELECT COUNT(*) as total FROM slots");
+        console.log('🔍 SLOTS NEL DB:', { count: count.total, sample: slots });
+        res.json({
+            total: count.total,
+            sample: slots
+        });
+    } catch (err) {
+        console.error('❌ Errore query slots:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Monitoraggio automatico offerte
 function avviaMonitoraggioOfferte() {
     const monitorInterval = setInterval(() => {
