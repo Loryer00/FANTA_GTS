@@ -746,6 +746,25 @@ app.get('/api/vapid-public-key', (req, res) => {
     }
 });
 
+// API debug per pulire subscription
+app.get('/api/clean-subscriptions', async (req, res) => {
+    try {
+        // Elimina tutte le subscription esistenti
+        const result = await db.query("DELETE FROM push_subscriptions");
+
+        console.log('🧹 Tutte le subscription eliminate');
+
+        res.json({
+            message: 'Subscription pulite',
+            deleted: result.rowCount,
+            newPublicKey: currentVapidKeys?.publicKey || 'Non disponibile'
+        });
+    } catch (error) {
+        console.error('❌ Errore pulizia subscription:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // API per resettare subscription push
 app.post('/api/reset-push-subscriptions', async (req, res) => {
     try {

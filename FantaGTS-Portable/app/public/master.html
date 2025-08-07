@@ -520,6 +520,9 @@
                 <button class="btn btn-warning" onclick="resetAste()">
                     🔄 Reset Aste
                 </button>
+                <button class="btn btn-warning" onclick="pulisciSubscriptions()">
+                    🧹 Pulisci Push Subscriptions
+                </button>
                 <button class="btn btn-danger" onclick="resetTotale()">
                     ⚠️ Reset Totale
                 </button>
@@ -1059,6 +1062,22 @@
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadre circolo:', error);
+            }
+        }
+
+        async function pulisciSubscriptions() {
+            try {
+                const response = await fetch('/api/clean-subscriptions');
+                const result = await response.json();
+
+                if (response.ok) {
+                    showNotification(`✅ ${result.deleted} subscription eliminate`, 'success');
+                    console.log('🔑 Nuova chiave pubblica:', result.newPublicKey);
+                } else {
+                    showNotification('Errore pulizia subscriptions', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
             }
         }
 
