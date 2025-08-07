@@ -1,18 +1,11 @@
-// server.js - FantaGTS Server con SQL.js CORRETTO
+// server.js - FantaGTS Server con PostgreSQL
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const initSqlJs = require('sql.js');
+const { Pool } = require('pg');
 const path = require('path');
-const fs = require('fs');
 const os = require('os');
 const webpush = require('web-push');
-// Configurazione Web Push
-webpush.setVapidDetails(
-    'mailto:fantagts@example.com',
-    'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U', // Public Key
-    'adSBSFK6reHw0_2C98Y27ajUOJoG-gHlYoF62-eFWOM' // Private Key (da generare)
-);
 
 const app = express();
 const server = http.createServer(app);
@@ -23,224 +16,191 @@ const io = socketIo(server, {
     }
 });
 
+// Configurazione Web Push
+webpush.setVapidDetails(
+    'mailto:fantagts@example.com',
+    'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U',
+    'adSBSFK6reHw0_2C98Y27ajUOJoG-gHlYoF62-eFWOM'
+);
+
 // Middleware
 app.use(express.static('public'));
 app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
+// Database PostgreSQL
+const db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+console.log('🔍 Connessione PostgreSQL...');
+
 // Inizializza database
-const dbPath = path.join(__dirname, 'data', 'fantagts.db');
-
-// Crea cartella data se non esiste
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-    fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
-}
-
-let db;
-let SQL;
-
-// Inizializza SQL.js
 async function initializeDatabase() {
     try {
-        SQL = await initSqlJs();
+        // Crea tabelle
+        await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
+            id SERIAL PRIMARY KEY,
+            numero INTEGER UNIQUE NOT NULL,
+            colore TEXT NOT NULL,
+            m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
+            f1 TEXT, f2 TEXT, f3 TEXT,
+            attiva BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        // Carica database esistente o crea nuovo
-        let dbData;
-        try {
-            dbData = fs.readFileSync(dbPath);
-            db = new SQL.Database(dbData);
-            console.log('✅ Database caricato dal file:', dbPath);
-        } catch (err) {
-            db = new SQL.Database();
-            console.log('⚠️ Nuovo database creato in memoria');
-        }
+        await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            email TEXT,
+            telefono TEXT,
+            crediti INTEGER DEFAULT 2000,
+            punti_totali INTEGER DEFAULT 0,
+            posizione_classifica INTEGER,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        // Crea struttura tabelle
-        createTables();
+        await db.query(`CREATE TABLE IF NOT EXISTS slots (
+            id TEXT PRIMARY KEY,
+            squadra_numero INTEGER NOT NULL,
+            colore TEXT NOT NULL,
+            posizione TEXT NOT NULL,
+            giocatore_attuale TEXT,
+            punti_totali INTEGER DEFAULT 0,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        // Salva database su disco
-        saveDatabase();
+        await db.query(`CREATE TABLE IF NOT EXISTS aste (
+            id SERIAL PRIMARY KEY,
+            round TEXT NOT NULL,
+            partecipante_id TEXT NOT NULL,
+            slot_id TEXT NOT NULL,
+            offerta INTEGER NOT NULL,
+            costo_finale INTEGER NOT NULL,
+            premium REAL DEFAULT 0,
+            vincitore BOOLEAN DEFAULT false,
+            condiviso BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        console.log('✅ Database inizializzato con successo');
+        await db.query(`CREATE TABLE IF NOT EXISTS sostituzioni (
+            id SERIAL PRIMARY KEY,
+            slot_id TEXT NOT NULL,
+            giocatore_vecchio TEXT NOT NULL,
+            giocatore_nuovo TEXT NOT NULL,
+            dal_turno INTEGER,
+            motivo TEXT,
+            approvato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
+            id SERIAL PRIMARY KEY,
+            turno INTEGER NOT NULL,
+            squadra_1 INTEGER NOT NULL,
+            squadra_2 INTEGER NOT NULL,
+            risultato TEXT,
+            vincitori TEXT,
+            inserito_da TEXT,
+            verificato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id SERIAL PRIMARY KEY,
+            partecipante_id TEXT,
+            endpoint TEXT UNIQUE,
+            p256dh_key TEXT,
+            auth_key TEXT,
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            attiva BOOLEAN DEFAULT true
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS configurazione (
+            chiave TEXT PRIMARY KEY,
+            valore TEXT,
+            descrizione TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Inserisci configurazione predefinita
+        await db.query(`INSERT INTO configurazione (chiave, valore, descrizione) VALUES 
+            ('crediti_iniziali', '2000', 'Crediti iniziali per ogni partecipante'),
+            ('durata_asta_secondi', '30', 'Durata di ogni round di aste'),
+            ('premium_condivisione', '0.10', 'Premium percentuale per giocatori condivisi'),
+            ('max_partecipanti', '30', 'Numero massimo di partecipanti'),
+            ('backup_auto_minuti', '5', 'Frequenza backup automatici in minuti')
+            ON CONFLICT (chiave) DO NOTHING`);
+
+        console.log('✅ Database PostgreSQL inizializzato con successo');
     } catch (error) {
         console.error('❌ Errore inizializzazione database:', error);
     }
 }
 
-function createTables() {
-    db.exec(`CREATE TABLE IF NOT EXISTS squadre_circolo (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        numero INTEGER UNIQUE,
-        colore TEXT,
-        m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
-        f1 TEXT, f2 TEXT, f3 TEXT,
-        attiva BOOLEAN DEFAULT 1
-    )`);
+// Stato del gioco in memoria
+let gameState = {
+    fase: 'setup',
+    roundAttivo: null,
+    asteAttive: false,
+    connessi: new Map(),
+    offerteTemporanee: new Map()
+};
 
-    db.exec(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
-        id TEXT PRIMARY KEY,
-        nome TEXT,
-        email TEXT,
-        telefono TEXT,
-        crediti INTEGER DEFAULT 2000,
-        punti_totali INTEGER DEFAULT 0,
-        posizione_classifica INTEGER
-    )`);
+// Funzioni utilità
+function arrotondaAlPariPiuVicino(numero) {
+    const intero = Math.floor(numero);
+    const decimale = numero - intero;
 
-    db.exec(`CREATE TABLE IF NOT EXISTS slots (
-        id TEXT PRIMARY KEY,
-        squadra_numero INTEGER,
-        colore TEXT,
-        posizione TEXT,
-        giocatore_attuale TEXT,
-        punti_totali INTEGER DEFAULT 0,
-        attivo BOOLEAN DEFAULT 1,
-        FOREIGN KEY (squadra_numero) REFERENCES squadre_circolo(numero)
-    )`);
-
-    db.exec(`CREATE TABLE IF NOT EXISTS aste (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        round TEXT,
-        partecipante_id TEXT,
-        slot_id TEXT,
-        offerta INTEGER,
-        costo_finale INTEGER,
-        premium REAL DEFAULT 0,
-        vincitore BOOLEAN DEFAULT 0,
-        condiviso BOOLEAN DEFAULT 0,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id),
-        FOREIGN KEY (slot_id) REFERENCES slots(id)
-    )`);
-
-    db.exec(`CREATE TABLE IF NOT EXISTS sostituzioni (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slot_id TEXT,
-        giocatore_vecchio TEXT,
-        giocatore_nuovo TEXT,
-        dal_turno INTEGER,
-        motivo TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (slot_id) REFERENCES slots(id)
-    )`);
-
-    db.exec(`CREATE TABLE IF NOT EXISTS risultati_partite (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        turno INTEGER,
-        squadra_1 INTEGER,
-        squadra_2 INTEGER,
-        risultato TEXT,
-        vincitori TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (squadra_1) REFERENCES squadre_circolo(numero),
-        FOREIGN KEY (squadra_2) REFERENCES squadre_circolo(numero)
-    )`);
-
-    db.exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        partecipante_id TEXT,
-        endpoint TEXT UNIQUE,
-        p256dh_key TEXT,
-        auth_key TEXT,
-        user_agent TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
-        attiva BOOLEAN DEFAULT 1,
-        FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id)
-    )`);
-
-    db.exec(`CREATE TABLE IF NOT EXISTS configurazione (
-        chiave TEXT PRIMARY KEY,
-        valore TEXT
-    )`);
-
-    // Verifica se colonna condiviso esiste
-    try {
-        db.exec(`ALTER TABLE aste ADD COLUMN condiviso BOOLEAN DEFAULT 0`);
-        console.log('✅ Colonna condiviso aggiunta');
-    } catch (err) {
-        console.log('⚠️ Colonna condiviso già presente');
+    if (decimale < 0.5) {
+        return intero;
+    } else if (decimale > 0.5) {
+        return intero + 1;
+    } else {
+        if (intero % 2 === 0) {
+            return intero;
+        } else {
+            return intero + 1;
+        }
     }
 }
 
-function saveDatabase() {
+async function generaSlots() {
     try {
-        const data = db.export();
-        fs.writeFileSync(dbPath, data);
+        const squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
+        const squadre = squadreResult.rows;
+        const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+
+        // Cancella slots esistenti
+        await db.query("DELETE FROM slots");
+
+        let inserimenti = 0;
+        for (const squadra of squadre) {
+            for (const pos of posizioni) {
+                const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
+                const giocatore = squadra[pos.toLowerCase()];
+
+                await db.query(
+                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES ($1, $2, $3, $4, $5)",
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore]
+                );
+                inserimenti++;
+            }
+        }
+
+        return inserimenti;
     } catch (error) {
-        console.error('⚠️ Errore salvataggio database:', error);
-    }
-}
-
-// Funzioni di query helper - CORRETTE per SQL.js
-function queryAll(sql, params = []) {
-    try {
-        const stmt = db.prepare(sql);
-        const result = [];
-
-        // Bind parameters if any
-        if (params.length > 0) {
-            stmt.bind(params);
-        }
-
-        // Get all rows
-        while (stmt.step()) {
-            result.push(stmt.getAsObject());
-        }
-
-        stmt.free();
-        return result;
-    } catch (error) {
-        console.error('Errore queryAll:', sql, error);
-        return [];
-    }
-}
-
-function queryGet(sql, params = []) {
-    try {
-        const stmt = db.prepare(sql);
-
-        // Bind parameters if any
-        if (params.length > 0) {
-            stmt.bind(params);
-        }
-
-        let result = null;
-        if (stmt.step()) {
-            result = stmt.getAsObject();
-        }
-
-        stmt.free();
-        return result;
-    } catch (error) {
-        console.error('Errore queryGet:', sql, error);
-        return null;
-    }
-}
-
-function queryRun(sql, params = []) {
-    try {
-        const stmt = db.prepare(sql);
-
-        // Bind parameters if any
-        if (params.length > 0) {
-            stmt.bind(params);
-        }
-
-        stmt.step();
-        const changes = db.getRowsModified();
-        stmt.free();
-
-        saveDatabase(); // Salva dopo ogni modifica
-        return { changes, lastID: null };
-    } catch (error) {
-        console.error('Errore queryRun:', sql, error);
         throw error;
     }
 }
 
-// AGGIUNGI QUESTA FUNZIONE nel server.js (dopo le altre funzioni)
+// Notifiche Push
 async function inviaNotifichePush(notificationData) {
     try {
         const { title, body, url, targetUsers } = notificationData;
@@ -265,13 +225,19 @@ async function inviaNotifichePush(notificationData) {
         // 2. TROVA SUBSCRIPTION NEL DATABASE
         let subscriptions = [];
         try {
+            let query, params;
             if (targetUsers && targetUsers.length > 0) {
-                const placeholders = targetUsers.map(() => '?').join(',');
-                subscriptions = queryAll(`SELECT * FROM push_subscriptions 
-                    WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
+                const placeholders = targetUsers.map((_, i) => `$${i + 1}`).join(',');
+                query = `SELECT * FROM push_subscriptions 
+                    WHERE partecipante_id IN (${placeholders}) AND attiva = true`;
+                params = targetUsers;
             } else {
-                subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
+                query = "SELECT * FROM push_subscriptions WHERE attiva = true";
+                params = [];
             }
+
+            const result = await db.query(query, params);
+            subscriptions = result.rows;
             console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
         } catch (dbError) {
             console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
@@ -318,7 +284,7 @@ async function inviaNotifichePush(notificationData) {
                 console.log(`✅ Push inviata a: ${subscription.partecipante_id}`);
 
                 // Aggiorna last_seen
-                queryRun("UPDATE push_subscriptions SET last_seen = datetime('now') WHERE id = ?", [subscription.id]);
+                await db.query("UPDATE push_subscriptions SET last_seen = CURRENT_TIMESTAMP WHERE id = $1", [subscription.id]);
 
             } catch (pushError) {
                 console.error(`❌ Errore push per ${subscription.partecipante_id}:`, pushError);
@@ -327,7 +293,7 @@ async function inviaNotifichePush(notificationData) {
                 // Se l'endpoint è scaduto/invalido, disattiva la subscription
                 if (pushError.statusCode === 410 || pushError.statusCode === 404) {
                     console.log(`🗑️ Disattivando subscription scaduta per: ${subscription.partecipante_id}`);
-                    queryRun("UPDATE push_subscriptions SET attiva = 0 WHERE id = ?", [subscription.id]);
+                    await db.query("UPDATE push_subscriptions SET attiva = false WHERE id = $1", [subscription.id]);
                 }
             }
         }
@@ -348,86 +314,32 @@ async function inviaNotifichePush(notificationData) {
     }
 }
 
-// Stato del gioco in memoria
-let gameState = {
-    fase: 'setup',
-    roundAttivo: null,
-    asteAttive: false,
-    connessi: new Map(),
-    offerteTemporanee: new Map()
-};
-
-// Funzioni utilità
-function arrotondaAlPariPiuVicino(numero) {
-    const intero = Math.floor(numero);
-    const decimale = numero - intero;
-
-    if (decimale < 0.5) {
-        return intero;
-    } else if (decimale > 0.5) {
-        return intero + 1;
-    } else {
-        if (intero % 2 === 0) {
-            return intero;
-        } else {
-            return intero + 1;
-        }
-    }
-}
-
-function generaSlots() {
-    return new Promise((resolve, reject) => {
-        try {
-            const squadre = queryAll("SELECT * FROM squadre_circolo WHERE attiva = 1");
-            const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-
-            // Cancella slots esistenti
-            queryRun("DELETE FROM slots");
-
-            let inserimenti = 0;
-            squadre.forEach(squadra => {
-                posizioni.forEach(pos => {
-                    const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
-                    const giocatore = squadra[pos.toLowerCase()];
-
-                    queryRun("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)",
-                        [slotId, squadra.numero, squadra.colore, pos, giocatore]);
-                    inserimenti++;
-                });
-            });
-
-            resolve(inserimenti);
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
 // Routes API
 
 // Setup squadre circolo
-app.get('/api/squadre', (req, res) => {
+app.get('/api/squadre', async (req, res) => {
     try {
-        const rows = queryAll("SELECT * FROM squadre_circolo ORDER BY numero");
-        res.json(rows);
+        const result = await db.query("SELECT * FROM squadre_circolo ORDER BY numero");
+        res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/squadre-complete', (req, res) => {
+app.get('/api/squadre-complete', async (req, res) => {
     try {
-        const squadre = queryAll("SELECT * FROM squadre_circolo WHERE attiva = 1 ORDER BY numero");
+        const squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true ORDER BY numero");
+        const squadre = squadreResult.rows;
 
-        squadre.forEach(squadra => {
+        for (const squadra of squadre) {
             try {
-                const result = queryGet("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = ?", [squadra.numero]);
-                squadra.slots_generati = result ? result.slots_count : 0;
+                const result = await db.query("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = $1", [squadra.numero]);
+                squadra.slots_generati = result.rows[0].slots_count;
             } catch (err) {
                 squadra.slots_generati = 0;
             }
-        });
+        }
 
         res.json(squadre);
     } catch (err) {
@@ -436,13 +348,15 @@ app.get('/api/squadre-complete', (req, res) => {
     }
 });
 
-app.post('/api/squadre', (req, res) => {
+app.post('/api/squadre', async (req, res) => {
     try {
         const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
 
-        queryRun(`INSERT OR REPLACE INTO squadre_circolo 
+        await db.query(`INSERT INTO squadre_circolo 
             (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (numero) DO UPDATE SET
+            colore = $2, m1 = $3, m2 = $4, m3 = $5, m4 = $6, m5 = $7, m6 = $8, m7 = $9, f1 = $10, f2 = $11, f3 = $12`,
             [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3]);
 
         res.json({ message: 'Squadra salvata con successo' });
@@ -452,9 +366,9 @@ app.post('/api/squadre', (req, res) => {
     }
 });
 
-app.delete('/api/squadre/:numero', (req, res) => {
+app.delete('/api/squadre/:numero', async (req, res) => {
     try {
-        queryRun("DELETE FROM squadre_circolo WHERE numero = ?", [req.params.numero]);
+        await db.query("DELETE FROM squadre_circolo WHERE numero = $1", [req.params.numero]);
         res.json({ message: 'Squadra eliminata con successo' });
     } catch (err) {
         console.error('Errore DELETE squadre:', err);
@@ -463,23 +377,24 @@ app.delete('/api/squadre/:numero', (req, res) => {
 });
 
 // Setup partecipanti
-app.get('/api/partecipanti', (req, res) => {
+app.get('/api/partecipanti', async (req, res) => {
     try {
-        const rows = queryAll("SELECT * FROM partecipanti_fantagts ORDER BY nome");
-        res.json(rows);
+        const result = await db.query("SELECT * FROM partecipanti_fantagts ORDER BY nome");
+        res.json(result.rows);
     } catch (err) {
         console.error('Errore API partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/partecipanti', (req, res) => {
+app.post('/api/partecipanti', async (req, res) => {
     try {
         const { nome, crediti = 2000 } = req.body;
         const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
-        queryRun(`INSERT OR REPLACE INTO partecipanti_fantagts 
-            (id, nome, crediti) VALUES (?, ?, ?)`,
+        await db.query(`INSERT INTO partecipanti_fantagts 
+            (id, nome, crediti) VALUES ($1, $2, $3)
+            ON CONFLICT (id) DO UPDATE SET nome = $2, crediti = $3`,
             [id, nome, crediti]);
 
         res.json({ id: id, message: 'Partecipante registrato con successo' });
@@ -489,9 +404,9 @@ app.post('/api/partecipanti', (req, res) => {
     }
 });
 
-app.delete('/api/partecipanti/:id', (req, res) => {
+app.delete('/api/partecipanti/:id', async (req, res) => {
     try {
-        queryRun("DELETE FROM partecipanti_fantagts WHERE id = ?", [req.params.id]);
+        await db.query("DELETE FROM partecipanti_fantagts WHERE id = $1", [req.params.id]);
         res.json({ message: 'Partecipante eliminato con successo' });
     } catch (err) {
         console.error('Errore DELETE partecipanti:', err);
@@ -521,16 +436,16 @@ app.get('/api/stato', (req, res) => {
 });
 
 // API per info slot
-app.get('/api/slot-info/:slotId', (req, res) => {
+app.get('/api/slot-info/:slotId', async (req, res) => {
     try {
         const slotId = req.params.slotId;
-        const row = queryGet("SELECT * FROM slots WHERE id = ?", [slotId]);
+        const result = await db.query("SELECT * FROM slots WHERE id = $1", [slotId]);
 
-        if (!row) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Slot non trovato' });
         }
 
-        res.json(row);
+        res.json(result.rows[0]);
     } catch (err) {
         console.error('Errore slot-info:', err);
         res.status(500).json({ error: err.message });
@@ -538,11 +453,11 @@ app.get('/api/slot-info/:slotId', (req, res) => {
 });
 
 // Ottieni squadra di un partecipante
-app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
+app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
 
-        const rows = queryAll(`SELECT 
+        const result = await db.query(`SELECT 
             a.slot_id,
             a.costo_finale,
             s.posizione,
@@ -551,10 +466,10 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
             s.punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
-            WHERE a.partecipante_id = ? AND a.vincitore = 1 
+            WHERE a.partecipante_id = $1 AND a.vincitore = true 
             ORDER BY s.posizione`, [partecipanteId]);
 
-        res.json(rows);
+        res.json(result.rows);
     } catch (err) {
         console.error('Errore squadra-partecipante:', err);
         res.status(500).json({ error: err.message });
@@ -562,7 +477,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', (req, res) => {
 });
 
 // Controllo aste
-app.post('/api/avvia-round/:round', (req, res) => {
+app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
 
     if (gameState.asteAttive) {
@@ -574,7 +489,8 @@ app.post('/api/avvia-round/:round', (req, res) => {
     gameState.offerteTemporanee.clear();
 
     try {
-        const slots = queryAll("SELECT * FROM slots WHERE posizione = ? AND attivo = 1", [round]);
+        const slotsResult = await db.query("SELECT * FROM slots WHERE posizione = $1 AND attivo = true", [round]);
+        const slots = slotsResult.rows;
 
         io.emit('round_started', {
             round: round,
@@ -584,15 +500,15 @@ app.post('/api/avvia-round/:round', (req, res) => {
 
         console.log(`Round ${round} avviato - Sistema basato su conferme`);
 
-        // NOTIFICHE A TUTTI I PARTECIPANTI REGISTRATI (non solo connessi)
+        // NOTIFICHE A TUTTI I PARTECIPANTI REGISTRATI
         try {
-            const tuttiPartecipanti = queryAll("SELECT id FROM partecipanti_fantagts WHERE attivo = 1 OR attivo IS NULL");
-            const partecipantiIds = tuttiPartecipanti.map(p => p.id);
+            const partecipantiResult = await db.query("SELECT id FROM partecipanti_fantagts WHERE attivo = true");
+            const partecipantiIds = partecipantiResult.rows.map(p => p.id);
 
             console.log(`📨 INVIO NOTIFICHE ROUND ${round} A TUTTI I PARTECIPANTI:`, partecipantiIds);
 
             if (partecipantiIds.length > 0) {
-                inviaNotifichePush({
+                await inviaNotifichePush({
                     title: `FantaGTS - Round ${round}`,
                     body: `È iniziato il round ${round}! Fai la tua offerta!`,
                     url: '/',
@@ -639,67 +555,40 @@ app.get('/api/stato-offerte/:round', (req, res) => {
 });
 
 // Ottieni risultati aste per round specifico
-app.get('/api/aste-round/:round', (req, res) => {
+app.get('/api/aste-round/:round', async (req, res) => {
     try {
         const round = req.params.round;
 
-        const rows = queryAll(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+        const result = await db.query(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
                 FROM aste a 
                 JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
                 JOIN slots s ON a.slot_id = s.id 
-                WHERE a.round = ? AND a.vincitore = 1 
+                WHERE a.round = $1 AND a.vincitore = true 
                 ORDER BY a.costo_finale DESC`, [round]);
 
-        res.json(rows);
+        res.json(result.rows);
     } catch (err) {
         console.error('Errore aste-round:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Ottieni tutti i risultati partite
-app.get('/api/risultati-partite', (req, res) => {
-    try {
-        const rows = queryAll(`SELECT r.*, 
-                s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
-                FROM risultati_partite r 
-                JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
-                JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
-                ORDER BY r.turno DESC, r.timestamp DESC`);
-
-        // Parse JSON vincitori
-        const processedRows = rows.map(row => {
-            try {
-                row.vincitori = JSON.parse(row.vincitori || '[]');
-            } catch (e) {
-                row.vincitori = [];
-            }
-            return row;
-        });
-
-        res.json(processedRows);
-    } catch (err) {
-        console.error('Errore risultati-partite:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // Ottieni classifica generale
-app.get('/api/classifica', (req, res) => {
+app.get('/api/classifica', async (req, res) => {
     try {
-        const rows = queryAll(`SELECT 
+        const result = await db.query(`SELECT 
             p.id, p.nome, p.crediti, 
             COUNT(a.id) as giocatori_totali,
             COALESCE(SUM(s.punti_totali), 0) as punti_totali,
             COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
             FROM partecipanti_fantagts p 
-            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = 1
+            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true
             LEFT JOIN slots s ON a.slot_id = s.id 
             GROUP BY p.id, p.nome, p.crediti 
             ORDER BY punti_totali DESC, crediti_spesi ASC`);
 
         // Aggiungi posizione in classifica
-        const classifica = rows.map((row, index) => {
+        const classifica = result.rows.map((row, index) => {
             row.posizione = index + 1;
             return row;
         });
@@ -721,13 +610,14 @@ app.get('/api/sessione-info', (req, res) => {
     });
 });
 
-app.get('/api/debug/subscriptions', (req, res) => {
+// Debug routes
+app.get('/api/debug/subscriptions', async (req, res) => {
     try {
-        const subscriptions = queryAll("SELECT * FROM push_subscriptions");
-        console.log('🔍 SUBSCRIPTION NEL DB:', subscriptions);
+        const result = await db.query("SELECT * FROM push_subscriptions");
+        console.log('🔍 SUBSCRIPTION NEL DB:', result.rows);
         res.json({
-            count: subscriptions.length,
-            subscriptions: subscriptions
+            count: result.rows.length,
+            subscriptions: result.rows
         });
     } catch (err) {
         console.error('❌ Errore query subscriptions:', err);
@@ -735,18 +625,68 @@ app.get('/api/debug/subscriptions', (req, res) => {
     }
 });
 
-app.get('/api/debug/slots', (req, res) => {
+app.get('/api/debug/slots', async (req, res) => {
     try {
-        const slots = queryAll("SELECT * FROM slots LIMIT 10");
-        const count = queryGet("SELECT COUNT(*) as total FROM slots");
-        console.log('🔍 SLOTS NEL DB:', { count: count.total, sample: slots });
+        const sampleResult = await db.query("SELECT * FROM slots LIMIT 10");
+        const countResult = await db.query("SELECT COUNT(*) as total FROM slots");
+        console.log('🔍 SLOTS NEL DB:', { count: countResult.rows[0].total, sample: sampleResult.rows });
         res.json({
-            total: count.total,
-            sample: slots
+            total: parseInt(countResult.rows[0].total),
+            sample: sampleResult.rows
         });
     } catch (err) {
         console.error('❌ Errore query slots:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Push notifications
+app.post('/api/subscribe-notifications', async (req, res) => {
+    try {
+        const { subscription, partecipanteId } = req.body;
+        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
+
+        if (!subscription || !partecipanteId) {
+            return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
+        }
+
+        const endpoint = subscription.endpoint;
+        const keys = subscription.keys;
+        const userAgent = req.headers['user-agent'] || '';
+
+        if (!keys || !keys.p256dh || !keys.auth) {
+            return res.status(400).json({ error: 'Chiavi subscription mancanti' });
+        }
+
+        console.log('💾 SALVANDO NEL DB:', {
+            partecipanteId,
+            endpoint: endpoint.substring(0, 50) + '...',
+            p256dh: keys.p256dh.substring(0, 20) + '...',
+            auth: keys.auth.substring(0, 20) + '...'
+        });
+
+        // SALVATAGGIO EFFETTIVO
+        await db.query(`INSERT INTO push_subscriptions 
+            (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, true)
+            ON CONFLICT (endpoint) DO UPDATE SET
+            partecipante_id = $1, p256dh_key = $3, auth_key = $4, user_agent = $5, last_seen = CURRENT_TIMESTAMP, attiva = true`,
+            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
+
+        console.log('✅ SUBSCRIPTION SALVATA');
+
+        // VERIFICA IMMEDIATA
+        const savedResult = await db.query("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
+        console.log('🔍 VERIFICA SALVATAGGIO:', savedResult.rows[0]);
+
+        res.json({
+            success: true,
+            message: 'Notifiche attivate con successo',
+            saved: savedResult.rows[0].count
+        });
+    } catch (error) {
+        console.error('❌ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -867,26 +807,26 @@ function elaboraRisultatiAste() {
     }
 }
 
-function salvaRisultatiAste(round, risultati) {
+async function salvaRisultatiAste(round, risultati) {
     if (risultati.length === 0) {
         console.log('Nessun risultato da salvare per il round', round);
         return;
     }
 
     try {
-        risultati.forEach(r => {
-            queryRun(`INSERT INTO aste 
+        for (const r of risultati) {
+            await db.query(`INSERT INTO aste 
                 (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-                [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso ? 1 : 0]);
+                VALUES ($1, $2, $3, $4, $5, $6, true, $7)`,
+                [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso]);
 
             // Aggiorna crediti partecipante
-            queryRun(`UPDATE partecipanti_fantagts 
-                    SET crediti = crediti - ? 
-                    WHERE id = ?`, [r.costoFinale, r.partecipante]);
+            await db.query(`UPDATE partecipanti_fantagts 
+                    SET crediti = crediti - $1 
+                    WHERE id = $2`, [r.costoFinale, r.partecipante]);
 
             console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
-        });
+        }
 
         console.log(`🎉 Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
 
@@ -908,9 +848,10 @@ function salvaRisultatiAste(round, risultati) {
     }
 }
 
-function aggiornaCreditiPartecipanti() {
+async function aggiornaCreditiPartecipanti() {
     try {
-        const partecipanti = queryAll("SELECT id, nome, crediti FROM partecipanti_fantagts");
+        const result = await db.query("SELECT id, nome, crediti FROM partecipanti_fantagts");
+        const partecipanti = result.rows;
 
         partecipanti.forEach(p => {
             for (let [socketId, connesso] of gameState.connessi.entries()) {
@@ -928,7 +869,7 @@ function aggiornaCreditiPartecipanti() {
 }
 
 // Reset sistema
-app.post('/api/reset/:livello', (req, res) => {
+app.post('/api/reset/:livello', async (req, res) => {
     const livello = req.params.livello;
 
     try {
@@ -941,9 +882,9 @@ app.post('/api/reset/:livello', (req, res) => {
                 break;
 
             case 'aste':
-                queryRun("DELETE FROM aste");
-                queryRun("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
-                queryRun("UPDATE slots SET punti_totali = 0");
+                await db.query("DELETE FROM aste");
+                await db.query("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
+                await db.query("UPDATE slots SET punti_totali = 0");
 
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
@@ -967,10 +908,10 @@ app.post('/api/reset/:livello', (req, res) => {
                 break;
 
             case 'totale':
-                queryRun("DELETE FROM aste");
-                queryRun("DELETE FROM partecipanti_fantagts");
-                queryRun("DELETE FROM squadre_circolo");
-                queryRun("DELETE FROM slots");
+                await db.query("DELETE FROM aste");
+                await db.query("DELETE FROM partecipanti_fantagts");
+                await db.query("DELETE FROM squadre_circolo");
+                await db.query("DELETE FROM slots");
 
                 gameState = {
                     fase: 'setup',
@@ -991,36 +932,6 @@ app.post('/api/reset/:livello', (req, res) => {
     }
 });
 
-// API per pulire dati di test
-app.post('/api/pulisci-test', (req, res) => {
-    const { mantieni } = req.body;
-
-    try {
-        if (!mantieni || mantieni.length === 0) {
-            queryRun("DELETE FROM aste");
-            queryRun("DELETE FROM partecipanti_fantagts");
-        } else {
-            const placeholders = mantieni.map(() => '?').join(',');
-            queryRun(`DELETE FROM aste WHERE partecipante_id NOT IN (${placeholders})`, mantieni);
-            queryRun(`DELETE FROM partecipanti_fantagts WHERE id NOT IN (${placeholders})`, mantieni);
-        }
-
-        gameState.connessi.clear();
-        gameState.offerteTemporanee.clear();
-        gameState.asteAttive = false;
-        gameState.roundAttivo = null;
-
-        res.json({
-            message: mantieni && mantieni.length > 0 ?
-                `Eliminati partecipanti di test, mantenuti: ${mantieni.join(', ')}` :
-                'Tutti i partecipanti di test eliminati'
-        });
-    } catch (error) {
-        console.error('Errore pulisci-test:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // PWA Routes
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/manifest+json');
@@ -1035,91 +946,6 @@ app.get('/sw.js', (req, res) => {
 
 app.get('/offline', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'offline.html'));
-});
-
-// PWA Web Push Notifications API AGGIORNATA
-app.post('/api/subscribe-notifications', (req, res) => {
-    try {
-        const { subscription, partecipanteId } = req.body;
-        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
-
-        if (!subscription || !partecipanteId) {
-            return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
-        }
-
-        const endpoint = subscription.endpoint;
-        const keys = subscription.keys;
-        const userAgent = req.headers['user-agent'] || '';
-
-        if (!keys || !keys.p256dh || !keys.auth) {
-            return res.status(400).json({ error: 'Chiavi subscription mancanti' });
-        }
-
-        console.log('💾 SALVANDO NEL DB:', {
-            partecipanteId,
-            endpoint: endpoint.substring(0, 50) + '...',
-            p256dh: keys.p256dh.substring(0, 20) + '...',
-            auth: keys.auth.substring(0, 20) + '...'
-        });
-
-        // SALVATAGGIO EFFETTIVO
-        const result = queryRun(`INSERT OR REPLACE INTO push_subscriptions 
-            (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
-            VALUES (?, ?, ?, ?, ?, datetime('now'), 1)`,
-            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
-
-        console.log('✅ SUBSCRIPTION SALVATA - Result:', result);
-
-        // VERIFICA IMMEDIATA
-        const saved = queryGet("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = ?", [partecipanteId]);
-        console.log('🔍 VERIFICA SALVATAGGIO:', saved);
-
-        res.json({
-            success: true,
-            message: 'Notifiche attivate con successo',
-            saved: saved?.count || 0
-        });
-    } catch (error) {
-        console.error('❌ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/send-notification', (req, res) => {
-    try {
-        const { title, body, url, targetUsers } = req.body;
-
-        console.log('📤 Richiesta invio notifica:', { title, body, targetUsers });
-
-        // Trova subscriptions attive
-        let subscriptions;
-        if (targetUsers && targetUsers.length > 0) {
-            // Notifica a utenti specifici
-            const placeholders = targetUsers.map(() => '?').join(',');
-            subscriptions = queryAll(`SELECT * FROM push_subscriptions 
-                WHERE partecipante_id IN (${placeholders}) AND attiva = 1`, targetUsers);
-        } else {
-            // Notifica a tutti
-            subscriptions = queryAll("SELECT * FROM push_subscriptions WHERE attiva = 1");
-        }
-
-        console.log(`📨 Invio notifica a ${subscriptions.length} dispositivi`);
-
-        // TODO: Implementare invio effettivo con web-push
-        // Per ora solo log e conferma
-        subscriptions.forEach(sub => {
-            console.log(`📱 Notifica inviata a: ${sub.partecipante_id}`);
-        });
-
-        res.json({
-            success: true,
-            message: `Notifica inviata a ${subscriptions.length} dispositivi`,
-            recipients: subscriptions.length
-        });
-    } catch (error) {
-        console.error('Errore invio notifiche:', error);
-        res.status(500).json({ error: error.message });
-    }
 });
 
 // Serve file statici
@@ -1161,7 +987,7 @@ io.on('connection', (socket) => {
         console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
     });
 
-    socket.on('place_bid', (data) => {
+    socket.on('place_bid', async (data) => {
         if (!gameState.asteAttive || gameState.roundAttivo !== data.round) {
             socket.emit('bid_error', { message: 'Nessun round attivo' });
             return;
@@ -1175,14 +1001,14 @@ io.on('connection', (socket) => {
 
         // Verifica crediti disponibili
         try {
-            const row = queryGet("SELECT crediti FROM partecipanti_fantagts WHERE id = ?", [connesso.partecipanteId]);
+            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1", [connesso.partecipanteId]);
 
-            if (!row) {
+            if (result.rows.length === 0) {
                 socket.emit('bid_error', { message: 'Partecipante non trovato' });
                 return;
             }
 
-            if (data.importo > row.crediti) {
+            if (data.importo > result.rows[0].crediti) {
                 socket.emit('bid_error', { message: 'Crediti insufficienti' });
                 return;
             }
@@ -1267,7 +1093,7 @@ initializeDatabase().then(() => {
     server.listen(PORT, HOST, () => {
         const localIP = getLocalIP();
 
-        console.log('\n🎾 FantaGTS Server Avviato!');
+        console.log('\n🎾 FantaGTS Server Avviato con PostgreSQL!');
 
         if (process.env.NODE_ENV === 'production') {
             console.log(`🌐 Production URL disponibile`);
@@ -1298,12 +1124,12 @@ process.on('unhandledRejection', (reason, promise) => {
 // Chiusura pulita
 process.on('SIGINT', () => {
     console.log('\n🔄 Chiusura server in corso...');
-    saveDatabase();
+    db.end();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('\n🔄 Terminazione server ricevuta...');
-    saveDatabase();
+    db.end();
     process.exit(0);
 });
