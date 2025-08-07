@@ -519,12 +519,34 @@ F3 Brunelli E</pre>
         async function caricaSquadre() {
             try {
                 const response = await fetch('/api/squadre');
-                squadre = await response.json();
+
+                if (!response.ok) {
+                    console.error('❌ Errore API squadre:', response.status, response.statusText);
+                    squadre = []; // Array vuoto in caso di errore
+                    renderSquadre();
+                    updateSystemStatus();
+                    showNotification('Errore caricamento squadre dal server', 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('✅ Squadre ricevute dal server:', data);
+
+                // Verifica che sia un array
+                if (Array.isArray(data)) {
+                    squadre = data;
+                } else {
+                    console.error('❌ Risposta squadre non è un array:', data);
+                    squadre = [];
+                }
+
                 renderSquadre();
                 updateSystemStatus();
             } catch (error) {
-                console.error('Errore caricamento squadre:', error);
-                showNotification('Errore caricamento squadre', 'error');
+                console.error('❌ Errore caricamento squadre:', error);
+                squadre = []; // Array vuoto in caso di errore
+                renderSquadre();
+                showNotification('Errore di connessione al server', 'error');
             }
         }
 
@@ -699,6 +721,18 @@ function annullaUpload() {
         function renderSquadre() {
             const container = document.getElementById('squadreList');
             container.innerHTML = '';
+
+            // CONTROLLO DI SICUREZZA
+            if (!Array.isArray(squadre)) {
+                console.error('❌ squadre non è un array:', squadre);
+                container.innerHTML = '<p>Errore: impossibile caricare le squadre</p>';
+                return;
+            }
+
+            if (squadre.length === 0) {
+                container.innerHTML = '<p>Nessuna squadra configurata</p>';
+                return;
+            }
 
             squadre.forEach(squadra => {
                 const card = document.createElement('div');
