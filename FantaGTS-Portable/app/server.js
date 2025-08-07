@@ -30,6 +30,10 @@ app.use(express.json());
 console.log('🔍 Directory corrente:', __dirname);
 
 // Database PostgreSQL
+
+console.log('🔍 DATABASE_URL utilizzata:', process.env.DATABASE_URL ? 'PRESENTE' : 'MANCANTE');
+console.log('🔍 Primi 50 caratteri URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) : 'N/A');
+
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
