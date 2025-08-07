@@ -809,31 +809,52 @@
 
                     // Registra service worker per notifiche
                     if ('serviceWorker' in navigator) {
-                        const registration = await navigator.serviceWorker.ready;
+                        try {
+                            const registration = await navigator.serviceWorker.ready;
 
-                        // Crea subscription
-                        const subscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array('BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U')
-                        });
+                            // Ottieni chiave pubblica dal server
+                            const response = await fetch('/api/vapid-public-key');
+                            let publicKey;
 
-                        // Invia subscription al server
-                        await fetch('/api/subscribe-notifications', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                subscription: subscription,
-                                partecipanteId: playerData.id
-                            })
-                        });
+                            if (response.ok) {
+                                const data = await response.json();
+                                publicKey = data.publicKey;
+                            } else {
+                                // Fallback a chiave hardcoded se API non disponibile
+                                publicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+                                console.log('⚠️ Usando chiave VAPID fallback');
+                            }
 
-                        console.log('✅ Notifiche push configurate');
+                            // Crea subscription
+                            const subscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array(publicKey)
+                            });
 
-                        // Test notification
-                        new Notification('FantaGTS', {
-                            body: 'Notifiche attivate correttamente!',
-                            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
-                        });
+                            // Invia subscription al server
+                            const subscribeResponse = await fetch('/api/subscribe-notifications', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    subscription: subscription,
+                                    partecipanteId: playerData.id
+                                })
+                            });
+
+                            if (subscribeResponse.ok) {
+                                console.log('✅ Notifiche push configurate');
+
+                                // Test notification
+                                new Notification('FantaGTS', {
+                                    body: 'Notifiche attivate correttamente!',
+                                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
+                                });
+                            } else {
+                                console.error('❌ Errore registrazione subscription');
+                            }
+                        } catch (swError) {
+                            console.error('❌ Errore service worker:', swError);
+                        }
                     }
                 } else {
                     console.log('Permesso notifiche negato');

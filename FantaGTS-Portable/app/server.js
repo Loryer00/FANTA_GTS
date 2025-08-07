@@ -16,12 +16,42 @@ const io = socketIo(server, {
     }
 });
 
-// Configurazione Web Push
-webpush.setVapidDetails(
-    'mailto:fantagts@example.com',
-    'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U',
-    'adSBSFK6reHw0_2C98Y27ajUOJoG-gHlYoF62-eFWOM'
-);
+// Configurazione Web Push - VERSIONE MIGLIORATA
+let webPushConfigured = false;
+
+// Prova a configurare le chiavi VAPID
+try {
+    // OPZIONE 1: Usa chiavi da variabili ambiente (raccomandata per produzione)
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(
+            process.env.VAPID_EMAIL || 'mailto:fantagts@example.com',
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+        webPushConfigured = true;
+        console.log('✅ Web Push configurato con chiavi da ambiente');
+    }
+    // OPZIONE 2: Genera chiavi temporanee per sviluppo
+    else {
+        console.log('⚠️ Chiavi VAPID non trovate - generando chiavi temporanee...');
+        const vapidKeys = webpush.generateVAPIDKeys();
+
+        webpush.setVapidDetails(
+            'mailto:fantagts@example.com',
+            vapidKeys.publicKey,
+            vapidKeys.privateKey
+        );
+        webPushConfigured = true;
+
+        console.log('🔑 Chiavi VAPID temporanee generate:');
+        console.log('PUBLIC:', vapidKeys.publicKey);
+        console.log('PRIVATE:', vapidKeys.privateKey);
+        console.log('⚠️ IMPORTANTE: Salva queste chiavi per uso futuro!');
+    }
+} catch (error) {
+    console.error('❌ Errore configurazione Web Push:', error);
+    webPushConfigured = false;
+}
 
 // Middleware
 app.use(express.static('public'));
@@ -218,7 +248,7 @@ async function inviaNotifichePush(notificationData) {
         const { title, body, url, targetUsers } = notificationData;
         console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
 
-        // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket)
+        // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket) - SEMPRE FUNZIONA
         let notificheTramiteSocket = 0;
         for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.tipo === 'partecipante' &&
@@ -234,8 +264,24 @@ async function inviaNotifichePush(notificationData) {
             }
         }
 
-        // 2. TROVA SUBSCRIPTION NEL DATABASE
+        // 2. PUSH NOTIFICATIONS - Solo se configurate correttamente
+        let pushInviate = 0;
+        let pushFallite = 0;
         let subscriptions = [];
+
+        if (!webPushConfigured) {
+            console.log('⚠️ Web Push non configurato - saltando notifiche push');
+            return {
+                success: true,
+                websocket: notificheTramiteSocket,
+                push_sent: 0,
+                push_failed: 0,
+                push_disabled: true,
+                message: 'Notifiche WebSocket inviate, Push non configurato'
+            };
+        }
+
+        // Cerca subscription nel database
         try {
             let query, params;
             if (targetUsers && targetUsers.length > 0) {
@@ -253,13 +299,14 @@ async function inviaNotifichePush(notificationData) {
             console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
         } catch (dbError) {
             console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
-            return { success: false, error: 'Errore database subscriptions' };
+            return {
+                success: true,
+                websocket: notificheTramiteSocket,
+                error: 'Errore database subscriptions, WebSocket inviati'
+            };
         }
 
-        // 3. INVIA NOTIFICHE PUSH REALI
-        let pushInviate = 0;
-        let pushFallite = 0;
-
+        // Invia notifiche push con gestione errori migliorata
         const payload = JSON.stringify({
             title: title,
             body: body,
@@ -288,24 +335,33 @@ async function inviaNotifichePush(notificationData) {
                     }
                 };
 
-                console.log(`🚀 Invio push a: ${subscription.partecipante_id}`);
+                console.log(`🚀 Tentativo push a: ${subscription.partecipante_id}`);
 
-                await webpush.sendNotification(pushSubscription, payload);
+                await webpush.sendNotification(pushSubscription, payload, {
+                    TTL: 3600, // 1 ora
+                    urgency: 'normal'
+                });
+
                 pushInviate++;
-
                 console.log(`✅ Push inviata a: ${subscription.partecipante_id}`);
 
                 // Aggiorna last_seen
                 await db.query("UPDATE push_subscriptions SET last_seen = CURRENT_TIMESTAMP WHERE id = $1", [subscription.id]);
 
             } catch (pushError) {
-                console.error(`❌ Errore push per ${subscription.partecipante_id}:`, pushError);
+                console.error(`❌ Errore push per ${subscription.partecipante_id}:`, {
+                    statusCode: pushError.statusCode,
+                    message: pushError.body || pushError.message,
+                    endpoint: subscription.endpoint.substring(0, 50) + '...'
+                });
                 pushFallite++;
 
-                // Se l'endpoint è scaduto/invalido, disattiva la subscription
+                // Gestione errori specifici
                 if (pushError.statusCode === 410 || pushError.statusCode === 404) {
                     console.log(`🗑️ Disattivando subscription scaduta per: ${subscription.partecipante_id}`);
                     await db.query("UPDATE push_subscriptions SET attiva = false WHERE id = $1", [subscription.id]);
+                } else if (pushError.statusCode === 403) {
+                    console.log(`🔐 Errore autorizzazione push per: ${subscription.partecipante_id} - possibili chiavi VAPID non valide`);
                 }
             }
         }
@@ -317,7 +373,8 @@ async function inviaNotifichePush(notificationData) {
             websocket: notificheTramiteSocket,
             push_sent: pushInviate,
             push_failed: pushFallite,
-            total_subscriptions: subscriptions.length
+            total_subscriptions: subscriptions.length,
+            webpush_configured: webPushConfigured
         };
 
     } catch (error) {
@@ -649,6 +706,33 @@ app.get('/api/debug/slots', async (req, res) => {
     } catch (err) {
         console.error('❌ Errore query slots:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// API per chiave pubblica VAPID
+app.get('/api/vapid-public-key', (req, res) => {
+    if (!webPushConfigured) {
+        return res.status(503).json({
+            error: 'Web Push non configurato',
+            fallback: true
+        });
+    }
+
+    try {
+        // Se hai le chiavi da ambiente
+        if (process.env.VAPID_PUBLIC_KEY) {
+            return res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+        }
+
+        // Altrimenti genera nuove chiavi
+        const vapidKeys = webpush.generateVAPIDKeys();
+        res.json({
+            publicKey: vapidKeys.publicKey,
+            temporary: true,
+            message: 'Chiave temporanea generata - configura VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY'
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
