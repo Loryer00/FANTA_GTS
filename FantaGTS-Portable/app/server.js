@@ -29,13 +29,21 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Database PostgreSQL
+// Database PostgreSQL con debug e fallback
+console.log('🔍 Tutte le variabili database disponibili:');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'PRESENTE' : 'MANCANTE');
+console.log('DATABASE_PUBLIC_URL:', process.env.DATABASE_PUBLIC_URL ? 'PRESENTE' : 'MANCANTE');
+console.log('POSTGRES_URL:', process.env.POSTGRES_URL ? 'PRESENTE' : 'MANCANTE');
 
-console.log('🔍 DATABASE_URL utilizzata:', process.env.DATABASE_URL ? 'PRESENTE' : 'MANCANTE');
-console.log('🔍 Primi 50 caratteri URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) : 'N/A');
+const connectionString = process.env.DATABASE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.POSTGRES_URL ||
+    'postgresql://postgres:iUFrkUQnATpmwBXsbcUFcjtmtzMudUyk@postgres.railway.internal:5432/railway';
+
+console.log('🔗 Usando connection string:', connectionString.substring(0, 50) + '...');
 
 const db = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
