@@ -5,7 +5,6 @@ const socketIo = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
-const webpush = require('web-push');
 
 const app = express();
 const server = http.createServer(app);
