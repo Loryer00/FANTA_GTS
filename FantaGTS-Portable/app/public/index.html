@@ -792,7 +792,7 @@
             }
         }
 
-        // Setup notifiche push
+        // Setup notifiche push - VERSIONE CON RESET
         async function setupPushNotifications() {
             try {
                 // Controlla supporto notifiche
@@ -812,26 +812,40 @@
                         try {
                             const registration = await navigator.serviceWorker.ready;
 
-                            // Ottieni chiave pubblica dal server
-                            const response = await fetch('/api/vapid-public-key');
-                            let publicKey;
+                            // STEP 1: Ottieni la chiave pubblica corrente dal server
+                            const keyResponse = await fetch('/api/vapid-public-key');
 
-                            if (response.ok) {
-                                const data = await response.json();
-                                publicKey = data.publicKey;
-                            } else {
-                                // Fallback a chiave hardcoded se API non disponibile
-                                publicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-                                console.log('⚠️ Usando chiave VAPID fallback');
+                            if (!keyResponse.ok) {
+                                console.log('⚠️ Server Web Push non configurato');
+                                return;
                             }
 
-                            // Crea subscription
+                            const keyData = await keyResponse.json();
+                            const publicKey = keyData.publicKey;
+
+                            console.log('🔑 Chiave pubblica ricevuta:', publicKey.substring(0, 20) + '...');
+
+                            // STEP 2: Rimuovi subscription vecchia se esiste
+                            try {
+                                const existingSubscription = await registration.pushManager.getSubscription();
+                                if (existingSubscription) {
+                                    console.log('🗑️ Rimuovendo subscription vecchia...');
+                                    await existingSubscription.unsubscribe();
+                                }
+                            } catch (unsubError) {
+                                console.log('⚠️ Errore rimozione subscription vecchia:', unsubError);
+                            }
+
+                            // STEP 3: Crea nuova subscription con chiave corrente
+                            console.log('🆕 Creando nuova subscription...');
                             const subscription = await registration.pushManager.subscribe({
                                 userVisibleOnly: true,
                                 applicationServerKey: urlBase64ToUint8Array(publicKey)
                             });
 
-                            // Invia subscription al server
+                            console.log('✅ Nuova subscription creata');
+
+                            // STEP 4: Invia subscription al server
                             const subscribeResponse = await fetch('/api/subscribe-notifications', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -842,15 +856,16 @@
                             });
 
                             if (subscribeResponse.ok) {
-                                console.log('✅ Notifiche push configurate');
+                                console.log('✅ Notifiche push configurate correttamente');
 
                                 // Test notification
                                 new Notification('FantaGTS', {
-                                    body: 'Notifiche attivate correttamente!',
+                                    body: 'Notifiche push attivate con successo!',
                                     icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
                                 });
                             } else {
-                                console.error('❌ Errore registrazione subscription');
+                                const error = await subscribeResponse.json();
+                                console.error('❌ Errore registrazione subscription:', error);
                             }
                         } catch (swError) {
                             console.error('❌ Errore service worker:', swError);

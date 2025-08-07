@@ -16,42 +16,53 @@ const io = socketIo(server, {
     }
 });
 
-// Configurazione Web Push - VERSIONE MIGLIORATA
+// Configurazione Web Push - VERSIONE DEFINITIVA
+const webpush = require('web-push');
 let webPushConfigured = false;
+let currentVapidKeys = null;
 
-// Prova a configurare le chiavi VAPID
-try {
-    // OPZIONE 1: Usa chiavi da variabili ambiente (raccomandata per produzione)
-    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-        webpush.setVapidDetails(
-            process.env.VAPID_EMAIL || 'mailto:fantagts@example.com',
-            process.env.VAPID_PUBLIC_KEY,
-            process.env.VAPID_PRIVATE_KEY
-        );
-        webPushConfigured = true;
-        console.log('✅ Web Push configurato con chiavi da ambiente');
+// Funzione per inizializzare Web Push
+function initializeWebPush() {
+    try {
+        // OPZIONE 1: Usa chiavi da variabili ambiente
+        if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+            webpush.setVapidDetails(
+                process.env.VAPID_EMAIL || 'mailto:fantagts@circolo.com',
+                process.env.VAPID_PUBLIC_KEY,
+                process.env.VAPID_PRIVATE_KEY
+            );
+            currentVapidKeys = {
+                publicKey: process.env.VAPID_PUBLIC_KEY,
+                privateKey: process.env.VAPID_PRIVATE_KEY
+            };
+            webPushConfigured = true;
+            console.log('✅ Web Push configurato con chiavi da ambiente');
+        }
+        // OPZIONE 2: Genera nuove chiavi sempre fresche
+        else {
+            console.log('🔑 Generando nuove chiavi VAPID...');
+            currentVapidKeys = webpush.generateVAPIDKeys();
+
+            webpush.setVapidDetails(
+                'mailto:fantagts@circolo.com',
+                currentVapidKeys.publicKey,
+                currentVapidKeys.privateKey
+            );
+            webPushConfigured = true;
+
+            console.log('🔑 NUOVE CHIAVI VAPID GENERATE:');
+            console.log('📤 PUBLIC:', currentVapidKeys.publicKey);
+            console.log('🔐 PRIVATE:', currentVapidKeys.privateKey);
+            console.log('💡 IMPORTANTE: Salva queste chiavi se vuoi riutilizzarle!');
+        }
+    } catch (error) {
+        console.error('❌ Errore configurazione Web Push:', error);
+        webPushConfigured = false;
     }
-    // OPZIONE 2: Genera chiavi temporanee per sviluppo
-    else {
-        console.log('⚠️ Chiavi VAPID non trovate - generando chiavi temporanee...');
-        const vapidKeys = webpush.generateVAPIDKeys();
-
-        webpush.setVapidDetails(
-            'mailto:fantagts@example.com',
-            vapidKeys.publicKey,
-            vapidKeys.privateKey
-        );
-        webPushConfigured = true;
-
-        console.log('🔑 Chiavi VAPID temporanee generate:');
-        console.log('PUBLIC:', vapidKeys.publicKey);
-        console.log('PRIVATE:', vapidKeys.privateKey);
-        console.log('⚠️ IMPORTANTE: Salva queste chiavi per uso futuro!');
-    }
-} catch (error) {
-    console.error('❌ Errore configurazione Web Push:', error);
-    webPushConfigured = false;
 }
+
+// Inizializza Web Push
+initializeWebPush();
 
 // Middleware
 app.use(express.static('public'));
@@ -734,6 +745,43 @@ app.get('/api/vapid-public-key', (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// API per resettare subscription push
+app.post('/api/reset-push-subscriptions', async (req, res) => {
+    try {
+        // Disattiva tutte le subscription esistenti
+        await db.query("UPDATE push_subscriptions SET attiva = false");
+
+        // Oppure cancellale completamente
+        await db.query("DELETE FROM push_subscriptions");
+
+        console.log('🗑️ Tutte le subscription push sono state resettate');
+
+        res.json({
+            success: true,
+            message: 'Subscription push resettate',
+            newPublicKey: currentVapidKeys?.publicKey || null
+        });
+    } catch (error) {
+        console.error('❌ Errore reset subscription:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API per ottenere la chiave pubblica corrente
+app.get('/api/vapid-public-key', (req, res) => {
+    if (!webPushConfigured || !currentVapidKeys) {
+        return res.status(503).json({
+            error: 'Web Push non configurato',
+            configured: false
+        });
+    }
+
+    res.json({
+        publicKey: currentVapidKeys.publicKey,
+        configured: true
+    });
 });
 
 // Push notifications
