@@ -6,6 +6,9 @@ const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
 
+// Variabile globale sessione corrente
+let sessioneCorrente = process.env.SESSIONE_CORRENTE || 'fantagts_2025';
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -97,6 +100,7 @@ async function initializeDatabase() {
             punti_totali INTEGER DEFAULT 0,
             posizione_classifica INTEGER,
             attivo BOOLEAN DEFAULT true,
+            sessione_id TEXT DEFAULT 'default',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
@@ -121,6 +125,7 @@ async function initializeDatabase() {
             premium REAL DEFAULT 0,
             vincitore BOOLEAN DEFAULT false,
             condiviso BOOLEAN DEFAULT false,
+            sessione_id TEXT DEFAULT 'default',
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
@@ -154,6 +159,7 @@ async function initializeDatabase() {
             p256dh_key TEXT,
             auth_key TEXT,
             user_agent TEXT,
+            sessione_id TEXT DEFAULT 'default',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             attiva BOOLEAN DEFAULT true
@@ -164,6 +170,15 @@ async function initializeDatabase() {
             valore TEXT,
             descrizione TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            attiva BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
         // Inserisci configurazione predefinita
@@ -178,6 +193,32 @@ async function initializeDatabase() {
         console.log('✅ Database PostgreSQL inizializzato con successo');
     } catch (error) {
         console.error('❌ Errore inizializzazione database:', error);
+    }
+}
+
+// Funzione per aggiornare database automaticamente
+async function updateDatabaseSchema() {
+    try {
+        console.log('🔄 Aggiornando schema database...');
+
+        // Aggiungi colonne se non esistono
+        await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+
+        // Crea tabella sessioni se non esiste
+        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            attiva BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        console.log('✅ Schema database aggiornato');
+    } catch (error) {
+        console.error('❌ Errore aggiornamento schema:', error);
     }
 }
 
@@ -276,17 +317,25 @@ async function inviaNotifichePush(notificationData) {
             };
         }
 
-        // Cerca subscription nel database
+        // Cerca subscription nel database - SOLO per sessione corrente
         try {
             let query, params;
             if (targetUsers && targetUsers.length > 0) {
-                const placeholders = targetUsers.map((_, i) => `$${i + 1}`).join(',');
+                const placeholders = targetUsers.map((_, i) => `$${i + 2}`).join(',');
                 query = `SELECT * FROM push_subscriptions 
-                    WHERE partecipante_id IN (${placeholders}) AND attiva = true`;
-                params = targetUsers;
+            WHERE partecipante_id IN (${placeholders}) 
+            AND partecipante_id IN (
+                SELECT id FROM partecipanti_fantagts 
+                WHERE sessione_id = $1 AND attivo = true
+            ) AND attiva = true`;
+                params = [sessioneCorrente, ...targetUsers];
             } else {
-                query = "SELECT * FROM push_subscriptions WHERE attiva = true";
-                params = [];
+                query = `SELECT * FROM push_subscriptions 
+            WHERE partecipante_id IN (
+                SELECT id FROM partecipanti_fantagts 
+                WHERE sessione_id = $1 AND attivo = true
+            ) AND attiva = true`;
+                params = [sessioneCorrente];
             }
 
             const result = await db.query(query, params);
@@ -443,7 +492,11 @@ app.delete('/api/squadre/:numero', async (req, res) => {
 // Setup partecipanti
 app.get('/api/partecipanti', async (req, res) => {
     try {
-        const result = await db.query("SELECT * FROM partecipanti_fantagts ORDER BY nome");
+        const result = await db.query(`
+            SELECT * FROM partecipanti_fantagts 
+            WHERE attivo = true AND sessione_id = $1 
+            ORDER BY nome
+        `, [sessioneCorrente]);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API partecipanti:', err);
@@ -457,13 +510,39 @@ app.post('/api/partecipanti', async (req, res) => {
         const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
         await db.query(`INSERT INTO partecipanti_fantagts 
-            (id, nome, crediti) VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET nome = $2, crediti = $3`,
-            [id, nome, crediti]);
+            (id, nome, crediti, sessione_id) VALUES ($1, $2, $3, $4)
+            ON CONFLICT (id, sessione_id) DO UPDATE SET nome = $2, crediti = $3`,
+            [id, nome, crediti, sessioneCorrente]);
 
         res.json({ id: id, message: 'Partecipante registrato con successo' });
     } catch (err) {
         console.error('Errore POST partecipanti:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per creare nuova sessione
+app.post('/api/nuova-sessione', async (req, res) => {
+    try {
+        const { anno, descrizione } = req.body;
+        const nuovoId = `fantagts_${anno}`;
+
+        // Disattiva sessione corrente
+        await db.query("UPDATE sessioni_fantagts SET attiva = false WHERE attiva = true");
+
+        // Crea nuova sessione
+        await db.query(`INSERT INTO sessioni_fantagts (id, nome, anno, descrizione, attiva) 
+            VALUES ($1, $2, $3, $4, true)`, [nuovoId, `FantaGTS ${anno}`, anno, descrizione]);
+
+        // Aggiorna sessione corrente
+        sessioneCorrente = nuovoId;
+
+        res.json({
+            message: 'Nuova sessione creata',
+            sessioneId: nuovoId,
+            redirectTo: '/setup'
+        });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -753,10 +832,9 @@ app.get('/api/vapid-public-key', (req, res) => {
             return res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
         }
 
-        // Altrimenti genera nuove chiavi
-        const vapidKeys = webpush.generateVAPIDKeys();
+        // Altrimenti usa le chiavi correnti
         res.json({
-            publicKey: vapidKeys.publicKey,
+            publicKey: currentVapidKeys.publicKey,
             temporary: true,
             message: 'Chiave temporanea generata - configura VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY'
         });
@@ -804,21 +882,6 @@ app.post('/api/reset-push-subscriptions', async (req, res) => {
         console.error('❌ Errore reset subscription:', error);
         res.status(500).json({ error: error.message });
     }
-});
-
-// API per ottenere la chiave pubblica corrente
-app.get('/api/vapid-public-key', (req, res) => {
-    if (!webPushConfigured || !currentVapidKeys) {
-        return res.status(503).json({
-            error: 'Web Push non configurato',
-            configured: false
-        });
-    }
-
-    res.json({
-        publicKey: currentVapidKeys.publicKey,
-        configured: true
-    });
 });
 
 // API debug per subscription
@@ -963,6 +1026,80 @@ function terminaRound() {
     gameState.gamePhase = 'results';
 
     elaboraRisultatiAste();
+}
+
+// NUOVO: Sistema multi-round per posizione
+async function avviaMultiRoundPerPosizione(posizione) {
+    console.log(`🎯 Avviando sistema multi-round per posizione: ${posizione}`);
+
+    let roundNumber = 1;
+    let partecipantiRimasti = await getPartecipantiAttivi();
+    let giocatoriDisponibili = await getSlotsDisponibiliPerPosizione(posizione);
+
+    while (partecipantiRimasti.length > 0 && giocatoriDisponibili.length > 0) {
+        console.log(`🔄 Round ${roundNumber} per ${posizione}: ${partecipantiRimasti.length} partecipanti, ${giocatoriDisponibili.length} giocatori`);
+
+        // Avvia round e aspetta TUTTI i partecipanti rimasti
+        const risultatiRound = await eseguiRoundCompleto(posizione, roundNumber, partecipantiRimasti, giocatoriDisponibili);
+
+        // Aggiorna partecipanti e giocatori rimasti
+        partecipantiRimasti = partecipantiRimasti.filter(p => !risultatiRound.vincitori.includes(p.id));
+        giocatoriDisponibili = giocatoriDisponibili.filter(g => !risultatiRound.giocatoriAssegnati.includes(g.id));
+
+        roundNumber++;
+
+        // Pausa tra round
+        await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    console.log(`✅ Posizione ${posizione} completata dopo ${roundNumber - 1} round`);
+}
+
+// Funzione per aspettare TUTTI i partecipanti
+async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, giocatoriDisponibili) {
+    return new Promise((resolve) => {
+        const roundId = `${posizione}_R${roundNumber}`;
+
+        gameState.roundAttivo = roundId;
+        gameState.asteAttive = true;
+        gameState.partecipantiTarget = partecipantiTarget.map(p => p.id);
+        gameState.offerteTemporanee.clear();
+
+        // Invia notifiche SOLO ai partecipanti rimasti
+        inviaNotifichePush({
+            title: `FantaGTS - ${posizione} Round ${roundNumber}`,
+            body: `Round ${roundNumber} per posizione ${posizione}!`,
+            targetUsers: gameState.partecipantiTarget
+        });
+
+        io.emit('round_started', {
+            round: roundId,
+            slots: giocatoriDisponibili,
+            roundNumber: roundNumber,
+            posizione: posizione,
+            partecipantiTarget: gameState.partecipantiTarget
+        });
+
+        // Monitora fino a quando TUTTI i target hanno offerto
+        const checkCompleto = setInterval(() => {
+            const offerteRicevute = Array.from(gameState.offerteTemporanee.values())
+                .filter(o => o.round === roundId).length;
+
+            console.log(`📊 Round ${roundId}: ${offerteRicevute}/${gameState.partecipantiTarget.length} offerte`);
+
+            if (offerteRicevute >= gameState.partecipantiTarget.length) {
+                clearInterval(checkCompleto);
+
+                // Elabora risultati
+                const risultati = elaboraRisultatiRound(roundId, giocatoriDisponibili);
+
+                gameState.asteAttive = false;
+                gameState.roundAttivo = null;
+
+                resolve(risultati);
+            }
+        }, 1000);
+    });
 }
 
 function elaboraRisultatiAste() {
@@ -1330,7 +1467,9 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
 // Inizializza database prima di avviare il server
-initializeDatabase().then(() => {
+initializeDatabase().then(async () => {
+    await updateDatabaseSchema();
+
     server.listen(PORT, HOST, () => {
         const localIP = getLocalIP();
 
