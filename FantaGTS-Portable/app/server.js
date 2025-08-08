@@ -228,7 +228,12 @@ let gameState = {
     roundAttivo: null,
     asteAttive: false,
     connessi: new Map(),
-    offerteTemporanee: new Map()
+    offerteTemporanee: new Map(),
+    // 🆕 NUOVI CAMPI per multi-asta
+    astaCorrente: 1,
+    partecipantiAssegnati: new Set(), // Chi ha già vinto in questo round
+    slotsRimasti: [], // Giocatori ancora disponibili per questo round
+    partecipantiInAttesa: [] // Chi deve ancora prendere un giocatore
 };
 
 // Funzioni utilità
@@ -276,6 +281,67 @@ async function generaSlots() {
     } catch (error) {
         throw error;
     }
+}
+
+// 🆕 NUOVA FUNZIONE: Avvia asta successiva nel round
+function avviaAstaSuccessiva() {
+    if (!gameState.asteAttive) return;
+
+    console.log(`\n🎪 === ASTA ${gameState.astaCorrente} del ROUND ${gameState.roundAttivo} ===`);
+    console.log(`👥 Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
+    console.log(`🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
+    console.log(`📋 Giocatori disponibili: ${gameState.slotsRimasti.map(s => s.giocatore_attuale).join(', ')}`);
+
+    // 🔍 Controlla se il round può continuare
+    if (gameState.partecipantiInAttesa.length === 0) {
+        console.log('✅ TUTTI i partecipanti hanno ottenuto un giocatore - ROUND COMPLETATO');
+        terminaRoundCompleto();
+        return;
+    }
+
+    if (gameState.slotsRimasti.length === 0) {
+        console.log('⚠️ NON ci sono più giocatori disponibili - ROUND COMPLETATO');
+        terminaRoundCompleto();
+        return;
+    }
+
+    // 🔄 Reset offerte per nuova asta
+    gameState.offerteTemporanee.clear();
+
+    // 📤 Invia stato asta ai client
+    io.emit('asta_started', {
+        round: gameState.roundAttivo,
+        astaNumero: gameState.astaCorrente,
+        slots: gameState.slotsRimasti,
+        partecipantiInAttesa: gameState.partecipantiInAttesa,
+        sistema: 'multi-asta'
+    });
+
+    // 🔍 Avvia monitoraggio per questa asta
+    avviaMonitoraggioOfferte();
+}
+
+// 🆕 NUOVA FUNZIONE: Termina round completo
+function terminaRoundCompleto() {
+    console.log(`\n🏁 === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
+
+    gameState.asteAttive = false;
+    const roundCompletato = gameState.roundAttivo;
+    gameState.roundAttivo = null;
+    gameState.astaCorrente = 1;
+    gameState.partecipantiAssegnati.clear();
+    gameState.slotsRimasti = [];
+    gameState.partecipantiInAttesa = [];
+    gameState.offerteTemporanee.clear();
+
+    // 📤 Notifica fine round
+    io.emit('round_ended', {
+        round: roundCompletato,
+        completato: true,
+        message: `Round ${roundCompletato} completato con tutte le aste`
+    });
+
+    console.log(`✅ Round ${roundCompletato} terminato definitivamente`);
 }
 
 // Notifiche Push
@@ -634,83 +700,110 @@ app.post('/api/avvia-round/:round', async (req, res) => {
         return res.status(400).json({ error: 'Un round è già attivo' });
     }
 
-    gameState.roundAttivo = round;
-    gameState.asteAttive = true;
-    gameState.offerteTemporanee.clear();
-
     try {
-        const slotsResult = await db.query("SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero", [round]);
-        const slots = slotsResult.rows;
+        // 🔍 Ottieni tutti i partecipanti dal database
+        const partecipantiResult = await db.query(`
+            SELECT id, nome FROM partecipanti_fantagts 
+            WHERE attivo = true AND sessione_id = $1
+        `, [sessioneCorrente]);
 
-        // 🔍 DEBUG: Verifica quanti slots sono disponibili
-        console.log(`🎯 SLOTS DISPONIBILI per ${round}:`, slots.length);
-        console.log(`📋 DETTAGLIO SLOTS:`, slots.map(s => `${s.id} (${s.giocatore_attuale})`));
+        // 🔍 Ottieni tutti i slots disponibili per questo round
+        const slotsResult = await db.query(
+            "SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero",
+            [round]
+        );
 
-        if (slots.length === 0) {
-            console.error(`❌ ERRORE: Nessuno slot trovato per round ${round}!`);
+        const tuttiPartecipanti = partecipantiResult.rows;
+        const tuttiSlots = slotsResult.rows;
+
+        console.log(`🎯 AVVIO ROUND ${round}:`);
+        console.log(`   👥 Partecipanti: ${tuttiPartecipanti.length}`);
+        console.log(`   🎪 Slots disponibili: ${tuttiSlots.length}`);
+        console.log(`   📋 Giocatori: ${tuttiSlots.map(s => s.giocatore_attuale).join(', ')}`);
+
+        if (tuttiSlots.length === 0) {
             return res.status(400).json({ error: `Nessuno slot disponibile per ${round}` });
         }
 
-        io.emit('round_started', {
-            round: round,
-            slots: slots,
-            sistema: 'conferme'
-        });
+        if (tuttiPartecipanti.length === 0) {
+            return res.status(400).json({ error: 'Nessun partecipante registrato' });
+        }
 
-        console.log(`Round ${round} avviato - Sistema basato su conferme`);
+        // 🆕 INIZIALIZZA STATO MULTI-ASTA
+        gameState.roundAttivo = round;
+        gameState.asteAttive = true;
+        gameState.astaCorrente = 1;
+        gameState.partecipantiAssegnati.clear();
+        gameState.slotsRimasti = [...tuttiSlots]; // Copia array
+        gameState.partecipantiInAttesa = tuttiPartecipanti.map(p => p.id);
+        gameState.offerteTemporanee.clear();
 
-        // NOTIFICHE A TUTTI I PARTECIPANTI REGISTRATI
+        // 🚀 AVVIA PRIMA ASTA
+        avviaAstaSuccessiva();
+
+        // 📨 NOTIFICHE A TUTTI
         try {
-            const partecipantiResult = await db.query("SELECT id FROM partecipanti_fantagts WHERE attivo = true");
-            const partecipantiIds = partecipantiResult.rows.map(p => p.id);
-
-            console.log(`📨 INVIO NOTIFICHE ROUND ${round} A TUTTI I PARTECIPANTI:`, partecipantiIds);
-
-            if (partecipantiIds.length > 0) {
-                await inviaNotifichePush({
-                    title: `FantaGTS - Round ${round}`,
-                    body: `È iniziato il round ${round}! Fai la tua offerta!`,
-                    url: '/',
-                    targetUsers: partecipantiIds
-                });
-            } else {
-                console.log('⚠️ Nessun partecipante trovato nel database');
-            }
+            const partecipantiIds = tuttiPartecipanti.map(p => p.id);
+            await inviaNotifichePush({
+                title: `FantaGTS - Round ${round}`,
+                body: `È iniziato il round ${round}! Fai la tua offerta!`,
+                url: '/',
+                targetUsers: partecipantiIds
+            });
         } catch (error) {
             console.error('❌ ERRORE INVIO NOTIFICHE:', error);
         }
 
         res.json({ message: `Round ${round} avviato con successo` });
 
-        avviaMonitoraggioOfferte();
     } catch (err) {
         console.error('Errore avvia-round:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// API per controllare se tutti hanno fatto offerte
-app.get('/api/stato-offerte/:round', (req, res) => {
+// API per controllare se tutti hanno fatto offerte - VERSIONE CORRETTA
+app.get('/api/stato-offerte/:round', async (req, res) => {
     const round = req.params.round;
 
-    const partecipantiConnessi = Array.from(gameState.connessi.values())
-        .filter(p => p.tipo === 'partecipante').length;
+    try {
+        // 🔍 Ottieni TUTTI i partecipanti dal database
+        const partecipantiResult = await db.query(`
+            SELECT id, nome FROM partecipanti_fantagts 
+            WHERE attivo = true AND sessione_id = $1
+        `, [sessioneCorrente]);
 
-    const offerteRound = Array.from(gameState.offerteTemporanee.values())
-        .filter(o => o.round === round).length;
+        const tuttiPartecipanti = partecipantiResult.rows;
+        const totalePartecipanti = tuttiPartecipanti.length;
 
-    const tuttiHannoOfferto = partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi;
+        // Conta chi ha fatto offerte
+        const partecipantiCheHannoOfferto = new Set();
+        gameState.offerteTemporanee.forEach((offerta, socketId) => {
+            const connesso = gameState.connessi.get(socketId);
+            if (connesso && connesso.partecipanteId && offerta.round === round) {
+                partecipantiCheHannoOfferto.add(connesso.partecipanteId);
+            }
+        });
 
-    res.json({
-        partecipantiConnessi: partecipantiConnessi,
-        offerteRicevute: offerteRound,
-        mancano: Math.max(0, partecipantiConnessi - offerteRound),
-        tuttiHannoOfferto: tuttiHannoOfferto,
-        dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-            partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
-            offerta: offerta
-        }))
-    });
+        const offerteRicevute = partecipantiCheHannoOfferto.size;
+        const tuttiHannoOfferto = offerteRicevute >= totalePartecipanti;
+
+        res.json({
+            partecipantiTotali: totalePartecipanti,
+            partecipantiConnessi: Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length,
+            offerteRicevute: offerteRicevute,
+            mancano: Math.max(0, totalePartecipanti - offerteRicevute),
+            tuttiHannoOfferto: tuttiHannoOfferto,
+            dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
+                partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                partecipanteId: gameState.connessi.get(socketId)?.partecipanteId || null,
+                offerta: offerta
+            }))
+        });
+    } catch (error) {
+        console.error('Errore API stato-offerte:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // API per risultati partite
@@ -983,42 +1076,99 @@ app.post('/api/subscribe-notifications', async (req, res) => {
     }
 });
 
-// Monitoraggio automatico offerte
+// Monitoraggio automatico offerte - VERSIONE CORRETTA
 function avviaMonitoraggioOfferte() {
-    const monitorInterval = setInterval(() => {
+    const monitorInterval = setInterval(async () => {
         if (!gameState.asteAttive) {
             clearInterval(monitorInterval);
             return;
         }
 
-        const partecipantiConnessi = Array.from(gameState.connessi.values())
-            .filter(p => p.tipo === 'partecipante').length;
+        try {
+            // 🔍 NUOVO: Ottieni TUTTI i partecipanti dal database
+            const partecipantiResult = await db.query(`
+                SELECT id, nome FROM partecipanti_fantagts 
+                WHERE attivo = true AND sessione_id = $1
+            `, [sessioneCorrente]);
 
-        const offerteRound = Array.from(gameState.offerteTemporanee.values())
-            .filter(o => o.round === gameState.roundAttivo).length;
+            const tuttiPartecipanti = partecipantiResult.rows;
+            const totalePartecipanti = tuttiPartecipanti.length;
 
-        const statoOfferte = {
-            partecipantiConnessi: partecipantiConnessi,
-            offerteRicevute: offerteRound,
-            mancano: Math.max(0, partecipantiConnessi - offerteRound),
-            tuttiHannoOfferto: partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi
-        };
-
-        io.emit('offerte_update', statoOfferte);
-
-        // NUOVO: Aspetta che TUTTI i partecipanti abbiano fatto offerta
-        if (statoOfferte.tuttiHannoOfferto && partecipantiConnessi > 0) {
-            console.log(`✅ TUTTI i ${partecipantiConnessi} partecipanti hanno fatto offerte - chiusura round`);
-            clearInterval(monitorInterval);
-
-            if (gameState.asteAttive) {
-                console.log('🔄 Avviando elaborazione risultati...');
-                terminaRound();
+            if (totalePartecipanti === 0) {
+                console.log('⚠️ Nessun partecipante registrato nel database');
+                return;
             }
-        } else if (partecipantiConnessi > 0) {
-            console.log(`⏳ Attendendo offerte: ${statoOfferte.offerteRicevute}/${partecipantiConnessi} ricevute`);
+
+            // 🔍 Conta le offerte ricevute per questo round
+            const offerteRound = Array.from(gameState.offerteTemporanee.values())
+                .filter(o => o.round === gameState.roundAttivo);
+
+            const partecipantiCheHannoOfferto = new Set();
+
+            // Identifica CHI ha fatto offerte
+            gameState.offerteTemporanee.forEach((offerta, socketId) => {
+                const connesso = gameState.connessi.get(socketId);
+                if (connesso && connesso.partecipanteId && offerta.round === gameState.roundAttivo) {
+                    partecipantiCheHannoOfferto.add(connesso.partecipanteId);
+                }
+            });
+
+            const offerteRicevute = partecipantiCheHannoOfferto.size;
+            const mancano = totalePartecipanti - offerteRicevute;
+            const tuttiHannoOfferto = offerteRicevute >= totalePartecipanti;
+
+            // 📊 Log dettagliato per debug
+            console.log(`📊 MONITORAGGIO ROUND ${gameState.roundAttivo}:`);
+            console.log(`   👥 Partecipanti totali nel DB: ${totalePartecipanti}`);
+            console.log(`   ✅ Hanno fatto offerte: ${offerteRicevute}`);
+            console.log(`   ⏳ Mancano: ${mancano}`);
+            console.log(`   🔗 Connessi WebSocket: ${Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length}`);
+
+            // Lista di chi ha offerto e chi manca
+            const hannoOfferto = Array.from(partecipantiCheHannoOfferto);
+            const nonHannoOfferto = tuttiPartecipanti
+                .filter(p => !partecipantiCheHannoOfferto.has(p.id))
+                .map(p => p.nome);
+
+            if (hannoOfferto.length > 0) {
+                console.log(`   ✅ Hanno offerto: ${hannoOfferto.join(', ')}`);
+            }
+            if (nonHannoOfferto.length > 0) {
+                console.log(`   ❌ Aspettando: ${nonHannoOfferto.join(', ')}`);
+            }
+
+            const statoOfferte = {
+                partecipantiTotali: totalePartecipanti,
+                partecipantiConnessi: Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length,
+                offerteRicevute: offerteRicevute,
+                mancano: mancano,
+                tuttiHannoOfferto: tuttiHannoOfferto,
+                hannoOfferto: hannoOfferto,
+                nonHannoOfferto: nonHannoOfferto,
+                dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
+                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                    offerta: offerta
+                }))
+            };
+
+            // 📤 Invia aggiornamento a tutti i client
+            io.emit('offerte_update', statoOfferte);
+
+            // 🏁 CHIUDI ROUND solo se TUTTI hanno offerto
+            if (tuttiHannoOfferto && totalePartecipanti > 0) {
+                console.log(`🎉 TUTTI i ${totalePartecipanti} partecipanti del database hanno fatto offerte - chiusura round`);
+                clearInterval(monitorInterval);
+
+                if (gameState.asteAttive) {
+                    console.log('🔄 Avviando elaborazione risultati...');
+                    terminaRound();
+                }
+            }
+
+        } catch (error) {
+            console.error('❌ Errore monitoraggio offerte:', error);
         }
-    }, 1000);
+    }, 1000); // Controlla ogni secondo
 }
 
 // API per forzare fine round
@@ -1115,71 +1265,46 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
 }
 
 function elaboraRisultatiAste() {
-    const round = gameState.roundAttivo;
-    console.log(`🔄 Elaborando risultati per round ${round}...`);
+    console.log(`\n🔄 === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
 
-    const offertePerPartecipante = new Map();
     const offertePerSlot = {};
+    const partecipantiCheHannoOfferto = new Set();
 
-    // Raggruppa offerte per partecipante E per slot
+    // 📊 Raggruppa offerte per slot
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
-        if (connesso && offerta.round === round) {
-            console.log(`📝 Processando offerta: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
+        if (connesso && offerta.round === gameState.roundAttivo) {
+            // ✅ Solo partecipanti che devono ancora vincere qualcosa
+            if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+                console.log(`📝 Offerta valida: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
 
-            // Mappa per partecipante (ogni partecipante può fare solo 1 offerta per round)
-            offertePerPartecipante.set(connesso.partecipanteId, {
-                partecipante: connesso.partecipanteId,
-                nome: connesso.nome,
-                slot: offerta.slot,
-                offerta: offerta.importo,
-                socketId: socketId
-            });
-
-            // Mappa per slot (per gestire i conflitti)
-            if (!offertePerSlot[offerta.slot]) {
-                offertePerSlot[offerta.slot] = [];
+                if (!offertePerSlot[offerta.slot]) {
+                    offertePerSlot[offerta.slot] = [];
+                }
+                offertePerSlot[offerta.slot].push({
+                    partecipante: connesso.partecipanteId,
+                    nome: connesso.nome,
+                    offerta: offerta.importo,
+                    socketId: socketId
+                });
+                partecipantiCheHannoOfferto.add(connesso.partecipanteId);
+            } else {
+                console.log(`⚠️ Offerta ignorata (già assegnato): ${connesso.nome} → ${offerta.slot}`);
             }
-            offertePerSlot[offerta.slot].push({
-                partecipante: connesso.partecipanteId,
-                nome: connesso.nome,
-                offerta: offerta.importo,
-                socketId: socketId
-            });
         }
     });
 
-    console.log('👥 Offerte per partecipante:', Array.from(offertePerPartecipante.entries()));
-    console.log('🎯 Conflitti per slot:', offertePerSlot);
+    console.log('🎯 Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
+        `${slot}: ${offertePerSlot[slot].length} offerte`
+    ));
 
-    const risultati = [];
+    const risultatiAsta = [];
 
-    // STEP 1: Assegna slot senza conflitti
+    // 🏆 Elabora vincitori per ogni slot
     Object.keys(offertePerSlot).forEach(slotId => {
         const offerte = offertePerSlot[slotId];
 
-        if (offerte.length === 1) {
-            // Nessun conflitto - assegna direttamente
-            const vincitore = offerte[0];
-            risultati.push({
-                partecipante: vincitore.partecipante,
-                nome: vincitore.nome,
-                slot: slotId,
-                offertaOriginale: vincitore.offerta,
-                costoFinale: vincitore.offerta,
-                premium: 0,
-                condiviso: false
-            });
-            console.log(`✅ ${vincitore.nome} ottiene ${slotId} senza conflitti (${vincitore.offerta} crediti)`);
-        }
-    });
-
-    // STEP 2: Risolvi conflitti con aste
-    Object.keys(offertePerSlot).forEach(slotId => {
-        const offerte = offertePerSlot[slotId];
-
-        if (offerte.length > 1) {
-            // Conflitto - vince chi offre di più
+        if (offerte.length > 0) {
             offerte.sort((a, b) => b.offerta - a.offerta);
 
             const offertaMassima = offerte[0].offerta;
@@ -1195,7 +1320,7 @@ function elaboraRisultatiAste() {
                 console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
             }
 
-            risultati.push({
+            risultatiAsta.push({
                 partecipante: vincitore.partecipante,
                 nome: vincitore.nome,
                 slot: slotId,
@@ -1204,29 +1329,71 @@ function elaboraRisultatiAste() {
                 premium: 0,
                 condiviso: false
             });
-            console.log(`🏆 ${vincitore.nome} vince ${slotId} dopo conflitto (${vincitore.offerta} crediti)`);
 
-            // Log dei perdenti
-            offerte.forEach(o => {
-                if (o.partecipante !== vincitore.partecipante) {
-                    console.log(`❌ ${o.nome} perde ${slotId} (offerta: ${o.offerta})`);
-                }
-            });
+            console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+
+            // 🔄 Aggiorna stato per prossima asta
+            gameState.partecipantiAssegnati.add(vincitore.partecipante);
+            gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(p => p !== vincitore.partecipante);
+            gameState.slotsRimasti = gameState.slotsRimasti.filter(s => s.id !== slotId);
         }
     });
 
-    console.log('🎉 Risultati finali:', risultati);
+    console.log(`🎉 Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
 
-    if (risultati.length > 0) {
-        salvaRisultatiAste(round, risultati);
-    } else {
-        console.log('⚠️ Nessun risultato da salvare per il round', round);
-        io.emit('round_ended', {
+    if (risultatiAsta.length > 0) {
+        // 💾 Salva risultati nel database
+        salvaRisultatiAsta(gameState.roundAttivo, risultatiAsta);
+    }
+
+    // 📊 Mostra stato aggiornato
+    console.log(`📊 STATO AGGIORNATO:`);
+    console.log(`   ✅ Assegnati: ${Array.from(gameState.partecipantiAssegnati)}`);
+    console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa}`);
+    console.log(`   🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
+
+    // 🔄 Passa alla prossima asta O termina round
+    setTimeout(() => {
+        if (gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0) {
+            gameState.astaCorrente++;
+            console.log(`\n➡️ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
+            avviaAstaSuccessiva();
+        } else {
+            terminaRoundCompleto();
+        }
+    }, 3000); // Pausa di 3 secondi tra aste
+}
+
+// 🔄 Rinomina funzione salvataggio
+async function salvaRisultatiAsta(round, risultati) {
+    if (risultati.length === 0) return;
+
+    try {
+        for (const r of risultati) {
+            await db.query(`INSERT INTO aste 
+                (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
+                VALUES ($1, $2, $3, $4, $5, $6, true, $7)`,
+                [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso]);
+
+            // Aggiorna crediti
+            await db.query(`UPDATE partecipanti_fantagts 
+                    SET crediti = crediti - $1 
+                    WHERE id = $2`, [r.costoFinale, r.partecipante]);
+
+            console.log(`💾 Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
+        }
+
+        // 📤 Invia aggiornamento parziale
+        io.emit('asta_ended', {
             round: round,
-            risultati: []
+            astaNumero: gameState.astaCorrente,
+            risultati: risultati,
+            continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
         });
-        gameState.roundAttivo = null;
-        gameState.offerteTemporanee.clear();
+
+        aggiornaCreditiPartecipanti();
+    } catch (error) {
+        console.error('❌ Errore salvataggio asta:', error);
     }
 }
 
