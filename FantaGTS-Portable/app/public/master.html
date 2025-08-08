@@ -1857,6 +1857,11 @@
             const container = document.getElementById('participantsContainer');
 
             const partecipanti = gameState.connessi.filter(p => p.tipo === 'partecipante');
+            console.log('🔍 Debug partecipanti:', {
+                totaleConnessi: gameState.connessi.length,
+                partecipantiFiltrati: partecipanti.length,
+                dettaglio: gameState.connessi.map(p => ({ nome: p.nome, tipo: p.tipo }))
+            });
 
             if (partecipanti.length === 0) {
                 container.innerHTML = '<p>Nessun partecipante connesso</p>';
