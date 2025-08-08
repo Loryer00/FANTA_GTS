@@ -317,6 +317,13 @@ function avviaAstaSuccessiva() {
         sistema: 'multi-asta'
     });
 
+    // 📤 NUOVO: Invia anche evento compatibile con client mobile
+    io.emit('round_started', {
+        round: gameState.roundAttivo,
+        slots: gameState.slotsRimasti,
+        forceRefresh: true
+    });
+
     // 🔍 Avvia monitoraggio per questa asta
     avviaMonitoraggioOfferte();
 }
@@ -1557,6 +1564,43 @@ async function salvaRisultatiAsta(round, risultati) {
         });
 
         aggiornaCreditiPartecipanti();
+
+        // 📤 NUOVO: Invia aggiornamento squadre individuali
+        for (const risultato of risultati) {
+            // Trova tutti i socket del partecipante
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === risultato.partecipante) {
+                    try {
+                        // Carica squadra aggiornata dal database
+                        const squadraResult = await db.query(`SELECT 
+                    a.slot_id,
+                    a.costo_finale,
+                    s.posizione,
+                    s.giocatore_attuale,
+                    s.colore,
+                    s.punti_totali
+                    FROM aste a 
+                    JOIN slots s ON a.slot_id = s.id 
+                    WHERE a.partecipante_id = $1 AND a.vincitore = true 
+                    ORDER BY s.posizione`, [risultato.partecipante]);
+
+                        // Invia squadra aggiornata al client
+                        io.to(socketId).emit('squadra_aggiornata', {
+                            squadra: squadraResult.rows,
+                            nuovoAcquisto: {
+                                slot: risultato.slot,
+                                giocatore: risultato.nome,
+                                costo: risultato.costoFinale
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Errore invio squadra aggiornata:', error);
+                    }
+                    break;
+                }
+            }
+        }
+
     } catch (error) {
         console.error('❌ Errore salvataggio asta:', error);
     }

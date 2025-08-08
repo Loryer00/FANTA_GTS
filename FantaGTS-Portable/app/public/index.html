@@ -691,7 +691,42 @@
             });
 
             socket.on('round_started', (data) => {
+                console.log('🎯 Round started ricevuto:', data);
+
+                // Forza refresh se necessario
+                if (data.forceRefresh) {
+                    console.log('🔄 Force refresh richiesto');
+                    resetBiddingInterface();
+                }
+
                 showBiddingPhase(data);
+
+                // NUOVO: Carica slots con retry
+                if (data.slots && data.slots.length > 0) {
+                    loadAvailablePlayers(data.slots);
+                } else if (data.round) {
+                    // Fallback: carica da API
+                    setTimeout(() => {
+                        loadSlotsForActiveRound(data.round);
+                    }, 500);
+                }
+            });
+
+            socket.on('squadra_aggiornata', (data) => {
+                console.log('🔄 Squadra aggiornata ricevuta:', data);
+
+                // Aggiorna squadra immediatamente
+                updateMyTeamFromDatabase(data.squadra);
+
+                // Mostra notifica nuovo acquisto
+                if (data.nuovoAcquisto) {
+                    setTimeout(() => {
+                        alert(`🎉 HAI VINTO!\n\n${data.nuovoAcquisto.giocatore}\nper ${data.nuovoAcquisto.costo} crediti!`);
+                    }, 500);
+                }
+
+                // Salva sessione aggiornata
+                saveSession();
             });
 
             socket.on('offerte_update', (data) => {
@@ -1194,16 +1229,38 @@
             try {
                 console.log(`🎯 Caricando slots per round attivo: ${round}`);
 
-                const response = await fetch(`/api/slots-round/${round}`);
-                if (response.ok) {
-                    const slots = await response.json();
-                    console.log(`✅ Slots caricati per ${round}:`, slots);
-                    loadAvailablePlayers(slots);
-                } else {
-                    console.log(`⚠️ Impossibile caricare slots per ${round}`);
-                    // Carica slots di default
-                    loadAvailablePlayers([]);
+                // Prova fino a 3 volte con delay crescente
+                let attempts = 0;
+                const maxAttempts = 3;
+
+                while (attempts < maxAttempts) {
+                    try {
+                        const response = await fetch(`/api/slots-round/${round}`);
+                        if (response.ok) {
+                            const slots = await response.json();
+                            console.log(`✅ Slots caricati per ${round}:`, slots);
+
+                            if (slots.length > 0) {
+                                loadAvailablePlayers(slots);
+                                return; // Successo, esci dal loop
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`⚠️ Tentativo ${attempts + 1} fallito:`, error);
+                    }
+
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        const delay = attempts * 1000; // 1s, 2s, 3s
+                        console.log(`🔄 Riprovo tra ${delay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
                 }
+
+                // Se tutti i tentativi falliscono, carica slots vuoti
+                console.log(`❌ Impossibile caricare slots per ${round} dopo ${maxAttempts} tentativi`);
+                loadAvailablePlayers([]);
+
             } catch (error) {
                 console.error('❌ Errore caricamento slots round attivo:', error);
                 loadAvailablePlayers([]);
@@ -1278,6 +1335,54 @@
                 console.error('❌ Errore caricamento squadra:', error);
                 resetTeamUI();
             }
+        }
+
+        // NUOVA FUNZIONE: Aggiorna squadra dai dati ricevuti
+        function updateMyTeamFromDatabase(squadraData) {
+            console.log('🔄 Aggiornando squadra da database:', squadraData);
+
+            // Reset completo della UI
+            resetTeamUI();
+
+            // Popola con i nuovi dati
+            squadraData.forEach(giocatore => {
+                const [posizione] = giocatore.slot_id.split('_');
+                const slotElement = document.querySelector(`[data-position="${posizione}"]`);
+
+                if (slotElement) {
+                    slotElement.classList.remove('empty');
+                    slotElement.classList.add('filled');
+
+                    const teamColor = getTeamColor(giocatore.colore);
+                    const textColor = getTextColorForTeam(giocatore.colore);
+
+                    slotElement.innerHTML = `
+                <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
+                <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
+            `;
+
+                    slotElement.style.borderColor = teamColor;
+                    slotElement.style.borderWidth = '4px';
+                    slotElement.style.borderStyle = 'solid';
+
+                    if (teamColor.startsWith('#')) {
+                        slotElement.style.backgroundColor = teamColor + '80';
+                    } else {
+                        slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                    }
+                }
+            });
+
+            // Aggiorna contatori
+            const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
+            document.getElementById('teamCount').textContent = slotsRiempiti;
+
+            // Calcola punti totali
+            const puntiTotali = squadraData.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
+            document.getElementById('teamPoints').textContent = puntiTotali;
+
+            console.log(`✅ Squadra aggiornata: ${slotsRiempiti} giocatori, ${puntiTotali} punti`);
         }
 
         function resetTeamUI() {
