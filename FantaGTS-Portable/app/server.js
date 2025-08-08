@@ -1383,6 +1383,7 @@ async function salvaRisultatiAsta(round, risultati) {
             console.log(`💾 Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
         }
 
+
         // 📤 Invia aggiornamento parziale
         io.emit('asta_ended', {
             round: round,
