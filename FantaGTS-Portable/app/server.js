@@ -904,6 +904,44 @@ app.get('/api/debug/subscriptions', async (req, res) => {
     }
 });
 
+app.get('/api/debug/partecipanti', async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT 
+                id, 
+                nome, 
+                crediti, 
+                sessione_id,
+                attivo,
+                created_at,
+                (SELECT COUNT(*) FROM aste WHERE partecipante_id = p.id AND vincitore = true) as giocatori_vinti,
+                (SELECT COUNT(*) FROM push_subscriptions WHERE partecipante_id = p.id AND attiva = true) as subscriptions_attive
+            FROM partecipanti_fantagts p 
+            ORDER BY created_at DESC
+        `);
+
+        console.log('🔍 PARTECIPANTI NEL DATABASE:', result.rows);
+
+        res.json({
+            count: result.rows.length,
+            sessione_corrente: sessioneCorrente,
+            partecipanti: result.rows.map(p => ({
+                id: p.id,
+                nome: p.nome,
+                crediti: p.crediti,
+                sessione: p.sessione_id,
+                attivo: p.attivo,
+                registrato_il: p.created_at,
+                giocatori_vinti: parseInt(p.giocatori_vinti),
+                notifiche_attive: parseInt(p.subscriptions_attive)
+            }))
+        });
+    } catch (err) {
+        console.error('❌ Errore query partecipanti:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/debug/slots', async (req, res) => {
     try {
         const sampleResult = await db.query("SELECT * FROM slots LIMIT 10");
