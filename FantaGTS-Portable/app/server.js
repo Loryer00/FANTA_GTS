@@ -15,27 +15,41 @@ const io = socketIo(server, {
     }
 });
 
-// Configurazione Web Push - VERSIONE SEMPLIFICATA
+// Configurazione Web Push - VERSIONE FINALE
 const webpush = require('web-push');
 let webPushConfigured = false;
 let currentVapidKeys = null;
 
 try {
-    // Per ora, genera sempre chiavi nuove per testare
-    console.log('🔑 Generando chiavi VAPID temporanee...');
-    currentVapidKeys = webpush.generateVAPIDKeys();
+    // Usa chiavi da variabili ambiente SE ci sono
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(
+            process.env.VAPID_EMAIL || 'mailto:fantagts@circolo.com',
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+        currentVapidKeys = {
+            publicKey: process.env.VAPID_PUBLIC_KEY,
+            privateKey: process.env.VAPID_PRIVATE_KEY
+        };
+        webPushConfigured = true;
+        console.log('✅ Web Push configurato con chiavi FISSE da ambiente');
+    }
+    // Altrimenti genera temporanee
+    else {
+        console.log('🔑 Generando chiavi VAPID temporanee...');
+        currentVapidKeys = webpush.generateVAPIDKeys();
 
-    webpush.setVapidDetails(
-        'mailto:fantagts@circolo.com',
-        currentVapidKeys.publicKey,
-        currentVapidKeys.privateKey
-    );
-
-    webPushConfigured = true;
-    console.log('✅ Web Push configurato con chiavi temporanee');
-    console.log('📤 PUBLIC KEY:', currentVapidKeys.publicKey);
-    console.log('🔐 PRIVATE KEY:', currentVapidKeys.privateKey);
-
+        webpush.setVapidDetails(
+            'mailto:fantagts@circolo.com',
+            currentVapidKeys.publicKey,
+            currentVapidKeys.privateKey
+        );
+        webPushConfigured = true;
+        console.log('⚠️ Web Push configurato con chiavi TEMPORANEE');
+        console.log('📤 PUBLIC KEY:', currentVapidKeys.publicKey);
+        console.log('🔐 PRIVATE KEY:', currentVapidKeys.privateKey);
+    }
 } catch (error) {
     console.error('❌ Errore configurazione Web Push:', error);
     webPushConfigured = false;
