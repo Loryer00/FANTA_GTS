@@ -511,7 +511,7 @@ app.post('/api/partecipanti', async (req, res) => {
 
         await db.query(`INSERT INTO partecipanti_fantagts 
             (id, nome, crediti, sessione_id) VALUES ($1, $2, $3, $4)
-            ON CONFLICT (id, sessione_id) DO UPDATE SET nome = $2, crediti = $3`,
+            ON CONFLICT (id) DO UPDATE SET nome = $2, crediti = $3, sessione_id = $4`,
             [id, nome, crediti, sessioneCorrente]);
 
         res.json({ id: id, message: 'Partecipante registrato con successo' });
