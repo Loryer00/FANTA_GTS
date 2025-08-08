@@ -1926,15 +1926,20 @@
             html += '<th>Giocatore</th><th>Vincitore</th><th>Offerta</th><th>Costo Finale</th><th>Condiviso</th>';
             html += '</tr></thead><tbody>';
 
-            risultati.forEach(r => {
-                html += `<tr>
-                                <td><strong>${r.slot.replace('_', ' ')}</strong></td>
-                                <td>${r.nome}</td>
-                                <td>${r.offertaOriginale}</td>
-                                <td>${r.costoFinale}</td>
-                                <td>${r.condiviso ? '✅' : '❌'}</td>
-                            </tr>`;
-            });
+            // CORREZIONE: Verifica che risultati esista ed è un array
+            if (risultati && Array.isArray(risultati)) {
+                risultati.forEach(r => {
+                    html += `<tr>
+                <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                <td>${r.nome}</td>
+                <td>${r.offertaOriginale}</td>
+                <td>${r.costoFinale}</td>
+                <td>${r.condiviso ? '✅' : '❌'}</td>
+            </tr>`;
+                });
+            } else {
+                html += '<tr><td colspan="5">Nessun risultato disponibile</td></tr>';
+            }
 
             html += '</tbody></table>';
             content.innerHTML = html;
@@ -1942,9 +1947,9 @@
 
             // Aggiorna anche la sezione risultati nella pagina
             document.getElementById('lastRoundResults').innerHTML = `
-                            <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
-                            ${html}
-                        `;
+        <h3>Round ${round} - ${risultati ? risultati.length : 0} assegnazioni</h3>
+        ${html}
+    `;
         }
 
         async function mostraClassifica() {

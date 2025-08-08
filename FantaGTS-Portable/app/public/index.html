@@ -1305,8 +1305,16 @@
         }
 
         function updateMyTeamFromResults(round, risultati) {
+            // CORREZIONE: Verifica che risultati esista ed è un array
+            if (!risultati || !Array.isArray(risultati)) {
+                console.log('⚠️ Risultati non validi:', risultati);
+                return;
+            }
+
             const mieiAcquisti = risultati.filter(r => r.nome === playerData.name);
             console.log('🎯 I miei acquisti:', mieiAcquisti);
+
+        // resto della funzione rimane uguale...
 
             mieiAcquisti.forEach(acquisto => {
                 const [posizione, coloreSquadra] = acquisto.slot.split('_');
