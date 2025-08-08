@@ -648,6 +648,27 @@
             socket.on('registered', (data) => {
                 if (data.success) {
                     console.log('✅ Registrazione WebSocket confermata per partecipante');
+
+                    // NUOVO: Controlla se c'è un'asta in corso
+                    if (data.gameState) {
+                        console.log('🎮 Stato gioco ricevuto:', data.gameState);
+
+                        if (data.gameState.asteAttive && data.gameState.roundAttivo) {
+                            console.log('🔥 ASTA IN CORSO! Mostrando interfaccia aste');
+
+                            // Simula la ricezione di un evento round_started
+                            showBiddingPhase({
+                                round: data.gameState.roundAttivo,
+                                slots: [] // I slots verranno caricati dopo
+                            });
+
+                            // Richiedi i slots per il round attivo
+                            loadSlotsForActiveRound(data.gameState.roundAttivo);
+                        } else {
+                            console.log('⏳ Nessuna asta attiva, mostra fase di attesa');
+                            showWaitingPhase();
+                        }
+                    }
                 } else {
                     console.error('❌ Registrazione WebSocket fallita:', data);
                 }
@@ -1106,6 +1127,27 @@
         function showResultsPhase(data) {
             alert('Round terminato!');
             showWaitingPhase();
+        }
+
+        // Carica slots per round attivo
+        async function loadSlotsForActiveRound(round) {
+            try {
+                console.log(`🎯 Caricando slots per round attivo: ${round}`);
+
+                const response = await fetch(`/api/slots-round/${round}`);
+                if (response.ok) {
+                    const slots = await response.json();
+                    console.log(`✅ Slots caricati per ${round}:`, slots);
+                    loadAvailablePlayers(slots);
+                } else {
+                    console.log(`⚠️ Impossibile caricare slots per ${round}`);
+                    // Carica slots di default
+                    loadAvailablePlayers([]);
+                }
+            } catch (error) {
+                console.error('❌ Errore caricamento slots round attivo:', error);
+                loadAvailablePlayers([]);
+            }
         }
 
         async function loadPlayerTeam() {

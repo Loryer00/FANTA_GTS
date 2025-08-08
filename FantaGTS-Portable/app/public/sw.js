@@ -58,7 +58,7 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// Click su notifica
+// Click su notifica - VERSIONE MIGLIORATA
 self.addEventListener('notificationclick', (event) => {
     console.log('🔔 Service Worker: Click su notifica');
 
@@ -72,22 +72,34 @@ self.addEventListener('notificationclick', (event) => {
         return;
     }
 
-    // Apri o porta in focus FantaGTS
+    // MIGLIORE gestione apertura app
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((windowClients) => {
-                // Cerca se c'è già una finestra aperta con FantaGTS
-                for (let client of windowClients) {
-                    if (client.url.includes(self.location.origin)) {
-                        return client.focus().then(() => {
-                            return client.navigate(fullUrl);
-                        });
-                    }
-                }
+        clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
+        }).then((windowClients) => {
+            console.log('🔍 Client trovati:', windowClients.length);
 
-                // Apri nuova finestra
-                return clients.openWindow(fullUrl);
-            })
+            // Cerca se c'è già una finestra aperta con FantaGTS
+            for (let client of windowClients) {
+                console.log('🔍 Controllando client:', client.url);
+                if (client.url.includes(self.location.origin)) {
+                    console.log('✅ Trovato client esistente, portandolo in focus');
+                    return client.focus().then(() => {
+                        // Naviga alla pagina corretta
+                        return client.navigate(fullUrl);
+                    });
+                }
+            }
+
+            // Se non trova finestre aperte, apri nuova finestra
+            console.log('🆕 Aprendo nuova finestra');
+            return clients.openWindow(fullUrl);
+        }).catch(error => {
+            console.error('❌ Errore apertura finestra:', error);
+            // Fallback: prova comunque ad aprire
+            return clients.openWindow(fullUrl);
+        })
     );
 });
 

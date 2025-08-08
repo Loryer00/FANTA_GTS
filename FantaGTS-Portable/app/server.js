@@ -787,6 +787,18 @@ app.get('/api/vapid-public-key', (req, res) => {
     });
 });
 
+// API per ottenere slots di un round specifico
+app.get('/api/slots-round/:round', async (req, res) => {
+    try {
+        const round = req.params.round;
+        const result = await db.query("SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero", [round]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API slots-round:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
@@ -1122,12 +1134,16 @@ io.on('connection', (socket) => {
             stato: 'connesso'
         });
 
+        // MIGLIORATO: Invia stato completo del gioco
         socket.emit('registered', {
             success: true,
             gameState: {
                 fase: gameState.fase,
                 roundAttivo: gameState.roundAttivo,
-                asteAttive: gameState.asteAttive
+                asteAttive: gameState.asteAttive,
+                // Aggiungi informazioni sui round attivi
+                currentRound: gameState.roundAttivo,
+                biddingActive: gameState.asteAttive
             }
         });
 
