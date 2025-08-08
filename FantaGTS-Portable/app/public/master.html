@@ -514,6 +514,9 @@
                 <button class="btn btn-primary" onclick="esportaDati()">
                     📊 Esporta Dati
                 </button>
+                <button class="btn btn-primary" onclick="mostraDebugPartecipanti()">
+                    👥 Debug Partecipanti
+                </button>
                 <button class="btn btn-primary" onclick="mostraClassifica()">
                     🏆 Classifica
                 </button>
@@ -1062,6 +1065,38 @@
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadre circolo:', error);
+            }
+        }
+
+        async function mostraDebugPartecipanti() {
+            try {
+                const response = await fetch('/api/debug/partecipanti');
+                const data = await response.json();
+
+                let html = `<h3>👥 Partecipanti Registrati (${data.count})</h3>`;
+                html += '<table class="results-table"><thead><tr>';
+                html += '<th>Nome</th><th>ID</th><th>Crediti</th><th>Giocatori</th><th>Notifiche</th><th>Registrato</th>';
+                html += '</tr></thead><tbody>';
+
+                data.partecipanti.forEach(p => {
+                    html += `<tr>
+                <td><strong>${p.nome}</strong></td>
+                <td><code>${p.id}</code></td>
+                <td>${p.crediti}</td>
+                <td>${p.giocatori_vinti}/10</td>
+                <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
+                <td>${new Date(p.registrato_il).toLocaleString('it-IT')}</td>
+            </tr>`;
+                });
+
+                html += '</tbody></table>';
+
+                // Mostra in un modal o alert
+                alert(`Partecipanti: ${data.count}\n\nVedi console per dettagli completi`);
+                console.table(data.partecipanti);
+
+            } catch (error) {
+                showNotification('Errore caricamento debug', 'error');
             }
         }
 
