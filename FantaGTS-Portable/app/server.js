@@ -639,7 +639,7 @@ app.post('/api/avvia-round/:round', async (req, res) => {
     gameState.offerteTemporanee.clear();
 
     try {
-        const slotsResult = await db.query("SELECT * FROM slots WHERE posizione = $1 AND attivo = true", [round]);
+        const slotsResult = await db.query("SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero", [round]);
         const slots = slotsResult.rows;
 
         io.emit('round_started', {
@@ -1107,7 +1107,9 @@ function elaboraRisultatiAste() {
     console.log(`🔄 Elaborando risultati per round ${round}...`);
 
     const offertePerSlot = {};
+    const partecipantiAssegnati = new Set(); // Traccia chi ha già vinto qualcosa
 
+    // Raggruppa offerte per slot
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
         if (connesso && offerta.round === round) {
@@ -1128,41 +1130,50 @@ function elaboraRisultatiAste() {
     console.log('🎯 Offerte raggruppate per slot:', offertePerSlot);
 
     const risultati = [];
+    const slotsOrdinati = Object.keys(offertePerSlot).sort(); // Ordina per consistenza
 
-    Object.keys(offertePerSlot).forEach(slotId => {
+    // NUOVO: Elabora prima i conflitti, poi assegna gli slot liberi
+    slotsOrdinati.forEach(slotId => {
         const offerte = offertePerSlot[slotId];
 
         if (offerte.length > 0) {
-            offerte.sort((a, b) => b.offerta - a.offerta);
+            // Filtra solo partecipanti che non hanno ancora vinto nulla
+            const offerteValide = offerte.filter(o => !partecipantiAssegnati.has(o.partecipante));
 
-            // GESTIONE PAREGGI: se più persone hanno la stessa offerta massima
-            const offertaMassima = offerte[0].offerta;
-            const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
+            if (offerteValide.length > 0) {
+                offerteValide.sort((a, b) => b.offerta - a.offerta);
 
-            let vincitore;
-            if (offerteVincenti.length === 1) {
-                // Vincitore unico
-                vincitore = offerteVincenti[0];
+                const offertaMassima = offerteValide[0].offerta;
+                const offerteVincenti = offerteValide.filter(o => o.offerta === offertaMassima);
+
+                let vincitore;
+                if (offerteVincenti.length === 1) {
+                    vincitore = offerteVincenti[0];
+                    console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+                } else {
+                    // PAREGGIO: scegli casualmente
+                    const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
+                    vincitore = offerteVincenti[randomIndex];
+                    console.log(`🎲 PAREGGIO su ${slotId}! ${offerteVincenti.length} offerte da ${offertaMassima} crediti`);
+                    console.log(`🏆 Vincitore estratto: ${vincitore.nome}`);
+                }
+
+                risultati.push({
+                    partecipante: vincitore.partecipante,
+                    nome: vincitore.nome,
+                    slot: slotId,
+                    offertaOriginale: vincitore.offerta,
+                    costoFinale: vincitore.offerta,
+                    premium: 0,
+                    condiviso: false
+                });
+
+                // Segna questo partecipante come già assegnato per questo round
+                partecipantiAssegnati.add(vincitore.partecipante);
                 console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
             } else {
-                // PAREGGIO: scegli casualmente
-                const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
-                vincitore = offerteVincenti[randomIndex];
-                console.log(`🎲 PAREGGIO su ${slotId}! ${offerteVincenti.length} offerte da ${offertaMassima} crediti`);
-                console.log(`🏆 Vincitore estratto: ${vincitore.nome}`);
+                console.log(`⚠️ Slot ${slotId}: tutti i partecipanti hanno già vinto altri slot`);
             }
-
-            risultati.push({
-                partecipante: vincitore.partecipante,
-                nome: vincitore.nome,
-                slot: slotId,
-                offertaOriginale: vincitore.offerta,
-                costoFinale: vincitore.offerta,
-                premium: 0,
-                condiviso: false
-            });
-
-            console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
         }
     });
 
