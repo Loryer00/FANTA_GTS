@@ -21,6 +21,7 @@ let webPushConfigured = false;
 let currentVapidKeys = null;
 
 // Funzione per inizializzare Web Push
+/*
 function initializeWebPush() {
     try {
         // OPZIONE 1: Usa chiavi da variabili ambiente
@@ -59,7 +60,7 @@ function initializeWebPush() {
         webPushConfigured = false;
     }
 }
-
+*/
 // Inizializza Web Push
 initializeWebPush();
 
