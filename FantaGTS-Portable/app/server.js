@@ -15,54 +15,31 @@ const io = socketIo(server, {
     }
 });
 
-// Configurazione Web Push - VERSIONE DEFINITIVA
+// Configurazione Web Push - VERSIONE SEMPLIFICATA
 const webpush = require('web-push');
 let webPushConfigured = false;
 let currentVapidKeys = null;
 
-// Funzione per inizializzare Web Push
-/*
-function initializeWebPush() {
-    try {
-        // OPZIONE 1: Usa chiavi da variabili ambiente
-        if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-            webpush.setVapidDetails(
-                process.env.VAPID_EMAIL || 'mailto:fantagts@circolo.com',
-                process.env.VAPID_PUBLIC_KEY,
-                process.env.VAPID_PRIVATE_KEY
-            );
-            currentVapidKeys = {
-                publicKey: process.env.VAPID_PUBLIC_KEY,
-                privateKey: process.env.VAPID_PRIVATE_KEY
-            };
-            webPushConfigured = true;
-            console.log('✅ Web Push configurato con chiavi da ambiente');
-        }
-        // OPZIONE 2: Genera nuove chiavi sempre fresche
-        else {
-            console.log('🔑 Generando nuove chiavi VAPID...');
-            currentVapidKeys = webpush.generateVAPIDKeys();
+try {
+    // Per ora, genera sempre chiavi nuove per testare
+    console.log('🔑 Generando chiavi VAPID temporanee...');
+    currentVapidKeys = webpush.generateVAPIDKeys();
 
-            webpush.setVapidDetails(
-                'mailto:fantagts@circolo.com',
-                currentVapidKeys.publicKey,
-                currentVapidKeys.privateKey
-            );
-            webPushConfigured = true;
+    webpush.setVapidDetails(
+        'mailto:fantagts@circolo.com',
+        currentVapidKeys.publicKey,
+        currentVapidKeys.privateKey
+    );
 
-            console.log('🔑 NUOVE CHIAVI VAPID GENERATE:');
-            console.log('📤 PUBLIC:', currentVapidKeys.publicKey);
-            console.log('🔐 PRIVATE:', currentVapidKeys.privateKey);
-            console.log('💡 IMPORTANTE: Salva queste chiavi se vuoi riutilizzarle!');
-        }
-    } catch (error) {
-        console.error('❌ Errore configurazione Web Push:', error);
-        webPushConfigured = false;
-    }
+    webPushConfigured = true;
+    console.log('✅ Web Push configurato con chiavi temporanee');
+    console.log('📤 PUBLIC KEY:', currentVapidKeys.publicKey);
+    console.log('🔐 PRIVATE KEY:', currentVapidKeys.privateKey);
+
+} catch (error) {
+    console.error('❌ Errore configurazione Web Push:', error);
+    webPushConfigured = false;
 }
-*/
-// Inizializza Web Push
-initializeWebPush();
 
 // Middleware
 app.use(express.static('public'));
@@ -70,18 +47,11 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Database PostgreSQL con debug e fallback
-console.log('🔍 Tutte le variabili database disponibili:');
-console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'PRESENTE' : 'MANCANTE');
-console.log('DATABASE_PUBLIC_URL:', process.env.DATABASE_PUBLIC_URL ? 'PRESENTE' : 'MANCANTE');
-console.log('POSTGRES_URL:', process.env.POSTGRES_URL ? 'PRESENTE' : 'MANCANTE');
-
+// Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
     process.env.POSTGRES_URL ||
     'postgresql://postgres:iUFrkUQnATpmwBXsbcUFcjtmtzMudUyk@postgres.railway.internal:5432/railway';
-
-console.log('🔗 Usando connection string:', connectionString.substring(0, 50) + '...');
 
 const db = new Pool({
     connectionString: connectionString,
