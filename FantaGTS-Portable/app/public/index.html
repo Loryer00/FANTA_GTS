@@ -532,6 +532,7 @@
                 const partecipanti = await response.json();
                 const partecipanteEsistente = partecipanti.find(p => p.id === parsedData.id);
 
+                // Trova questa sezione nella funzione checkExistingSession():
                 if (partecipanteEsistente) {
                     // Ripristina i dati del giocatore
                     playerData = {
@@ -544,6 +545,13 @@
 
                     console.log('✅ Sessione ripristinata per:', playerData.name);
 
+                    // AGGIUNTO: Verifica che sia effettivamente registrato nel DB
+                    if (!partecipanteEsistente.id) {
+                        console.log('❌ Giocatore non ha ID valido nel database');
+                        clearSavedSession();
+                        return;
+                    }
+
                     // Mostra direttamente l'area di gioco
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
@@ -552,16 +560,16 @@
                     // Registra socket quando è pronto
                     registerSocketWhenReady();
 
-                    // NUOVO: Carica la squadra del giocatore
+                    // Carica la squadra del giocatore
                     await loadPlayerTeam();
 
                     // Mostra notifica di benvenuto
                     setTimeout(() => {
-                        alert(`👋 Bentornato, ${playerData.name}!\n\nLa tua sessione è stata ripristinata.`);
+                        alert(`👋 Bentornato, ${playerData.name}!\n\nLa tua sessione è stata ripristinata.\nCrediti disponibili: ${playerData.credits}`);
                     }, 500);
 
                 } else {
-                    console.log('Partecipante non più esistente nel database');
+                    console.log('❌ Partecipante non più esistente nel database o non registrato correttamente');
                     clearSavedSession();
                 }
 
@@ -671,6 +679,14 @@
                     }
                 } else {
                     console.error('❌ Registrazione WebSocket fallita:', data);
+
+                    if (data.shouldReload) {
+                        alert('❌ Sessione non valida. L\'app verrà ricaricata per permettere una nuova registrazione.');
+                        clearSavedSession();
+                        location.reload();
+                    } else {
+                        alert('❌ Errore registrazione: ' + (data.error || 'Errore sconosciuto'));
+                    }
                 }
             });
 
@@ -765,50 +781,97 @@
             }
 
             try {
-                // Registra nel database (solo nome)
-                const response = await fetch('/api/partecipanti', {
+                // PRIMA: Controlla se esiste già nel database
+                console.log('🔍 Verificando se il giocatore esiste già...');
+                const checkResponse = await fetch('/api/check-player', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nome: name,
-                        crediti: 2000
-                    })
+                    body: JSON.stringify({ nome: name })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
+                const checkResult = await checkResponse.json();
+
+                if (checkResult.exists) {
+                    // Giocatore già registrato - effettua login
+                    console.log('✅ Giocatore esistente trovato, effettuando login...');
+
                     playerData.registered = true;
-                    playerData.name = name;
-                    playerData.id = result.id;
-                    playerData.credits = 2000;
+                    playerData.name = checkResult.player.nome;
+                    playerData.id = checkResult.player.id;
+                    playerData.credits = checkResult.player.crediti;
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     // Salva la sessione
                     saveSession();
 
-                    // Registra socket quando è pronto
-                    registerSocketWhenReady();
-
                     // Mostra area gioco
                     document.getElementById('currentPlayer').textContent = name;
-                    document.getElementById('playerCredits').textContent = 2000;
+                    document.getElementById('playerCredits').textContent = checkResult.player.crediti;
 
                     updateCreditsDisplay();
                     showGameArea();
 
-                    // NUOVO: Carica la squadra esistente se c'è
+                    // Carica la squadra esistente
                     await loadPlayerTeam();
 
-                    // Gestisci notifiche se abilitate
+                    // Setup notifiche se richieste
                     if (notificationsEnabled) {
                         await setupPushNotifications();
                     }
 
-                    alert(`✅ Registrato con successo!\n\nBenvenuto nel FantaGTS, ${name}!${notificationsEnabled ? '\n\n🔔 Notifiche attivate!' : ''}`);
+                    // Registra socket quando è pronto
+                    registerSocketWhenReady();
+
+                    alert(`✅ Bentornato, ${name}!\n\nHai ${checkResult.player.crediti} crediti disponibili.${notificationsEnabled ? '\n\n🔔 Notifiche attivate!' : ''}`);
 
                 } else {
-                    const error = await response.json();
-                    alert('❌ Errore registrazione: ' + error.error);
+                    // Nuovo giocatore - registrazione obbligatoria
+                    console.log('🆕 Nuovo giocatore, registrando nel database...');
+
+                    const response = await fetch('/api/partecipanti', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            nome: name,
+                            crediti: 2000
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        playerData.registered = true;
+                        playerData.name = name;
+                        playerData.id = result.id;
+                        playerData.credits = 2000;
+                        playerData.notificationsEnabled = notificationsEnabled;
+
+                        // Salva la sessione
+                        saveSession();
+
+                        // Registra socket quando è pronto
+                        registerSocketWhenReady();
+
+                        // Mostra area gioco
+                        document.getElementById('currentPlayer').textContent = name;
+                        document.getElementById('playerCredits').textContent = 2000;
+
+                        updateCreditsDisplay();
+                        showGameArea();
+
+                        // Carica la squadra esistente se c'è
+                        await loadPlayerTeam();
+
+                        // Gestisci notifiche se abilitate
+                        if (notificationsEnabled) {
+                            await setupPushNotifications();
+                        }
+
+                        alert(`✅ Registrato con successo!\n\nBenvenuto nel FantaGTS, ${name}!\nHai ricevuto 2000 crediti iniziali.${notificationsEnabled ? '\n\n🔔 Notifiche attivate!' : ''}`);
+
+                    } else {
+                        const error = await response.json();
+                        alert('❌ Errore registrazione: ' + error.error);
+                    }
                 }
             } catch (error) {
                 alert('❌ Errore di connessione al server');

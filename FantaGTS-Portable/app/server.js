@@ -986,6 +986,48 @@ app.post('/api/reset-push-subscriptions', async (req, res) => {
     }
 });
 
+// API per verificare se un giocatore esiste
+app.post('/api/check-player', async (req, res) => {
+    try {
+        const { nome } = req.body;
+
+        if (!nome) {
+            return res.status(400).json({ error: 'Nome richiesto' });
+        }
+
+        // Cerca il giocatore nel database
+        const result = await db.query(`
+            SELECT id, nome, crediti, created_at 
+            FROM partecipanti_fantagts 
+            WHERE LOWER(nome) = LOWER($1) AND attivo = true AND sessione_id = $2
+        `, [nome.trim(), sessioneCorrente]);
+
+        if (result.rows.length > 0) {
+            const player = result.rows[0];
+            console.log(`✅ Giocatore esistente trovato: ${player.nome} (ID: ${player.id})`);
+
+            res.json({
+                exists: true,
+                player: {
+                    id: player.id,
+                    nome: player.nome,
+                    crediti: player.crediti,
+                    registered_at: player.created_at
+                }
+            });
+        } else {
+            console.log(`❌ Giocatore non trovato: ${nome}`);
+            res.json({
+                exists: false,
+                message: 'Giocatore non registrato'
+            });
+        }
+    } catch (err) {
+        console.error('Errore API check-player:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API debug per subscription
 app.get('/api/debug-subscriptions', async (req, res) => {
     try {
@@ -1557,29 +1599,79 @@ io.on('connection', (socket) => {
     console.log('Nuova connessione:', socket.id);
 
     socket.on('register', (data) => {
-        gameState.connessi.set(socket.id, {
-            nome: data.nome,
-            tipo: data.tipo,
-            partecipanteId: data.partecipanteId || null,
-            stato: 'connesso'
-        });
+        // NUOVO: Verifica che il partecipante sia effettivamente registrato nel DB
+        if (data.tipo === 'partecipante' && data.partecipanteId) {
+            db.query(`
+            SELECT id, nome, crediti FROM partecipanti_fantagts 
+            WHERE id = $1 AND attivo = true AND sessione_id = $2
+        `, [data.partecipanteId, sessioneCorrente])
+                .then(result => {
+                    if (result.rows.length === 0) {
+                        console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
+                        socket.emit('registered', {
+                            success: false,
+                            error: 'Non sei registrato nel database. Effettua prima la registrazione.',
+                            shouldReload: true
+                        });
+                        return;
+                    }
 
-        // MIGLIORATO: Invia stato completo del gioco
-        socket.emit('registered', {
-            success: true,
-            gameState: {
-                fase: gameState.fase,
-                roundAttivo: gameState.roundAttivo,
-                asteAttive: gameState.asteAttive,
-                // Aggiungi informazioni sui round attivi
-                currentRound: gameState.roundAttivo,
-                biddingActive: gameState.asteAttive
-            }
-        });
+                    // Registrazione WebSocket autorizzata
+                    gameState.connessi.set(socket.id, {
+                        nome: data.nome,
+                        tipo: data.tipo,
+                        partecipanteId: data.partecipanteId || null,
+                        stato: 'connesso',
+                        verified: true  // NUOVO: Flag per verificati nel DB
+                    });
 
-        io.emit('connessi_update', Array.from(gameState.connessi.values()));
+                    // Invia stato completo del gioco
+                    socket.emit('registered', {
+                        success: true,
+                        verified: true,
+                        gameState: {
+                            fase: gameState.fase,
+                            roundAttivo: gameState.roundAttivo,
+                            asteAttive: gameState.asteAttive,
+                            currentRound: gameState.roundAttivo,
+                            biddingActive: gameState.asteAttive
+                        }
+                    });
 
-        console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
+                    io.emit('connessi_update', Array.from(gameState.connessi.values()));
+                    console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId})`);
+                })
+                .catch(err => {
+                    console.error('❌ Errore verifica database:', err);
+                    socket.emit('registered', {
+                        success: false,
+                        error: 'Errore verifica database'
+                    });
+                });
+        } else {
+            // Master o altri tipi non necessitano verifica DB
+            gameState.connessi.set(socket.id, {
+                nome: data.nome,
+                tipo: data.tipo,
+                partecipanteId: data.partecipanteId || null,
+                stato: 'connesso',
+                verified: data.tipo !== 'partecipante'  // Master sempre verificato
+            });
+
+            socket.emit('registered', {
+                success: true,
+                gameState: {
+                    fase: gameState.fase,
+                    roundAttivo: gameState.roundAttivo,
+                    asteAttive: gameState.asteAttive,
+                    currentRound: gameState.roundAttivo,
+                    biddingActive: gameState.asteAttive
+                }
+            });
+
+            io.emit('connessi_update', Array.from(gameState.connessi.values()));
+            console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
+        }
     });
 
     socket.on('place_bid', async (data) => {
