@@ -770,7 +770,7 @@
             });
         }
 
-        // Registrazione giocatore SEMPLIFICATA
+        // Registrazione giocatore con controllo duplicati
         async function registerPlayer() {
             const name = document.getElementById('playerName').value.trim();
             const notificationsEnabled = document.getElementById('enableNotifications').checked;
@@ -780,9 +780,14 @@
                 return;
             }
 
+            if (name.length < 2) {
+                alert('Il nome deve essere di almeno 2 caratteri!');
+                return;
+            }
+
             try {
-                // PRIMA: Controlla se esiste già nel database
-                console.log('🔍 Verificando se il giocatore esiste già...');
+                // PRIMO: Controlla se esiste già
+                console.log('🔍 Verificando disponibilità del nome...');
                 const checkResponse = await fetch('/api/check-player', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -791,9 +796,9 @@
 
                 const checkResult = await checkResponse.json();
 
-                if (checkResult.exists) {
+                if (checkResult.exists && checkResult.inCurrentSession) {
                     // Giocatore già registrato - effettua login
-                    console.log('✅ Giocatore esistente trovato, effettuando login...');
+                    console.log('✅ Login giocatore esistente');
 
                     playerData.registered = true;
                     playerData.name = checkResult.player.nome;
@@ -801,76 +806,65 @@
                     playerData.credits = checkResult.player.crediti;
                     playerData.notificationsEnabled = notificationsEnabled;
 
-                    // Salva la sessione
                     saveSession();
-
-                    // Mostra area gioco
                     document.getElementById('currentPlayer').textContent = name;
                     document.getElementById('playerCredits').textContent = checkResult.player.crediti;
-
                     updateCreditsDisplay();
                     showGameArea();
-
-                    // Carica la squadra esistente
                     await loadPlayerTeam();
 
-                    // Setup notifiche se richieste
                     if (notificationsEnabled) {
                         await setupPushNotifications();
                     }
-
-                    // Registra socket quando è pronto
                     registerSocketWhenReady();
 
-                    alert(`✅ Bentornato, ${name}!\n\nHai ${checkResult.player.crediti} crediti disponibili.${notificationsEnabled ? '\n\n🔔 Notifiche attivate!' : ''}`);
+                    alert(`✅ Bentornato, ${name}!\n\nHai ${checkResult.player.crediti} crediti disponibili.`);
 
-                } else {
-                    // Nuovo giocatore - registrazione obbligatoria
-                    console.log('🆕 Nuovo giocatore, registrando nel database...');
+                } else if (checkResult.nameOccupied) {
+                    // Nome già utilizzato in altra sessione
+                    const suggestions = checkResult.suggestions.join(', ');
+                    alert(`❌ ${checkResult.message}\n\nSuggerimenti:\n${suggestions}`);
+                    return;
+
+                } else if (checkResult.nameAvailable) {
+                    // Nome disponibile - procedi con registrazione
+                    console.log('🆕 Registrando nuovo giocatore...');
 
                     const response = await fetch('/api/partecipanti', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            nome: name,
-                            crediti: 2000
-                        })
+                        body: JSON.stringify({ nome: name, crediti: 2000 })
                     });
 
                     if (response.ok) {
                         const result = await response.json();
                         playerData.registered = true;
-                        playerData.name = name;
+                        playerData.name = result.nome;
                         playerData.id = result.id;
-                        playerData.credits = 2000;
+                        playerData.credits = result.crediti;
                         playerData.notificationsEnabled = notificationsEnabled;
 
-                        // Salva la sessione
                         saveSession();
-
-                        // Registra socket quando è pronto
                         registerSocketWhenReady();
-
-                        // Mostra area gioco
                         document.getElementById('currentPlayer').textContent = name;
-                        document.getElementById('playerCredits').textContent = 2000;
-
+                        document.getElementById('playerCredits').textContent = result.crediti;
                         updateCreditsDisplay();
                         showGameArea();
-
-                        // Carica la squadra esistente se c'è
                         await loadPlayerTeam();
 
-                        // Gestisci notifiche se abilitate
                         if (notificationsEnabled) {
                             await setupPushNotifications();
                         }
 
-                        alert(`✅ Registrato con successo!\n\nBenvenuto nel FantaGTS, ${name}!\nHai ricevuto 2000 crediti iniziali.${notificationsEnabled ? '\n\n🔔 Notifiche attivate!' : ''}`);
+                        alert(`✅ Registrato con successo!\n\nBenvenuto nel FantaGTS, ${name}!\nHai ricevuto ${result.crediti} crediti iniziali.`);
 
                     } else {
                         const error = await response.json();
-                        alert('❌ Errore registrazione: ' + error.error);
+                        if (error.action === 'name_change_required') {
+                            alert(`❌ ${error.error}\n\nSuggerimenti: ${error.suggestions?.join(', ') || 'Modifica il nome'}`);
+                        } else {
+                            alert('❌ Errore registrazione: ' + error.error);
+                        }
                     }
                 }
             } catch (error) {

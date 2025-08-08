@@ -573,20 +573,58 @@ app.get('/api/partecipanti', async (req, res) => {
 app.post('/api/partecipanti', async (req, res) => {
     try {
         const { nome, crediti = 2000 } = req.body;
-        const id = nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
+        if (!nome || !nome.trim()) {
+            return res.status(400).json({ error: 'Nome richiesto' });
+        }
+
+        const nomeClean = nome.trim();
+
+        // CONTROLLO DUPLICATI RAFFORZATO
+        const duplicateCheck = await db.query(`
+            SELECT id, nome, sessione_id FROM partecipanti_fantagts 
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) AND attivo = true
+        `, [nomeClean]);
+
+        if (duplicateCheck.rows.length > 0) {
+            const existing = duplicateCheck.rows[0];
+            if (existing.sessione_id === sessioneCorrente) {
+                return res.status(409).json({
+                    error: `Il nome "${nomeClean}" è già registrato in questa sessione`,
+                    action: 'login_required'
+                });
+            } else {
+                return res.status(409).json({
+                    error: `Il nome "${nomeClean}" è già utilizzato in un'altra sessione`,
+                    action: 'name_change_required',
+                    suggestions: [`${nomeClean}2`, `${nomeClean}_2025`]
+                });
+            }
+        }
+
+        const id = nomeClean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
         await db.query(`INSERT INTO partecipanti_fantagts 
-            (id, nome, crediti, sessione_id) VALUES ($1, $2, $3, $4)
-            ON CONFLICT (id) DO UPDATE SET nome = $2, crediti = $3, sessione_id = $4`,
-            [id, nome, crediti, sessioneCorrente]);
+            (id, nome, crediti, sessione_id) VALUES ($1, $2, $3, $4)`,
+            [id, nomeClean, crediti, sessioneCorrente]);
 
-        res.json({ id: id, message: 'Partecipante registrato con successo' });
+        console.log(`✅ Nuovo partecipante registrato: ${nomeClean} (ID: ${id})`);
+
+        res.json({
+            id: id,
+            message: 'Partecipante registrato con successo',
+            nome: nomeClean,
+            crediti: crediti
+        });
     } catch (err) {
         console.error('Errore POST partecipanti:', err);
-        res.status(500).json({ error: err.message });
+        if (err.code === '23505') { // PostgreSQL unique violation
+            res.status(409).json({ error: 'Nome già in uso, scegli un nome diverso' });
+        } else {
+            res.status(500).json({ error: err.message });
+        }
     }
 });
-
 // API per creare nuova sessione
 app.post('/api/nuova-sessione', async (req, res) => {
     try {
@@ -615,9 +653,31 @@ app.post('/api/nuova-sessione', async (req, res) => {
 
 app.delete('/api/partecipanti/:id', async (req, res) => {
     try {
-        await db.query("DELETE FROM partecipanti_fantagts WHERE id = $1", [req.params.id]);
-        res.json({ message: 'Partecipante eliminato con successo' });
+        const partecipanteId = req.params.id;
+
+        // ELIMINAZIONE COMPLETA E SICURA
+        await db.query('BEGIN');
+
+        // 1. Elimina push subscriptions
+        await db.query("DELETE FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
+
+        // 2. Elimina aste
+        await db.query("DELETE FROM aste WHERE partecipante_id = $1", [partecipanteId]);
+
+        // 3. Elimina il partecipante
+        const result = await db.query("DELETE FROM partecipanti_fantagts WHERE id = $1", [partecipanteId]);
+
+        await db.query('COMMIT');
+
+        if (result.rowCount > 0) {
+            console.log(`🗑️ Partecipante eliminato completamente: ${partecipanteId}`);
+            res.json({ message: 'Partecipante eliminato con successo', deleted: true });
+        } else {
+            res.status(404).json({ error: 'Partecipante non trovato' });
+        }
+
     } catch (err) {
+        await db.query('ROLLBACK');
         console.error('Errore DELETE partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
@@ -1024,7 +1084,7 @@ app.post('/api/reset-push-subscriptions', async (req, res) => {
     }
 });
 
-// API per verificare se un giocatore esiste
+// API per verificare se un giocatore esiste - VERSIONE MIGLIORATA
 app.post('/api/check-player', async (req, res) => {
     try {
         const { nome } = req.body;
@@ -1033,19 +1093,28 @@ app.post('/api/check-player', async (req, res) => {
             return res.status(400).json({ error: 'Nome richiesto' });
         }
 
-        // Cerca il giocatore nel database
-        const result = await db.query(`
+        // NUOVO: Controlla duplicati anche in sessioni diverse
+        const allSessionsResult = await db.query(`
+            SELECT id, nome, crediti, sessione_id, created_at 
+            FROM partecipanti_fantagts 
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) AND attivo = true
+        `, [nome]);
+
+        // Controlla nella sessione corrente
+        const currentSessionResult = await db.query(`
             SELECT id, nome, crediti, created_at 
             FROM partecipanti_fantagts 
-            WHERE LOWER(nome) = LOWER($1) AND attivo = true AND sessione_id = $2
-        `, [nome.trim(), sessioneCorrente]);
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) AND attivo = true AND sessione_id = $2
+        `, [nome, sessioneCorrente]);
 
-        if (result.rows.length > 0) {
-            const player = result.rows[0];
-            console.log(`✅ Giocatore esistente trovato: ${player.nome} (ID: ${player.id})`);
+        if (currentSessionResult.rows.length > 0) {
+            // Esiste nella sessione corrente
+            const player = currentSessionResult.rows[0];
+            console.log(`✅ Giocatore esistente nella sessione corrente: ${player.nome} (ID: ${player.id})`);
 
             res.json({
                 exists: true,
+                inCurrentSession: true,
                 player: {
                     id: player.id,
                     nome: player.nome,
@@ -1053,11 +1122,27 @@ app.post('/api/check-player', async (req, res) => {
                     registered_at: player.created_at
                 }
             });
-        } else {
-            console.log(`❌ Giocatore non trovato: ${nome}`);
+        } else if (allSessionsResult.rows.length > 0) {
+            // Esiste in altre sessioni - nome occupato
+            console.log(`❌ Nome già utilizzato in altra sessione: ${nome}`);
             res.json({
                 exists: false,
-                message: 'Giocatore non registrato'
+                nameOccupied: true,
+                message: `Il nome "${nome}" è già utilizzato in un'altra sessione. Scegli un nome diverso.`,
+                suggestions: [
+                    `${nome}2`,
+                    `${nome}_2025`,
+                    `${nome.toLowerCase()}`,
+                    `${nome.toUpperCase()}`
+                ]
+            });
+        } else {
+            // Nome disponibile
+            console.log(`✅ Nome disponibile: ${nome}`);
+            res.json({
+                exists: false,
+                nameAvailable: true,
+                message: 'Nome disponibile per registrazione'
             });
         }
     } catch (err) {
@@ -1065,7 +1150,6 @@ app.post('/api/check-player', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 // API debug per subscription
 app.get('/api/debug-subscriptions', async (req, res) => {
     try {

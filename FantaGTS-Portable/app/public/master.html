@@ -511,11 +511,11 @@
                 <button class="btn btn-primary" onclick="vaiASetup()">
                     ⚙️ Configurazione
                 </button>
+                <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
+                    👥 Gestisci Partecipanti
+                </button>
                 <button class="btn btn-primary" onclick="esportaDati()">
                     📊 Esporta Dati
-                </button>
-                <button class="btn btn-primary" onclick="mostraDebugPartecipanti()">
-                    👥 Debug Partecipanti
                 </button>
                 <button class="btn btn-primary" onclick="mostraClassifica()">
                     🏆 Classifica
@@ -640,6 +640,25 @@
             <button class="btn btn-primary" onclick="closeModal('backupListModal')" style="margin-top: 20px;">
                 Chiudi
             </button>
+        </div>
+    </div>
+
+    <!-- Modal Gestione Partecipanti -->
+    <div id="gestionePartecipantiModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <h3>👥 Gestione Partecipanti Registrati</h3>
+            <div id="partecipantiGestioneContent">
+                <p>Caricamento partecipanti...</p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-primary" onclick="ricaricaPartecipantiGestione()">
+                    🔄 Ricarica Lista
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('gestionePartecipantiModal')">
+                    Chiudi
+                </button>
+            </div>
         </div>
     </div>
 
@@ -822,11 +841,11 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                    <td><strong>${r.slot_id || r.slot}</strong></td>
-                    <td>${r.partecipante_nome || r.nome}</td>
-                    <td>${r.offerta || r.offertaOriginale}</td>
-                    <td>${r.costo_finale}</td>
-                </tr>`;
+                        <td><strong>${r.slot_id || r.slot}</strong></td>
+                        <td>${r.partecipante_nome || r.nome}</td>
+                        <td>${r.offerta || r.offertaOriginale}</td>
+                        <td>${r.costo_finale}</td>
+                    </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1068,36 +1087,114 @@
             }
         }
 
-        async function mostraDebugPartecipanti() {
+        // Mostra gestione partecipanti
+        async function mostraGestionePartecipanti() {
+            document.getElementById('gestionePartecipantiModal').style.display = 'flex';
+            await caricaPartecipantiPerGestione();
+        }
+
+        // Carica partecipanti per gestione
+        async function caricaPartecipantiPerGestione() {
             try {
                 const response = await fetch('/api/debug/partecipanti');
                 const data = await response.json();
 
-                let html = `<h3>👥 Partecipanti Registrati (${data.count})</h3>`;
-                html += '<table class="results-table"><thead><tr>';
-                html += '<th>Nome</th><th>ID</th><th>Crediti</th><th>Giocatori</th><th>Notifiche</th><th>Registrato</th>';
-                html += '</tr></thead><tbody>';
+                const content = document.getElementById('partecipantiGestioneContent');
+
+                if (data.count === 0) {
+                    content.innerHTML = '<p>Nessun partecipante registrato</p>';
+                    return;
+                }
+
+                let html = `
+                <div style="margin-bottom: 15px;">
+                    <strong>Totale partecipanti: ${data.count}</strong> |
+                    <strong>Sessione: ${data.sessione_corrente}</strong>
+                </div>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Crediti</th>
+                            <th>Giocatori</th>
+                            <th>Notifiche</th>
+                            <th>Registrato</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
 
                 data.partecipanti.forEach(p => {
-                    html += `<tr>
-                <td><strong>${p.nome}</strong></td>
-                <td><code>${p.id}</code></td>
-                <td>${p.crediti}</td>
-                <td>${p.giocatori_vinti}/10</td>
-                <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
-                <td>${new Date(p.registrato_il).toLocaleString('it-IT')}</td>
-            </tr>`;
+                    const dataRegistrazione = new Date(p.registrato_il).toLocaleDateString('it-IT');
+                    html += `
+                    <tr id="partecipante-${p.id}">
+                        <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                        <td>${p.crediti}</td>
+                        <td>${p.giocatori_vinti}/10</td>
+                        <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
+                        <td>${dataRegistrazione}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
+                                    onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
+                                    title="Elimina partecipante">
+                                🗑️ Elimina
+                            </button>
+                        </td>
+                    </tr>
+                `;
                 });
 
                 html += '</tbody></table>';
 
-                // Mostra in un modal o alert
-                alert(`Partecipanti: ${data.count}\n\nVedi console per dettagli completi`);
-                console.table(data.partecipanti);
+                content.innerHTML = html;
 
             } catch (error) {
-                showNotification('Errore caricamento debug', 'error');
+                console.error('Errore caricamento partecipanti:', error);
+                document.getElementById('partecipantiGestioneContent').innerHTML =
+                    '<p style="color: #f56565;">Errore caricamento partecipanti</p>';
             }
+        }
+
+        // Elimina partecipante
+        async function eliminaPartecipante(partecipanteId, nomePartecipante) {
+            if (!confirm(`Eliminare definitivamente il partecipante:\n\n"${nomePartecipante}"\n\nQuesta azione è irreversibile e cancellerà:\n- Il partecipante dal database\n- Tutte le sue aste\n- Le sue notifiche push\n\nProcedere?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/partecipanti/${partecipanteId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification(`Partecipante "${nomePartecipante}" eliminato`, 'success');
+
+                    // Rimuovi dalla tabella
+                    const row = document.getElementById(`partecipante-${partecipanteId}`);
+                    if (row) {
+                        row.remove();
+                    }
+
+                    // Ricarica la lista
+                    setTimeout(() => {
+                        ricaricaPartecipantiGestione();
+                    }, 1000);
+
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore eliminazione: ' + error.error, 'error');
+                }
+            } catch (error) {
+                console.error('Errore eliminazione partecipante:', error);
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Ricarica lista partecipanti
+        async function ricaricaPartecipantiGestione() {
+            document.getElementById('partecipantiGestioneContent').innerHTML = '<p>Caricamento partecipanti...</p>';
+            await caricaPartecipantiPerGestione();
         }
 
         async function pulisciSubscriptions() {
@@ -1157,11 +1254,11 @@
         async function creaCardSquadra(partecipante) {
             const card = document.createElement('div');
             card.style.cssText = `
-                background: rgba(255,255,255,0.08);
-                border-radius: 15px;
-                padding: 20px;
-                border: 1px solid rgba(255,255,255,0.1);
-            `;
+                    background: rgba(255,255,255,0.08);
+                    border-radius: 15px;
+                    padding: 20px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                `;
 
             try {
                 // CORREZIONE: Carica sempre i giocatori del partecipante
@@ -1193,65 +1290,65 @@
                         console.log(`🎨 Colori per ${giocatore.colore}: sfondo=${teamColor}, testo=${textColor}`);
 
                         return `
-                        <div style="
-                            background: ${teamColor}60;
-                            border: 2px solid ${teamColor};
-                            padding: 8px;
-                            border-radius: 6px;
-                            text-align: center;
-                            font-size: 0.8em;
-                            color: ${textColor};
-                        ">
-                            <strong style="color: ${textColor};">${pos}</strong><br>
-                            <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
-                            <small style="color: ${textColor}; opacity: 0.9;">${giocatore.colore} - ${giocatore.costo_finale}€</small>
-                        </div>
-                    `;
+                            <div style="
+                                background: ${teamColor}60;
+                                border: 2px solid ${teamColor};
+                                padding: 8px;
+                                border-radius: 6px;
+                                text-align: center;
+                                font-size: 0.8em;
+                                color: ${textColor};
+                            ">
+                                <strong style="color: ${textColor};">${pos}</strong><br>
+                                <span style="color: ${textColor};">${giocatore.giocatore_attuale}</span><br>
+                                <small style="color: ${textColor}; opacity: 0.9;">${giocatore.colore} - ${giocatore.costo_finale}€</small>
+                            </div>
+                        `;
                     } else {
                         return `
-                        <div style="
-                            background: rgba(74,85,104,0.3);
-                            border: 1px solid #4a5568;
-                            padding: 8px;
-                            border-radius: 6px;
-                            text-align: center;
-                            font-size: 0.8em;
-                            opacity: 0.6;
-                            color: #a0aec0;
-                        ">
-                            <strong>${pos}</strong><br>
-                            -
-                        </div>
-                    `;
+                            <div style="
+                                background: rgba(74,85,104,0.3);
+                                border: 1px solid #4a5568;
+                                padding: 8px;
+                                border-radius: 6px;
+                                text-align: center;
+                                font-size: 0.8em;
+                                opacity: 0.6;
+                                color: #a0aec0;
+                            ">
+                                <strong>${pos}</strong><br>
+                                -
+                            </div>
+                        `;
                     }
                 }).join('');
 
                 card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="color: #4299e1; margin: 0;">${partecipante.nome}</h3>
-                    <div style="font-size: 0.9em; opacity: 0.8;">
-                        ${giocatoriAcquistati}/10 giocatori
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #4299e1; margin: 0;">${partecipante.nome}</h3>
+                        <div style="font-size: 0.9em; opacity: 0.8;">
+                            ${giocatoriAcquistati}/10 giocatori
+                        </div>
                     </div>
-                </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
-                    ${posizioniHTML}
-                </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+                        ${posizioniHTML}
+                    </div>
 
-                <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
-                    <span>💰 Rimasti: ${creditiRimasti}</span>
-                    <span>💸 Spesi: ${creditiSpesi}</span>
-                    <span>🏆 Punti: ${puntiTotali}</span>
-                </div>
-            `;
-            } catch (error) {
-                card.innerHTML = `
-                    <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
-                    <p style="opacity: 0.7;">Squadra non ancora formata</p>
-                    <div style="font-size: 0.9em; opacity: 0.9;">
-                        💰 Crediti: ${partecipante.crediti}
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.9;">
+                        <span>💰 Rimasti: ${creditiRimasti}</span>
+                        <span>💸 Spesi: ${creditiSpesi}</span>
+                        <span>🏆 Punti: ${puntiTotali}</span>
                     </div>
                 `;
+            } catch (error) {
+                card.innerHTML = `
+                        <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+                        <p style="opacity: 0.7;">Squadra non ancora formata</p>
+                        <div style="font-size: 0.9em; opacity: 0.9;">
+                            💰 Crediti: ${partecipante.crediti}
+                        </div>
+                    `;
             }
 
             return card;
@@ -1789,10 +1886,10 @@
                 }
 
                 card.innerHTML = `
-                            <div><strong>${p.nome}</strong></div>
-                            <div>Stato: ${p.stato}</div>
-                            <div class="bid-status ${bidClass}">${bidStatus}</div>
-                        `;
+                                <div><strong>${p.nome}</strong></div>
+                                <div>Stato: ${p.stato}</div>
+                                <div class="bid-status ${bidClass}">${bidStatus}</div>
+                            `;
 
                 grid.appendChild(card);
             });
@@ -1826,12 +1923,12 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                            <td><strong>${r.slot.replace('_', ' ')}</strong></td>
-                            <td>${r.nome}</td>
-                            <td>${r.offertaOriginale}</td>
-                            <td>${r.costoFinale}</td>
-                            <td>${r.condiviso ? '✅' : '❌'}</td>
-                        </tr>`;
+                                <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                                <td>${r.nome}</td>
+                                <td>${r.offertaOriginale}</td>
+                                <td>${r.costoFinale}</td>
+                                <td>${r.condiviso ? '✅' : '❌'}</td>
+                            </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1840,9 +1937,9 @@
 
             // Aggiorna anche la sezione risultati nella pagina
             document.getElementById('lastRoundResults').innerHTML = `
-                        <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
-                        ${html}
-                    `;
+                            <h3>Round ${round} - ${risultati.length} assegnazioni</h3>
+                            ${html}
+                        `;
         }
 
         async function mostraClassifica() {
@@ -1864,12 +1961,12 @@
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-                        <td><strong>${index + 1}°</strong></td>
-                        <td>${p.nome}</td>
-                        <td>${p.punti_totali}</td>
-                        <td>${p.giocatori_totali}/10</td>
-                        <td>${p.crediti}</td>
-                    </tr>`;
+                            <td><strong>${index + 1}°</strong></td>
+                            <td>${p.nome}</td>
+                            <td>${p.punti_totali}</td>
+                            <td>${p.giocatori_totali}/10</td>
+                            <td>${p.crediti}</td>
+                        </tr>`;
                 });
 
                 html += '</tbody></table>';
@@ -2037,11 +2134,11 @@
                         const div = document.createElement('div');
                         div.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
                         div.innerHTML = `
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
-                            <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
-                        </label>
-                    `;
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
+                                <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
+                            </label>
+                        `;
                         container.appendChild(div);
                     });
                 }
@@ -2155,10 +2252,10 @@
         // Mostra lista backup (placeholder)
         function mostraBackupList() {
             document.getElementById('backupContent').innerHTML = `
-            <p>Funzionalità di visualizzazione backup in sviluppo.</p>
-            <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
-            <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
-        `;
+                <p>Funzionalità di visualizzazione backup in sviluppo.</p>
+                <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
+                <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
+            `;
             document.getElementById('backupListModal').style.display = 'flex';
         }
 
