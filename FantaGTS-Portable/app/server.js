@@ -625,6 +625,33 @@ app.get('/api/stato-offerte/:round', (req, res) => {
     });
 });
 
+// API per risultati partite
+app.get('/api/risultati-partite', async (req, res) => {
+    try {
+        const result = await db.query(`SELECT r.*, 
+                    s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
+                    FROM risultati_partite r 
+                    LEFT JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
+                    LEFT JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
+                    ORDER BY r.turno DESC, r.timestamp DESC`);
+
+        // Parse JSON vincitori
+        const rows = result.rows.map(row => {
+            try {
+                row.vincitori = JSON.parse(row.vincitori || '[]');
+            } catch (e) {
+                row.vincitori = [];
+            }
+            return row;
+        });
+
+        res.json(rows);
+    } catch (err) {
+        console.error('Errore API risultati-partite:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Ottieni risultati aste per round specifico
 app.get('/api/aste-round/:round', async (req, res) => {
     try {
@@ -944,7 +971,23 @@ function elaboraRisultatiAste() {
 
         if (offerte.length > 0) {
             offerte.sort((a, b) => b.offerta - a.offerta);
-            const vincitore = offerte[0];
+
+            // GESTIONE PAREGGI: se più persone hanno la stessa offerta massima
+            const offertaMassima = offerte[0].offerta;
+            const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
+
+            let vincitore;
+            if (offerteVincenti.length === 1) {
+                // Vincitore unico
+                vincitore = offerteVincenti[0];
+                console.log(`🏆 ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+            } else {
+                // PAREGGIO: scegli casualmente
+                const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
+                vincitore = offerteVincenti[randomIndex];
+                console.log(`🎲 PAREGGIO su ${slotId}! ${offerteVincenti.length} offerte da ${offertaMassima} crediti`);
+                console.log(`🏆 Vincitore estratto: ${vincitore.nome}`);
+            }
 
             risultati.push({
                 partecipante: vincitore.partecipante,
