@@ -595,13 +595,22 @@
                 }
             };
 
+            // MODIFICA: Registra solo UNA volta quando socket è pronto
             if (socket && socket.connected) {
                 tryRegister();
             } else {
                 if (socket) {
-                    socket.on('connect', tryRegister);
+                    socket.off('connect'); // Rimuovi listener precedenti
+                    socket.on('connect', () => {
+                        console.log('🔗 Socket connesso, registrando...');
+                        tryRegister();
+                    });
                 } else {
-                    setTimeout(tryRegister, 1000);
+                    setTimeout(() => {
+                        if (socket) {
+                            registerSocketWhenReady();
+                        }
+                    }, 1000);
                 }
             }
         }

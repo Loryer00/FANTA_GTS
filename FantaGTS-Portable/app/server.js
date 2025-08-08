@@ -1721,12 +1721,27 @@ io.on('connection', (socket) => {
     console.log('Nuova connessione:', socket.id);
 
     socket.on('register', (data) => {
-        // NUOVO: Verifica che il partecipante sia effettivamente registrato nel DB
+        console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
+
         if (data.tipo === 'partecipante' && data.partecipanteId) {
+            // CONTROLLO DUPLICATI: Rimuovi connessioni esistenti dello stesso partecipante
+            for (let [existingSocketId, existingUser] of gameState.connessi.entries()) {
+                if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
+                    console.log(`🔄 Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
+                    gameState.connessi.delete(existingSocketId);
+                    // Disconnetti il socket vecchio
+                    const oldSocket = io.sockets.sockets.get(existingSocketId);
+                    if (oldSocket) {
+                        oldSocket.disconnect(true);
+                    }
+                }
+            }
+
+            // Verifica nel database
             db.query(`
-            SELECT id, nome, crediti FROM partecipanti_fantagts 
-            WHERE id = $1 AND attivo = true AND sessione_id = $2
-        `, [data.partecipanteId, sessioneCorrente])
+           SELECT id, nome, crediti FROM partecipanti_fantagts 
+           WHERE id = $1 AND attivo = true AND sessione_id = $2
+       `, [data.partecipanteId, sessioneCorrente])
                 .then(result => {
                     if (result.rows.length === 0) {
                         console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
@@ -1742,9 +1757,10 @@ io.on('connection', (socket) => {
                     gameState.connessi.set(socket.id, {
                         nome: data.nome,
                         tipo: data.tipo,
-                        partecipanteId: data.partecipanteId || null,
+                        partecipanteId: data.partecipanteId,
                         stato: 'connesso',
-                        verified: true  // NUOVO: Flag per verificati nel DB
+                        verified: true,
+                        registeredAt: new Date().toISOString()
                     });
 
                     // Invia stato completo del gioco
@@ -1761,7 +1777,8 @@ io.on('connection', (socket) => {
                     });
 
                     io.emit('connessi_update', Array.from(gameState.connessi.values()));
-                    console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId})`);
+                    console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
+                    console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
                 })
                 .catch(err => {
                     console.error('❌ Errore verifica database:', err);
@@ -1777,7 +1794,8 @@ io.on('connection', (socket) => {
                 tipo: data.tipo,
                 partecipanteId: data.partecipanteId || null,
                 stato: 'connesso',
-                verified: data.tipo !== 'partecipante'  // Master sempre verificato
+                verified: data.tipo !== 'partecipante',
+                registeredAt: new Date().toISOString()
             });
 
             socket.emit('registered', {
@@ -1792,7 +1810,8 @@ io.on('connection', (socket) => {
             });
 
             io.emit('connessi_update', Array.from(gameState.connessi.values()));
-            console.log(`✅ Registrato: ${data.nome} come ${data.tipo}`);
+            console.log(`✅ Registrato: ${data.nome} come ${data.tipo} - Socket: ${socket.id}`);
+            console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
         }
     });
 
