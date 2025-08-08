@@ -821,6 +821,32 @@ app.get('/api/vapid-public-key', (req, res) => {
     });
 });
 
+// API debug per subscription
+app.get('/api/debug-subscriptions', async (req, res) => {
+    try {
+        const result = await db.query("SELECT * FROM push_subscriptions ORDER BY created_at DESC");
+
+        console.log('🔍 SUBSCRIPTION NEL DB:', result.rows);
+
+        res.json({
+            count: result.rows.length,
+            active: result.rows.filter(s => s.attiva).length,
+            current_vapid_key: currentVapidKeys?.publicKey?.substring(0, 30) + '...' || 'Non configurato',
+            subscriptions: result.rows.map(sub => ({
+                id: sub.id,
+                partecipante_id: sub.partecipante_id,
+                created_at: sub.created_at,
+                last_seen: sub.last_seen,
+                attiva: sub.attiva,
+                endpoint_preview: sub.endpoint?.substring(0, 50) + '...' || 'N/A'
+            }))
+        });
+    } catch (err) {
+        console.error('❌ Errore query subscriptions:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API per ottenere slots di un round specifico
 app.get('/api/slots-round/:round', async (req, res) => {
     try {
