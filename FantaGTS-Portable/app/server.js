@@ -812,17 +812,19 @@ app.post('/api/subscribe-notifications', async (req, res) => {
             auth: keys.auth.substring(0, 20) + '...'
         });
 
-        // SALVATAGGIO EFFETTIVO
+        // NUOVO: Prima elimina tutte le subscription esistenti per questo partecipante
+        await db.query('DELETE FROM push_subscriptions WHERE partecipante_id = $1', [partecipanteId]);
+        console.log(`🗑️ Rimosse subscription esistenti per: ${partecipanteId}`);
+
+        // Poi inserisci la nuova subscription
         await db.query(`INSERT INTO push_subscriptions 
             (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
-            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, true)
-            ON CONFLICT (endpoint) DO UPDATE SET
-            partecipante_id = $1, p256dh_key = $3, auth_key = $4, user_agent = $5, last_seen = CURRENT_TIMESTAMP, attiva = true`,
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, true)`,
             [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
 
-        console.log('✅ SUBSCRIPTION SALVATA');
+        console.log('✅ SUBSCRIPTION SALVATA (unica per utente)');
 
-        // VERIFICA IMMEDIATA
+        // Verifica salvataggio
         const savedResult = await db.query("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
         console.log('🔍 VERIFICA SALVATAGGIO:', savedResult.rows[0]);
 

@@ -792,90 +792,147 @@
             }
         }
 
-        // Setup notifiche push - VERSIONE CON RESET
+        // Setup notifiche push - VERSIONE COMPLETA E MIGLIORATA
         async function setupPushNotifications() {
             try {
-                // Controlla supporto notifiche
+                console.log('🔔 Inizializzazione notifiche push...');
+
+                // STEP 1: Verifica supporto notifiche
                 if (!('Notification' in window)) {
-                    console.log('Browser non supporta notifiche');
-                    return;
+                    console.log('❌ Browser non supporta notifiche');
+                    return { success: false, reason: 'Browser non supportato' };
                 }
 
-                // Chiedi permesso
+                if (!('serviceWorker' in navigator)) {
+                    console.log('❌ Browser non supporta service worker');
+                    return { success: false, reason: 'Service Worker non supportato' };
+                }
+
+                // STEP 2: Richiedi permesso notifiche
+                console.log('🔐 Richiedendo permesso notifiche...');
                 const permission = await Notification.requestPermission();
 
-                if (permission === 'granted') {
-                    console.log('✅ Permesso notifiche concesso');
-
-                    // Registra service worker per notifiche
-                    if ('serviceWorker' in navigator) {
-                        try {
-                            const registration = await navigator.serviceWorker.ready;
-
-                            // STEP 1: Ottieni la chiave pubblica corrente dal server
-                            const keyResponse = await fetch('/api/vapid-public-key');
-
-                            if (!keyResponse.ok) {
-                                console.log('⚠️ Server Web Push non configurato');
-                                return;
-                            }
-
-                            const keyData = await keyResponse.json();
-                            const publicKey = keyData.publicKey;
-
-                            console.log('🔑 Chiave pubblica ricevuta:', publicKey.substring(0, 20) + '...');
-
-                            // STEP 2: Rimuovi subscription vecchia se esiste
-                            try {
-                                const existingSubscription = await registration.pushManager.getSubscription();
-                                if (existingSubscription) {
-                                    console.log('🗑️ Rimuovendo subscription vecchia...');
-                                    await existingSubscription.unsubscribe();
-                                }
-                            } catch (unsubError) {
-                                console.log('⚠️ Errore rimozione subscription vecchia:', unsubError);
-                            }
-
-                            // STEP 3: Crea nuova subscription con chiave corrente
-                            console.log('🆕 Creando nuova subscription...');
-                            const subscription = await registration.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: urlBase64ToUint8Array(publicKey)
-                            });
-
-                            console.log('✅ Nuova subscription creata');
-
-                            // STEP 4: Invia subscription al server
-                            const subscribeResponse = await fetch('/api/subscribe-notifications', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    subscription: subscription,
-                                    partecipanteId: playerData.id
-                                })
-                            });
-
-                            if (subscribeResponse.ok) {
-                                console.log('✅ Notifiche push configurate correttamente');
-
-                                // Test notification
-                                new Notification('FantaGTS', {
-                                    body: 'Notifiche push attivate con successo!',
-                                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
-                                });
-                            } else {
-                                const error = await subscribeResponse.json();
-                                console.error('❌ Errore registrazione subscription:', error);
-                            }
-                        } catch (swError) {
-                            console.error('❌ Errore service worker:', swError);
-                        }
-                    }
-                } else {
-                    console.log('Permesso notifiche negato');
+                if (permission !== 'granted') {
+                    console.log('❌ Permesso notifiche negato');
+                    return { success: false, reason: 'Permesso negato' };
                 }
+
+                console.log('✅ Permesso notifiche concesso');
+
+                // STEP 3: Attendi che service worker sia pronto
+                console.log('⏳ Attendendo service worker...');
+                const registration = await navigator.serviceWorker.ready;
+                console.log('✅ Service worker pronto');
+
+                // STEP 4: Ottieni chiave pubblica dal server
+                console.log('🔑 Ottenendo chiave pubblica dal server...');
+                const keyResponse = await fetch('/api/vapid-public-key');
+
+                if (!keyResponse.ok) {
+                    console.log('❌ Server Web Push non configurato');
+                    return { success: false, reason: 'Server non configurato' };
+                }
+
+                const keyData = await keyResponse.json();
+                const publicKey = keyData.publicKey;
+
+                console.log('🔑 Chiave pubblica ricevuta:', publicKey.substring(0, 30) + '...');
+
+                // STEP 5: Rimuovi subscription esistenti
+                try {
+                    console.log('🗑️ Controllando subscription esistenti...');
+                    const existingSubscription = await registration.pushManager.getSubscription();
+
+                    if (existingSubscription) {
+                        console.log('🗑️ Rimuovendo subscription locale esistente...');
+                        await existingSubscription.unsubscribe();
+                        console.log('✅ Subscription locale rimossa');
+                    } else {
+                        console.log('ℹ️ Nessuna subscription locale esistente');
+                    }
+                } catch (unsubError) {
+                    console.log('⚠️ Errore rimozione subscription locale:', unsubError.message);
+                    // Continua comunque
+                }
+
+                // STEP 6: Crea nuova subscription
+                console.log('🆕 Creando nuova subscription push...');
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicKey)
+                });
+
+                console.log('✅ Nuova subscription creata con successo');
+
+                // STEP 7: Invia subscription al server
+                console.log('📤 Inviando subscription al server...');
+                const subscribeResponse = await fetch('/api/subscribe-notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription,
+                        partecipanteId: playerData.id
+                    })
+                });
+
+                if (!subscribeResponse.ok) {
+                    const error = await subscribeResponse.json();
+                    console.error('❌ Errore registrazione subscription server:', error);
+                    return { success: false, reason: 'Errore server: ' + error.error };
+                }
+
+                const result = await subscribeResponse.json();
+                console.log('✅ Subscription registrata sul server:', result);
+
+                // STEP 8: Test notifica immediata
+                try {
+                    console.log('🧪 Inviando notifica di test...');
+                    const testNotification = new Notification('FantaGTS', {
+                        body: 'Notifiche push attivate con successo! 🎾',
+                        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+                        badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+                        vibrate: [100, 50, 100],
+                        requireInteraction: false,
+                        silent: false
+                    });
+
+                    // Chiudi automaticamente la notifica di test dopo 3 secondi
+                    setTimeout(() => {
+                        try {
+                            testNotification.close();
+                        } catch (e) {
+                            // Ignora errori di chiusura
+                        }
+                    }, 3000);
+
+                    console.log('✅ Notifica di test inviata');
+                } catch (testNotifError) {
+                    console.log('⚠️ Impossibile inviare notifica di test:', testNotifError.message);
+                    // Non è un errore critico
+                }
+
+                console.log('🎉 Setup notifiche push completato con successo!');
+                return {
+                    success: true,
+                    message: 'Notifiche push configurate correttamente',
+                    subscriptionCount: result.saved || 1
+                };
+
             } catch (error) {
-                console.error('Errore setup notifiche:', error);
+                console.error('❌ ERRORE CRITICO setup notifiche:', error);
+
+                // Prova a mostrare un alert con l'errore specifico
+                try {
+                    alert(`❌ Errore configurazione notifiche:\n\n${error.message}\n\nLe notifiche non funzioneranno, ma puoi comunque usare l'app.`);
+                } catch (alertError) {
+                    console.error('Impossibile mostrare alert errore');
+                }
+
+                return {
+                    success: false,
+                    reason: 'Errore critico: ' + error.message,
+                    error: error
+                };
             }
         }
 
