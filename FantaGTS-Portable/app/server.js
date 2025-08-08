@@ -521,7 +521,8 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
 
-        const result = await db.query(`SELECT 
+        // Ottieni squadra
+        const squadraResult = await db.query(`SELECT 
             a.slot_id,
             a.costo_finale,
             s.posizione,
@@ -533,7 +534,13 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             WHERE a.partecipante_id = $1 AND a.vincitore = true 
             ORDER BY s.posizione`, [partecipanteId]);
 
-        res.json(result.rows);
+        // Ottieni crediti aggiornati
+        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
+
+        res.json({
+            squadra: squadraResult.rows,
+            crediti: creditiResult.rows[0]?.crediti || 2000
+        });
     } catch (err) {
         console.error('Errore squadra-partecipante:', err);
         res.status(500).json({ error: err.message });

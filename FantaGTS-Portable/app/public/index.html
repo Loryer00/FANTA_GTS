@@ -552,7 +552,7 @@
                     // Registra socket quando è pronto
                     registerSocketWhenReady();
 
-                    // Carica la squadra del giocatore
+                    // NUOVO: Carica la squadra del giocatore
                     await loadPlayerTeam();
 
                     // Mostra notifica di benvenuto
@@ -795,6 +795,9 @@
 
                     updateCreditsDisplay();
                     showGameArea();
+
+                    // NUOVO: Carica la squadra esistente se c'è
+                    await loadPlayerTeam();
 
                     // Gestisci notifiche se abilitate
                     if (notificationsEnabled) {
@@ -1152,6 +1155,8 @@
 
         async function loadPlayerTeam() {
             try {
+                console.log('🔄 Caricando squadra per:', playerData.name);
+
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
                 if (!response.ok) {
                     console.log('Squadra non ancora formata o endpoint non disponibile');
@@ -1159,9 +1164,20 @@
                     return;
                 }
 
-                const squadra = await response.json();
-                console.log('Squadra caricata:', squadra);
+                const data = await response.json();
+                const squadra = data.squadra || data; // Compatibilità con vecchia API
 
+                // Aggiorna crediti se disponibili
+                if (data.crediti) {
+                    playerData.credits = data.crediti;
+                    updateCreditsDisplay();
+                }
+                console.log('✅ Squadra caricata:', squadra);
+
+                // Reset della UI prima di popolare
+                resetTeamUI();
+
+                // Popola la squadra
                 squadra.forEach(giocatore => {
                     const [posizione] = giocatore.slot_id.split('_');
                     const slotElement = document.querySelector(`[data-position="${posizione}"]`);
@@ -1174,10 +1190,10 @@
                         const textColor = getTextColorForTeam(giocatore.colore);
 
                         slotElement.innerHTML = `
-                                <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                                <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
-                                <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
-                            `;
+                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                    <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
+                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
+                `;
 
                         slotElement.style.borderColor = teamColor;
                         slotElement.style.borderWidth = '4px';
@@ -1191,11 +1207,19 @@
                     }
                 });
 
+                // Aggiorna contatori
                 const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
                 document.getElementById('teamCount').textContent = slotsRiempiti;
 
+                // Calcola punti totali se disponibili
+                const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
+                document.getElementById('teamPoints').textContent = puntiTotali;
+
+                console.log(`✅ Squadra visualizzata: ${slotsRiempiti} giocatori, ${puntiTotali} punti`);
+
             } catch (error) {
-                console.error('Errore caricamento squadra:', error);
+                console.error('❌ Errore caricamento squadra:', error);
+                resetTeamUI();
             }
         }
 
