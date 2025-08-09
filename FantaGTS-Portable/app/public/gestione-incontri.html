@@ -481,10 +481,22 @@
 
         // Crea nuovo turno
         async function creaTurno() {
-            const numero = document.getElementById('numeroTurno').value;
-            const nome = document.getElementById('nomeTurno').value;
-            const punti = document.getElementById('puntiVittoria').value;
-            const descrizione = document.getElementById('descrizioneTurno').value;
+            const numeroEl = document.getElementById('numeroTurno');
+            const nomeEl = document.getElementById('nomeTurno');
+            const puntiEl = document.getElementById('puntiVittoria');
+            const descrizioneEl = document.getElementById('descrizioneTurno');
+
+            // Controllo che gli elementi esistano
+            if (!numeroEl || !nomeEl || !puntiEl || !descrizioneEl) {
+                console.error('Uno o più elementi del form non sono stati trovati');
+                showNotification('Errore: elementi del form mancanti', 'error');
+                return;
+            }
+
+            const numero = numeroEl.value;
+            const nome = nomeEl.value;
+            const punti = puntiEl.value;
+            const descrizione = descrizioneEl.value;
 
             if (!numero || !nome) {
                 showNotification('Inserisci numero e nome turno', 'error');
@@ -507,10 +519,10 @@
                     showNotification('Turno creato con successo!', 'success');
 
                     // Reset form
-                    document.getElementById('numeroTurno').value = '';
-                    document.getElementById('nomeTurno').value = '';
-                    document.getElementById('descrizioneTurno').value = '';
-                    document.getElementById('puntiVittoria').value = '1';
+                    numeroEl.value = '';
+                    nomeEl.value = '';
+                    descrizioneEl.value = '';
+                    puntiEl.value = '1';
 
                     // Ricarica turni
                     caricaTurni();
@@ -519,6 +531,7 @@
                     showNotification('Errore: ' + error.error, 'error');
                 }
             } catch (error) {
+                console.error('Errore creazione turno:', error);
                 showNotification('Errore di connessione', 'error');
             }
         }
