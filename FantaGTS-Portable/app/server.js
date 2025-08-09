@@ -1618,13 +1618,6 @@ async function salvaRisultatiAsta(round, risultati) {
             continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
         });
 
-        io.emit('asta_ended', {
-            round: round,
-            astaNumero: gameState.astaCorrente,
-            risultati: risultatiConDettagli,
-            continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
-        });
-
         aggiornaCreditiPartecipanti();
     } catch (error) {
         console.error('❌ Errore salvataggio asta:', error);

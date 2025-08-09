@@ -336,6 +336,29 @@
                 font-size: 2.5em;
             }
         }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.7);
+            }
+
+            100% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 10px rgba(66, 153, 225, 0);
+            }
+        }
+
+        /* Migliora la visibilità della sezione asta */
+        #bidding-phase {
+            border: 2px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+            #bidding-phase.active {
+                border-color: #4299e1;
+                box-shadow: 0 0 15px rgba(66, 153, 225, 0.3);
+            }
     </style>
 </head>
 <body>
@@ -1087,6 +1110,25 @@
                 document.getElementById('currentRound').textContent = data.round;
                 loadAvailablePlayers(data.slots || []);
             }
+
+            // NUOVO: Scroll automatico alla sezione asta
+            setTimeout(() => {
+                const biddingSection = document.getElementById('bidding-phase');
+                if (biddingSection) {
+                    biddingSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Assicurati che sia visibile
+                    window.scrollTo({
+                        top: biddingSection.offsetTop - 10,
+                        behavior: 'smooth'
+                    });
+
+                    console.log('📱 Scroll automatico alla sezione asta completato');
+                }
+            }, 500); // Piccolo delay per permettere il rendering
         }
 
         function updateCreditsDisplay() {
@@ -1094,23 +1136,41 @@
             document.getElementById('playerCredits').textContent = playerData.credits;
         }
 
-        function resetBiddingInterface() {
-            document.getElementById('bidAmount').disabled = false;
-            document.getElementById('bidAmount').value = '';
+        function showBiddingPhase(data) {
+            document.getElementById('waiting-phase').style.display = 'none';
+            document.getElementById('bidding-phase').style.display = 'block';
 
-            document.querySelectorAll('.player-card').forEach(card => {
-                card.style.pointerEvents = 'auto';
-                card.style.opacity = '1';
-                card.classList.remove('selected');
-            });
+            if (data && data.round) {
+                document.getElementById('currentRound').textContent = data.round;
+                loadAvailablePlayers(data.slots || []);
+            }
 
-            const confirmBtn = document.getElementById('confirmBidBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Conferma Puntata';
-            confirmBtn.style.background = '#ef4444';
+            // NUOVO: Scroll automatico alla sezione asta
+            setTimeout(() => {
+                const biddingSection = document.getElementById('bidding-phase');
+                if (biddingSection) {
+                    biddingSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
 
-            document.getElementById('bidSection').style.display = 'none';
-            console.log('🔄 Interfaccia di puntata resettata');
+                    // Assicurati che sia visibile
+                    window.scrollTo({
+                        top: biddingSection.offsetTop - 10,
+                        behavior: 'smooth'
+                    });
+
+                    console.log('📱 Scroll automatico alla sezione asta completato');
+
+                    // AGGIUNTO: Animazione visiva per attirare attenzione
+                    biddingSection.style.animation = 'pulse 0.5s ease-in-out 3 alternate';
+
+                    // Rimuovi animazione dopo 3 secondi
+                    setTimeout(() => {
+                        biddingSection.style.animation = '';
+                    }, 3000);
+                }
+            }, 500);
         }
 
         function loadAvailablePlayers(slots) {
