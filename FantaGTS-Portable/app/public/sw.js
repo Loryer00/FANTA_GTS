@@ -23,30 +23,34 @@ self.addEventListener('push', (event) => {
         body: 'Nuovo evento nel FantaGTS!',
         icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
         badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-        vibrate: [100, 50, 100, 50, 100],
+        vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO
         requireInteraction: true,
-        tag: 'fantagts-notification',
+        tag: 'fantagts-urgent',
         renotify: true,
         silent: false,
+        // AGGIUNTO: configurazioni avanzate per lockscreen
+        sticky: true, // Notifica persistente
+        noscreen: false, // NON nascondere quando schermo spento
         data: {
             url: '/',
             timestamp: Date.now(),
-            action: 'open_app'
+            action: 'open_app',
+            lockscreen: true,
+            wakeup: true
         },
         actions: [
             {
                 action: 'open',
-                title: 'Apri FantaGTS',
-                icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
+                title: '🚀 Apri FantaGTS'
             },
             {
-                action: 'close',
-                title: 'Chiudi'
+                action: 'remind',
+                title: '⏰ Ricorda'
             }
         ]
     };
 
-    // Se ci sono dati nel push, usali
+    // NUOVO: Gestione dati push migliorata
     if (event.data) {
         try {
             const pushData = event.data.json();
@@ -55,23 +59,20 @@ self.addEventListener('push', (event) => {
             notificationData.title = pushData.title || notificationData.title;
             notificationData.body = pushData.body || notificationData.body;
 
+            // AGGIUNTO: Applica configurazioni Android se presenti
+            if (pushData.android) {
+                Object.assign(notificationData, pushData.android);
+            }
+
             if (pushData.data) {
                 notificationData.data = { ...notificationData.data, ...pushData.data };
             }
 
-            if (pushData.url) {
-                notificationData.data.url = pushData.url;
-            }
-
-            // Mantieni proprietà avanzate dal server
-            if (pushData.requireInteraction !== undefined) {
-                notificationData.requireInteraction = pushData.requireInteraction;
-            }
-            if (pushData.tag) {
-                notificationData.tag = pushData.tag;
-            }
-            if (pushData.vibrate) {
-                notificationData.vibrate = pushData.vibrate;
+            // NUOVO: Se è una notifica urgente, massimizza impatto
+            if (pushData.data && pushData.data.urgent) {
+                notificationData.requireInteraction = true;
+                notificationData.vibrate = [500, 300, 500, 300, 500, 300, 500];
+                notificationData.tag = `fantagts-urgent-${Date.now()}`; // Tag unico per evitare sovrascrittura
             }
 
         } catch (error) {
@@ -81,14 +82,40 @@ self.addEventListener('push', (event) => {
 
     console.log('🔔 Mostrando notifica con dati:', notificationData);
 
+    // NUOVO: Tentativo di "risveglio" tramite multiple notifiche
     event.waitUntil(
-        self.registration.showNotification(notificationData.title, notificationData)
-            .then(() => {
-                console.log('✅ Notifica mostrata con successo');
+        Promise.all([
+            // Notifica principale
+            self.registration.showNotification(notificationData.title, notificationData),
+
+            // AGGIUNTO: Tentativo risveglio con notifica silenziosa immediata
+            new Promise(resolve => {
+                setTimeout(() => {
+                    if (notificationData.data && notificationData.data.wakeup) {
+                        self.registration.showNotification('', {
+                            tag: 'wakeup-helper',
+                            silent: true,
+                            vibrate: [100],
+                            actions: [],
+                            data: { helper: true }
+                        }).then(() => {
+                            // Chiudi immediatamente la notifica helper
+                            setTimeout(() => {
+                                self.registration.getNotifications({ tag: 'wakeup-helper' })
+                                    .then(notifications => {
+                                        notifications.forEach(n => n.close());
+                                    });
+                            }, 100);
+                        });
+                    }
+                    resolve();
+                }, 100);
             })
-            .catch(error => {
-                console.error('❌ Errore mostrando notifica:', error);
-            })
+        ]).then(() => {
+            console.log('✅ Notifica mostrata con successo (con tentativo risveglio)');
+        }).catch(error => {
+            console.error('❌ Errore mostrando notifica:', error);
+        })
     );
 });
 
@@ -102,7 +129,25 @@ self.addEventListener('notificationclick', (event) => {
     const fullUrl = new URL(urlToOpen, self.location.origin).href;
 
     if (event.action === 'close') {
-        // L'utente ha cliccato "Chiudi"
+        return;
+    }
+
+    // AGGIUNTO: Gestione nuova azione "remind"
+    if (event.action === 'remind') {
+        console.log('⏰ Programmazione reminder tra 1 minuto');
+
+        // Programma reminder
+        setTimeout(() => {
+            self.registration.showNotification('🔔 FantaGTS - Reminder', {
+                body: 'Non dimenticare di fare la tua offerta!',
+                icon: event.notification.icon,
+                vibrate: [300, 200, 300],
+                requireInteraction: true,
+                tag: 'fantagts-reminder',
+                data: { url: fullUrl }
+            });
+        }, 60000); // 1 minuto
+
         return;
     }
 
@@ -114,24 +159,19 @@ self.addEventListener('notificationclick', (event) => {
         }).then((windowClients) => {
             console.log('🔍 Client trovati:', windowClients.length);
 
-            // Cerca se c'è già una finestra aperta con FantaGTS
             for (let client of windowClients) {
-                console.log('🔍 Controllando client:', client.url);
                 if (client.url.includes(self.location.origin)) {
                     console.log('✅ Trovato client esistente, portandolo in focus');
                     return client.focus().then(() => {
-                        // Naviga alla pagina corretta
                         return client.navigate(fullUrl);
                     });
                 }
             }
 
-            // Se non trova finestre aperte, apri nuova finestra
             console.log('🆕 Aprendo nuova finestra');
             return clients.openWindow(fullUrl);
         }).catch(error => {
             console.error('❌ Errore apertura finestra:', error);
-            // Fallback: prova comunque ad aprire
             return clients.openWindow(fullUrl);
         })
     );

@@ -418,28 +418,48 @@ async function inviaNotifichePush(notificationData) {
 
         // Invia notifiche push con gestione errori migliorata
         const payload = JSON.stringify({
-            title: title,
-            body: body,
+            title: `🎾 ${title}`, // AGGIUNTO: emoji per visibilità
+            body: `⚡ ${body}`, // AGGIUNTO: emoji per urgenza
             icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
             badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            vibrate: [200, 100, 200, 100, 200], // Vibrazione più forte
-            requireInteraction: false, // CAMBIATO: permette dismissal automatico
-            tag: 'fantagts-urgent', // CAMBIATO: tag più specifico
-            renotify: true, // AGGIUNTO: forza notifica anche se tag duplicato
+            image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"%3E%3Crect width="200" height="100" fill="%234299e1"/%3E%3Ctext x="100" y="60" font-size="40" text-anchor="middle" fill="white"%3E🎾 ASTA!%3C/text%3E%3C/svg%3E', // AGGIUNTO: immagine grande per lockscreen
+            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
+            requireInteraction: true, // CAMBIATO: torna true per persistenza
+            tag: 'fantagts-urgent',
+            renotify: true,
             silent: false,
-            timestamp: Date.now(), // AGGIUNTO: timestamp per priorità
+            timestamp: Date.now(),
+            // AGGIUNTO: configurazioni specifiche per dispositivi
+            android: {
+                channelId: 'fantagts_urgent',
+                priority: 'high',
+                category: 'alarm', // IMPORTANTE: categoria alarm per maggiore visibilità
+                visibility: 'public',
+                showWhen: true,
+                when: Date.now(),
+                color: '#4299e1',
+                lights: [300, 1000, 300, 1000], // LED lampeggiante
+                sound: 'default'
+            },
             data: {
                 url: url || '/',
                 timestamp: Date.now(),
                 action: 'open_app',
-                urgent: true // AGGIUNTO: flag urgenza
+                urgent: true,
+                lockscreen: true, // Flag per gestione lockscreen
+                wakeup: true // Flag per tentativo risveglio
             },
             actions: [
                 {
                     action: 'open',
-                    title: 'Apri FantaGTS'
+                    title: '🚀 Apri FantaGTS',
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
+                },
+                {
+                    action: 'remind',
+                    title: '⏰ Ricorda tra 1 min'
                 }
-            ] // SEMPLIFICATO: meno azioni = più veloce
+            ]
         });
 
         for (const subscription of subscriptions) {
