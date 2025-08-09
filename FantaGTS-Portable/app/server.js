@@ -422,25 +422,24 @@ async function inviaNotifichePush(notificationData) {
             body: body,
             icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
             badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            vibrate: [100, 50, 100, 50, 100],
-            requireInteraction: true,
-            tag: 'fantagts-notification',
+            vibrate: [200, 100, 200, 100, 200], // Vibrazione più forte
+            requireInteraction: false, // CAMBIATO: permette dismissal automatico
+            tag: 'fantagts-urgent', // CAMBIATO: tag più specifico
+            renotify: true, // AGGIUNTO: forza notifica anche se tag duplicato
+            silent: false,
+            timestamp: Date.now(), // AGGIUNTO: timestamp per priorità
             data: {
                 url: url || '/',
                 timestamp: Date.now(),
-                action: 'open_app'
+                action: 'open_app',
+                urgent: true // AGGIUNTO: flag urgenza
             },
             actions: [
                 {
                     action: 'open',
-                    title: 'Apri FantaGTS',
-                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
-                },
-                {
-                    action: 'close',
-                    title: 'Chiudi'
+                    title: 'Apri FantaGTS'
                 }
-            ]
+            ] // SEMPLIFICATO: meno azioni = più veloce
         });
 
         for (const subscription of subscriptions) {
@@ -456,9 +455,16 @@ async function inviaNotifichePush(notificationData) {
                 console.log(`🚀 Tentativo push MIGLIORATO a: ${subscription.partecipante_id}`);
 
                 await webpush.sendNotification(pushSubscription, payload, {
-                    TTL: 3600, // 1 ora
+                    TTL: 300, // CAMBIATO: 5 minuti (più urgente)
                     urgency: 'high',
-                    topic: 'fantagts-round'
+                    topic: `fantagts-${Date.now()}`, // CAMBIATO: topic unico per evitare grouping
+                    headers: {
+                        'Apns-Push-Type': 'alert', // Per iOS
+                        'Apns-Priority': '10', // Massima priorità iOS
+                        'FCM_OPTIONS': JSON.stringify({
+                            'analytics_label': 'urgent_notification'
+                        })
+                    }
                 });
 
                 pushInviate++;
