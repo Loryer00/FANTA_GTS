@@ -720,7 +720,54 @@
             });
 
             socket.on('round_started', (data) => {
-                showBiddingPhase(data);
+                console.log('🎯 Round started ricevuto:', data);
+
+                // NUOVO: Forza aggiornamento completo dell'interfaccia
+
+                // 1. Nascondi tutte le fasi
+                document.getElementById('waiting-phase').style.display = 'none';
+                document.getElementById('bidding-phase').style.display = 'none';
+
+                // 2. Reset completo interfaccia puntate
+                resetBiddingInterface();
+
+                // 3. Forza aggiornamento crediti
+                updateCreditsDisplay();
+
+                // 4. Mostra sezione asta con delay per garantire rendering
+                setTimeout(() => {
+                    showBiddingPhase(data);
+
+                    // 5. NUOVO: Forza refresh della griglia giocatori
+                    if (data && data.slots) {
+                        console.log('🔄 Forzando aggiornamento griglia giocatori:', data.slots);
+                        loadAvailablePlayers(data.slots);
+                    }
+
+                    // 6. Assicurati che sia visibile
+                    const biddingPhase = document.getElementById('bidding-phase');
+                    if (biddingPhase) {
+                        biddingPhase.style.display = 'block';
+
+                        // Scroll immediato (non smooth per essere più rapido)
+                        biddingPhase.scrollIntoView({
+                            behavior: 'auto',
+                            block: 'start'
+                        });
+
+                        // Evidenzia visivamente che è iniziata
+                        biddingPhase.style.border = '3px solid #4299e1';
+                        biddingPhase.style.backgroundColor = 'rgba(66, 153, 225, 0.1)';
+
+                        setTimeout(() => {
+                            biddingPhase.style.border = '';
+                            biddingPhase.style.backgroundColor = '';
+                        }, 3000);
+                    }
+
+                    console.log('✅ Interfaccia asta aggiornata forzatamente');
+
+                }, 200); // Piccolo delay per evitare conflitti
             });
 
             socket.on('offerte_update', (data) => {
@@ -750,6 +797,20 @@
                 resetBiddingInterface();
                 saveSession();
                 showWaitingPhase();
+            });
+
+            socket.on('asta_started', (data) => {
+                console.log('🎪 Asta started ricevuto:', data);
+
+                // Gestione uguale a round_started per compatibilità
+                document.getElementById('waiting-phase').style.display = 'none';
+
+                setTimeout(() => {
+                    showBiddingPhase({
+                        round: data.round,
+                        slots: data.slots || []
+                    });
+                }, 100);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -1103,32 +1164,39 @@
         }
 
         function showBiddingPhase(data) {
+            console.log('🎮 showBiddingPhase chiamata con:', data);
+
+            // FORZA reset di tutte le sezioni
             document.getElementById('waiting-phase').style.display = 'none';
             document.getElementById('bidding-phase').style.display = 'block';
 
             if (data && data.round) {
                 document.getElementById('currentRound').textContent = data.round;
-                loadAvailablePlayers(data.slots || []);
+
+                // NUOVO: Verifica che i slots esistano
+                if (data.slots && Array.isArray(data.slots)) {
+                    console.log('📋 Caricando giocatori per round:', data.round, 'Slots:', data.slots.length);
+                    loadAvailablePlayers(data.slots);
+                } else {
+                    console.log('⚠️ Nessun slot fornito, caricando dal server...');
+                    // Fallback: carica slots dal server
+                    loadSlotsForActiveRound(data.round);
+                }
             }
 
-            // NUOVO: Scroll automatico alla sezione asta
+            // Scroll automatico - ora più aggressivo
             setTimeout(() => {
                 const biddingSection = document.getElementById('bidding-phase');
                 if (biddingSection) {
-                    biddingSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-
-                    // Assicurati che sia visibile
+                    // Scroll immediato in cima alla pagina
                     window.scrollTo({
-                        top: biddingSection.offsetTop - 10,
-                        behavior: 'smooth'
+                        top: 0,
+                        behavior: 'auto' // Cambiato da 'smooth' a 'auto' per essere istantaneo
                     });
 
-                    console.log('📱 Scroll automatico alla sezione asta completato');
+                    console.log('📱 Scroll istantaneo alla sezione asta completato');
                 }
-            }, 500); // Piccolo delay per permettere il rendering
+            }, 100); // Ridotto delay
         }
 
         function updateCreditsDisplay() {
@@ -1174,29 +1242,66 @@
         }
 
         function loadAvailablePlayers(slots) {
+            console.log('🎯 loadAvailablePlayers chiamata con:', slots);
+
             const grid = document.getElementById('playersGrid');
+            if (!grid) {
+                console.error('❌ playersGrid non trovato!');
+                return;
+            }
+
+            // PULISCI completamente la griglia
             grid.innerHTML = '';
 
-            const players = slots.length > 0 ? slots : [
-                { id: 'M1_ROSSO', giocatore_attuale: 'SPANO', colore: 'rosso' },
-                { id: 'M1_BLU', giocatore_attuale: 'BIANCHI', colore: 'blu' },
-                { id: 'M1_VERDE', giocatore_attuale: 'VERDI', colore: 'verde' }
-            ];
+            // NUOVO: Verifica che slots sia un array valido
+            let players = [];
 
-            players.forEach(player => {
+            if (slots && Array.isArray(slots) && slots.length > 0) {
+                players = slots;
+                console.log('✅ Usando slots forniti:', players.length);
+            } else {
+                // Fallback con dati di esempio
+                console.log('⚠️ Slots non validi, usando fallback');
+                players = [
+                    { id: 'LOADING_1', giocatore_attuale: 'Caricamento...', colore: 'grigio' },
+                    { id: 'LOADING_2', giocatore_attuale: 'Attendere...', colore: 'grigio' }
+                ];
+            }
+
+            console.log('📋 Creando cards per', players.length, 'giocatori');
+
+            players.forEach((player, index) => {
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.dataset.playerId = player.id;
 
                 card.innerHTML = `
-                        <div class="team-color-dot" style="background-color: ${player.colore}"></div>
-                        <div class="player-name">${player.giocatore_attuale}</div>
-                        <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
-                    `;
+            <div class="team-color-dot" style="background-color: ${getTeamColor(player.colore)}"></div>
+            <div class="player-name">${player.giocatore_attuale || 'N/A'}</div>
+            <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
+        `;
 
-                card.addEventListener('click', () => selectPlayer(player));
+                // NUOVO: Aggiungi listener solo se non è un placeholder
+                if (!player.id.startsWith('LOADING_')) {
+                    card.addEventListener('click', () => selectPlayer(player));
+                } else {
+                    card.style.opacity = '0.6';
+                    card.style.cursor = 'not-allowed';
+                }
+
                 grid.appendChild(card);
+
+                // Log per debug
+                console.log(`➕ Aggiunta card ${index + 1}: ${player.giocatore_attuale} (${player.colore})`);
             });
+
+            console.log('✅ Griglia giocatori aggiornata:', grid.children.length, 'cards create');
+
+            // NUOVO: Forza re-render della griglia
+            grid.style.display = 'none';
+            setTimeout(() => {
+                grid.style.display = 'grid';
+            }, 50);
         }
 
         function selectPlayer(player) {

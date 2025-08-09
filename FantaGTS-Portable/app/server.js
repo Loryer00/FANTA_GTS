@@ -231,9 +231,12 @@ let gameState = {
     offerteTemporanee: new Map(),
     // 🆕 NUOVI CAMPI per multi-asta
     astaCorrente: 1,
-    partecipantiAssegnati: new Set(), // Chi ha già vinto in questo round
-    slotsRimasti: [], // Giocatori ancora disponibili per questo round
-    partecipantiInAttesa: [] // Chi deve ancora prendere un giocatore
+    partecipantiAssegnati: new Set(),
+    slotsRimasti: [],
+    partecipantiInAttesa: [],
+    // 🆕 CAMPI per controllo logging
+    lastMonitorLog: null,
+    lastOfferteCount: 0
 };
 
 // Funzioni utilità
@@ -1316,25 +1319,33 @@ function avviaMonitoraggioOfferte() {
             const mancano = totalePartecipanti - offerteRicevute;
             const tuttiHannoOfferto = offerteRicevute >= totalePartecipanti;
 
-            // 📊 Log dettagliato per debug
-            console.log(`📊 MONITORAGGIO ROUND ${gameState.roundAttivo}:`);
-            console.log(`   👥 Partecipanti totali nel DB: ${totalePartecipanti}`);
-            console.log(`   ✅ Hanno fatto offerte: ${offerteRicevute}`);
-            console.log(`   ⏳ Mancano: ${mancano}`);
-            console.log(`   🔗 Connessi WebSocket: ${Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length}`);
+            // 📊 Log ridotto - solo ogni 10 secondi o quando cambia stato
+            const currentTime = Date.now();
+            const shouldLog = !gameState.lastMonitorLog ||
+                (currentTime - gameState.lastMonitorLog) > 10000 || // Ogni 10 secondi
+                gameState.lastOfferteCount !== offerteRicevute; // O quando cambiano le offerte
 
-            // Lista di chi ha offerto e chi manca
+            if (shouldLog) {
+                console.log(`📊 ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
+
+                // Solo se mancano offerte, mostra chi aspettiamo
+                if (mancano > 0) {
+                    const nonHannoOfferto = tuttiPartecipanti
+                        .filter(p => !partecipantiCheHannoOfferto.has(p.id))
+                        .map(p => p.nome);
+                    console.log(`   ⏳ Aspettando: ${nonHannoOfferto.join(', ')}`);
+                }
+
+                // Aggiorna stato per prossimo log
+                gameState.lastMonitorLog = currentTime;
+                gameState.lastOfferteCount = offerteRicevute;
+            }
+
+            // Lista completa per elaborazione (mantieni questa parte)
             const hannoOfferto = Array.from(partecipantiCheHannoOfferto);
             const nonHannoOfferto = tuttiPartecipanti
                 .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                 .map(p => p.nome);
-
-            if (hannoOfferto.length > 0) {
-                console.log(`   ✅ Hanno offerto: ${hannoOfferto.join(', ')}`);
-            }
-            if (nonHannoOfferto.length > 0) {
-                console.log(`   ❌ Aspettando: ${nonHannoOfferto.join(', ')}`);
-            }
 
             const statoOfferte = {
                 partecipantiTotali: totalePartecipanti,
