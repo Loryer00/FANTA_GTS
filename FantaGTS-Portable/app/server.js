@@ -1940,36 +1940,17 @@ io.on('connection', (socket) => {
     socket.on('place_bid', async (data) => {
         console.log(`💰 Tentativo puntata da socket ${socket.id}:`, data);
 
+        // Verifica che ci sia un round attivo
         if (!gameState.asteAttive || gameState.roundAttivo !== data.round) {
             console.log(`❌ Round non attivo: attivo=${gameState.asteAttive}, round=${gameState.roundAttivo}, richiesto=${data.round}`);
             socket.emit('bid_error', { message: 'Nessun round attivo o round non corrispondente' });
             return;
         }
 
-        // 🆕 NUOVO: Verifica che il partecipante sia ancora in attesa
-        if (!gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-            console.log(`❌ ${connesso.nome} ha già vinto in questo round`);
-            socket.emit('bid_error', { message: 'Hai già vinto un giocatore in questo round' });
-            return;
-        }
-
-        // 🆕 NUOVO: Verifica che non abbia già fatto un'offerta in questa asta
-        const hasAlreadyBid = Array.from(gameState.offerteTemporanee.entries()).some(([socketId, offerta]) => {
-            const offerenteConnesso = gameState.connessi.get(socketId);
-            return offerenteConnesso &&
-                offerenteConnesso.partecipanteId === connesso.partecipanteId &&
-                offerta.round === data.round;
-        });
-
-        if (hasAlreadyBid) {
-            console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
-            socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
-            return;
-        }
-
+        // Verifica che il socket sia registrato
         const connesso = gameState.connessi.get(socket.id);
         console.log(`🔍 Controllo connesso per socket ${socket.id}:`, {
-            connesso: connesso,
+            connesso: !!connesso,
             tipo: connesso?.tipo,
             nome: connesso?.nome,
             partecipanteId: connesso?.partecipanteId,
@@ -1994,38 +1975,95 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Verifica crediti disponibili
+        // Verifica che il partecipante sia ancora in attesa (solo dopo la prima asta)
+        if (gameState.astaCorrente > 1 && gameState.partecipantiInAttesa && !gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+            console.log(`❌ ${connesso.nome} ha già vinto in questo round`);
+            socket.emit('bid_error', { message: 'Hai già vinto un giocatore in questo round' });
+            return;
+        }
+
+        // Verifica che non abbia già fatto un'offerta in questa asta
+        let hasAlreadyBid = false;
+        for (let [existingSocketId, offerta] of gameState.offerteTemporanee.entries()) {
+            if (existingSocketId !== socket.id) {
+                const offerenteConnesso = gameState.connessi.get(existingSocketId);
+                if (offerenteConnesso &&
+                    offerenteConnesso.partecipanteId === connesso.partecipanteId &&
+                    offerta.round === data.round) {
+                    hasAlreadyBid = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasAlreadyBid) {
+            console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
+            socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
+            return;
+        }
+
+        // Verifica validità dati offerta
+        if (!data.slot || !data.importo || data.importo <= 0) {
+            console.log(`❌ Dati offerta non validi:`, data);
+            socket.emit('bid_error', { message: 'Dati offerta non validi' });
+            return;
+        }
+
+        // Verifica che lo slot sia ancora disponibile
+        if (gameState.slotsRimasti && gameState.slotsRimasti.length > 0) {
+            const slotDisponibile = gameState.slotsRimasti.find(s => s.id === data.slot);
+            if (!slotDisponibile) {
+                console.log(`❌ Slot ${data.slot} non più disponibile`);
+                socket.emit('bid_error', { message: 'Giocatore non più disponibile' });
+                return;
+            }
+        }
+
+        // Verifica crediti disponibili nel database
         try {
-            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1", [connesso.partecipanteId]);
+            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2",
+                [connesso.partecipanteId, sessioneCorrente]);
 
             if (result.rows.length === 0) {
-                socket.emit('bid_error', { message: 'Partecipante non trovato' });
+                console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`);
+                socket.emit('bid_error', { message: 'Partecipante non trovato nel database' });
                 return;
             }
 
-            if (data.importo > result.rows[0].crediti) {
-                socket.emit('bid_error', { message: 'Crediti insufficienti' });
+            const creditiDisponibili = result.rows[0].crediti;
+            if (data.importo > creditiDisponibili) {
+                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`);
+                socket.emit('bid_error', { message: `Crediti insufficienti. Disponibili: ${creditiDisponibili}` });
                 return;
             }
 
-            // Salva offerta temporanea
+            // Salva offerta temporanea (sovrascrive se esiste già per questo socket)
             gameState.offerteTemporanee.set(socket.id, {
                 round: data.round,
                 slot: data.slot,
-                importo: parseInt(data.importo)
+                importo: parseInt(data.importo),
+                partecipanteId: connesso.partecipanteId,
+                timestamp: Date.now()
             });
 
+            console.log(`💰 Offerta ricevuta e salvata: ${connesso.nome} (${connesso.partecipanteId}) punta ${data.importo} su ${data.slot}`);
+            console.log(`📊 Totale offerte ora: ${gameState.offerteTemporanee.size}`);
+            console.log(`🎯 Asta corrente: ${gameState.astaCorrente}, Round: ${gameState.roundAttivo}`);
+
+            // Conferma offerta al client
             socket.emit('bid_confirmed', {
                 slot: data.slot,
-                importo: data.importo
+                importo: data.importo,
+                partecipante: connesso.nome,
+                round: data.round,
+                astaNumero: gameState.astaCorrente || 1
             });
 
-            console.log(`💰 Offerta ricevuta: ${connesso.nome} punta ${data.importo} su ${data.slot}`);
+            console.log(`✅ Offerta confermata inviata a ${connesso.nome}`);
 
-            // resto del codice...
         } catch (err) {
-            console.error('Errore verifica crediti:', err);
-            socket.emit('bid_error', { message: 'Errore del server' });
+            console.error('❌ Errore verifica crediti:', err);
+            socket.emit('bid_error', { message: 'Errore del server durante verifica crediti' });
         }
     });
 
