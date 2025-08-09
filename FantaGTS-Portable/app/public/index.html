@@ -853,6 +853,12 @@
                 if (data.continuaRound) {
                     console.log(`🔄 Round ${data.round} continua - Preparando prossima asta`);
 
+                    // SCROLL IN CIMA ALLA PAGINA per chi non ha vinto
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+
                     // Reset selezioni per prossima asta
                     setTimeout(() => {
                         document.querySelectorAll('.player-card').forEach(card => {
@@ -886,15 +892,34 @@
                 // NUOVO: Reset completo prima della nuova asta
                 resetBiddingInterface();
 
+                // SCROLL AUTOMATICO IN CIMA
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+
                 // Gestione uguale a round_started per compatibilità
                 document.getElementById('waiting-phase').style.display = 'none';
 
                 setTimeout(() => {
                     showBiddingPhase({
                         round: data.round,
-                        slots: data.slots || []
+                        slots: data.slots || [],
+                        astaNumero: data.astaNumero || 1
                     });
-                }, 100);
+
+                    // EVIDENZIA che è iniziata una nuova asta
+                    const biddingSection = document.getElementById('bidding-phase');
+                    if (biddingSection) {
+                        biddingSection.style.border = '3px solid #4299e1';
+                        biddingSection.style.animation = 'pulse 0.5s ease-in-out 3 alternate';
+
+                        setTimeout(() => {
+                            biddingSection.style.border = '';
+                            biddingSection.style.animation = '';
+                        }, 3000);
+                    }
+                }, 200);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -1337,12 +1362,17 @@
             // PULISCI completamente la griglia
             grid.innerHTML = '';
 
-            // NUOVO: Verifica che slots sia un array valido
+            // NUOVO: Verifica che slots sia un array valido e filtri solo quelli disponibili
             let players = [];
 
             if (slots && Array.isArray(slots) && slots.length > 0) {
-                players = slots;
-                console.log('✅ Usando slots forniti:', players.length);
+                // FILTRA solo i giocatori ancora disponibili (non già acquistati)
+                players = slots.filter(slot => {
+                    // Verifica che il giocatore non sia già stato acquistato da qualcuno
+                    return slot.giocatore_attuale && slot.giocatore_attuale.trim() !== '';
+                });
+
+                console.log(`✅ Usando slots filtrati: ${players.length} disponibili su ${slots.length} totali`);
             } else {
                 // Fallback con dati di esempio
                 console.log('⚠️ Slots non validi, usando fallback');
@@ -1352,7 +1382,12 @@
                 ];
             }
 
-            console.log('📋 Creando cards per', players.length, 'giocatori');
+            console.log('📋 Creando cards per', players.length, 'giocatori disponibili');
+
+            if (players.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #f59e0b;">Nessun giocatore disponibile</div>';
+                return;
+            }
 
             players.forEach((player, index) => {
                 const card = document.createElement('div');

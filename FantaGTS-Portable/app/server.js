@@ -329,7 +329,8 @@ function avviaAstaSuccessiva() {
         astaNumero: gameState.astaCorrente,
         slots: gameState.slotsRimasti,
         partecipantiInAttesa: gameState.partecipantiInAttesa,
-        sistema: 'multi-asta'
+        sistema: 'multi-asta',
+        slotsDisponibili: gameState.slotsRimasti.map(s => s.id) // NUOVO: Lista ID slots disponibili
     });
 
     // 🔍 Avvia monitoraggio per questa asta
@@ -1376,13 +1377,25 @@ function avviaMonitoraggioOfferte() {
             // 📤 Invia aggiornamento a tutti i client
             io.emit('offerte_update', statoOfferte);
 
-            // 🏁 CHIUDI ROUND solo se TUTTI hanno offerto
-            if (tuttiHannoOfferto && totalePartecipanti > 0) {
-                console.log(`🎉 TUTTI i ${totalePartecipanti} partecipanti del database hanno fatto offerte - chiusura round`);
+            // 🏁 CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
+            const partecipantiInAttesaCheHannoOfferto = new Set();
+            gameState.offerteTemporanee.forEach((offerta, socketId) => {
+                const connesso = gameState.connessi.get(socketId);
+                if (connesso && connesso.partecipanteId && offerta.round === gameState.roundAttivo) {
+                    if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+                        partecipantiInAttesaCheHannoOfferto.add(connesso.partecipanteId);
+                    }
+                }
+            });
+
+            const tuttiInAttesaHannoOfferto = partecipantiInAttesaCheHannoOfferto.size >= gameState.partecipantiInAttesa.length;
+
+            if (tuttiInAttesaHannoOfferto && gameState.partecipantiInAttesa.length > 0) {
+                console.log(`🎉 TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
                 clearInterval(monitorInterval);
 
                 if (gameState.asteAttive) {
-                    console.log('🔄 Avviando elaborazione risultati...');
+                    console.log('🔄 Avviando elaborazione risultati asta...');
                     terminaRound();
                 }
             }
