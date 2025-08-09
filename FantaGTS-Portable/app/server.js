@@ -1791,9 +1791,10 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
 });
 
 function terminaRound() {
-    if (gameState.asteAttive === false) return;
+    console.log('🔄 terminaRound chiamato - elaborando risultati asta');
 
-    gameState.asteAttive = false;
+    // NON settare asteAttive = false qui, perché potrebbe continuare il round
+    // gameState.asteAttive = false; // RIMOSSO
     gameState.gamePhase = 'results';
 
     elaboraRisultatiAste();
@@ -1956,6 +1957,7 @@ function elaboraRisultatiAste() {
             gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(p => p !== vincitore.partecipante);
             gameState.slotsRimasti = gameState.slotsRimasti.filter(s => s.id !== slotId);
 
+            // NUOVO: Disconnetti il vincitore dall'asta corrente
             for (let [socketId, connesso] of gameState.connessi.entries()) {
                 if (connesso.partecipanteId === vincitore.partecipante) {
                     io.to(socketId).emit('player_won_exit_auction', {
@@ -1983,13 +1985,18 @@ function elaboraRisultatiAste() {
     console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa}`);
     console.log(`   🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
-    // 🔄 Passa alla prossima asta O termina round
+    // 🔄 Reset offerte per prossima iterazione
+    gameState.offerteTemporanee.clear();
+
+    // 🔄 Decidi se continuare con nuova asta o terminare round
     setTimeout(() => {
         if (gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0) {
             gameState.astaCorrente++;
             console.log(`\n➡️ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
+            console.log(`🎯 STATO ASTE: gameState.asteAttive = ${gameState.asteAttive}`);
             avviaAstaSuccessiva();
         } else {
+            console.log(`🏁 ROUND COMPLETATO - tutti assegnati o slots esauriti`);
             terminaRoundCompleto();
         }
     }, 3000); // Pausa di 3 secondi tra aste
@@ -2319,6 +2326,7 @@ io.on('connection', (socket) => {
 
     socket.on('place_bid', async (data) => {
         console.log(`💰 Tentativo puntata da socket ${socket.id}:`, data);
+        console.log(`🎯 STATO ASTE AL MOMENTO: asteAttive=${gameState.asteAttive}, roundAttivo=${gameState.roundAttivo}, astaCorrente=${gameState.astaCorrente}`);
 
         // Verifica che ci sia un round attivo
         if (!gameState.asteAttive) {

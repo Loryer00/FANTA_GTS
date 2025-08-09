@@ -1036,8 +1036,8 @@
                 // Alert immediato
                 alert(`🔔 ${data.title}\n\n${data.body}`);
 
-                // Notifica browser se supportata
-                if ('Notification' in window && Notification.permission === 'granted') {
+                // Notifica browser se supportata (solo se NON siamo in service worker context)
+                if ('Notification' in window && Notification.permission === 'granted' && !navigator.serviceWorker) {
                     new Notification(data.title, {
                         body: data.body,
                         icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',

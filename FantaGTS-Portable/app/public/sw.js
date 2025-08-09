@@ -95,7 +95,7 @@ self.addEventListener('push', (event) => {
                         self.registration.showNotification('', {
                             tag: 'wakeup-helper',
                             silent: true,
-                            vibrate: [100],
+                            // vibrate: [100], // RIMOSSO: le notifiche silenziose non possono vibrare
                             actions: [],
                             data: { helper: true }
                         }).then(() => {
