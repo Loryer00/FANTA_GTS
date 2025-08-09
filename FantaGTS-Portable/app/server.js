@@ -422,15 +422,23 @@ async function inviaNotifichePush(notificationData) {
             body: body,
             icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
             badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            vibrate: [100, 50, 100],
+            vibrate: [100, 50, 100, 50, 100],
+            requireInteraction: true,
+            tag: 'fantagts-notification',
             data: {
                 url: url || '/',
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                action: 'open_app'
             },
             actions: [
                 {
                     action: 'open',
-                    title: 'Apri FantaGTS'
+                    title: 'Apri FantaGTS',
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
+                },
+                {
+                    action: 'close',
+                    title: 'Chiudi'
                 }
             ]
         });
@@ -445,15 +453,16 @@ async function inviaNotifichePush(notificationData) {
                     }
                 };
 
-                console.log(`🚀 Tentativo push a: ${subscription.partecipante_id}`);
+                console.log(`🚀 Tentativo push MIGLIORATO a: ${subscription.partecipante_id}`);
 
                 await webpush.sendNotification(pushSubscription, payload, {
                     TTL: 3600, // 1 ora
-                    urgency: 'normal'
+                    urgency: 'high',
+                    topic: 'fantagts-round'
                 });
 
                 pushInviate++;
-                console.log(`✅ Push inviata a: ${subscription.partecipante_id}`);
+                console.log(`✅ Push MIGLIORATA inviata a: ${subscription.partecipante_id}`);
 
                 // Aggiorna last_seen
                 await db.query("UPDATE push_subscriptions SET last_seen = CURRENT_TIMESTAMP WHERE id = $1", [subscription.id]);
@@ -1345,6 +1354,33 @@ app.post('/api/forza-fine-round', (req, res) => {
     res.json({ message: 'Round terminato forzatamente' });
 });
 
+// API per test notifiche push
+app.post('/api/test-notification/:partecipanteId', async (req, res) => {
+    try {
+        const partecipanteId = req.params.partecipanteId;
+        const { title, body } = req.body;
+
+        console.log(`🧪 TEST NOTIFICA per: ${partecipanteId}`);
+
+        const result = await inviaNotifichePush({
+            title: title || 'Test FantaGTS',
+            body: body || 'Questa è una notifica di test dal Master!',
+            url: '/',
+            targetUsers: [partecipanteId]
+        });
+
+        res.json({
+            success: true,
+            result: result,
+            message: 'Notifica di test inviata'
+        });
+
+    } catch (error) {
+        console.error('❌ Errore test notifica:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 function terminaRound() {
     if (gameState.asteAttive === false) return;
 
@@ -1683,6 +1719,33 @@ app.post('/api/reset/:livello', async (req, res) => {
         }
     } catch (error) {
         console.error('Errore reset:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API per test notifiche push
+app.post('/api/test-notification/:partecipanteId', async (req, res) => {
+    try {
+        const partecipanteId = req.params.partecipanteId;
+        const { title, body } = req.body;
+
+        console.log(`🧪 TEST NOTIFICA per: ${partecipanteId}`);
+
+        const result = await inviaNotifichePush({
+            title: title || 'Test FantaGTS',
+            body: body || 'Questa è una notifica di test dal Master!',
+            url: '/',
+            targetUsers: [partecipanteId]
+        });
+
+        res.json({
+            success: true,
+            result: result,
+            message: 'Notifica di test inviata'
+        });
+
+    } catch (error) {
+        console.error('❌ Errore test notifica:', error);
         res.status(500).json({ error: error.message });
     }
 });

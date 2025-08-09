@@ -13,24 +13,31 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim()); // Prendi controllo di tutte le pagine
 });
 
-// Gestione Push Notifications
+// Gestione Push Notifications - VERSIONE MIGLIORATA
 self.addEventListener('push', (event) => {
     console.log('📨 Service Worker: Push notification ricevuta');
+    console.log('📱 Dati push ricevuti:', event.data ? event.data.text() : 'Nessun dato');
 
     let notificationData = {
         title: 'FantaGTS',
         body: 'Nuovo evento nel FantaGTS!',
         icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
         badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-        vibrate: [100, 50, 100],
+        vibrate: [100, 50, 100, 50, 100],
+        requireInteraction: true,
+        tag: 'fantagts-notification',
+        renotify: true,
+        silent: false,
         data: {
             url: '/',
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            action: 'open_app'
         },
         actions: [
             {
                 action: 'open',
-                title: 'Apri FantaGTS'
+                title: 'Apri FantaGTS',
+                icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
             },
             {
                 action: 'close',
@@ -43,18 +50,45 @@ self.addEventListener('push', (event) => {
     if (event.data) {
         try {
             const pushData = event.data.json();
+            console.log('📋 Dati push parsati:', pushData);
+
             notificationData.title = pushData.title || notificationData.title;
             notificationData.body = pushData.body || notificationData.body;
+
+            if (pushData.data) {
+                notificationData.data = { ...notificationData.data, ...pushData.data };
+            }
+
             if (pushData.url) {
                 notificationData.data.url = pushData.url;
             }
+
+            // Mantieni proprietà avanzate dal server
+            if (pushData.requireInteraction !== undefined) {
+                notificationData.requireInteraction = pushData.requireInteraction;
+            }
+            if (pushData.tag) {
+                notificationData.tag = pushData.tag;
+            }
+            if (pushData.vibrate) {
+                notificationData.vibrate = pushData.vibrate;
+            }
+
         } catch (error) {
-            console.log('Errore parsing dati push:', error);
+            console.error('❌ Errore parsing dati push:', error);
         }
     }
 
+    console.log('🔔 Mostrando notifica con dati:', notificationData);
+
     event.waitUntil(
         self.registration.showNotification(notificationData.title, notificationData)
+            .then(() => {
+                console.log('✅ Notifica mostrata con successo');
+            })
+            .catch(error => {
+                console.error('❌ Errore mostrando notifica:', error);
+            })
     );
 });
 
