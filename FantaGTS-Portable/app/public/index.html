@@ -722,7 +722,8 @@
             socket.on('round_started', (data) => {
                 console.log('🎯 Round started ricevuto:', data);
 
-                // NUOVO: Forza aggiornamento completo dell'interfaccia
+                // NUOVO: Reset completo prima di iniziare
+                resetBiddingInterface();
 
                 // 1. Nascondi tutte le fasi
                 document.getElementById('waiting-phase').style.display = 'none';
@@ -799,8 +800,60 @@
                 showWaitingPhase();
             });
 
+            // AGGIUNGI QUESTO NUOVO LISTENER
+            socket.on('asta_ended', (data) => {
+                console.log('🏁 Asta terminata ricevuta:', data);
+
+                // 1. RESET COMPLETO dell'interfaccia aste
+                resetBiddingInterface();
+
+                // 2. Aggiorna squadra se ci sono risultati
+                if (data.risultati && Array.isArray(data.risultati)) {
+                    updateMyTeamFromResults(data.round, data.risultati);
+                }
+
+                // 3. Ricarica squadra completa dal server
+                loadPlayerTeam();
+
+                // 4. Aggiorna crediti
+                updateCreditsDisplay();
+
+                // 5. Se continua il round, prepara per prossima asta
+                if (data.continuaRound) {
+                    console.log(`🔄 Round ${data.round} continua - Preparando prossima asta`);
+
+                    // Reset selezioni per prossima asta
+                    setTimeout(() => {
+                        document.querySelectorAll('.player-card').forEach(card => {
+                            card.classList.remove('selected');
+                            card.style.pointerEvents = 'auto';
+                            card.style.opacity = '1';
+                        });
+
+                        document.getElementById('bidSection').style.display = 'none';
+                        document.getElementById('bidAmount').value = '';
+                        document.getElementById('confirmBidBtn').disabled = true;
+                        document.getElementById('confirmBidBtn').textContent = 'Conferma Puntata';
+                        document.getElementById('confirmBidBtn').style.background = '#f56565';
+
+                        console.log('✅ Interfaccia pronta per prossima asta');
+                    }, 1000);
+
+                } else {
+                    // Round completato - torna alla fase di attesa
+                    console.log(`🏁 Round ${data.round} completato totalmente`);
+                    showWaitingPhase();
+                }
+
+                // Salva sessione
+                saveSession();
+            });
+
             socket.on('asta_started', (data) => {
                 console.log('🎪 Asta started ricevuto:', data);
+
+                // NUOVO: Reset completo prima della nuova asta
+                resetBiddingInterface();
 
                 // Gestione uguale a round_started per compatibilità
                 document.getElementById('waiting-phase').style.display = 'none';
@@ -1305,20 +1358,47 @@
         }
 
         function selectPlayer(player) {
+            console.log('🎯 Giocatore selezionato:', player);
+
+            // NUOVO: Verifica che non sia già stata fatta un'offerta
+            const confirmBtn = document.getElementById('confirmBidBtn');
+            if (confirmBtn.textContent.includes('✅') || confirmBtn.textContent.includes('Confermata')) {
+                console.log('❌ Offerta già confermata, selezione bloccata');
+                return;
+            }
+
+            // Reset selezione precedente
             document.querySelectorAll('.player-card').forEach(card => {
                 card.classList.remove('selected');
+                card.style.border = '';
+                card.style.backgroundColor = '';
             });
 
-            document.querySelector(`[data-player-id="${player.id}"]`).classList.add('selected');
+            // Seleziona nuovo giocatore
+            const selectedCard = document.querySelector(`[data-player-id="${player.id}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                selectedCard.style.border = '3px solid #4299e1';
+                selectedCard.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+            }
 
+            // Mostra sezione puntata
             document.getElementById('bidSection').style.display = 'block';
             document.getElementById('selectedPlayerInfo').innerHTML = `
-                    <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
-                    <small>Squadra ${player.colore}</small>
-                `;
+        <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
+        <small>Squadra ${player.colore}</small>
+    `;
+
+            // Reset campo importo e pulsante
+            document.getElementById('bidAmount').value = '';
+            document.getElementById('confirmBidBtn').disabled = true;
+            document.getElementById('confirmBidBtn').textContent = 'Conferma Puntata';
+            document.getElementById('confirmBidBtn').style.background = '#f56565';
 
             updateCreditsDisplay();
             updateBidButton();
+
+            console.log('✅ Selezione giocatore completata');
         }
 
         function updateBidButton() {
@@ -1382,6 +1462,53 @@
                 statusEl.style.color = '#10b981';
                 messageEl.textContent = 'Elaborazione risultati in corso...';
             }
+        }
+
+        function resetBiddingInterface() {
+            console.log('🔄 Resettando interfaccia aste...');
+
+            // 1. Reset campo importo
+            const bidAmount = document.getElementById('bidAmount');
+            if (bidAmount) {
+                bidAmount.disabled = false;
+                bidAmount.value = '';
+                bidAmount.placeholder = 'Inserisci quanto vuoi puntare';
+            }
+
+            // 2. Reset cards giocatori
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.style.pointerEvents = 'auto';
+                card.style.opacity = '1';
+                card.classList.remove('selected');
+                card.style.border = '';
+                card.style.backgroundColor = '';
+            });
+
+            // 3. Reset pulsante conferma
+            const confirmBtn = document.getElementById('confirmBidBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Conferma Puntata';
+                confirmBtn.style.background = '#f56565';
+                confirmBtn.style.cursor = 'not-allowed';
+            }
+
+            // 4. Reset sezione selezione
+            const bidSection = document.getElementById('bidSection');
+            if (bidSection) {
+                bidSection.style.display = 'none';
+            }
+
+            // 5. Reset info giocatore selezionato
+            const selectedInfo = document.getElementById('selectedPlayerInfo');
+            if (selectedInfo) {
+                selectedInfo.innerHTML = '<strong>Nessun giocatore selezionato</strong>';
+            }
+
+            // 6. Forza aggiornamento crediti
+            updateCreditsDisplay();
+
+            console.log('✅ Interfaccia aste resettata completamente');
         }
 
         function showResultsPhase(data) {
