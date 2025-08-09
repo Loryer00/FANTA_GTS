@@ -535,6 +535,9 @@
                 <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
                     👥 Gestisci Partecipanti
                 </button>
+                <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
+                    ⚽ Gestione Incontri
+                </button>
                 <button class="btn btn-primary" onclick="esportaDati()">
                     📊 Esporta Dati
                 </button>
@@ -1059,7 +1062,11 @@
             }
         }
 
-        // Caricamento stato iniziale MODIFICATO
+        // Trova la sezione con le altre funzioni e aggiungi:
+        function vaiAGestioneIncontri() {
+            window.location.href = '/gestione-incontri';
+        }
+
         // Caricamento stato iniziale MODIFICATO
         async function caricaStatoIniziale() {
             try {

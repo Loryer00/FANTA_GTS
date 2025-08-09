@@ -172,6 +172,59 @@ async function initializeDatabase() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
+            id SERIAL PRIMARY KEY,
+            turno_numero INTEGER NOT NULL,
+            nome_turno TEXT NOT NULL,
+            descrizione TEXT,
+            punti_vittoria INTEGER DEFAULT 1,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS coppie_turno (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_numero INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            squadra1 INTEGER,
+            squadra2 INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS incontri (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_turno_id INTEGER NOT NULL,
+            squadra1 INTEGER NOT NULL,
+            squadra2 INTEGER NOT NULL,
+            risultato_coppia1 TEXT,
+            risultato_coppia2 TEXT,
+            completato BOOLEAN DEFAULT false,
+            inserito_da TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (coppia_turno_id) REFERENCES coppie_turno(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_dettaglio (
+            id SERIAL PRIMARY KEY,
+            incontro_id INTEGER NOT NULL,
+            posizione TEXT NOT NULL,
+            giocatore_squadra1 TEXT,
+            giocatore_squadra2 TEXT,
+            vincitore INTEGER, -- 1 per squadra1, 2 per squadra2, 0 per pareggio
+            punti_assegnati INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (incontro_id) REFERENCES incontri(id)
+        )`);
+
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
             nome TEXT NOT NULL,
@@ -574,6 +627,136 @@ app.get('/api/squadre-complete', async (req, res) => {
         res.json(squadre);
     } catch (err) {
         console.error('Errore API squadre-complete:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== API INCONTRI ====================
+
+// API per turni
+app.get('/api/turni', async (req, res) => {
+    try {
+        const result = await db.query("SELECT * FROM turni_configurazione WHERE attivo = true ORDER BY turno_numero");
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API turni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/turni', async (req, res) => {
+    try {
+        const { turno_numero, nome_turno, descrizione, punti_vittoria } = req.body;
+
+        // Verifica che il numero turno non esista già
+        const existing = await db.query("SELECT id FROM turni_configurazione WHERE turno_numero = $1 AND attivo = true", [turno_numero]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Numero turno già esistente' });
+        }
+
+        const result = await db.query(`INSERT INTO turni_configurazione 
+            (turno_numero, nome_turno, descrizione, punti_vittoria) 
+            VALUES ($1, $2, $3, $4) RETURNING id`,
+            [turno_numero, nome_turno, descrizione, punti_vittoria]);
+
+        res.json({ message: 'Turno creato con successo', id: result.rows[0].id });
+    } catch (err) {
+        console.error('Errore POST turni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per coppie turno
+app.get('/api/coppie-turno/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+        const result = await db.query(`SELECT c.*, ROW_NUMBER() OVER (ORDER BY c.id) as coppia_numero
+            FROM coppie_turno c WHERE turno_id = $1 ORDER BY c.id`, [turnoId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API coppie-turno:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/coppie-turno', async (req, res) => {
+    try {
+        const { turno_id, pos1, pos2, squadra1, squadra2 } = req.body;
+
+        // Calcola il numero della coppia
+        const countResult = await db.query("SELECT COUNT(*) as count FROM coppie_turno WHERE turno_id = $1", [turno_id]);
+        const coppia_numero = parseInt(countResult.rows[0].count) + 1;
+
+        await db.query(`INSERT INTO coppie_turno 
+            (turno_id, coppia_numero, pos1, pos2, squadra1, squadra2) 
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [turno_id, coppia_numero, pos1, pos2, squadra1, squadra2]);
+
+        res.json({ message: 'Coppia aggiunta con successo' });
+    } catch (err) {
+        console.error('Errore POST coppie-turno:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/coppie-turno/:coppiaId', async (req, res) => {
+    try {
+        await db.query("DELETE FROM coppie_turno WHERE id = $1", [req.params.coppiaId]);
+        res.json({ message: 'Coppia eliminata con successo' });
+    } catch (err) {
+        console.error('Errore DELETE coppie-turno:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per generare incontri
+app.post('/api/genera-incontri/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+
+        // Prima elimina incontri esistenti per questo turno
+        await db.query("DELETE FROM incontri WHERE turno_id = $1", [turnoId]);
+
+        // Ottieni tutte le coppie del turno
+        const coppieResult = await db.query("SELECT * FROM coppie_turno WHERE turno_id = $1", [turnoId]);
+        const coppie = coppieResult.rows;
+
+        if (coppie.length === 0) {
+            return res.status(400).json({ error: 'Nessuna coppia configurata per questo turno' });
+        }
+
+        let incontriGenerati = 0;
+
+        for (const coppia of coppie) {
+            await db.query(`INSERT INTO incontri 
+                (turno_id, coppia_turno_id, squadra1, squadra2) 
+                VALUES ($1, $2, $3, $4)`,
+                [turnoId, coppia.id, coppia.squadra1, coppia.squadra2]);
+            incontriGenerati++;
+        }
+
+        res.json({
+            message: 'Incontri generati con successo',
+            count: incontriGenerati
+        });
+    } catch (err) {
+        console.error('Errore genera-incontri:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per ottenere incontri di un turno
+app.get('/api/incontri-turno/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+        const result = await db.query(`SELECT i.*, c.pos1, c.pos2, c.coppia_numero
+            FROM incontri i 
+            JOIN coppie_turno c ON i.coppia_turno_id = c.id 
+            WHERE i.turno_id = $1 
+            ORDER BY c.coppia_numero`, [turnoId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API incontri-turno:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1110,6 +1293,150 @@ app.get('/api/clean-subscriptions', async (req, res) => {
     } catch (error) {
         console.error('❌ Errore pulizia subscription:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// API per dettagli incontro
+app.get('/api/dettagli-incontro/:incontroId', async (req, res) => {
+    try {
+        const incontroId = req.params.incontroId;
+        const result = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API dettagli-incontro:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per impostare vincitore di una posizione
+app.post('/api/set-vincitore', async (req, res) => {
+    try {
+        const { incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati } = req.body;
+
+        // Verifica se esiste già un risultato per questa posizione
+        const existing = await db.query("SELECT id FROM risultati_dettaglio WHERE incontro_id = $1 AND posizione = $2",
+            [incontro_id, posizione]);
+
+        if (existing.rows.length > 0) {
+            // Aggiorna esistente
+            await db.query(`UPDATE risultati_dettaglio 
+                SET vincitore = $1, giocatore_squadra1 = $2, giocatore_squadra2 = $3, punti_assegnati = $4
+                WHERE incontro_id = $5 AND posizione = $6`,
+                [vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati, incontro_id, posizione]);
+        } else {
+            // Inserisci nuovo
+            await db.query(`INSERT INTO risultati_dettaglio 
+                (incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati)
+                VALUES ($1, $2, $3, $4, $5, $6)`,
+                [incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati]);
+        }
+
+        res.json({ message: 'Vincitore impostato con successo' });
+    } catch (err) {
+        console.error('Errore API set-vincitore:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per completare un incontro
+app.post('/api/completa-incontro/:incontroId', async (req, res) => {
+    try {
+        const incontroId = req.params.incontroId;
+
+        // Verifica che ci siano risultati per tutte le posizioni
+        const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
+            FROM incontri i 
+            JOIN coppie_turno c ON i.coppia_turno_id = c.id 
+            WHERE i.id = $1`, [incontroId]);
+
+        if (incontroResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Incontro non trovato' });
+        }
+
+        const incontro = incontroResult.rows[0];
+        const posizioni = [incontro.pos1, incontro.pos2];
+
+        // Verifica che ci siano risultati per tutte le posizioni
+        const risultatiResult = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
+        const risultati = risultatiResult.rows;
+
+        const posizioniConRisultato = risultati.map(r => r.posizione);
+        const mancanti = posizioni.filter(pos => !posizioniConRisultato.includes(pos));
+
+        if (mancanti.length > 0) {
+            return res.status(400).json({
+                error: `Mancano risultati per le posizioni: ${mancanti.join(', ')}`
+            });
+        }
+
+        // Calcola risultato finale
+        let vittorie_squadra1 = 0;
+        let vittorie_squadra2 = 0;
+
+        risultati.forEach(r => {
+            if (r.vincitore === 1) vittorie_squadra1++;
+            else if (r.vincitore === 2) vittorie_squadra2++;
+        });
+
+        let risultato_coppia1, risultato_coppia2;
+        if (vittorie_squadra1 > vittorie_squadra2) {
+            risultato_coppia1 = 'Vittoria';
+            risultato_coppia2 = 'Sconfitta';
+        } else if (vittorie_squadra2 > vittorie_squadra1) {
+            risultato_coppia1 = 'Sconfitta';
+            risultato_coppia2 = 'Vittoria';
+        } else {
+            risultato_coppia1 = 'Pareggio';
+            risultato_coppia2 = 'Pareggio';
+        }
+
+        // Aggiorna incontro come completato
+        await db.query(`UPDATE incontri 
+            SET completato = true, risultato_coppia1 = $1, risultato_coppia2 = $2, inserito_da = 'Master'
+            WHERE id = $3`,
+            [risultato_coppia1, risultato_coppia2, incontroId]);
+
+        // Aggiorna punti nei slots (solo per i vincitori)
+        for (const risultato of risultati) {
+            if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
+                // Trova il slot corrispondente al vincitore
+                const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
+                const slotId = `${risultato.posizione}_${squadreDisponibili.find(s => s.numero === squadraVincitrice)?.colore?.toUpperCase() || 'UNKNOWN'}`;
+
+                await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
+                    [risultato.punti_assegnati, slotId]);
+            }
+        }
+
+        res.json({
+            message: 'Incontro completato con successo',
+            risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
+            vittorie_squadra1: vittorie_squadra1,
+            vittorie_squadra2: vittorie_squadra2
+        });
+    } catch (err) {
+        console.error('Errore API completa-incontro:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per resettare un incontro
+app.post('/api/reset-incontro/:incontroId', async (req, res) => {
+    try {
+        const incontroId = req.params.incontroId;
+
+        // Elimina tutti i risultati dettaglio
+        await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
+
+        // Reset stato incontro
+        await db.query(`UPDATE incontri 
+            SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
+            WHERE id = $1`, [incontroId]);
+
+        res.json({ message: 'Incontro resettato con successo' });
+    } catch (err) {
+        console.error('Errore API reset-incontro:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -1849,6 +2176,14 @@ app.get('/master', (req, res) => {
 
 app.get('/setup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'setup.html'));
+});
+
+app.get('/gestione-incontri', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'gestione-incontri.html'));
+});
+
+app.get('/incontri', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'incontri.html'));
 });
 
 // Gestione WebSocket
