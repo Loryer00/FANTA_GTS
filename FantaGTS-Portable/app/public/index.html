@@ -563,11 +563,8 @@
                     // Carica la squadra del giocatore
                     await loadPlayerTeam();
 
-                    // Mostra notifica di benvenuto
-                    setTimeout(() => {
-                        alert(`👋 Bentornato, ${playerData.name}!\n\nLa tua sessione è stata ripristinata.\nCrediti disponibili: ${playerData.credits}`);
-                    }, 500);
-
+                    // Log di benvenuto (senza alert)
+                    console.log(`👋 Bentornato, ${playerData.name}! Crediti: ${playerData.credits}`);
                 } else {
                     console.log('❌ Partecipante non più esistente nel database o non registrato correttamente');
                     clearSavedSession();
@@ -717,37 +714,19 @@
             socket.on('round_ended', (data) => {
                 console.log('🏁 Round terminato ricevuto:', data);
 
-                // NUOVO: Forza aggiornamento crediti prima di tutto
-                if (data.creditiAggiornati) {
-                    playerData.credits = data.creditiAggiornati;
-                    updateCreditsDisplay();
-                }
-
                 showResultsPhase(data);
 
-                // MIGLIORATO: Aggiorna squadra con delay per sicurezza
-                setTimeout(async () => {
-                    console.log('🔄 Aggiornando squadra dopo round terminato...');
+                // Aggiorna squadra immediatamente
+                if (data.risultati && Array.isArray(data.risultati)) {
+                    updateMyTeamFromResults(data.round, data.risultati);
+                }
 
-                    // Prima aggiorna dalla risposta diretta
-                    if (data.risultati && Array.isArray(data.risultati)) {
-                        updateMyTeamFromResults(data.round, data.risultati);
-                    }
-
-                    // Poi ricarica completa dal server per sicurezza
-                    await loadPlayerTeam();
-
-                    console.log('✅ Squadra aggiornata dopo round terminato');
-                }, 1000);
+                // Ricarica squadra completa dal server (senza delay)
+                loadPlayerTeam();
 
                 resetBiddingInterface();
                 saveSession();
                 showWaitingPhase();
-
-                // NUOVO: Mostra messaggio di conferma
-                setTimeout(() => {
-                    alert(`🎉 Round ${data.round} completato!\n\nLa tua squadra è stata aggiornata.`);
-                }, 1500);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -755,7 +734,7 @@
 
                 const button = document.getElementById('confirmBidBtn');
                 button.disabled = true;
-                button.textContent = '✅ Puntata Confermata';
+                button.textContent = '✅ Puntata Confermata - Attendi...';
                 button.style.background = '#10b981';
 
                 document.querySelectorAll('.player-card').forEach(card => {
@@ -764,9 +743,29 @@
                 });
                 document.getElementById('bidAmount').disabled = true;
 
+                // Mostra un messaggio discreto invece dell'alert
+                const statusDiv = document.createElement('div');
+                statusDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #10b981;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-weight: bold;
+    `;
+                statusDiv.textContent = '✅ Puntata confermata! Attendi che tutti completino...';
+                document.body.appendChild(statusDiv);
+
+                // Rimuovi il messaggio dopo 3 secondi
                 setTimeout(() => {
-                    alert('✅ Puntata confermata!\n\nOra attendi che tutti completino le loro offerte.');
-                }, 500);
+                    if (statusDiv.parentNode) {
+                        statusDiv.remove();
+                    }
+                }, 3000);
             });
 
             socket.on('bid_error', (data) => {

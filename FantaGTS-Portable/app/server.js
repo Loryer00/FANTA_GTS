@@ -334,13 +334,11 @@ function terminaRoundCompleto() {
     gameState.partecipantiInAttesa = [];
     gameState.offerteTemporanee.clear();
 
-    // 📤 Notifica fine round con dati completi
+    // 📤 Notifica fine round
     io.emit('round_ended', {
         round: roundCompletato,
         completato: true,
-        message: `Round ${roundCompletato} completato con tutte le aste`,
-        risultati: risultatiAsta || [],
-        forceReload: true
+        message: `Round ${roundCompletato} completato con tutte le aste`
     });
 
     console.log(`✅ Round ${roundCompletato} terminato definitivamente`);
@@ -1586,21 +1584,13 @@ async function salvaRisultatiAsta(round, risultati) {
         }
 
 
-        // 📤 Invia aggiornamento parziale con dati completi
-        const risultatiConDettagli = await Promise.all(risultati.map(async (r) => {
-            try {
-                const slotInfo = await db.query("SELECT * FROM slots WHERE id = $1", [r.slot]);
-                return {
-                    ...r,
-                    giocatore_attuale: slotInfo.rows[0]?.giocatore_attuale,
-                    colore: slotInfo.rows[0]?.colore,
-                    nomeGiocatore: slotInfo.rows[0]?.giocatore_attuale
-                };
-            } catch (error) {
-                console.error('Errore caricamento dettagli slot:', error);
-                return r;
-            }
-        }));
+        // 📤 Invia aggiornamento parziale
+        io.emit('asta_ended', {
+            round: round,
+            astaNumero: gameState.astaCorrente,
+            risultati: risultati,
+            continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
+        });
 
         io.emit('asta_ended', {
             round: round,
