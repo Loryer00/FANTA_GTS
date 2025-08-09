@@ -849,7 +849,13 @@ app.delete('/api/turni/:turnoId', async (req, res) => {
         // 3. Elimina le coppie
         await db.query("DELETE FROM coppie_turno WHERE turno_id = $1", [turnoId]);
 
-        // 4. Elimina il turno
+        // 4. Elimina gli scontri squadre
+        await db.query("DELETE FROM scontri_squadre WHERE turno_id = $1", [turnoId]);
+
+        // 5. Elimina gli accoppiamenti posizioni
+        await db.query("DELETE FROM accoppiamenti_posizioni WHERE turno_id = $1", [turnoId]);
+
+        // 6. Elimina il turno
         const result = await db.query("DELETE FROM turni_configurazione WHERE id = $1", [turnoId]);
 
         await db.query('COMMIT');

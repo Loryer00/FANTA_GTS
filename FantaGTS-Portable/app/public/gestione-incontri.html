@@ -437,28 +437,36 @@
                 const grid = document.createElement('div');
                 grid.className = 'turni-grid';
 
+                // Nella funzione caricaTurni(), sostituisci la creazione delle card turno con:
+
                 turni.forEach(turno => {
                     const card = document.createElement('div');
                     card.className = 'turno-card';
 
                     card.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <h3>Turno ${turno.turno_numero}</h3>
-                                <span style="background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">
-                                    ${turno.punti_vittoria} pt
-                                </span>
-                            </div>
-                            <h4>${turno.nome_turno}</h4>
-                            <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
-                            <div style="margin-top: 15px;">
-                                <button class="btn btn-primary" onclick="selezionaTurno(${turno.id}, '${turno.nome_turno}')">
-                                    ⚙️ Configura Coppie
-                                </button>
-                                <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
-                                    👁️ Visualizza Incontri
-                                </button>
-                            </div>
-                        `;
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3>Turno ${turno.turno_numero}</h3>
+            <div>
+                <span style="background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 10px;">
+                    ${turno.punti_vittoria} pt
+                </span>
+                <button class="btn btn-danger" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')" 
+                        style="padding: 6px 12px; font-size: 0.8em;">
+                    🗑️ Elimina
+                </button>
+            </div>
+        </div>
+        <h4>${turno.nome_turno}</h4>
+        <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
+        <div style="margin-top: 15px;">
+            <button class="btn btn-primary" onclick="selezionaTurno(${turno.id}, '${turno.nome_turno}')">
+                ⚙️ Configura Coppie
+            </button>
+            <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
+                👁️ Visualizza Incontri
+            </button>
+        </div>
+    `;
 
                     grid.appendChild(card);
                 });
@@ -526,6 +534,31 @@
 
             // Scroll alla sezione
             document.getElementById('configurazioneSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Elimina turno
+        async function eliminaTurno(turnoId, nomeTurno) {
+            if (!confirm(`Eliminare definitivamente il turno "${nomeTurno}"?\n\nQuesta azione eliminerà anche:\n- Tutti gli incontri associati\n- Tutte le coppie configurate\n- Tutti i risultati\n\nL'azione è irreversibile!`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/turni/${turnoId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Turno eliminato con successo!', 'success');
+                    // Ricarica la lista turni
+                    caricaTurni();
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (error) {
+                console.error('Errore eliminazione turno:', error);
+                showNotification('Errore di connessione', 'error');
+            }
         }
 
         // Carica coppie del turno selezionato
