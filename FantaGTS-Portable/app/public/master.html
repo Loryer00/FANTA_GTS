@@ -511,9 +511,6 @@
                 <button class="btn btn-primary" onclick="vaiASetup()">
                     ⚙️ Configurazione
                 </button>
-                <button class="btn btn-primary" onclick="testNotifiche()">
-                    🔔 Test Notifiche Push
-                </button>
                 <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
                     👥 Gestisci Partecipanti
                 </button>
@@ -2330,52 +2327,6 @@
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Test notifiche push
-        async function testNotifiche() {
-            try {
-                const response = await fetch('/api/partecipanti');
-                const partecipanti = await response.json();
-
-                if (partecipanti.length === 0) {
-                    showNotification('Nessun partecipante registrato', 'warning');
-                    return;
-                }
-
-                const nome = prompt(`Test notifica per quale partecipante?\n\nDisponibili: ${partecipanti.map(p => p.nome).join(', ')}`);
-
-                if (!nome) return;
-
-                const partecipante = partecipanti.find(p => p.nome.toLowerCase() === nome.toLowerCase());
-
-                if (!partecipante) {
-                    showNotification('Partecipante non trovato', 'error');
-                    return;
-                }
-
-                const testResponse = await fetch(`/api/test-notification/${partecipante.id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: 'Test FantaGTS',
-                        body: `Ciao ${partecipante.nome}! Questa è una notifica di test dal Master.`
-                    })
-                });
-
-                if (testResponse.ok) {
-                    const result = await testResponse.json();
-                    showNotification(`Notifica test inviata a ${partecipante.nome}`, 'success');
-                    console.log('📱 Risultato test:', result);
-                } else {
-                    const error = await testResponse.json();
-                    showNotification('Errore invio test: ' + error.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Errore test notifiche:', error);
-                showNotification('Errore di connessione', 'error');
-            }
         }
 
         // Salvataggio automatico ogni 30 secondi quando ci sono cambiamenti

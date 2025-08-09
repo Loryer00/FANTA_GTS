@@ -853,7 +853,7 @@
                     }
                     registerSocketWhenReady();
 
-                    alert(`✅ Bentornato, ${name}!\n\nHai ${checkResult.player.crediti} crediti disponibili.`);
+                    console.log(`✅ Bentornato, ${name}! Hai ${checkResult.player.crediti} crediti disponibili.`);
 
                 } else if (checkResult.nameOccupied) {
                     // Nome già utilizzato in altra sessione
@@ -891,7 +891,7 @@
                             await setupPushNotifications();
                         }
 
-                        alert(`✅ Registrato con successo!\n\nBenvenuto nel FantaGTS, ${name}!\nHai ricevuto ${result.crediti} crediti iniziali.`);
+                        console.log(`✅ Registrato con successo! Benvenuto nel FantaGTS, ${name}! Hai ricevuto ${result.crediti} crediti iniziali.`);
 
                     } else {
                         const error = await response.json();

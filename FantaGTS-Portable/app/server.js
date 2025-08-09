@@ -1886,14 +1886,38 @@ io.on('connection', (socket) => {
     });
 
     socket.on('place_bid', async (data) => {
+        console.log(`💰 Tentativo puntata da socket ${socket.id}:`, data);
+
         if (!gameState.asteAttive || gameState.roundAttivo !== data.round) {
+            console.log(`❌ Round non attivo: attivo=${gameState.asteAttive}, round=${gameState.roundAttivo}, richiesto=${data.round}`);
             socket.emit('bid_error', { message: 'Nessun round attivo' });
             return;
         }
 
         const connesso = gameState.connessi.get(socket.id);
-        if (!connesso || connesso.tipo !== 'partecipante') {
+        console.log(`🔍 Controllo connesso per socket ${socket.id}:`, {
+            connesso: connesso,
+            tipo: connesso?.tipo,
+            nome: connesso?.nome,
+            partecipanteId: connesso?.partecipanteId,
+            verified: connesso?.verified
+        });
+
+        if (!connesso) {
+            console.log(`❌ Socket ${socket.id} non trovato in gameState.connessi`);
+            socket.emit('bid_error', { message: 'Socket non registrato. Ricarica la pagina.' });
+            return;
+        }
+
+        if (connesso.tipo !== 'partecipante') {
+            console.log(`❌ Socket ${socket.id} non è un partecipante: tipo=${connesso.tipo}`);
             socket.emit('bid_error', { message: 'Solo i partecipanti possono fare offerte' });
+            return;
+        }
+
+        if (!connesso.verified) {
+            console.log(`❌ Socket ${socket.id} non verificato nel database`);
+            socket.emit('bid_error', { message: 'Utente non verificato. Ricarica la pagina.' });
             return;
         }
 
@@ -1925,23 +1949,7 @@ io.on('connection', (socket) => {
 
             console.log(`💰 Offerta ricevuta: ${connesso.nome} punta ${data.importo} su ${data.slot}`);
 
-            // Aggiorna immediatamente il master sulle offerte
-            const partecipantiConnessi = Array.from(gameState.connessi.values())
-                .filter(p => p.tipo === 'partecipante').length;
-
-            const offerteRound = Array.from(gameState.offerteTemporanee.values())
-                .filter(o => o.round === data.round).length;
-
-            io.emit('offerte_update', {
-                partecipantiConnessi: partecipantiConnessi,
-                offerteRicevute: offerteRound,
-                mancano: Math.max(0, partecipantiConnessi - offerteRound),
-                tuttiHannoOfferto: partecipantiConnessi > 0 && offerteRound >= partecipantiConnessi,
-                dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
-                    offerta: offerta
-                }))
-            });
+            // resto del codice...
         } catch (err) {
             console.error('Errore verifica crediti:', err);
             socket.emit('bid_error', { message: 'Errore del server' });
