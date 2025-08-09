@@ -682,6 +682,37 @@
                 console.log('Disconnesso dal server');
             });
 
+            socket.on('reset_bid_state', (data) => {
+                console.log('🔄 Reset stato offerte ricevuto:', data);
+
+                // Reset completo interfaccia aste
+                resetBiddingInterface();
+
+                // Assicurati che sia tutto pulito
+                document.querySelectorAll('.player-card').forEach(card => {
+                    card.classList.remove('selected');
+                    card.style.pointerEvents = 'auto';
+                    card.style.opacity = '1';
+                    card.style.border = '';
+                    card.style.backgroundColor = '';
+                });
+
+                // Reset sezione offerta
+                document.getElementById('bidSection').style.display = 'none';
+                document.getElementById('bidAmount').value = '';
+                document.getElementById('bidAmount').disabled = false;
+
+                const confirmBtn = document.getElementById('confirmBidBtn');
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = 'Conferma Puntata';
+                    confirmBtn.style.background = '#f56565';
+                    confirmBtn.style.cursor = 'not-allowed';
+                }
+
+                console.log(`✅ Interfaccia resettata per Asta ${data.astaNumero}`);
+            });
+
             socket.on('registered', (data) => {
                 if (data.success) {
                     console.log('✅ Registrazione WebSocket confermata per partecipante');

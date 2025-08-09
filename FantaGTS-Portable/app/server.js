@@ -311,6 +311,18 @@ function avviaAstaSuccessiva() {
     // 🔄 Reset offerte per nuova asta
     gameState.offerteTemporanee.clear();
 
+    // 🆕 NUOVO: Reset stato bid per tutti i socket connessi
+    for (let [socketId, connesso] of gameState.connessi.entries()) {
+        if (connesso.tipo === 'partecipante' && gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+            // Reset stato offerta per questo socket
+            io.to(socketId).emit('reset_bid_state', {
+                round: gameState.roundAttivo,
+                astaNumero: gameState.astaCorrente,
+                message: `Preparazione Asta ${gameState.astaCorrente}`
+            });
+        }
+    }
+
     // 📤 Invia stato asta ai client
     io.emit('asta_started', {
         round: gameState.roundAttivo,
@@ -1503,9 +1515,19 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
 
 function elaboraRisultatiAste() {
     console.log(`\n🔄 === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
+    console.log(`📊 Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
+    console.log(`👥 Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
+    console.log(`🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
     const offertePerSlot = {};
     const partecipantiCheHannoOfferto = new Set();
+
+    // Debug: mostra tutte le offerte ricevute
+    console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
+    gameState.offerteTemporanee.forEach((offerta, socketId) => {
+        const connesso = gameState.connessi.get(socketId);
+        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo}) - Round: ${offerta.round}`);
+    });
 
     // 📊 Raggruppa offerte per slot
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
@@ -1920,7 +1942,28 @@ io.on('connection', (socket) => {
 
         if (!gameState.asteAttive || gameState.roundAttivo !== data.round) {
             console.log(`❌ Round non attivo: attivo=${gameState.asteAttive}, round=${gameState.roundAttivo}, richiesto=${data.round}`);
-            socket.emit('bid_error', { message: 'Nessun round attivo' });
+            socket.emit('bid_error', { message: 'Nessun round attivo o round non corrispondente' });
+            return;
+        }
+
+        // 🆕 NUOVO: Verifica che il partecipante sia ancora in attesa
+        if (!gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+            console.log(`❌ ${connesso.nome} ha già vinto in questo round`);
+            socket.emit('bid_error', { message: 'Hai già vinto un giocatore in questo round' });
+            return;
+        }
+
+        // 🆕 NUOVO: Verifica che non abbia già fatto un'offerta in questa asta
+        const hasAlreadyBid = Array.from(gameState.offerteTemporanee.entries()).some(([socketId, offerta]) => {
+            const offerenteConnesso = gameState.connessi.get(socketId);
+            return offerenteConnesso &&
+                offerenteConnesso.partecipanteId === connesso.partecipanteId &&
+                offerta.round === data.round;
+        });
+
+        if (hasAlreadyBid) {
+            console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
+            socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
             return;
         }
 
