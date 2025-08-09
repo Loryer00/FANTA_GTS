@@ -480,23 +480,42 @@
         }
 
         // Crea nuovo turno
+        // Crea nuovo turno
         async function creaTurno() {
+            // CORREZIONE: Usa gli ID corretti dal HTML
             const numeroEl = document.getElementById('numeroTurno');
             const nomeEl = document.getElementById('nomeTurno');
             const puntiEl = document.getElementById('puntiVittoria');
             const descrizioneEl = document.getElementById('descrizioneTurno');
 
+            // Debug: verifica che gli elementi esistano
+            console.log('Debug elementi form:', {
+                numeroEl: numeroEl,
+                nomeEl: nomeEl,
+                puntiEl: puntiEl,
+                descrizioneEl: descrizioneEl
+            });
+
             // Controllo che gli elementi esistano
             if (!numeroEl || !nomeEl || !puntiEl || !descrizioneEl) {
-                console.error('Uno o più elementi del form non sono stati trovati');
+                console.error('Elementi mancanti. Controllare gli ID nel HTML.');
+
+                // Debug: mostra tutti gli input presenti nella pagina
+                const allInputs = document.querySelectorAll('input');
+                console.log('Tutti gli input trovati:', Array.from(allInputs).map(input => ({
+                    id: input.id,
+                    placeholder: input.placeholder,
+                    type: input.type
+                })));
+
                 showNotification('Errore: elementi del form mancanti', 'error');
                 return;
             }
 
-            const numero = numeroEl.value;
-            const nome = nomeEl.value;
-            const punti = puntiEl.value;
-            const descrizione = descrizioneEl.value;
+            const numero = numeroEl.value.trim();
+            const nome = nomeEl.value.trim();
+            const punti = puntiEl.value.trim();
+            const descrizione = descrizioneEl.value.trim();
 
             if (!numero || !nome) {
                 showNotification('Inserisci numero e nome turno', 'error');
