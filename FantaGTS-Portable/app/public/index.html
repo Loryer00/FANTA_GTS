@@ -922,6 +922,55 @@
                 }, 200);
             });
 
+            socket.on('player_won_exit_auction', (data) => {
+                console.log('🏆 Hai vinto un giocatore:', data);
+
+                // Nascondi l'interfaccia di asta
+                document.getElementById('bidding-phase').style.display = 'none';
+                document.getElementById('waiting-phase').style.display = 'block';
+
+                // Reset completo interfaccia
+                resetBiddingInterface();
+
+                // Aggiorna la squadra
+                loadPlayerTeam();
+
+                // Mostra messaggio di vittoria
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #48bb78;
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        font-size: 1.2em;
+        font-weight: bold;
+        z-index: 2000;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    `;
+                notification.innerHTML = `
+        <div>🏆 COMPLIMENTI!</div>
+        <div style="margin: 10px 0;">Hai vinto:</div>
+        <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
+        <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+    `;
+
+                document.body.appendChild(notification);
+
+                // Rimuovi notifica dopo 5 secondi
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 5000);
+
+                console.log('✅ Interfaccia aggiornata dopo vittoria');
+            });
+
             socket.on('bid_confirmed', (data) => {
                 console.log('✅ Puntata confermata dal server:', data);
 
@@ -1274,6 +1323,13 @@
 
         function showBiddingPhase(data) {
             console.log('🎮 showBiddingPhase chiamata con:', data);
+
+            // NUOVO: Verifica se questo partecipante dovrebbe ancora partecipare
+            if (data.partecipantiInAttesa && !data.partecipantiInAttesa.includes(playerData.id)) {
+                console.log('⚠️ Questo partecipante ha già vinto - non mostrare asta');
+                showWaitingPhase();
+                return;
+            }
 
             // FORZA reset di tutte le sezioni
             document.getElementById('waiting-phase').style.display = 'none';

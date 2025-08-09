@@ -376,15 +376,35 @@ function avviaAstaSuccessiva() {
         }
     }
 
-    // 📤 Invia stato asta ai client
-    io.emit('asta_started', {
-        round: gameState.roundAttivo,
-        astaNumero: gameState.astaCorrente,
-        slots: gameState.slotsRimasti,
-        partecipantiInAttesa: gameState.partecipantiInAttesa,
-        sistema: 'multi-asta',
-        slotsDisponibili: gameState.slotsRimasti.map(s => s.id) // NUOVO: Lista ID slots disponibili
+    // 📤 Invia stato asta SOLO ai partecipanti in attesa
+    gameState.partecipantiInAttesa.forEach(partecipanteId => {
+        for (let [socketId, connesso] of gameState.connessi.entries()) {
+            if (connesso.partecipanteId === partecipanteId) {
+                io.to(socketId).emit('asta_started', {
+                    round: gameState.roundAttivo,
+                    astaNumero: gameState.astaCorrente,
+                    slots: gameState.slotsRimasti,
+                    partecipantiInAttesa: gameState.partecipantiInAttesa,
+                    sistema: 'multi-asta',
+                    slotsDisponibili: gameState.slotsRimasti.map(s => s.id)
+                });
+                break;
+            }
+        }
     });
+
+    // Invia anche ai master per monitoraggio
+    for (let [socketId, connesso] of gameState.connessi.entries()) {
+        if (connesso.tipo === 'master') {
+            io.to(socketId).emit('asta_started', {
+                round: gameState.roundAttivo,
+                astaNumero: gameState.astaCorrente,
+                slots: gameState.slotsRimasti,
+                partecipantiInAttesa: gameState.partecipantiInAttesa,
+                sistema: 'multi-asta'
+            });
+        }
+    }
 
     // 🔍 Avvia monitoraggio per questa asta
     avviaMonitoraggioOfferte();
@@ -1935,6 +1955,18 @@ function elaboraRisultatiAste() {
             gameState.partecipantiAssegnati.add(vincitore.partecipante);
             gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(p => p !== vincitore.partecipante);
             gameState.slotsRimasti = gameState.slotsRimasti.filter(s => s.id !== slotId);
+
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === vincitore.partecipante) {
+                    io.to(socketId).emit('player_won_exit_auction', {
+                        playerName: vincitore.nome,
+                        slotWon: slotId,
+                        amount: vincitore.offerta,
+                        message: `Hai vinto ${slotId}! La tua asta è terminata.`
+                    });
+                    break;
+                }
+            }
         }
     });
 
@@ -2289,11 +2321,23 @@ io.on('connection', (socket) => {
         console.log(`💰 Tentativo puntata da socket ${socket.id}:`, data);
 
         // Verifica che ci sia un round attivo
-        if (!gameState.asteAttive || gameState.roundAttivo !== data.round) {
-            console.log(`❌ Round non attivo: attivo=${gameState.asteAttive}, round=${gameState.roundAttivo}, richiesto=${data.round}`);
-            socket.emit('bid_error', { message: 'Nessun round attivo o round non corrispondente' });
+        if (!gameState.asteAttive) {
+            console.log(`❌ Aste non attive: attivo=${gameState.asteAttive}`);
+            socket.emit('bid_error', { message: 'Nessuna asta attiva al momento' });
             return;
         }
+
+        // NUOVO: Controllo round più flessibile per sistema multi-asta
+        const roundBase = data.round.split('_')[0]; // Es: "M1_ASTA_2" -> "M1"
+        const currentRoundBase = gameState.roundAttivo ? gameState.roundAttivo.split('_')[0] : null;
+
+        if (currentRoundBase !== roundBase) {
+            console.log(`❌ Round base non corrispondente: attuale=${currentRoundBase}, richiesto=${roundBase}`);
+            socket.emit('bid_error', { message: 'Round non corrispondente' });
+            return;
+        }
+
+        console.log(`✅ Controllo round OK: ${gameState.roundAttivo} vs ${data.round}`);
 
         // Verifica che il socket sia registrato
         const connesso = gameState.connessi.get(socket.id);
