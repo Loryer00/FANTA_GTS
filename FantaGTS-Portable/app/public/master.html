@@ -1668,11 +1668,16 @@
                 });
 
                 if (response.ok) {
-                    // Il socket.io gestirà l'aggiornamento UI
+                    // NUOVO: Aggiorna immediatamente lo stato locale
+                    gameState.asteAttive = true;
+                    gameState.roundAttivo = round;
+
+                    // Aggiorna UI
                     document.querySelector(`[data-round="${round}"]`).classList.remove('available');
                     document.querySelector(`[data-round="${round}"]`).classList.add('active');
                     document.getElementById('btnAvviaRound').disabled = true;
                     document.getElementById('btnFermaRound').disabled = false;
+                    updateUI();
 
                     // Reset selezione e tracciamento offerte
                     roundSelezionato = null;
@@ -1694,7 +1699,28 @@
         }
 
         async function forzaFineRound() {
-            if (!gameState.asteAttive) return;
+            // NUOVO: Verifica stato dal server prima di procedere
+            try {
+                const statoResponse = await fetch('/api/stato');
+                const statoServer = await statoResponse.json();
+
+                if (!statoServer.asteAttive && !gameState.asteAttive) {
+                    showNotification('Nessun round attivo da terminare', 'warning');
+                    return;
+                }
+
+                // Aggiorna stato locale se necessario
+                if (statoServer.asteAttive && !gameState.asteAttive) {
+                    console.log('🔄 Sincronizzando stato locale con server');
+                    gameState.asteAttive = true;
+                    gameState.roundAttivo = statoServer.roundAttivo;
+                    updateUI();
+                }
+
+            } catch (error) {
+                console.error('Errore verifica stato server:', error);
+                // Continua comunque con il tentativo
+            }
 
             if (!confirm('Vuoi terminare il round anche se non tutti hanno fatto offerte?\n\nI partecipanti che non hanno offerto non riceveranno giocatori.')) {
                 return;
@@ -1707,10 +1733,16 @@
 
                 if (response.ok) {
                     showNotification('Round terminato forzatamente', 'warning');
+                    // NUOVO: Aggiorna immediatamente lo stato locale
+                    gameState.asteAttive = false;
+                    gameState.roundAttivo = null;
+                    updateUI();
                 } else {
-                    showNotification('Errore durante la terminazione forzata', 'error');
+                    const error = await response.json();
+                    showNotification('Errore: ' + (error.error || 'Errore sconosciuto'), 'error');
                 }
             } catch (error) {
+                console.error('Errore forzatura fine round:', error);
                 showNotification('Errore di connessione', 'error');
             }
         }

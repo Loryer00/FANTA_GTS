@@ -715,12 +715,39 @@
             });
 
             socket.on('round_ended', (data) => {
-                console.log('Round terminato ricevuto:', data);
+                console.log('🏁 Round terminato ricevuto:', data);
+
+                // NUOVO: Forza aggiornamento crediti prima di tutto
+                if (data.creditiAggiornati) {
+                    playerData.credits = data.creditiAggiornati;
+                    updateCreditsDisplay();
+                }
+
                 showResultsPhase(data);
-                updateMyTeamFromResults(data.round, data.risultati);
+
+                // MIGLIORATO: Aggiorna squadra con delay per sicurezza
+                setTimeout(async () => {
+                    console.log('🔄 Aggiornando squadra dopo round terminato...');
+
+                    // Prima aggiorna dalla risposta diretta
+                    if (data.risultati && Array.isArray(data.risultati)) {
+                        updateMyTeamFromResults(data.round, data.risultati);
+                    }
+
+                    // Poi ricarica completa dal server per sicurezza
+                    await loadPlayerTeam();
+
+                    console.log('✅ Squadra aggiornata dopo round terminato');
+                }, 1000);
+
                 resetBiddingInterface();
                 saveSession();
                 showWaitingPhase();
+
+                // NUOVO: Mostra messaggio di conferma
+                setTimeout(() => {
+                    alert(`🎉 Round ${data.round} completato!\n\nLa tua squadra è stata aggiornata.`);
+                }, 1500);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -1305,66 +1332,114 @@
         }
 
         function updateMyTeamFromResults(round, risultati) {
+            console.log('🔄 Aggiornando squadra da risultati:', { round, risultati, playerName: playerData.name });
+
             // CORREZIONE: Verifica che risultati esista ed è un array
             if (!risultati || !Array.isArray(risultati)) {
                 console.log('⚠️ Risultati non validi:', risultati);
                 return;
             }
 
-            const mieiAcquisti = risultati.filter(r => r.nome === playerData.name);
-            console.log('🎯 I miei acquisti:', mieiAcquisti);
+            // NUOVO: Cerca anche per ID partecipante oltre che per nome
+            const mieiAcquisti = risultati.filter(r => {
+                return r.nome === playerData.name ||
+                    r.partecipante === playerData.id ||
+                    r.partecipante_nome === playerData.name;
+            });
 
-        // resto della funzione rimane uguale...
+            console.log('🎯 I miei acquisti trovati:', mieiAcquisti);
+
+            if (mieiAcquisti.length === 0) {
+                console.log('❌ Nessun acquisto trovato per questo giocatore');
+                return;
+            }
 
             mieiAcquisti.forEach(acquisto => {
-                const [posizione, coloreSquadra] = acquisto.slot.split('_');
+                console.log('💎 Processando acquisto:', acquisto);
+
+                const slotId = acquisto.slot || acquisto.slot_id;
+                const [posizione, coloreSquadra] = slotId.split('_');
                 const slotElement = document.querySelector(`[data-position="${posizione}"]`);
+
                 if (slotElement) {
+                    console.log(`✅ Aggiornando slot ${posizione} con ${slotId}`);
+
                     slotElement.classList.remove('empty');
                     slotElement.classList.add('filled');
 
-                    fetch(`/api/slot-info/${acquisto.slot}`)
-                        .then(response => response.json())
-                        .then(slotInfo => {
-                            const teamColor = getTeamColor(slotInfo.colore);
-                            const textColor = getTextColorForTeam(slotInfo.colore);
+                    // NUOVO: Aggiorna subito con i dati disponibili
+                    const teamColor = getTeamColor(coloreSquadra.toLowerCase());
+                    const textColor = getTextColorForTeam(coloreSquadra.toLowerCase());
 
-                            slotElement.innerHTML = `
-                                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                                    <span style="color: ${textColor} !important;">${slotInfo.giocatore_attuale}</span><br>
-                                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${slotInfo.colore}</small>
-                                `;
+                    // Se abbiamo il nome del giocatore direttamente dai risultati
+                    if (acquisto.giocatore_attuale || acquisto.nomeGiocatore) {
+                        const nomeGiocatore = acquisto.giocatore_attuale || acquisto.nomeGiocatore;
+                        const costoFinale = acquisto.costo_finale || acquisto.costoFinale || 0;
 
-                            slotElement.style.borderColor = teamColor;
-                            slotElement.style.borderWidth = '4px';
-                            slotElement.style.borderStyle = 'solid';
+                        slotElement.innerHTML = `
+                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                    <span style="color: ${textColor} !important;">${nomeGiocatore}</span><br>
+                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${coloreSquadra.toLowerCase()} - ${costoFinale}€</small>
+                `;
 
-                            if (teamColor.startsWith('#')) {
+                        slotElement.style.borderColor = teamColor;
+                        slotElement.style.borderWidth = '4px';
+                        slotElement.style.borderStyle = 'solid';
+
+                        if (teamColor.startsWith('#')) {
+                            slotElement.style.backgroundColor = teamColor + '80';
+                        } else {
+                            slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                        }
+
+                        console.log(`✅ Slot ${posizione} aggiornato immediatamente`);
+                    } else {
+                        // Fallback: carica info dal server
+                        fetch(`/api/slot-info/${slotId}`)
+                            .then(response => response.json())
+                            .then(slotInfo => {
+                                const teamColor = getTeamColor(slotInfo.colore);
+                                const textColor = getTextColorForTeam(slotInfo.colore);
+
+                                slotElement.innerHTML = `
+                            <strong style="color: ${textColor} !important;">${posizione}</strong><br>
+                            <span style="color: ${textColor} !important;">${slotInfo.giocatore_attuale}</span><br>
+                            <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${slotInfo.colore} - ${acquisto.costo_finale || 0}€</small>
+                        `;
+
+                                slotElement.style.borderColor = teamColor;
+                                slotElement.style.borderWidth = '4px';
+                                slotElement.style.borderStyle = 'solid';
+
+                                if (teamColor.startsWith('#')) {
+                                    slotElement.style.backgroundColor = teamColor + '80';
+                                } else {
+                                    slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
+                                }
+
+                                console.log(`✅ Slot ${posizione} aggiornato da server`);
+                            })
+                            .catch((error) => {
+                                console.error('❌ Errore fetch slot-info:', error);
+                                // Aggiornamento base senza dettagli
+                                slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore<br><small>${acquisto.costo_finale || 0}€</small>`;
+                                slotElement.style.borderColor = teamColor;
+                                slotElement.style.borderWidth = '4px';
+                                slotElement.style.borderStyle = 'solid';
                                 slotElement.style.backgroundColor = teamColor + '80';
-                            } else {
-                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                            }
-                        })
-                        .catch((error) => {
-                            console.error('❌ Errore fetch slot-info:', error);
-                            slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore`;
-                            const teamColor = getTeamColor(coloreSquadra);
-
-                            slotElement.style.borderColor = teamColor;
-                            slotElement.style.borderWidth = '4px';
-                            slotElement.style.borderStyle = 'solid';
-
-                            if (teamColor.startsWith('#')) {
-                                slotElement.style.backgroundColor = teamColor + '80';
-                            } else {
-                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                            }
-                        });
+                            });
+                    }
+                } else {
+                    console.error(`❌ Slot element non trovato per posizione: ${posizione}`);
                 }
             });
 
-            const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
-            document.getElementById('teamCount').textContent = slotsRiempiti;
+            // NUOVO: Aggiorna contatori
+            setTimeout(() => {
+                const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
+                document.getElementById('teamCount').textContent = slotsRiempiti;
+                console.log(`📊 Contatori aggiornati: ${slotsRiempiti} giocatori`);
+            }, 500);
         }
 
         function getTeamColor(nomeColore) {
