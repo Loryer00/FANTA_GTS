@@ -115,6 +115,17 @@ async function initializeDatabase() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        await db.query(`CREATE TABLE IF NOT EXISTS scontri_squadre (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            squadra1 INTEGER NOT NULL,
+            squadra2 INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
         await db.query(`CREATE TABLE IF NOT EXISTS aste (
             id SERIAL PRIMARY KEY,
             round TEXT NOT NULL,
@@ -211,6 +222,15 @@ async function initializeDatabase() {
             FOREIGN KEY (coppia_turno_id) REFERENCES coppie_turno(id),
             FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
             FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS accoppiamenti_posizioni (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id)
         )`);
 
         await db.query(`CREATE TABLE IF NOT EXISTS risultati_dettaglio (
@@ -809,6 +829,138 @@ app.delete('/api/squadre/:numero', async (req, res) => {
     }
 });
 
+// API per eliminare un turno
+app.delete('/api/turni/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+
+        // Inizia transazione per eliminare tutto in cascata
+        await db.query('BEGIN');
+
+        // 1. Elimina risultati dettaglio degli incontri di questo turno
+        await db.query(`DELETE FROM risultati_dettaglio 
+            WHERE incontro_id IN (
+                SELECT id FROM incontri WHERE turno_id = $1
+            )`, [turnoId]);
+
+        // 2. Elimina gli incontri
+        await db.query("DELETE FROM incontri WHERE turno_id = $1", [turnoId]);
+
+        // 3. Elimina le coppie
+        await db.query("DELETE FROM coppie_turno WHERE turno_id = $1", [turnoId]);
+
+        // 4. Elimina il turno
+        const result = await db.query("DELETE FROM turni_configurazione WHERE id = $1", [turnoId]);
+
+        await db.query('COMMIT');
+
+        if (result.rowCount > 0) {
+            res.json({ message: 'Turno eliminato con successo' });
+        } else {
+            res.status(404).json({ error: 'Turno non trovato' });
+        }
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore DELETE turno:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per accoppiamenti posizioni
+app.get('/api/accoppiamenti-posizioni/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+        const result = await db.query("SELECT * FROM accoppiamenti_posizioni WHERE turno_id = $1 ORDER BY id", [turnoId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API accoppiamenti-posizioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/accoppiamenti-posizioni', async (req, res) => {
+    try {
+        const { turno_id, pos1, pos2 } = req.body;
+
+        // Verifica che non esista già lo stesso accoppiamento
+        const existing = await db.query(`SELECT id FROM accoppiamenti_posizioni 
+            WHERE turno_id = $1 AND ((pos1 = $2 AND pos2 = $3) OR (pos1 = $3 AND pos2 = $2))`,
+            [turno_id, pos1, pos2]);
+
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Accoppiamento già esistente tra queste posizioni' });
+        }
+
+        await db.query(`INSERT INTO accoppiamenti_posizioni (turno_id, pos1, pos2) 
+            VALUES ($1, $2, $3)`, [turno_id, pos1, pos2]);
+
+        res.json({ message: 'Accoppiamento aggiunto con successo' });
+    } catch (err) {
+        console.error('Errore POST accoppiamenti-posizioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/accoppiamenti-posizioni/:accoppiamentoId', async (req, res) => {
+    try {
+        await db.query("DELETE FROM accoppiamenti_posizioni WHERE id = $1", [req.params.accoppiamentoId]);
+        res.json({ message: 'Accoppiamento eliminato con successo' });
+    } catch (err) {
+        console.error('Errore DELETE accoppiamenti-posizioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per generare tutti gli incontri di un turno
+app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+
+        // Prima elimina incontri esistenti per questo turno
+        await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id IN (SELECT id FROM incontri WHERE turno_id = $1)", [turnoId]);
+        await db.query("DELETE FROM incontri WHERE turno_id = $1", [turnoId]);
+
+        // Ottieni scontri e accoppiamenti
+        const scontriResult = await db.query("SELECT * FROM scontri_squadre WHERE turno_id = $1", [turnoId]);
+        const accoppiamentiResult = await db.query("SELECT * FROM accoppiamenti_posizioni WHERE turno_id = $1", [turnoId]);
+
+        const scontri = scontriResult.rows;
+        const accoppiamenti = accoppiamentiResult.rows;
+
+        if (scontri.length === 0) {
+            return res.status(400).json({ error: 'Nessuno scontro configurato per questo turno' });
+        }
+
+        if (accoppiamenti.length === 0) {
+            return res.status(400).json({ error: 'Nessun accoppiamento configurato per questo turno' });
+        }
+
+        let incontriGenerati = 0;
+
+        // Per ogni scontro tra squadre
+        for (const scontro of scontri) {
+            // Per ogni accoppiamento di posizioni
+            for (const accoppiamento of accoppiamenti) {
+                await db.query(`INSERT INTO incontri 
+                    (turno_id, coppia_turno_id, squadra1, squadra2) 
+                    VALUES ($1, $2, $3, $4)`,
+                    [turnoId, accoppiamento.id, scontro.squadra1, scontro.squadra2]);
+                incontriGenerati++;
+            }
+        }
+
+        res.json({
+            message: 'Incontri generati con successo',
+            count: incontriGenerati,
+            scontri: scontri.length,
+            accoppiamenti: accoppiamenti.length
+        });
+    } catch (err) {
+        console.error('Errore genera-incontri-completi:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Setup partecipanti
 app.get('/api/partecipanti', async (req, res) => {
     try {
@@ -1190,6 +1342,53 @@ app.get('/api/classifica', async (req, res) => {
         res.json(classifica);
     } catch (err) {
         console.error('Errore classifica:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== NUOVE API PER SCONTRI E ACCOPPIAMENTI ====================
+
+// API per scontri tra squadre
+app.get('/api/scontri-squadre/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+        const result = await db.query("SELECT * FROM scontri_squadre WHERE turno_id = $1 ORDER BY id", [turnoId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API scontri-squadre:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/scontri-squadre', async (req, res) => {
+    try {
+        const { turno_id, squadra1, squadra2 } = req.body;
+
+        // Verifica che non esista già lo stesso scontro
+        const existing = await db.query(`SELECT id FROM scontri_squadre 
+            WHERE turno_id = $1 AND ((squadra1 = $2 AND squadra2 = $3) OR (squadra1 = $3 AND squadra2 = $2))`,
+            [turno_id, squadra1, squadra2]);
+
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Scontro già esistente tra queste squadre' });
+        }
+
+        await db.query(`INSERT INTO scontri_squadre (turno_id, squadra1, squadra2) 
+            VALUES ($1, $2, $3)`, [turno_id, squadra1, squadra2]);
+
+        res.json({ message: 'Scontro aggiunto con successo' });
+    } catch (err) {
+        console.error('Errore POST scontri-squadre:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/scontri-squadre/:scontroId', async (req, res) => {
+    try {
+        await db.query("DELETE FROM scontri_squadre WHERE id = $1", [req.params.scontroId]);
+        res.json({ message: 'Scontro eliminato con successo' });
+    } catch (err) {
+        console.error('Errore DELETE scontri-squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
