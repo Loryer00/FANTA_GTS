@@ -970,6 +970,48 @@
         async function completaIncontro(incontroId) {
             if (!confirm('Completare questo incontro? Non sarà più possibile modificarlo.')) return;
 
+            // Prima di completare, controlla se c'è una selezione di coppia e convertila in selezioni per posizione
+            const squadraSelezionata = coppieVincenti.get(incontroId);
+            if (squadraSelezionata) {
+                // Ottieni i dettagli dell'incontro
+                const incontroCorrente = incontriTurno.find(i => i.id == incontroId);
+                if (incontroCorrente) {
+                    const posizioni = [incontroCorrente.pos1, incontroCorrente.pos2];
+                    const squadra1 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra1);
+                    const squadra2 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra2);
+
+                    // Imposta automaticamente i vincitori per tutte le posizioni
+                    for (const posizione of posizioni) {
+                        const giocatore1 = getNomeGiocatore(squadra1, posizione);
+                        const giocatore2 = getNomeGiocatore(squadra2, posizione);
+
+                        try {
+                            const response = await fetch('/api/set-vincitore', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    incontro_id: incontroId,
+                                    posizione: posizione,
+                                    vincitore: squadraSelezionata, // 1 o 2
+                                    giocatore_squadra1: giocatore1,
+                                    giocatore_squadra2: giocatore2,
+                                    punti_assegnati: turnoSelezionato.punti_vittoria
+                                })
+                            });
+
+                            if (!response.ok) {
+                                const error = await response.json();
+                                showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
+                                return;
+                            }
+                        } catch (error) {
+                            showNotification(`Errore di connessione per ${posizione}`, 'error');
+                            return;
+                        }
+                    }
+                }
+            }
+
             try {
                 const response = await fetch(`/api/completa-incontro/${incontroId}`, {
                     method: 'POST'

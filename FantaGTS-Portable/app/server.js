@@ -1800,8 +1800,15 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         for (const risultato of risultati) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
                 // Trova il slot corrispondente al vincitore
-                const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
-                const slotId = `${risultato.posizione}_${squadreDisponibili.find(s => s.numero === squadraVincitrice)?.colore?.toUpperCase() || 'UNKNOWN'}`;
+                const squadraVincitrice = risultato.vincitore === 1 ?
+                    incontro.squadra1 : incontro.squadra2;
+
+                // Ottieni il colore della squadra dal database
+                const squadraResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
+                const coloreSquadra = squadraResult.rows[0]?.colore?.toUpperCase() || 'UNKNOWN';
+                const slotId = `${risultato.posizione}_${coloreSquadra}`;
+
+                console.log(`🎯 Aggiornando punti per slot: ${slotId} (+${risultato.punti_assegnati} punti)`);
 
                 await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
                     [risultato.punti_assegnati, slotId]);
