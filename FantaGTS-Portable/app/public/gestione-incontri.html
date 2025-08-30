@@ -906,9 +906,9 @@
                 const select1 = document.getElementById('squadra1Select');
                 const select2 = document.getElementById('squadra2Select');
 
-                // Reset options
-                select1.innerHTML = '<option value="">Seleziona Squadra 1</option>';
-                select2.innerHTML = '<option value="">Seleziona Squadra 2</option>';
+                // Reset options - RIMUOVI i placeholder
+                select1.innerHTML = '';
+                select2.innerHTML = '';
 
                 // Ottieni squadre già utilizzate negli scontri
                 const squadreUtilizzate = new Set();
@@ -918,7 +918,6 @@
                 });
 
                 squadre.forEach(squadra => {
-                    // Solo se la squadra non è già stata utilizzata
                     if (!squadreUtilizzate.has(squadra.numero)) {
                         const option1 = document.createElement('option');
                         option1.value = squadra.numero;
@@ -942,13 +941,9 @@
             const pos1Select = document.getElementById('pos1Select');
             const pos2Select = document.getElementById('pos2Select');
 
-            // Salva le selezioni correnti
-            const pos1Current = pos1Select.value;
-            const pos2Current = pos2Select.value;
-
-            // Reset options
-            pos1Select.innerHTML = '<option value="">Posizione 1</option>';
-            pos2Select.innerHTML = '<option value="">Posizione 2</option>';
+            // Reset options - RIMUOVI i placeholder
+            pos1Select.innerHTML = '';
+            pos2Select.innerHTML = '';
 
             const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
@@ -960,18 +955,15 @@
             });
 
             posizioni.forEach(pos => {
-                // Solo se la posizione non è già stata utilizzata
                 if (!posizioniUtilizzate.has(pos)) {
                     const option1 = document.createElement('option');
                     option1.value = pos;
                     option1.textContent = pos;
-                    if (pos === pos1Current) option1.selected = true;
                     pos1Select.appendChild(option1);
 
                     const option2 = document.createElement('option');
                     option2.value = pos;
                     option2.textContent = pos;
-                    if (pos === pos2Current) option2.selected = true;
                     pos2Select.appendChild(option2);
                 }
             });
@@ -1561,12 +1553,23 @@
         // Utility functions
         function getTeamColor(nomeColore) {
             const colori = {
-                'rosso': '#ef4444', 'blu': '#3b82f6', 'verde': '#10b981',
-                'giallo': '#f59e0b', 'viola': '#8b5cf6', 'arancione': '#f97316',
-                'rosa': '#ec4899', 'azzurro': '#06b6d4', 'marrone': '#92400e',
-                'nero': '#374151', 'bianco': '#f3f4f6', 'grigio': '#6b7280'
+                'rosso': '#ef4444', 'rossa': '#ef4444',
+                'blu': '#3b82f6', 'azzurro': '#3b82f6', 'azzurra': '#3b82f6',
+                'verde': '#10b981',
+                'giallo': '#f59e0b', 'gialla': '#f59e0b',
+                'viola': '#8b5cf6',
+                'arancione': '#f97316',
+                'rosa': '#ec4899',
+                'marrone': '#92400e',
+                'nero': '#374151', 'nera': '#374151',
+                'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
+                'grigio': '#6b7280', 'grigia': '#6b7280',
+                'smeraldo': '#10b981',
+                'fucsia': '#d946ef'
             };
-            return colori[nomeColore.toLowerCase()] || '#4299e1';
+
+            const coloreKey = nomeColore?.toLowerCase?.() || 'default';
+            return colori[coloreKey] || '#4299e1';
         }
 
         function showNotification(message, type = 'success') {
