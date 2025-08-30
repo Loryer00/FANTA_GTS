@@ -982,90 +982,66 @@
                 console.log('[LOG] Squadra selezionata per l\'incontro:', squadraSelezionata);
 
                 if (squadraSelezionata) {
-                    // CARICA I DETTAGLI DELL'INCONTRO DAL SERVER
-                    console.log('[LOG] Caricando dettagli incontro dal server...');
+                    // APPROCCIO SEMPLIFICATO: imposta vincitori per M1 e M2 direttamente
+                    const posizioni = ['M1', 'M2'];
 
-                    try {
-                        const dettagliResponse = await fetch(`/api/dettagli-incontro/${incontroId}`);
+                    console.log('[LOG] Impostando vincitori per le posizioni:', posizioni);
 
-                        if (dettagliResponse.ok) {
-                            const dettagliIncontro = await dettagliResponse.json();
-                            console.log('[LOG] Dettagli incontro caricati:', dettagliIncontro);
+                    for (const posizione of posizioni) {
+                        console.log(`[LOG] Impostando vincitore per ${posizione}`);
 
-                            if (dettagliIncontro.length > 0) {
-                                const incontro = dettagliIncontro[0]; // Primo elemento contiene i dati dell'incontro
-                                const posizioni = [incontro.pos1, incontro.pos2];
+                        try {
+                            const requestData = {
+                                incontro_id: parseInt(incontroId),
+                                posizione: posizione,
+                                vincitore: squadraSelezionata,
+                                giocatore_squadra1: `Giocatore ${posizione} Squadra 1`,
+                                giocatore_squadra2: `Giocatore ${posizione} Squadra 2`,
+                                punti_assegnati: turnoSelezionato ? turnoSelezionato.punti_vittoria : 1
+                            };
 
-                                // Carica i dettagli delle squadre
-                                const squadre = await fetch('/api/squadre-complete');
-                                const squadreData = await squadre.json();
+                            console.log(`[LOG] Dati richiesta per ${posizione}:`, requestData);
 
-                                const squadra1 = squadreData.find(s => s.numero === incontro.squadra1);
-                                const squadra2 = squadreData.find(s => s.numero === incontro.squadra2);
+                            const response = await fetch('/api/set-vincitore', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(requestData)
+                            });
 
-                                console.log('[LOG] Squadre trovate:', squadra1, squadra2);
-                                console.log('[LOG] Posizioni da processare:', posizioni);
+                            console.log(`[LOG] Response status per ${posizione}:`, response.status);
 
-                                // Imposta automaticamente i vincitori per tutte le posizioni
-                                for (const posizione of posizioni) {
-                                    const giocatore1 = getNomeGiocatore(squadra1, posizione);
-                                    const giocatore2 = getNomeGiocatore(squadra2, posizione);
-
-                                    console.log(`[LOG] Impostando vincitore per ${posizione}: ${giocatore1} vs ${giocatore2}`);
-
-                                    try {
-                                        const response = await fetch('/api/set-vincitore', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                incontro_id: parseInt(incontroId),
-                                                posizione: posizione,
-                                                vincitore: squadraSelezionata,
-                                                giocatore_squadra1: giocatore1,
-                                                giocatore_squadra2: giocatore2,
-                                                punti_assegnati: turnoSelezionato.punti_vittoria
-                                            })
-                                        });
-
-                                        if (response.ok) {
-                                            console.log(`[SUCCESSO] Vincitore impostato per ${posizione}`);
-                                        } else {
-                                            const error = await response.json();
-                                            console.error(`[ERRORE] Errore impostazione vincitore ${posizione}:`, error);
-                                            showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
-                                            return;
-                                        }
-                                    } catch (error) {
-                                        console.error(`[ERRORE] Errore di connessione per ${posizione}:`, error);
-                                        showNotification(`Errore di connessione per ${posizione}`, 'error');
-                                        return;
-                                    }
-                                }
+                            if (response.ok) {
+                                const result = await response.json();
+                                console.log(`[SUCCESSO] Vincitore impostato per ${posizione}:`, result);
+                            } else {
+                                const error = await response.json();
+                                console.error(`[ERRORE] Errore impostazione vincitore ${posizione}:`, error);
+                                showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
+                                return;
                             }
-                        } else {
-                            console.error('[ERRORE] Impossibile caricare dettagli incontro');
-                            showNotification('Errore caricamento dettagli incontro', 'error');
+                        } catch (error) {
+                            console.error(`[ERRORE] Errore di connessione per ${posizione}:`, error);
+                            showNotification(`Errore di connessione per ${posizione}`, 'error');
                             return;
                         }
-                    } catch (error) {
-                        console.error('[ERRORE] Errore caricamento dettagli:', error);
-                        showNotification('Errore caricamento dettagli incontro', 'error');
-                        return;
                     }
                 } else {
                     showNotification('Seleziona prima una squadra vincente!', 'error');
                     return;
                 }
 
-                console.log('[LOG] Ora procedo al completamento ufficiale dell\'incontro', incontroId);
+                console.log('[LOG] Tutti i vincitori impostati. Procedo al completamento dell\'incontro', incontroId);
 
                 // Ora completa l'incontro
                 const response = await fetch(`/api/completa-incontro/${incontroId}`, {
                     method: 'POST'
                 });
 
+                console.log('[LOG] Response status completamento:', response.status);
+
                 if (response.ok) {
-                    console.log('[SUCCESSO] Incontro completato con successo!');
+                    const result = await response.json();
+                    console.log('[SUCCESSO] Incontro completato:', result);
                     showNotification('Incontro completato con successo!', 'success');
 
                     // Nascondi tutti i pulsanti dell'incontro
@@ -1073,11 +1049,6 @@
                     buttonsToHide.forEach(btn => {
                         btn.style.display = 'none';
                     });
-
-                    // Ricarica la vista degli incontri
-                    if (typeof caricaIncontriTurno === 'function' && turnoSelezionato) {
-                        await caricaIncontriTurno(turnoSelezionato.id);
-                    }
 
                     // Forza ricaricamento della pagina master per aggiornare i punti
                     setTimeout(() => {
