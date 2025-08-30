@@ -272,6 +272,17 @@
             justify-content: space-between;
             align-items: center;
             border: 1px solid rgba(255,255,255,0.1);
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+
+        .scontri-list, .accoppiamenti-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden; /* AGGIUNGI QUESTA RIGA */
+            width: 100%;
         }
 
         .scontro-vs {
@@ -339,6 +350,160 @@
             transform: translateX(2px);
             transition: all 0.2s ease;
         }
+
+        /* Divider header per scontri tra squadre */
+        .scontro-divider-header {
+            background: linear-gradient(135deg, rgba(66, 153, 225, 0.2), rgba(72, 187, 120, 0.2));
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0 15px 0;
+            border: 2px solid rgba(66, 153, 225, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .scontro-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .squadra-badge {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            min-width: 140px;
+            text-align: center;
+        }
+
+        .vs-text {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #f56565;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .incontri-count {
+            text-align: center;
+            opacity: 0.8;
+            font-style: italic;
+            color: #4299e1;
+            font-size: 0.95em;
+        }
+
+        /* Container per gli incontri di un gruppo */
+        .incontri-gruppo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        /* Card incontro compatta */
+        .incontro-card-compatto {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+            .incontro-card-compatto:hover {
+                background: rgba(255, 255, 255, 0.12);
+                transform: translateY(-2px);
+            }
+
+        .incontro-header-compatto {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .coppia-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .coppia-numero {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #4299e1;
+        }
+
+        .posizioni {
+            font-size: 0.85em;
+            opacity: 0.8;
+            color: #48bb78;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+            .status-badge.completato {
+                background: rgba(72, 187, 120, 0.2);
+                color: #48bb78;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+            }
+
+            .status-badge.in-attesa {
+                background: rgba(237, 137, 54, 0.2);
+                color: #ed8936;
+                border: 1px solid rgba(237, 137, 54, 0.3);
+            }
+
+        .risultato-compatto {
+            text-align: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .risultato-finale {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #4299e1;
+        }
+
+        /* Separatore tra gruppi di scontri */
+        .scontro-divider-separatore {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            margin: 30px 0;
+            border-radius: 1px;
+        }
+
+        /* Responsive per schermi piccoli */
+        @media (max-width: 768px) {
+            .scontro-title {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .squadra-badge {
+                min-width: 120px;
+                font-size: 1em;
+            }
+
+            .vs-text {
+                font-size: 1.2em;
+            }
+
+            .incontri-gruppo {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -374,13 +539,7 @@
                         <label>Punti per Vittoria:</label>
                         <input type="number" id="puntiVittoria" placeholder="1" min="1" value="1">
                     </div>
-                </div>
-
-                <div class="input-group">
-                    <label>Descrizione:</label>
-                    <input type="text" id="descrizioneTurno" placeholder="Descrizione del turno (opzionale)">
-                </div>
-
+                </div>             
                 <button class="btn btn-primary" onclick="proseguiStep2()">
                     ➡️ Configura Scontri Squadre
                 </button>
@@ -633,10 +792,7 @@
         </div>
         <h4>${turno.nome_turno}</h4>
         <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
-        <div style="margin-top: 15px;">
-            <button class="btn btn-primary" onclick="selezionaTurno(${turno.id}, '${turno.nome_turno}')">
-                ⚙️ Configura Coppie
-            </button>
+        <div style="margin-top: 15px;">           
             <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
                 👁️ Visualizza Incontri
             </button>
@@ -668,7 +824,6 @@
         function proseguiStep2() {
             const numero = document.getElementById('numeroTurno').value.trim();
             const punti = document.getElementById('puntiVittoria').value.trim();
-            const descrizione = document.getElementById('descrizioneTurno').value.trim();
 
             if (!numero) {
                 showNotification('Inserisci il numero del turno', 'error');
@@ -678,7 +833,7 @@
             // Salva dati turno
             configTurno.numero = parseInt(numero);
             configTurno.punti = parseInt(punti) || 1;
-            configTurno.descrizione = descrizione;
+            configTurno.descrizione = '';
 
             // Cambia step
             nascondiTuttiGliStep();
@@ -699,6 +854,7 @@
             if (configTurno.scontri.length === 0) {
                 showNotification('Aggiungi almeno uno scontro tra squadre', 'error');
                 return;
+                aggiornaPosizioniDisponibili();
             }
 
             nascondiTuttiGliStep();
@@ -754,22 +910,71 @@
                 select1.innerHTML = '<option value="">Seleziona Squadra 1</option>';
                 select2.innerHTML = '<option value="">Seleziona Squadra 2</option>';
 
-                squadre.forEach(squadra => {
-                    const option1 = document.createElement('option');
-                    option1.value = squadra.numero;
-                    option1.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
-                    select1.appendChild(option1);
+                // Ottieni squadre già utilizzate negli scontri
+                const squadreUtilizzate = new Set();
+                configTurno.scontri.forEach(scontro => {
+                    squadreUtilizzate.add(scontro.squadra1);
+                    squadreUtilizzate.add(scontro.squadra2);
+                });
 
-                    const option2 = document.createElement('option');
-                    option2.value = squadra.numero;
-                    option2.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
-                    select2.appendChild(option2);
+                squadre.forEach(squadra => {
+                    // Solo se la squadra non è già stata utilizzata
+                    if (!squadreUtilizzate.has(squadra.numero)) {
+                        const option1 = document.createElement('option');
+                        option1.value = squadra.numero;
+                        option1.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                        select1.appendChild(option1);
+
+                        const option2 = document.createElement('option');
+                        option2.value = squadra.numero;
+                        option2.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                        select2.appendChild(option2);
+                    }
                 });
 
             } catch (error) {
                 console.error('Errore caricamento squadre:', error);
                 showNotification('Errore caricamento squadre', 'error');
             }
+        }
+
+        function aggiornaPosizioniDisponibili() {
+            const pos1Select = document.getElementById('pos1Select');
+            const pos2Select = document.getElementById('pos2Select');
+
+            // Salva le selezioni correnti
+            const pos1Current = pos1Select.value;
+            const pos2Current = pos2Select.value;
+
+            // Reset options
+            pos1Select.innerHTML = '<option value="">Posizione 1</option>';
+            pos2Select.innerHTML = '<option value="">Posizione 2</option>';
+
+            const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+
+            // Ottieni posizioni già utilizzate
+            const posizioniUtilizzate = new Set();
+            configTurno.accoppiamenti.forEach(acc => {
+                posizioniUtilizzate.add(acc.pos1);
+                posizioniUtilizzate.add(acc.pos2);
+            });
+
+            posizioni.forEach(pos => {
+                // Solo se la posizione non è già stata utilizzata
+                if (!posizioniUtilizzate.has(pos)) {
+                    const option1 = document.createElement('option');
+                    option1.value = pos;
+                    option1.textContent = pos;
+                    if (pos === pos1Current) option1.selected = true;
+                    pos1Select.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = pos;
+                    option2.textContent = pos;
+                    if (pos === pos2Current) option2.selected = true;
+                    pos2Select.appendChild(option2);
+                }
+            });
         }
 
         function aggiungiScontro() {
@@ -816,6 +1021,7 @@
             // Aggiorna visualizzazione
             visualizzaScontri();
             abilitaBottoneStep3();
+            caricaSquadrePerScontri(); // Ricarica dropdown senza le squadre utilizzate
         }
 
         function visualizzaScontri() {
@@ -893,7 +1099,7 @@
             document.getElementById('pos2Select').value = '';
 
             // Aggiorna visualizzazione
-            visualizzaAccoppiamenti();
+            visualizzaAccoppiamenti(); // Già include l'aggiornamento dei dropdown
             abilitaBottoneStep4();
         }
 
@@ -921,6 +1127,9 @@
         `;
                 container.appendChild(div);
             });
+
+            // AGGIUNGI QUESTA RIGA per aggiornare i dropdown
+            aggiornaPosizioniDisponibili();
         }
 
         function rimuoviAccoppiamento(index) {
@@ -941,7 +1150,6 @@
             document.getElementById('riepilogoTurno').innerHTML = `
         <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
         <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
-        <p><strong>Descrizione:</strong> ${configTurno.descrizione || 'Nessuna descrizione'}</p>
     `;
 
             // Riepilogo scontri
@@ -1059,8 +1267,7 @@
 
             // Reset form
             document.getElementById('numeroTurno').value = '';
-            document.getElementById('puntiVittoria').value = '1';
-            document.getElementById('descrizioneTurno').value = '';
+            document.getElementById('puntiVittoria').value = '1'; 
 
             // Torna al primo step
             nascondiTuttiGliStep();
@@ -1254,41 +1461,100 @@
 
                 if (incontri.length === 0) {
                     container.innerHTML = '<p>Nessun incontro generato per questo turno</p>';
-                } else {
-                    incontri.forEach(incontro => {
-                        const card = document.createElement('div');
-                        card.className = 'incontro-card';
-
-                        const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
-                        const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
-
-                        card.innerHTML = `
-                                <div class="incontro-header">
-                                    <h4>Coppia ${incontro.coppia_numero}: ${incontro.pos1} + ${incontro.pos2}</h4>
-                                    <span style="color: ${incontro.completato ? '#48bb78' : '#ed8936'};">
-                                        ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
-                                    </span>
-                                </div>
-                                <div class="vs-display">
-                                    ${squadra1 ? squadra1.colore : 'N/A'} VS ${squadra2 ? squadra2.colore : 'N/A'}
-                                </div>
-                                ${incontro.completato ? `
-                                    <div style="margin-top: 10px; text-align: center;">
-                                        <strong>Risultato:</strong> ${incontro.risultato_coppia1 || 'N/A'} - ${incontro.risultato_coppia2 || 'N/A'}
-                                    </div>
-                                ` : ''}
-                            `;
-
-                        container.appendChild(card);
-                    });
+                    return;
                 }
 
+                // Raggruppa incontri per scontro tra squadre
+                const incontriRaggruppati = {};
+
+                incontri.forEach(incontro => {
+                    // Ottieni colori squadre
+                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
+                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
+
+                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
+
+                    if (!incontriRaggruppati[chiaveGruppo]) {
+                        incontriRaggruppati[chiaveGruppo] = {
+                            squadra1: squadra1,
+                            squadra2: squadra2,
+                            incontri: []
+                        };
+                    }
+
+                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
+                });
+
+                // Crea HTML per ogni gruppo
+                Object.keys(incontriRaggruppati).forEach((chiaveGruppo, index) => {
+                    const gruppo = incontriRaggruppati[chiaveGruppo];
+
+                    // Divider header per ogni scontro tra squadre
+                    const dividerHeader = document.createElement('div');
+                    dividerHeader.className = 'scontro-divider-header';
+                    dividerHeader.innerHTML = `
+                <div class="scontro-title">
+                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra1?.colore)};">
+                        Squadra ${gruppo.squadra1?.colore?.toUpperCase() || 'N/A'}
+                    </span>
+                    <span class="vs-text">VS</span>
+                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra2?.colore)};">
+                        Squadra ${gruppo.squadra2?.colore?.toUpperCase() || 'N/A'}
+                    </span>
+                </div>
+                <div class="incontri-count">
+                    ${gruppo.incontri.length} incontri
+                </div>
+            `;
+                    container.appendChild(dividerHeader);
+
+                    // Container per gli incontri di questo scontro
+                    const incontriContainer = document.createElement('div');
+                    incontriContainer.className = 'incontri-gruppo';
+
+                    gruppo.incontri.forEach(incontro => {
+                        const card = document.createElement('div');
+                        card.className = 'incontro-card-compatto';
+
+                        card.innerHTML = `
+                    <div class="incontro-header-compatto">
+                        <div class="coppia-info">
+                            <span class="coppia-numero">Coppia ${incontro.coppia_numero}</span>
+                            <span class="posizioni">${incontro.pos1} + ${incontro.pos2}</span>
+                        </div>
+                        <span class="status-badge ${incontro.completato ? 'completato' : 'in-attesa'}">
+                            ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
+                        </span>
+                    </div>
+                    ${incontro.completato ? `
+                        <div class="risultato-compatto">
+                            <span class="risultato-finale">
+                                ${incontro.risultato_coppia1 || '0-0'} - ${incontro.risultato_coppia2 || '0-0'}
+                            </span>
+                        </div>
+                    ` : ''}
+                `;
+
+                        incontriContainer.appendChild(card);
+                    });
+
+                    container.appendChild(incontriContainer);
+
+                    // Divider di separazione tra gruppi (tranne per l'ultimo)
+                    if (index < Object.keys(incontriRaggruppati).length - 1) {
+                        const dividerSeparatore = document.createElement('div');
+                        dividerSeparatore.className = 'scontro-divider-separatore';
+                        container.appendChild(dividerSeparatore);
+                    }
+                });
+
+                // Mostra la sezione
                 section.style.display = 'block';
                 section.scrollIntoView({ behavior: 'smooth' });
 
             } catch (error) {
-                console.error('Errore caricamento incontri:', error);
-                showNotification('Errore caricamento incontri', 'error');
+                console.error('Errore visualizzazione incontri:', error);
+                showNotification('Errore nel caricamento degli incontri', 'error');
             }
         }
 

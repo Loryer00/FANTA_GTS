@@ -1142,56 +1142,6 @@ app.delete('/api/accoppiamenti-posizioni/:accoppiamentoId', async (req, res) => 
     }
 });
 
-// API per generare tutti gli incontri di un turno
-app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
-    try {
-        const turnoId = req.params.turnoId;
-
-        // Prima elimina incontri esistenti per questo turno
-        await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id IN (SELECT id FROM incontri WHERE turno_id = $1)", [turnoId]);
-        await db.query("DELETE FROM incontri WHERE turno_id = $1", [turnoId]);
-
-        // Ottieni scontri e accoppiamenti
-        const scontriResult = await db.query("SELECT * FROM scontri_squadre WHERE turno_id = $1", [turnoId]);
-        const accoppiamentiResult = await db.query("SELECT * FROM accoppiamenti_posizioni WHERE turno_id = $1", [turnoId]);
-
-        const scontri = scontriResult.rows;
-        const accoppiamenti = accoppiamentiResult.rows;
-
-        if (scontri.length === 0) {
-            return res.status(400).json({ error: 'Nessuno scontro configurato per questo turno' });
-        }
-
-        if (accoppiamenti.length === 0) {
-            return res.status(400).json({ error: 'Nessun accoppiamento configurato per questo turno' });
-        }
-
-        let incontriGenerati = 0;
-
-        // Per ogni scontro tra squadre
-        for (const scontro of scontri) {
-            // Per ogni accoppiamento di posizioni
-            for (const accoppiamento of accoppiamenti) {
-                await db.query(`INSERT INTO incontri 
-                    (turno_id, coppia_turno_id, squadra1, squadra2) 
-                    VALUES ($1, $2, $3, $4)`,
-                    [turnoId, accoppiamento.id, scontro.squadra1, scontro.squadra2]);
-                incontriGenerati++;
-            }
-        }
-
-        res.json({
-            message: 'Incontri generati con successo',
-            count: incontriGenerati,
-            scontri: scontri.length,
-            accoppiamenti: accoppiamenti.length
-        });
-    } catch (err) {
-        console.error('Errore genera-incontri-completi:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // Setup partecipanti
 app.get('/api/partecipanti', async (req, res) => {
     try {
