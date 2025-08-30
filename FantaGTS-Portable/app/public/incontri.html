@@ -968,121 +968,134 @@
         }
 
         // Completa incontro
+        // Assicurati che le funzioni e le variabili globali (es. showNotification, coppieVincenti) siano definite
+        // nel tuo ambiente.
         async function completaIncontro(incontroId) {
+            console.log(`[LOG] Tentativo di completare l'incontro ID: ${incontroId}`);
+
             if (!confirm('Completare questo incontro? Non sarà più possibile modificarlo.')) {
+                console.log('[LOG] Operazione annullata dall\'utente.');
+                showNotification('Operazione annullata.', 'info');
                 return;
             }
 
             try {
-                // Prima verifica se c'è una squadra selezionata
+                // Step 1: Verifica e imposta i vincitori individuali
                 const squadraSelezionata = coppieVincenti.get(incontroId) || coppieVincenti.get(parseInt(incontroId)) || coppieVincenti.get(incontroId.toString());
+                console.log(`[LOG] Squadra selezionata per l'incontro: ${squadraSelezionata}`);
 
                 if (squadraSelezionata) {
-                    // Ottieni i dettagli dell'incontro
                     const incontroCorrente = incontriTurno.find(i => i.id == incontroId);
+
                     if (incontroCorrente) {
                         const posizioni = [incontroCorrente.pos1, incontroCorrente.pos2];
                         const squadra1 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra1);
                         const squadra2 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra2);
 
-                        // Imposta automaticamente i vincitori per tutte le posizioni
+                        if (!squadra1 || !squadra2) {
+                            console.error('[ERRORE] Dati di una delle squadre non trovati.');
+                            showNotification('Dati delle squadre non trovati. Ricarica la pagina.', 'error');
+                            return;
+                        }
+
+                        console.log('[LOG] Avvio l\'impostazione dei vincitori per le posizioni:', posizioni);
+
                         for (const posizione of posizioni) {
                             const giocatore1 = getNomeGiocatore(squadra1, posizione);
                             const giocatore2 = getNomeGiocatore(squadra2, posizione);
+
+                            const requestData = {
+                                incontro_id: parseInt(incontroId),
+                                posizione: posizione,
+                                vincitore: squadraSelezionata,
+                                giocatore_squadra1: giocatore1,
+                                giocatore_squadra2: giocatore2,
+                                punti_assegnati: turnoSelezionato.punti_vittoria
+                            };
+
+                            console.log(`[LOG] Invio richiesta set-vincitore per posizione ${posizione}`, requestData);
 
                             try {
                                 const response = await fetch('/api/set-vincitore', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        incontro_id: parseInt(incontroId),
-                                        posizione: posizione,
-                                        vincitore: squadraSelezionata,
-                                        giocatore_squadra1: giocatore1,
-                                        giocatore_squadra2: giocatore2,
-                                        punti_assegnati: turnoSelezionato.punti_vittoria
-                                    })
+                                    body: JSON.stringify(requestData)
                                 });
 
                                 if (!response.ok) {
                                     const error = await response.json();
+                                    console.error(`[ERRORE] Risposta non OK dal server per posizione ${posizione}:`, error);
                                     showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
-                                    return;
+                                    return; // Blocca il completamento se l'aggiornamento fallisce
                                 }
+                                console.log(`[LOG] Vincitore impostato con successo per ${posizione}.`);
                             } catch (error) {
+                                console.error(`[ERRORE] Errore di connessione durante l'impostazione del vincitore per ${posizione}:`, error);
                                 showNotification(`Errore di connessione per ${posizione}`, 'error');
-                                return;
+                                return; // Blocca il completamento in caso di errore di rete
                             }
                         }
+                    } else {
+                        console.warn(`[AVVISO] Dettagli incontro per ID ${incontroId} non trovati. Proseguo solo con il completamento.`);
+                        showNotification('Dettagli dell\'incontro non trovati. Potrebbe essere necessario un aggiornamento.', 'warning');
                     }
+
+                } else {
+                    console.log('[LOG] Nessuna squadra vincente selezionata. Non assegno punti per posizione.');
+                    showNotification('Nessun vincitore selezionato. L\'incontro sarà contrassegnato come completato.', 'warning');
                 }
 
-                // Ora completa l'incontro
+                // Step 2: Completa l'incontro a livello globale
+                console.log(`[LOG] Ora procedo al completamento ufficiale dell'incontro ${incontroId}.`);
                 const response = await fetch(`/api/completa-incontro/${incontroId}`, {
                     method: 'POST'
                 });
 
                 if (response.ok) {
+                    console.log('[LOG] Incontro completato con successo sul server.');
                     showNotification('Incontro completato con successo!', 'success');
 
-                    // AGGIORNAMENTO IMMEDIATO DELL'INTERFACCIA
+                    // Step 3: Aggiornamento dell'interfaccia utente
+                    console.log('[LOG] Aggiornamento dell\'interfaccia utente locale.');
                     const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
                     if (card) {
-                        // Aggiorna il badge di stato
                         const statusBadge = card.querySelector('.status-badge');
                         if (statusBadge) {
                             statusBadge.className = 'status-badge completato';
                             statusBadge.innerHTML = '✅ Completato';
                         }
-
-                        // Nascondi i pulsanti di azione
                         const azioniDiv = card.querySelector('.azioni-live');
-                        if (azioniDiv) {
-                            azioniDiv.style.display = 'none';
-                        }
+                        if (azioniDiv) azioniDiv.style.display = 'none';
 
-                        // Disabilita i pulsanti delle coppie
-                        const coppiaBtns = card.querySelectorAll('.coppia-btn');
-                        coppiaBtns.forEach(btn => {
-                            btn.style.pointerEvents = 'none';
-                            btn.style.opacity = '0.7';
-                        });
-
-                        // Nascondi i pulsanti "Completa Incontro" e "Reset"
-                        const controlButtons = card.querySelectorAll('.btn');
-                        controlButtons.forEach(btn => {
-                            if (btn.textContent.includes('Completa Incontro') || btn.textContent.includes('Reset')) {
-                                btn.style.display = 'none';
-                            }
+                        // Disabilita tutti i pulsanti di azione
+                        const allActionButtons = card.querySelectorAll('.btn, .coppia-btn');
+                        allActionButtons.forEach(btn => {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'not-allowed';
                         });
                     }
 
-                    // Aggiorna l'array locale se esiste
-                    if (typeof incontriTurno !== 'undefined' && Array.isArray(incontriTurno)) {
-                        const incontroIndex = incontriTurno.findIndex(i => i.id == incontroId);
-                        if (incontroIndex !== -1) {
-                            incontriTurno[incontroIndex].completato = true;
-                        }
-                    }
-
-                    // Forza ricaricamento della pagina master per aggiornare i punti
+                    // Step 4: Ricarica la pagina master
+                    console.log('[LOG] Tentativo di ricaricare la finestra genitore per aggiornare i punti.');
                     setTimeout(() => {
                         if (window.opener) {
                             try {
                                 window.opener.location.reload();
                             } catch (e) {
-                                console.log('Impossibile ricaricare la finestra master');
+                                console.warn('[AVVISO] Impossibile ricaricare la finestra master (potrebbe non essere un pop-up).', e);
                             }
                         }
                     }, 1000);
 
                 } else {
                     const error = await response.json();
+                    console.error('[ERRORE] Errore API /completa-incontro:', error);
                     showNotification('Errore completamento: ' + error.error, 'error');
                 }
             } catch (error) {
-                console.error('Errore completamento incontro:', error);
-                showNotification('Errore di connessione', 'error');
+                console.error('[ERRORE] Errore generico nel completamento dell\'incontro:', error);
+                showNotification('Errore di connessione o errore inatteso.', 'error');
             }
         }
 
