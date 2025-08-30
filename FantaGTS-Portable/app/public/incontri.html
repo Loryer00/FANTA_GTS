@@ -1018,7 +1018,14 @@
                 });
 
                 if (response.ok) {
-                    showNotification('Incontro completato!', 'success');
+                    showNotification('Incontro completato', 'success');
+
+                    // Forza ricaricamento della pagina master per aggiornare i punti
+                    setTimeout(() => {
+                        if (window.opener) {
+                            window.opener.location.reload();
+                        }
+                    }, 1000);
 
                     // AGGIORNAMENTO IMMEDIATO DELL'INTERFACCIA
                     const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
