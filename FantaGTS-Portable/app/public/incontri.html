@@ -969,6 +969,15 @@
 
         // Completa incontro
         async function completaIncontro(incontroId) {
+            // CONTROLLO: Se l'incontro è già completato, esci
+            const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`) ||
+                document.querySelector(`[onclick*="completaIncontro(${incontroId})"]`).closest('.incontro-card-live, .incontro-card');
+
+            if (incontroContainer && incontroContainer.querySelector('.completato-badge')) {
+                showNotification('Questo incontro è già stato completato!', 'warning');
+                return;
+            }
+
             if (!confirm('Completare questo incontro? Non sarà più possibile modificarlo.')) {
                 return;
             }
@@ -1044,11 +1053,69 @@
                     console.log('[SUCCESSO] Incontro completato:', result);
                     showNotification('Incontro completato con successo!', 'success');
 
-                    // Nascondi tutti i pulsanti dell'incontro
-                    const buttonsToHide = document.querySelectorAll(`[onclick*="completaIncontro(${incontroId})"], [onclick*="resetIncontro(${incontroId})"]`);
-                    buttonsToHide.forEach(btn => {
-                        btn.style.display = 'none';
-                    });
+                    // AGGIORNAMENTO COMPLETO DELL'INTERFACCIA
+                    const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`) ||
+                        document.querySelector(`[onclick*="completaIncontro(${incontroId})"]`).closest('.incontro-card-live, .incontro-card');
+
+                    if (incontroContainer) {
+                        // 1. Nascondi i pulsanti di controllo
+                        const buttonsToHide = incontroContainer.querySelectorAll(`[onclick*="completaIncontro(${incontroId})"], [onclick*="resetIncontro(${incontroId})"]`);
+                        buttonsToHide.forEach(btn => {
+                            btn.style.display = 'none';
+                        });
+
+                        // 2. Disabilita tutti i pulsanti delle coppie
+                        const coppiaBtns = incontroContainer.querySelectorAll('.coppia-btn, [style*="background"]');
+                        coppiaBtns.forEach(btn => {
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.6';
+                            btn.style.cursor = 'not-allowed';
+                            // Rimuovi eventi onclick
+                            btn.removeAttribute('onclick');
+                        });
+
+                        // 3. Aggiungi indicatore visivo di completamento
+                        incontroContainer.style.border = '2px solid #48bb78';
+                        incontroContainer.style.background = 'rgba(72, 187, 120, 0.1)';
+
+                        // 4. Aggiungi badge "COMPLETATO"
+                        const header = incontroContainer.querySelector('.incontro-header, .incontro-header-live');
+                        if (header && !header.querySelector('.completato-badge')) {
+                            const completatoBadge = document.createElement('div');
+                            completatoBadge.className = 'completato-badge';
+                            completatoBadge.innerHTML = '✅ COMPLETATO';
+                            completatoBadge.style.cssText = `
+                background: #48bb78;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.8em;
+                font-weight: bold;
+                text-align: center;
+            `;
+                            header.appendChild(completatoBadge);
+                        }
+
+                        // 5. Disabilita l'intero container
+                        incontroContainer.style.pointerEvents = 'none';
+
+                        // 6. Riabilita solo lo scroll (per permettere la visualizzazione)
+                        setTimeout(() => {
+                            incontroContainer.style.pointerEvents = 'auto';
+                            incontroContainer.style.cursor = 'default';
+                            // Ma mantieni disabilitati i bottoni interattivi
+                            incontroContainer.querySelectorAll('button, [onclick]').forEach(el => {
+                                if (!el.textContent.includes('Torna') && !el.textContent.includes('Gestione')) {
+                                    el.style.pointerEvents = 'none';
+                                }
+                            });
+                        }, 100);
+                    }
+
+                    // Rimuovi l'incontro dalla mappa delle coppie vincenti
+                    coppieVincenti.delete(incontroId);
+                    coppieVincenti.delete(parseInt(incontroId));
+                    coppieVincenti.delete(incontroId.toString());
 
                     // Forza ricaricamento della pagina master per aggiornare i punti
                     setTimeout(() => {
