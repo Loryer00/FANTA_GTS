@@ -222,6 +222,123 @@
             text-align: center;
             color: #4299e1;
         }
+
+        .turno-step {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .turno-step.active {
+                border-color: #4299e1;
+                box-shadow: 0 0 20px rgba(66, 153, 225, 0.3);
+            }
+
+        .step-title {
+            color: #4299e1;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-description {
+            opacity: 0.8;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .step-navigation {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .scontri-list, .accoppiamenti-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .scontro-item, .accoppiamento-item {
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .scontro-vs {
+            color: #f56565;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .accoppiamento-plus {
+            color: #4299e1;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .riepilogo-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .riepilogo-section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .riepilogo-section h4 {
+                color: #4299e1;
+                margin-bottom: 10px;
+                font-size: 1.1em;
+            }
+
+        .btn-lg {
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        /* Personalizzazione select */
+        .turno-step select {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+            .turno-step select option {
+                background: #2d3748;
+                color: white;
+            }
+
+        /* Animazioni */
+        .turno-step {
+            transition: all 0.3s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .scontro-item:hover, .accoppiamento-item:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateX(2px);
+            transition: all 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -241,27 +358,157 @@
 
         <!-- Creazione Nuovo Turno -->
         <div class="section">
-            <h2>➕ Crea Nuovo Turno</h2>
+            <h2>⚡ Crea e Configura Turno Completo</h2>
+            <p>Configura tutto in un unico passaggio: turno, scontri squadre e accoppiamenti giocatori</p>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div class="input-group">
-                    <label>Numero Turno:</label>
-                    <input type="number" id="numeroTurno" placeholder="1" min="1">
+            <!-- Step 1: Dati Turno -->
+            <div class="turno-step active" id="step1">
+                <h3 class="step-title">📋 Step 1: Dati del Turno</h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label>Numero Turno:</label>
+                        <input type="number" id="numeroTurno" placeholder="1" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Punti per Vittoria:</label>
+                        <input type="number" id="puntiVittoria" placeholder="1" min="1" value="1">
+                    </div>
                 </div>
+
                 <div class="input-group">
-                    <label>Punti per Vittoria:</label>
-                    <input type="number" id="puntiVittoria" placeholder="1" min="1" value="1">
+                    <label>Descrizione:</label>
+                    <input type="text" id="descrizioneTurno" placeholder="Descrizione del turno (opzionale)">
+                </div>
+
+                <button class="btn btn-primary" onclick="proseguiStep2()">
+                    ➡️ Configura Scontri Squadre
+                </button>
+            </div>
+
+            <!-- Step 2: Scontri tra Squadre -->
+            <div class="turno-step" id="step2" style="display: none;">
+                <h3 class="step-title">⚔️ Step 2: Scontri tra Squadre</h3>
+                <p class="step-description">Seleziona le squadre che si scontreranno in questo turno</p>
+
+                <div class="scontri-configurator">
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
+                        <select id="squadra1Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <option value="">Seleziona Squadra 1</option>
+                        </select>
+                        <span style="font-weight: bold; color: #f56565; font-size: 1.2em;">VS</span>
+                        <select id="squadra2Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <option value="">Seleziona Squadra 2</option>
+                        </select>
+                        <button class="btn btn-success" onclick="aggiungiScontro()">
+                            ➕ Aggiungi
+                        </button>
+                    </div>
+
+                    <div id="scontriConfigurati" class="scontri-list">
+                        <!-- Gli scontri configurati verranno mostrati qui -->
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button class="btn btn-secondary" onclick="tornaStep1()">
+                        ⬅️ Torna Indietro
+                    </button>
+                    <button class="btn btn-primary" onclick="proseguiStep3()" disabled id="btnStep3">
+                        ➡️ Configura Accoppiamenti
+                    </button>
                 </div>
             </div>
 
-            <div class="input-group">
-                <label>Descrizione:</label>
-                <input type="text" id="descrizioneTurno" placeholder="Descrizione del turno (opzionale)">
+            <!-- Step 3: Accoppiamenti Giocatori -->
+            <div class="turno-step" id="step3" style="display: none;">
+                <h3 class="step-title">🎯 Step 3: Accoppiamenti Giocatori</h3>
+                <p class="step-description">Questi accoppiamenti si applicheranno a TUTTI gli scontri tra squadre configurati</p>
+
+                <div class="accoppiamenti-configurator">
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
+                        <select id="pos1Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <option value="">Posizione 1</option>
+                            <option value="M1">M1</option>
+                            <option value="M2">M2</option>
+                            <option value="M3">M3</option>
+                            <option value="M4">M4</option>
+                            <option value="M5">M5</option>
+                            <option value="M6">M6</option>
+                            <option value="M7">M7</option>
+                            <option value="F1">F1</option>
+                            <option value="F2">F2</option>
+                            <option value="F3">F3</option>
+                        </select>
+                        <span style="font-weight: bold; color: #4299e1; font-size: 1.2em;">+</span>
+                        <select id="pos2Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <option value="">Posizione 2</option>
+                            <option value="M1">M1</option>
+                            <option value="M2">M2</option>
+                            <option value="M3">M3</option>
+                            <option value="M4">M4</option>
+                            <option value="M5">M5</option>
+                            <option value="M6">M6</option>
+                            <option value="M7">M7</option>
+                            <option value="F1">F1</option>
+                            <option value="F2">F2</option>
+                            <option value="F3">F3</option>
+                        </select>
+                        <button class="btn btn-success" onclick="aggiungiAccoppiamento()">
+                            ➕ Aggiungi
+                        </button>
+                    </div>
+
+                    <div id="accoppiamentiConfigurati" class="accoppiamenti-list">
+                        <!-- Gli accoppiamenti configurati verranno mostrati qui -->
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button class="btn btn-secondary" onclick="tornaStep2()">
+                        ⬅️ Torna Indietro
+                    </button>
+                    <button class="btn btn-primary" onclick="proseguiStep4()" disabled id="btnStep4">
+                        ➡️ Finalizza Turno
+                    </button>
+                </div>
             </div>
 
-            <button class="btn btn-success" onclick="creaTurno()">
-                ➕ Crea Turno
-            </button>
+            <!-- Step 4: Riepilogo e Creazione -->
+            <div class="turno-step" id="step4" style="display: none;">
+                <h3 class="step-title">✅ Step 4: Riepilogo e Creazione</h3>
+
+                <div class="riepilogo-container">
+                    <div class="riepilogo-section">
+                        <h4>📋 Dati Turno</h4>
+                        <div id="riepilogoTurno"></div>
+                    </div>
+
+                    <div class="riepilogo-section">
+                        <h4>⚔️ Scontri Configurati</h4>
+                        <div id="riepilogoScontri"></div>
+                    </div>
+
+                    <div class="riepilogo-section">
+                        <h4>🎯 Accoppiamenti Configurati</h4>
+                        <div id="riepilogoAccoppiamenti"></div>
+                    </div>
+
+                    <div class="riepilogo-section">
+                        <h4>🔢 Incontri che verranno generati</h4>
+                        <div id="riepilogoIncontri"></div>
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button class="btn btn-secondary" onclick="tornaStep3()">
+                        ⬅️ Torna Indietro
+                    </button>
+                    <button class="btn btn-success btn-lg" onclick="creaTurnoCompleto()">
+                        🚀 Crea Turno e Genera Tutti gli Incontri
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Squadre Disponibili -->
@@ -277,83 +524,6 @@
             <h2>📅 Turni Configurati</h2>
             <div id="turniContainer">
                 <p>Nessun turno configurato</p>
-            </div>
-        </div>
-
-        <!-- Configurazione Turno Selezionato -->
-        <div class="section" id="configurazioneSection" style="display: none;">
-            <h2>⚙️ Configurazione - <span id="turnoSelezionatoNome">Turno</span></h2>
-
-            <!-- Parte A: Scontri tra Squadre -->
-            <div style="margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <h3 style="color: #4299e1; margin-bottom: 15px;">👥 Scontri tra Squadre</h3>
-
-                <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
-                    <select id="squadra1Select" style="padding: 10px;">
-                        <option value="">Seleziona Squadra 1</option>
-                    </select>
-                    <span style="font-weight: bold; color: #f56565;">VS</span>
-                    <select id="squadra2Select" style="padding: 10px;">
-                        <option value="">Seleziona Squadra 2</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="aggiungiScontro()">
-                        ➕ Aggiungi Scontro
-                    </button>
-                </div>
-
-                <div id="scontriConfigurati" style="margin-top: 15px;">
-                    <!-- Gli scontri configurati verranno mostrati qui -->
-                </div>
-            </div>
-
-            <!-- Parte B: Accoppiamenti Posizioni -->
-            <div style="margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
-                <h3 style="color: #4299e1; margin-bottom: 15px;">🎯 Accoppiamenti Posizioni</h3>
-                <p style="margin-bottom: 15px; opacity: 0.8;">Questi accoppiamenti si applicheranno a TUTTI gli scontri tra squadre</p>
-
-                <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
-                    <select id="pos1Select" style="padding: 10px;">
-                        <option value="">Posizione 1</option>
-                        <option value="M1">M1</option>
-                        <option value="M2">M2</option>
-                        <option value="M3">M3</option>
-                        <option value="M4">M4</option>
-                        <option value="M5">M5</option>
-                        <option value="M6">M6</option>
-                        <option value="M7">M7</option>
-                        <option value="F1">F1</option>
-                        <option value="F2">F2</option>
-                        <option value="F3">F3</option>
-                    </select>
-                    <span style="font-weight: bold; color: #4299e1;">+</span>
-                    <select id="pos2Select" style="padding: 10px;">
-                        <option value="">Posizione 2</option>
-                        <option value="M1">M1</option>
-                        <option value="M2">M2</option>
-                        <option value="M3">M3</option>
-                        <option value="M4">M4</option>
-                        <option value="M5">M5</option>
-                        <option value="M6">M6</option>
-                        <option value="M7">M7</option>
-                        <option value="F1">F1</option>
-                        <option value="F2">F2</option>
-                        <option value="F3">F3</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="aggiungiAccoppiamento()">
-                        ➕ Aggiungi Coppia
-                    </button>
-                </div>
-
-                <div id="accoppiamentiConfigurati" style="margin-top: 15px;">
-                    <!-- Gli accoppiamenti configurati verranno mostrati qui -->
-                </div>
-            </div>
-
-            <!-- Parte C: Generazione -->
-            <div style="text-align: center;">
-                <button class="btn btn-success" onclick="generaIncontri()" style="font-size: 1.2em; padding: 15px 30px;">
-                    🎯 Genera Tutti gli Incontri
-                </button>
             </div>
         </div>
 
@@ -484,90 +654,427 @@
             }
         }
 
-        // Crea nuovo turno
-        async function creaTurno() {
-            // CORREZIONE: Usa gli ID corretti dal HTML
-            const numeroEl = document.getElementById('numeroTurno');
-            const puntiEl = document.getElementById('puntiVittoria');
-            const descrizioneEl = document.getElementById('descrizioneTurno');
+        // Variabili globali per la configurazione del turno
+        let configTurno = {
+            numero: null,
+            punti: 1,
+            descrizione: '',
+            scontri: [],
+            accoppiamenti: []
+        };
 
-            // Debug: verifica che gli elementi esistano
-            console.log('Debug elementi form:', {
-                numeroEl: numeroEl,
-                puntiEl: puntiEl,
-                descrizioneEl: descrizioneEl
-            });
+        // ==================== GESTIONE STEPS ====================
 
-            // Controllo che gli elementi esistano
-            if (!numeroEl || !puntiEl || !descrizioneEl) {
-                console.error('Elementi mancanti. Controllare gli ID nel HTML.');
-
-                // Debug: mostra tutti gli input presenti nella pagina
-                const allInputs = document.querySelectorAll('input');
-                console.log('Tutti gli input trovati:', Array.from(allInputs).map(input => ({
-                    id: input.id,
-                    placeholder: input.placeholder,
-                    type: input.type
-                })));
-
-                showNotification('Errore: elementi del form mancanti', 'error');
-                return;
-            }
-
-            const numero = numeroEl.value.trim();
-            const nome = `Turno ${numero}`; // Nome generato automaticamente
-            const punti = puntiEl.value.trim();
-            const descrizione = descrizioneEl.value.trim();
+        function proseguiStep2() {
+            const numero = document.getElementById('numeroTurno').value.trim();
+            const punti = document.getElementById('puntiVittoria').value.trim();
+            const descrizione = document.getElementById('descrizioneTurno').value.trim();
 
             if (!numero) {
                 showNotification('Inserisci il numero del turno', 'error');
                 return;
             }
 
+            // Salva dati turno
+            configTurno.numero = parseInt(numero);
+            configTurno.punti = parseInt(punti) || 1;
+            configTurno.descrizione = descrizione;
+
+            // Cambia step
+            nascondiTuttiGliStep();
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('step2').classList.add('active');
+
+            // Carica squadre per i dropdown
+            caricaSquadrePerScontri();
+        }
+
+        function tornaStep1() {
+            nascondiTuttiGliStep();
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step1').classList.add('active');
+        }
+
+        function proseguiStep3() {
+            if (configTurno.scontri.length === 0) {
+                showNotification('Aggiungi almeno uno scontro tra squadre', 'error');
+                return;
+            }
+
+            nascondiTuttiGliStep();
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('step3').classList.add('active');
+        }
+
+        function tornaStep2() {
+            nascondiTuttiGliStep();
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('step2').classList.add('active');
+        }
+
+        function proseguiStep4() {
+            if (configTurno.accoppiamenti.length === 0) {
+                showNotification('Aggiungi almeno un accoppiamento di giocatori', 'error');
+                return;
+            }
+
+            // Genera riepilogo
+            generaRiepilogo();
+
+            nascondiTuttiGliStep();
+            document.getElementById('step4').style.display = 'block';
+            document.getElementById('step4').classList.add('active');
+        }
+
+        function tornaStep3() {
+            nascondiTuttiGliStep();
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('step3').classList.add('active');
+        }
+
+        function nascondiTuttiGliStep() {
+            ['step1', 'step2', 'step3', 'step4'].forEach(stepId => {
+                const step = document.getElementById(stepId);
+                step.style.display = 'none';
+                step.classList.remove('active');
+            });
+        }
+
+        // ==================== GESTIONE SCONTRI ====================
+
+        async function caricaSquadrePerScontri() {
             try {
-                const response = await fetch('/api/turni', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        turno_numero: parseInt(numero),
-                        nome_turno: nome,
-                        descrizione: descrizione,
-                        punti_vittoria: parseInt(punti) || 1
-                    })
+                const response = await fetch('/api/squadre');
+                const squadre = await response.json();
+
+                const select1 = document.getElementById('squadra1Select');
+                const select2 = document.getElementById('squadra2Select');
+
+                // Reset options
+                select1.innerHTML = '<option value="">Seleziona Squadra 1</option>';
+                select2.innerHTML = '<option value="">Seleziona Squadra 2</option>';
+
+                squadre.forEach(squadra => {
+                    const option1 = document.createElement('option');
+                    option1.value = squadra.numero;
+                    option1.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                    select1.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = squadra.numero;
+                    option2.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                    select2.appendChild(option2);
                 });
 
-                if (response.ok) {
-                    showNotification('Turno creato con successo!', 'success');
-
-                    // Reset form
-                    numeroEl.value = '';
-                    descrizioneEl.value = '';
-                    puntiEl.value = '1';
-
-                    // Ricarica turni
-                    caricaTurni();
-                } else {
-                    const error = await response.json();
-                    showNotification('Errore: ' + error.error, 'error');
-                }
             } catch (error) {
-                console.error('Errore creazione turno:', error);
-                showNotification('Errore di connessione', 'error');
+                console.error('Errore caricamento squadre:', error);
+                showNotification('Errore caricamento squadre', 'error');
             }
         }
 
-        // Seleziona turno per configurazione
-        function selezionaTurno(turnoId, nomeTurno) {
-            turnoSelezionato = turnoId;
-            document.getElementById('turnoSelezionatoNome').textContent = nomeTurno;
-            document.getElementById('configurazioneSection').style.display = 'block';
+        function aggiungiScontro() {
+            const squadra1 = document.getElementById('squadra1Select').value;
+            const squadra2 = document.getElementById('squadra2Select').value;
 
-            // Carica coppie esistenti per questo turno
-            caricaCoppieDelTurno(turnoId);
+            if (!squadra1 || !squadra2) {
+                showNotification('Seleziona entrambe le squadre', 'error');
+                return;
+            }
 
-            // Scroll alla sezione
-            document.getElementById('configurazioneSection').scrollIntoView({ behavior: 'smooth' });
+            if (squadra1 === squadra2) {
+                showNotification('Le squadre devono essere diverse', 'error');
+                return;
+            }
+
+            // Controlla se lo scontro esiste già
+            const esisteGia = configTurno.scontri.some(scontro =>
+                (scontro.squadra1 == squadra1 && scontro.squadra2 == squadra2) ||
+                (scontro.squadra1 == squadra2 && scontro.squadra2 == squadra1)
+            );
+
+            if (esisteGia) {
+                showNotification('Questo scontro è già stato aggiunto', 'error');
+                return;
+            }
+
+            // Ottieni nomi squadre
+            const nomeSquadra1 = document.getElementById('squadra1Select').selectedOptions[0].textContent;
+            const nomeSquadra2 = document.getElementById('squadra2Select').selectedOptions[0].textContent;
+
+            // Aggiungi scontro
+            configTurno.scontri.push({
+                squadra1: parseInt(squadra1),
+                squadra2: parseInt(squadra2),
+                nomeSquadra1: nomeSquadra1,
+                nomeSquadra2: nomeSquadra2
+            });
+
+            // Reset form
+            document.getElementById('squadra1Select').value = '';
+            document.getElementById('squadra2Select').value = '';
+
+            // Aggiorna visualizzazione
+            visualizzaScontri();
+            abilitaBottoneStep3();
         }
+
+        function visualizzaScontri() {
+            const container = document.getElementById('scontriConfigurati');
+            container.innerHTML = '';
+
+            if (configTurno.scontri.length === 0) {
+                container.innerHTML = '<p style="opacity: 0.6; text-align: center; padding: 20px;">Nessuno scontro configurato</p>';
+                return;
+            }
+
+            configTurno.scontri.forEach((scontro, index) => {
+                const div = document.createElement('div');
+                div.className = 'scontro-item';
+                div.innerHTML = `
+            <span>
+                <strong>${scontro.nomeSquadra1}</strong> 
+                <span class="scontro-vs">VS</span> 
+                <strong>${scontro.nomeSquadra2}</strong>
+            </span>
+            <button class="btn btn-danger btn-sm" onclick="rimuoviScontro(${index})">
+                🗑️ Rimuovi
+            </button>
+        `;
+                container.appendChild(div);
+            });
+        }
+
+        function rimuoviScontro(index) {
+            configTurno.scontri.splice(index, 1);
+            visualizzaScontri();
+            abilitaBottoneStep3();
+        }
+
+        function abilitaBottoneStep3() {
+            const btn = document.getElementById('btnStep3');
+            btn.disabled = configTurno.scontri.length === 0;
+        }
+
+        // ==================== GESTIONE ACCOPPIAMENTI ====================
+
+        function aggiungiAccoppiamento() {
+            const pos1 = document.getElementById('pos1Select').value;
+            const pos2 = document.getElementById('pos2Select').value;
+
+            if (!pos1 || !pos2) {
+                showNotification('Seleziona entrambe le posizioni', 'error');
+                return;
+            }
+
+            if (pos1 === pos2) {
+                showNotification('Le posizioni devono essere diverse', 'error');
+                return;
+            }
+
+            // Controlla se l'accoppiamento esiste già
+            const esisteGia = configTurno.accoppiamenti.some(acc =>
+                (acc.pos1 === pos1 && acc.pos2 === pos2) ||
+                (acc.pos1 === pos2 && acc.pos2 === pos1)
+            );
+
+            if (esisteGia) {
+                showNotification('Questo accoppiamento è già stato aggiunto', 'error');
+                return;
+            }
+
+            // Aggiungi accoppiamento
+            configTurno.accoppiamenti.push({
+                pos1: pos1,
+                pos2: pos2
+            });
+
+            // Reset form
+            document.getElementById('pos1Select').value = '';
+            document.getElementById('pos2Select').value = '';
+
+            // Aggiorna visualizzazione
+            visualizzaAccoppiamenti();
+            abilitaBottoneStep4();
+        }
+
+        function visualizzaAccoppiamenti() {
+            const container = document.getElementById('accoppiamentiConfigurati');
+            container.innerHTML = '';
+
+            if (configTurno.accoppiamenti.length === 0) {
+                container.innerHTML = '<p style="opacity: 0.6; text-align: center; padding: 20px;">Nessun accoppiamento configurato</p>';
+                return;
+            }
+
+            configTurno.accoppiamenti.forEach((acc, index) => {
+                const div = document.createElement('div');
+                div.className = 'accoppiamento-item';
+                div.innerHTML = `
+            <span>
+                <strong>${acc.pos1}</strong> 
+                <span class="accoppiamento-plus">+</span> 
+                <strong>${acc.pos2}</strong>
+            </span>
+            <button class="btn btn-danger btn-sm" onclick="rimuoviAccoppiamento(${index})">
+                🗑️ Rimuovi
+            </button>
+        `;
+                container.appendChild(div);
+            });
+        }
+
+        function rimuoviAccoppiamento(index) {
+            configTurno.accoppiamenti.splice(index, 1);
+            visualizzaAccoppiamenti();
+            abilitaBottoneStep4();
+        }
+
+        function abilitaBottoneStep4() {
+            const btn = document.getElementById('btnStep4');
+            btn.disabled = configTurno.accoppiamenti.length === 0;
+        }
+
+        // ==================== RIEPILOGO ====================
+
+        function generaRiepilogo() {
+            // Riepilogo turno
+            document.getElementById('riepilogoTurno').innerHTML = `
+        <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
+        <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
+        <p><strong>Descrizione:</strong> ${configTurno.descrizione || 'Nessuna descrizione'}</p>
+    `;
+
+            // Riepilogo scontri
+            const scontriHtml = configTurno.scontri.map(scontro =>
+                `<p>• ${scontro.nomeSquadra1} <strong>VS</strong> ${scontro.nomeSquadra2}</p>`
+            ).join('');
+            document.getElementById('riepilogoScontri').innerHTML = scontriHtml;
+
+            // Riepilogo accoppiamenti
+            const accoppiamentiHtml = configTurno.accoppiamenti.map(acc =>
+                `<p>• ${acc.pos1} <strong>+</strong> ${acc.pos2}</p>`
+            ).join('');
+            document.getElementById('riepilogoAccoppiamenti').innerHTML = accoppiamentiHtml;
+
+            // Calcolo incontri totali
+            const totaleIncontri = configTurno.scontri.length * configTurno.accoppiamenti.length;
+            document.getElementById('riepilogoIncontri').innerHTML = `
+        <p><strong>Totale incontri:</strong> ${totaleIncontri}</p>
+        <p class="text-info">
+            ${configTurno.scontri.length} scontri × ${configTurno.accoppiamenti.length} accoppiamenti = ${totaleIncontri} incontri
+        </p>
+    `;
+        }
+
+        // ==================== CREAZIONE TURNO COMPLETO ====================
+
+        async function creaTurnoCompleto() {
+            if (!confirm(`Creare il turno "${configTurno.numero}" con ${configTurno.scontri.length * configTurno.accoppiamenti.length} incontri?\n\nQuesta operazione è irreversibile!`)) {
+                return;
+            }
+
+            try {
+                showNotification('Creazione turno in corso...', 'success');
+
+                // 1. Crea il turno
+                const turnoResponse = await fetch('/api/turni', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        turno_numero: configTurno.numero,
+                        nome_turno: `Turno ${configTurno.numero}`,
+                        descrizione: configTurno.descrizione,
+                        punti_vittoria: configTurno.punti
+                    })
+                });
+
+                if (!turnoResponse.ok) {
+                    throw new Error('Errore creazione turno');
+                }
+
+                const turnoData = await turnoResponse.json();
+                const turnoId = turnoData.id;
+
+                // 2. Salva scontri squadre
+                for (const scontro of configTurno.scontri) {
+                    await fetch('/api/scontri-squadre', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            turno_id: turnoId,
+                            squadra1: scontro.squadra1,
+                            squadra2: scontro.squadra2
+                        })
+                    });
+                }
+
+                // 3. Salva accoppiamenti posizioni
+                for (const acc of configTurno.accoppiamenti) {
+                    await fetch('/api/accoppiamenti-posizioni', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            turno_id: turnoId,
+                            pos1: acc.pos1,
+                            pos2: acc.pos2
+                        })
+                    });
+                }
+
+                // 4. Genera tutti gli incontri
+                const incontriResponse = await fetch(`/api/genera-incontri-completi/${turnoId}`, {
+                    method: 'POST'
+                });
+
+                if (!incontriResponse.ok) {
+                    throw new Error('Errore generazione incontri');
+                }
+
+                const incontriData = await incontriResponse.json();
+
+                showNotification(`✅ Turno creato con successo! Generati ${incontriData.count} incontri.`, 'success');
+
+                // Reset configurazione
+                resetConfigTurno();
+
+                // Ricarica la pagina per vedere i nuovi turni
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Errore creazione turno completo:', error);
+                showNotification('Errore durante la creazione del turno: ' + error.message, 'error');
+            }
+        }
+
+        function resetConfigTurno() {
+            configTurno = {
+                numero: null,
+                punti: 1,
+                descrizione: '',
+                scontri: [],
+                accoppiamenti: []
+            };
+
+            // Reset form
+            document.getElementById('numeroTurno').value = '';
+            document.getElementById('puntiVittoria').value = '1';
+            document.getElementById('descrizioneTurno').value = '';
+
+            // Torna al primo step
+            nascondiTuttiGliStep();
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step1').classList.add('active');
+        }
+
+        // Inizializzazione al caricamento
+        document.addEventListener('DOMContentLoaded', function () {
+            // Assicurati che solo il primo step sia visibile
+            nascondiTuttiGliStep();
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step1').classList.add('active');
+        });
 
         // Elimina turno
         async function eliminaTurno(turnoId, nomeTurno) {
