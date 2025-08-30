@@ -995,6 +995,57 @@
                         const giocatore2 = getNomeGiocatore(squadra2, posizione);
 
                         console.log(`Impostando vincitore per ${posizione}: squadra ${squadraSelezionata}`);
+                        console.log(`Giocatori: ${giocatore1} vs ${giocatore2}`);
+                        console.log(`Punti assegnati: ${turnoSelezionato.punti_vittoria}`);
+
+                        const requestData = {
+                            incontro_id: parseInt(incontroId),
+                            posizione: posizione,
+                            vincitore: squadraSelezionata,
+                            giocatore_squadra1: giocatore1,
+                            giocatore_squadra2: giocatore2,
+                            punti_assegnati: turnoSelezionato.punti_vittoria
+                        };
+
+                        console.log('Dati richiesta set-vincitore:', requestData);
+
+                        try {
+                            const response = await fetch('/api/set-vincitore', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(requestData)
+                            });
+
+                            console.log(`Response status per ${posizione}:`, response.status);
+
+                            if (!response.ok) {
+                                const error = await response.json();
+                                console.error(`Errore API set-vincitore per ${posizione}:`, error);
+                                showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
+                                return;
+                            }
+
+                            const result = await response.json();
+                            console.log(`Vincitore impostato con successo per ${posizione}:`, result);
+
+                        } catch (error) {
+                            console.error(`Errore di connessione per ${posizione}:`, error);
+                            showNotification(`Errore di connessione per ${posizione}`, 'error');
+                            return;
+                        }
+                    }
+
+                    // Verifica che i risultati siano stati salvati
+                    console.log('Verifica risultati salvati...');
+                    try {
+                        const checkResponse = await fetch(`/api/dettagli-incontro/${incontroId}`);
+                        if (checkResponse.ok) {
+                            const dettagli = await checkResponse.json();
+                            console.log('Risultati salvati nel database:', dettagli);
+                        }
+                    } catch (e) {
+                        console.error('Errore verifica risultati:', e);
+                    }
 
                         try {
                             const response = await fetch('/api/set-vincitore', {
