@@ -1019,7 +1019,37 @@
 
                 if (response.ok) {
                     showNotification('Incontro completato!', 'success');
-                    await caricaIncontriTurno(turnoSelezionato.id);
+
+                    // AGGIORNAMENTO IMMEDIATO DELL'INTERFACCIA
+                    const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+                    if (card) {
+                        // Aggiorna il badge di stato
+                        const statusBadge = card.querySelector('.status-badge');
+                        if (statusBadge) {
+                            statusBadge.className = 'status-badge completato';
+                            statusBadge.innerHTML = '✅ Completato';
+                        }
+
+                        // Nascondi i pulsanti di azione
+                        const azioniDiv = card.querySelector('.azioni-live');
+                        if (azioniDiv) {
+                            azioniDiv.style.display = 'none';
+                        }
+
+                        // Disabilita i pulsanti delle coppie
+                        const coppiaBtns = card.querySelectorAll('.coppia-btn');
+                        coppiaBtns.forEach(btn => {
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.7';
+                        });
+                    }
+
+                    // Aggiorna anche l'array locale
+                    const incontroIndex = incontriTurno.findIndex(i => i.id == incontroId);
+                    if (incontroIndex !== -1) {
+                        incontriTurno[incontroIndex].completato = true;
+                    }
+
                 } else {
                     const error = await response.json();
                     showNotification('Errore: ' + error.error, 'error');
