@@ -1343,115 +1343,32 @@
         async function caricaSquadreInFormazione() {
             try {
                 console.log('🔄 Caricando squadre in formazione...');
-
                 const partecipanti = await fetch('/api/partecipanti').then(r => r.json());
                 const container = document.getElementById('squadreInFormazione');
                 container.innerHTML = '';
-
                 if (partecipanti.length === 0) {
                     container.innerHTML = '<p>Nessun partecipante registrato</p>';
                     return;
                 }
-
                 console.log(`📊 Trovati ${partecipanti.length} partecipanti:`, partecipanti);
-
                 const squadreGrid = document.createElement('div');
                 squadreGrid.style.display = 'grid';
                 squadreGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
                 squadreGrid.style.gap = '15px';
                 squadreGrid.style.maxWidth = '100%';
                 squadreGrid.style.overflowX = 'auto';
-
-                // CARICA TUTTE LE SQUADRE per ogni partecipante
+                // CARICA TUTTE LE SQUADRE, anche se l'utente non è connesso
                 for (const partecipante of partecipanti) {
-                    try {
-                        const response = await fetch(`/api/squadra-partecipante/${partecipante.id}`);
-
-                        if (response.ok) {
-                            const datiSquadra = await response.json();
-                            const squadra = datiSquadra.squadra || [];
-                            const crediti = datiSquadra.crediti || partecipante.crediti || 2000;
-
-                            // Calcola punti totali
-                            const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
-
-                            console.log(`👤 ${partecipante.nome}: ${squadra.length} giocatori, ${puntiTotali} punti totali`);
-
-                            const squadraCard = document.createElement('div');
-                            squadraCard.className = 'squadra-card-master';
-                            squadraCard.innerHTML = `
-                        <div class="squadra-header-master">
-                            <h4>${partecipante.nome}</h4>
-                            <div class="squadra-stats">
-                                <span class="stat-punti">🎯 ${puntiTotali} punti</span>
-                                <span class="stat-crediti">💰 ${crediti}€</span>
-                                <span class="stat-giocatori">👥 ${squadra.length}/10</span>
-                            </div>
-                        </div>
-                        <div class="giocatori-grid-master">
-                            ${generaGriglia(squadra)}
-                        </div>
-                    `;
-
-                            squadreGrid.appendChild(squadraCard);
-                        } else {
-                            // Partecipante senza squadra formata
-                            const squadraCard = document.createElement('div');
-                            squadraCard.className = 'squadra-card-master squadra-vuota';
-                            squadraCard.innerHTML = `
-                        <div class="squadra-header-master">
-                            <h4>${partecipante.nome}</h4>
-                            <div class="squadra-stats">
-                                <span class="stat-punti">🎯 0 punti</span>
-                                <span class="stat-crediti">💰 ${partecipante.crediti || 2000}€</span>
-                                <span class="stat-giocatori">👥 0/10</span>
-                            </div>
-                        </div>
-                        <p class="squadra-vuota-msg">Squadra non ancora formata</p>
-                    `;
-
-                            squadreGrid.appendChild(squadraCard);
-                        }
-                    } catch (error) {
-                        console.error(`Errore caricamento squadra per ${partecipante.nome}:`, error);
-                    }
+                    console.log(`🎯 Caricando squadra per: ${partecipante.nome} (ID: ${partecipante.id})`);
+                    const squadraCard = await creaCardSquadra(partecipante);
+                    squadreGrid.appendChild(squadraCard);
                 }
-
                 container.appendChild(squadreGrid);
-                console.log('✅ Squadre in formazione caricate con successo');
-
+                console.log('✅ Squadre caricate nel Master');
             } catch (error) {
-                console.error('❌ Errore caricamento squadre in formazione:', error);
+                console.error('❌ Errore caricamento squadre:', error);
                 document.getElementById('squadreInFormazione').innerHTML = '<p>Errore caricamento squadre</p>';
             }
-        }
-
-        // Funzione helper per generare la griglia dei giocatori
-        function generaGriglia(squadra) {
-            const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-
-            return posizioni.map(pos => {
-                const giocatore = squadra.find(g => g.posizione === pos);
-
-                if (giocatore) {
-                    const coloreSquadra = getTeamColor(giocatore.colore) || '#4a5568';
-                    return `
-                <div class="giocatore-slot-master filled" style="border-color: ${coloreSquadra}; background-color: ${coloreSquadra}20;">
-                    <div class="pos-label">${pos}</div>
-                    <div class="giocatore-nome">${giocatore.giocatore_attuale}</div>
-                    <div class="giocatore-punti">⭐ ${giocatore.punti_totali || 0} pt</div>
-                    <div class="giocatore-squadra">${giocatore.colore}</div>
-                </div>
-            `;
-                } else {
-                    return `
-                <div class="giocatore-slot-master vuoto">
-                    <div class="pos-label">${pos}</div>
-                    <div class="slot-vuoto">-</div>
-                </div>
-            `;
-                }
-            }).join('');
         }
 
         // NUOVA FUNZIONE: Crea card per una squadra
@@ -1546,12 +1463,15 @@
                 `;
 
                         slotDiv.innerHTML = `
-                    <div style="color: ${textColor}; font-weight: bold; margin-bottom: 2px;">${pos}</div>
-                    <div style="color: ${textColor}; font-size: 0.9em; line-height: 1.2;">${giocatore.giocatore_attuale}</div>
-                    <div style="color: ${textColor}; font-size: 0.75em; opacity: 0.9; margin-top: 2px;">
-                        ${giocatore.colore} • ${giocatore.costo_finale}€
-                    </div>
-                `;
+    <div style="color: ${textColor}; font-weight: bold; margin-bottom: 2px;">${pos}</div>
+    <div style="color: ${textColor}; font-size: 0.9em; line-height: 1.2;">${giocatore.giocatore_attuale}</div>
+    <div style="color: ${textColor}; font-size: 0.75em; opacity: 0.9; margin-top: 2px;">
+        ${giocatore.colore} • ${giocatore.costo_finale}€
+    </div>
+    <div style="color: #48bb78; font-size: 0.75em; font-weight: bold; margin-top: 2px;">
+        🎯 ${giocatore.punti_totali || 0}pt
+    </div>
+`;
                     } else {
                         slotDiv.style.cssText = `
                     background: rgba(74,85,104,0.2);
