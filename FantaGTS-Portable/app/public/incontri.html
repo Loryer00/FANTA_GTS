@@ -975,7 +975,7 @@
             console.log('Coppie vincenti:', coppieVincenti);
 
             // Prima di completare, controlla se c'è una selezione di coppia e convertila in selezioni per posizione
-            const squadraSelezionata = coppieVincenti.get(parseInt(incontroId));
+            const squadraSelezionata = coppieVincenti.get(incontroId) || coppieVincenti.get(parseInt(incontroId)) || coppieVincenti.get(incontroId.toString());
 
             if (squadraSelezionata) {
                 console.log('Squadra selezionata trovata:', squadraSelezionata);
