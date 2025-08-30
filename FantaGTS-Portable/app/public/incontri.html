@@ -489,6 +489,97 @@
             background: #dd6b20;
             transform: translateY(-1px);
         }
+
+        /* Stili per i gruppi di scontri */
+        .gruppo-scontro-header {
+            background: linear-gradient(135deg, rgba(66, 153, 225, 0.2), rgba(72, 187, 120, 0.2));
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0 10px 0;
+            border: 2px solid rgba(66, 153, 225, 0.3);
+        }
+
+        .squadre-vs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .squadra-nome {
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .vs-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #f56565;
+        }
+
+        .gruppo-incontri {
+            margin-bottom: 30px;
+        }
+
+        /* Stili per le coppie */
+        .coppie-confronto {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .coppia-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+            .coppia-btn:hover {
+                background: rgba(66, 153, 225, 0.2);
+                border-color: #4299e1;
+                transform: scale(1.02);
+            }
+
+            .coppia-btn.vincitore {
+                background: rgba(72, 187, 120, 0.3);
+                border-color: #48bb78;
+                box-shadow: 0 0 15px rgba(72, 187, 120, 0.4);
+            }
+
+        .coppia-giocatori {
+            margin-bottom: 10px;
+        }
+
+        .giocatore {
+            font-size: 0.9em;
+            margin: 2px 0;
+            font-weight: 500;
+        }
+
+        .squadra-label {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+
+        .vs-divider {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #f56565;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -603,10 +694,55 @@
                     return;
                 }
 
-                // Carica dettagli di ogni incontro
-                for (const incontro of incontriCaricati) {
-                    const incontroCard = await creaCardIncontro(incontro);
-                    container.appendChild(incontroCard);
+                // Raggruppa incontri per scontro tra squadre
+                const incontriRaggruppati = {};
+
+                incontriCaricati.forEach(incontro => {
+                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
+                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
+
+                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
+
+                    if (!incontriRaggruppati[chiaveGruppo]) {
+                        incontriRaggruppati[chiaveGruppo] = {
+                            squadra1: squadra1,
+                            squadra2: squadra2,
+                            incontri: []
+                        };
+                    }
+
+                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
+                });
+
+                // Crea HTML per ogni gruppo
+                for (const [chiaveGruppo, gruppo] of Object.entries(incontriRaggruppati)) {
+                    // Header del gruppo
+                    const gruppoHeader = document.createElement('div');
+                    gruppoHeader.className = 'gruppo-scontro-header';
+                    gruppoHeader.innerHTML = `
+                <div class="squadre-vs">
+                    <span class="squadra-nome" style="background-color: ${getTeamColor(gruppo.squadra1?.colore)};">
+                        ${gruppo.squadra1?.colore?.toUpperCase() || 'SQUADRA 1'}
+                    </span>
+                    <span class="vs-text">VS</span>
+                    <span class="squadra-nome" style="background-color: ${getTeamColor(gruppo.squadra2?.colore)};">
+                        ${gruppo.squadra2?.colore?.toUpperCase() || 'SQUADRA 2'}
+                    </span>
+                </div>
+            `;
+                    container.appendChild(gruppoHeader);
+
+                    // Container per gli incontri del gruppo
+                    const gruppoContainer = document.createElement('div');
+                    gruppoContainer.className = 'gruppo-incontri';
+
+                    // Carica ogni incontro del gruppo
+                    for (const incontro of gruppo.incontri) {
+                        const incontroCard = await creaCardIncontro(incontro);
+                        gruppoContainer.appendChild(incontroCard);
+                    }
+
+                    container.appendChild(gruppoContainer);
                 }
 
             } catch (error) {
@@ -640,36 +776,28 @@
             </span>
         </div>
         
-        <div class="giocatori-grid-live">
-            <div class="giocatore-confronto" data-pos="${incontro.pos1}">
-                <div class="pos-label">${incontro.pos1}</div>
-                <div class="giocatore-vs">
-                    <button class="giocatore-btn ${getRisultatoClass(incontro.id, incontro.pos1, 1)}" 
-                            onclick="selezionaVincitore('${incontro.id}', '${incontro.pos1}', 1)">
-                        ${getNomeGiocatore(squadra1, incontro.pos1)}
-                    </button>
-                    <span class="vs-small">VS</span>
-                    <button class="giocatore-btn ${getRisultatoClass(incontro.id, incontro.pos1, 2)}" 
-                            onclick="selezionaVincitore('${incontro.id}', '${incontro.pos1}', 2)">
-                        ${getNomeGiocatore(squadra2, incontro.pos1)}
-                    </button>
+        <div class="coppie-confronto">
+            <button class="coppia-btn" data-squadra="1" onclick="selezionaCoppia('${incontro.id}', 1)">
+                <div class="coppia-giocatori">
+                    <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos1)} (${incontro.pos1})</div>
+                    <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos2)} (${incontro.pos2})</div>
                 </div>
-            </div>
+                <div class="squadra-label" style="background-color: ${getTeamColor(squadra1.colore)};">
+                    ${squadra1.colore.toUpperCase()}
+                </div>
+            </button>
             
-            <div class="giocatore-confronto" data-pos="${incontro.pos2}">
-                <div class="pos-label">${incontro.pos2}</div>
-                <div class="giocatore-vs">
-                    <button class="giocatore-btn ${getRisultatoClass(incontro.id, incontro.pos2, 1)}" 
-                            onclick="selezionaVincitore('${incontro.id}', '${incontro.pos2}', 1)">
-                        ${getNomeGiocatore(squadra1, incontro.pos2)}
-                    </button>
-                    <span class="vs-small">VS</span>
-                    <button class="giocatore-btn ${getRisultatoClass(incontro.id, incontro.pos2, 2)}" 
-                            onclick="selezionaVincitore('${incontro.id}', '${incontro.pos2}', 2)">
-                        ${getNomeGiocatore(squadra2, incontro.pos2)}
-                    </button>
+            <div class="vs-divider">VS</div>
+            
+            <button class="coppia-btn" data-squadra="2" onclick="selezionaCoppia('${incontro.id}', 2)">
+                <div class="coppia-giocatori">
+                    <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos1)} (${incontro.pos1})</div>
+                    <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos2)} (${incontro.pos2})</div>
                 </div>
-            </div>
+                <div class="squadra-label" style="background-color: ${getTeamColor(squadra2.colore)};">
+                    ${squadra2.colore.toUpperCase()}
+                </div>
+            </button>
         </div>
         
         <div class="azioni-live">
@@ -689,6 +817,27 @@
         function getNomeGiocatore(squadra, posizione) {
             const pos = posizione.toLowerCase();
             return squadra[pos] || `${posizione} Non Trovato`;
+        }
+
+        let coppieVincenti = new Map();
+
+        function selezionaCoppia(incontroId, squadra) {
+            // Salva la selezione
+            coppieVincenti.set(incontroId, squadra);
+
+            // Trova la card dell'incontro
+            const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+            if (!card) return;
+
+            // Rimuovi selezione da entrambe le coppie
+            const allButtons = card.querySelectorAll('.coppia-btn');
+            allButtons.forEach(btn => btn.classList.remove('vincitore'));
+
+            // Aggiungi selezione alla coppia cliccata
+            const selectedButton = card.querySelector(`[data-squadra="${squadra}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('vincitore');
+            }
         }
 
         function getRisultatoClass(incontroId, posizione, squadra) {
@@ -862,12 +1011,23 @@
         // Utility functions
         function getTeamColor(nomeColore) {
             const colori = {
-                'rosso': '#ef4444', 'blu': '#3b82f6', 'verde': '#10b981',
-                'giallo': '#f59e0b', 'viola': '#8b5cf6', 'arancione': '#f97316',
-                'rosa': '#ec4899', 'azzurro': '#06b6d4', 'marrone': '#92400e',
-                'nero': '#374151', 'bianco': '#f3f4f6', 'grigio': '#6b7280'
+                'rosso': '#ef4444', 'rossa': '#ef4444',
+                'blu': '#3b82f6', 'azzurro': '#3b82f6', 'azzurra': '#3b82f6',
+                'verde': '#10b981',
+                'giallo': '#f59e0b', 'gialla': '#f59e0b',
+                'viola': '#8b5cf6',
+                'arancione': '#f97316',
+                'rosa': '#ec4899',
+                'marrone': '#92400e',
+                'nero': '#374151', 'nera': '#374151',
+                'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
+                'grigio': '#6b7280', 'grigia': '#6b7280',
+                'smeraldo': '#10b981',
+                'fucsia': '#d946ef'
             };
-            return colori[nomeColore.toLowerCase()] || '#4299e1';
+
+            const coloreKey = nomeColore?.toLowerCase?.() || 'default';
+            return colori[coloreKey] || '#4299e1';
         }
 
         function showNotification(message, type = 'success') {
