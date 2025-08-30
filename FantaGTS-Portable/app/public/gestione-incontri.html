@@ -249,10 +249,6 @@
                     <input type="number" id="numeroTurno" placeholder="1" min="1">
                 </div>
                 <div class="input-group">
-                    <label>Nome Turno:</label>
-                    <input type="text" id="nomeTurno" placeholder="es: Gironi - Turno 1">
-                </div>
-                <div class="input-group">
                     <label>Punti per Vittoria:</label>
                     <input type="number" id="puntiVittoria" placeholder="1" min="1" value="1">
                 </div>
@@ -489,24 +485,21 @@
         }
 
         // Crea nuovo turno
-        // Crea nuovo turno
         async function creaTurno() {
             // CORREZIONE: Usa gli ID corretti dal HTML
             const numeroEl = document.getElementById('numeroTurno');
-            const nomeEl = document.getElementById('nomeTurno');
             const puntiEl = document.getElementById('puntiVittoria');
             const descrizioneEl = document.getElementById('descrizioneTurno');
 
             // Debug: verifica che gli elementi esistano
             console.log('Debug elementi form:', {
                 numeroEl: numeroEl,
-                nomeEl: nomeEl,
                 puntiEl: puntiEl,
                 descrizioneEl: descrizioneEl
             });
 
             // Controllo che gli elementi esistano
-            if (!numeroEl || !nomeEl || !puntiEl || !descrizioneEl) {
+            if (!numeroEl || !puntiEl || !descrizioneEl) {
                 console.error('Elementi mancanti. Controllare gli ID nel HTML.');
 
                 // Debug: mostra tutti gli input presenti nella pagina
@@ -522,12 +515,12 @@
             }
 
             const numero = numeroEl.value.trim();
-            const nome = nomeEl.value.trim();
+            const nome = `Turno ${numero}`; // Nome generato automaticamente
             const punti = puntiEl.value.trim();
             const descrizione = descrizioneEl.value.trim();
 
-            if (!numero || !nome) {
-                showNotification('Inserisci numero e nome turno', 'error');
+            if (!numero) {
+                showNotification('Inserisci il numero del turno', 'error');
                 return;
             }
 
@@ -548,7 +541,6 @@
 
                     // Reset form
                     numeroEl.value = '';
-                    nomeEl.value = '';
                     descrizioneEl.value = '';
                     puntiEl.value = '1';
 
