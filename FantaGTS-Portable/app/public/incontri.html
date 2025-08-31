@@ -1081,38 +1081,59 @@
                         'success'
                     );
 
-                    // AGGIORNAMENTO UI IMMEDIATO
+                    // AGGIORNAMENTO UI IMMEDIATO CON DEBUG
                     if (incontroContainer) {
+                        console.log('[DEBUG] Container trovato:', incontroContainer);
+
                         // 1. Aggiorna status badge
                         const statusBadge = incontroContainer.querySelector('.status-badge');
+                        console.log('[DEBUG] Status badge trovato:', statusBadge);
                         if (statusBadge) {
                             statusBadge.className = 'status-badge completato';
                             statusBadge.innerHTML = '✅ COMPLETATO';
+                            statusBadge.style.background = 'rgba(72, 187, 120, 0.8)';
+                            statusBadge.style.color = 'white';
                         }
 
-                        // 2. Disabilita pulsante completa
-                        const completaBtn = incontroContainer.querySelector(`[onclick*="completaIncontro(${incontroId})"]`);
+                        // 2. Disabilita pulsante completa - selettori multipli
+                        const completaBtn = incontroContainer.querySelector(`[onclick*="completaIncontro(${incontroId})"]`) ||
+                            incontroContainer.querySelector('.btn-completa') ||
+                            incontroContainer.querySelector(`button[onclick*="${incontroId}"]`);
+                        console.log('[DEBUG] Pulsante completa trovato:', completaBtn);
                         if (completaBtn) {
                             completaBtn.textContent = 'Completato';
                             completaBtn.disabled = true;
-                            completaBtn.style.backgroundColor = '#48bb78';
-                            completaBtn.style.color = 'white';
+                            completaBtn.style.backgroundColor = '#48bb78 !important';
+                            completaBtn.style.color = 'white !important';
+                            completaBtn.style.cursor = 'not-allowed';
                             completaBtn.removeAttribute('onclick');
+                            completaBtn.setAttribute('onclick', 'return false;');
                         }
 
                         // 3. Disabilita pulsanti selezione squadre
                         const coppiaBtns = incontroContainer.querySelectorAll('.coppia-btn');
-                        coppiaBtns.forEach(btn => {
+                        console.log('[DEBUG] Pulsanti coppia trovati:', coppiaBtns.length);
+                        coppiaBtns.forEach((btn, index) => {
+                            console.log(`[DEBUG] Disabilitando pulsante ${index + 1}`);
                             btn.style.pointerEvents = 'none';
-                            btn.style.opacity = '0.7';
+                            btn.style.opacity = '0.6';
+                            btn.style.filter = 'grayscale(50%)';
+                            btn.style.cursor = 'not-allowed';
                             btn.removeAttribute('onclick');
+                            btn.classList.remove('vincitore');
                         });
 
                         // 4. Aggiorna bordi e sfondo
                         incontroContainer.style.border = '2px solid #48bb78';
                         incontroContainer.style.background = 'rgba(72, 187, 120, 0.1)';
+                        incontroContainer.style.transition = 'all 0.3s ease';
 
-                        console.log('[UI] Interfaccia aggiornata immediatamente');
+                        // 5. Aggiungi classe completato per CSS
+                        incontroContainer.classList.add('incontro-completato');
+
+                        console.log('[UI] Interfaccia aggiornata immediatamente - MIGLIORATA');
+                    } else {
+                        console.error('[ERROR] Container incontro non trovato per ID:', incontroId);
                     }
 
                     // Pulizia memoria
