@@ -820,55 +820,10 @@
             return squadra[pos] || `${posizione} Non Trovato`;
         }
 
-        let coppieVincenti = new Map();
-
-        function selezionaCoppia(incontroId, squadra) {
-            // Salva la selezione
-            coppieVincenti.set(incontroId, squadra);
-
-            // Trova la card dell'incontro
-            const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
-            if (!card) return;
-
-            // Rimuovi selezione da entrambe le coppie
-            const allButtons = card.querySelectorAll('.coppia-btn');
-            allButtons.forEach(btn => btn.classList.remove('vincitore'));
-
-            // Aggiungi selezione alla coppia cliccata
-            const selectedButton = card.querySelector(`[data-squadra="${squadra}"]`);
-            if (selectedButton) {
-                selectedButton.classList.add('vincitore');
-            }
-        }
-
         function getRisultatoClass(incontroId, posizione, squadra) {
             // Questa funzione restituirà 'vincitore' se il giocatore ha vinto
             // Per ora restituisce stringa vuota, implementeremo la logica dopo
             return '';
-        }
-
-        let risultatiSelezionati = new Map();
-
-        function selezionaVincitore(incontroId, posizione, squadra) {
-            const key = `${incontroId}_${posizione}`;
-            risultatiSelezionati.set(key, squadra);
-
-            // Aggiorna visualmente i bottoni
-            const container = document.querySelector(`[data-incontro-id="${incontroId}"]`);
-            const posizioneContainer = container.querySelector(`[data-pos="${posizione}"]`);
-
-            // Rimuovi classe vincitore da tutti i bottoni della posizione
-            posizioneContainer.querySelectorAll('.giocatore-btn').forEach(btn => {
-                btn.classList.remove('vincitore');
-            });
-
-            // Aggiungi classe vincitore al bottone cliccato
-            const bottoneCliccato = posizioneContainer.querySelector(`[onclick*="'${squadra}'"]`);
-            if (bottoneCliccato) {
-                bottoneCliccato.classList.add('vincitore');
-            }
-
-            showNotification(`Selezionato vincitore per ${posizione}`, 'success');
         }
 
         // Crea dettagli incontro con grid delle posizioni
@@ -967,15 +922,14 @@
             }
         }
 
-        // Completa incontro
+        // Funzione completaIncontro CORRETTA - da sostituire in incontri.html
         async function completaIncontro(incontroId) {
             console.log('[INIZIO] Tentativo di completare incontro ID:', incontroId);
 
             // Controllo se l'incontro è già completato
-            const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`) ||
-                document.querySelector(`[onclick*="completaIncontro(${incontroId})"]`).closest('.incontro-card-live, .incontro-card');
-
-            if (incontroContainer && incontroContainer.querySelector('.completato-badge')) {
+            const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+            if (incontroContainer && (incontroContainer.querySelector('.completato-badge') ||
+                incontroContainer.querySelector('.status-badge.completato'))) {
                 console.log('[BLOCCO] Incontro già completato');
                 showNotification('Questo incontro è già stato completato!', 'warning');
                 return;
@@ -987,167 +941,61 @@
             }
 
             try {
-                // Verifica squadra selezionata
-                const squadraSelezionata = coppieVincenti.get(incontroId) ||
-                    coppieVincenti.get(parseInt(incontroId)) ||
-                    coppieVincenti.get(incontroId.toString());
+                console.log('[STEP 1] Inizio processo completamento...');
 
-                console.log('[CHECK] Squadra selezionata:', squadraSelezionata);
-                console.log('[CHECK] Tutte le coppie vincenti:', Array.from(coppieVincenti.entries()));
+                // NUOVA LOGICA: Verifica che tutti i risultati necessari siano stati impostati
+                const dettagliResponse = await fetch(`/api/dettagli-incontro/${incontroId}`);
+                if (!dettagliResponse.ok) {
+                    throw new Error('Errore caricamento dettagli incontro');
+                }
 
-                if (!squadraSelezionata) {
-                    console.log('[ERRORE] Nessuna squadra selezionata');
-                    showNotification('Seleziona prima una squadra vincente!', 'error');
+                const dettagli = await dettagliResponse.json();
+                console.log('[STEP 2] Dettagli incontro caricati:', dettagli);
+
+                // Trova l'incontro corrente per ottenere le posizioni
+                const incontroCorrente = incontriCaricati.find(i => i.id == incontroId);
+                if (!incontroCorrente) {
+                    throw new Error('Incontro non trovato nei dati caricati');
+                }
+
+                const posizioniRichieste = [incontroCorrente.pos1, incontroCorrente.pos2];
+                console.log('[STEP 3] Posizioni richieste:', posizioniRichieste);
+
+                // Verifica che ci siano risultati per tutte le posizioni
+                const posizioniConRisultato = dettagli.map(d => d.posizione);
+                const posizioniMancanti = posizioniRichieste.filter(pos => !posizioniConRisultato.includes(pos));
+
+                if (posizioniMancanti.length > 0) {
+                    console.log('[ERRORE] Posizioni mancanti:', posizioniMancanti);
+                    showNotification(`Prima imposta i vincitori per: ${posizioniMancanti.join(', ')}`, 'error');
                     return;
                 }
 
-                // Recupera le posizioni reali dell'incontro
-                console.log('[API] Recuperando posizioni dal turno:', turnoSelezionato?.id);
+                console.log('[STEP 4] Tutti i risultati necessari sono presenti, completando incontro...');
 
-                let posizioni = ['M1', 'M2']; // fallback
-
-                try {
-                    const incontroResponse = await fetch(`/api/incontri-turno/${turnoSelezionato.id}`);
-                    console.log('[API] Status response incontri-turno:', incontroResponse.status);
-
-                    if (incontroResponse.ok) {
-                        const incontriData = await incontroResponse.json();
-                        console.log('[API] Ricevuti', incontriData.length, 'incontri');
-                        console.log('[API] Lista ID incontri:', incontriData.map(i => i.id));
-
-                        const incontroCorrente = incontriData.find(i => i.id == incontroId);
-                        console.log('[API] Incontro trovato per ID', incontroId, ':', incontroCorrente);
-
-                        if (incontroCorrente && incontroCorrente.pos1 && incontroCorrente.pos2) {
-                            posizioni = [incontroCorrente.pos1, incontroCorrente.pos2];
-                            console.log('[SUCCESSO] Posizioni reali recuperate:', posizioni);
-                        } else {
-                            console.log('[FALLBACK] Incontro non trovato, usando M1+M2');
-                        }
-                    } else {
-                        console.log('[FALLBACK] Response non OK, usando M1+M2');
-                    }
-                } catch (fetchError) {
-                    console.log('[FALLBACK] Errore fetch incontri:', fetchError);
-                }
-
-                console.log('[VINCITORI] Impostando vincitori per posizioni:', posizioni);
-
-                // Imposta vincitori per ogni posizione
-                for (let i = 0; i < posizioni.length; i++) {
-                    const posizione = posizioni[i];
-                    console.log(`[VINCITORI] Processando posizione ${i + 1}/${posizioni.length}: ${posizione}`);
-
-                    const requestData = {
-                        incontro_id: parseInt(incontroId),
-                        posizione: posizione,
-                        vincitore: squadraSelezionata,
-                        giocatore_squadra1: `Giocatore ${posizione} Squadra 1`,
-                        giocatore_squadra2: `Giocatore ${posizione} Squadra 2`,
-                        punti_assegnati: turnoSelezionato ? turnoSelezionato.punti_vittoria : 1
-                    };
-
-                    console.log(`[API] Dati richiesta per ${posizione}:`, requestData);
-
-                    try {
-                        const response = await fetch('/api/set-vincitore', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(requestData)
-                        });
-
-                        console.log(`[API] Response status per ${posizione}:`, response.status);
-
-                        if (response.ok) {
-                            const result = await response.json();
-                            console.log(`[SUCCESSO] Vincitore impostato per ${posizione}:`, result.message);
-                        } else {
-                            const error = await response.json();
-                            console.log(`[ERRORE] Errore set-vincitore per ${posizione}:`, error);
-                            showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
-                            return;
-                        }
-                    } catch (setError) {
-                        console.log(`[ERRORE] Connessione fallita per ${posizione}:`, setError);
-                        showNotification(`Errore di connessione per ${posizione}`, 'error');
-                        return;
-                    }
-                }
-
-                console.log('[COMPLETAMENTO] Tutti i vincitori impostati, completando incontro...');
-
-                // Completa l'incontro
+                // Completa l'incontro tramite API
                 const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
 
-                console.log('[API] Status completamento:', completaResponse.status);
+                console.log('[STEP 5] Risposta API completamento:', completaResponse.status);
 
                 if (completaResponse.ok) {
                     const result = await completaResponse.json();
                     console.log('[SUCCESSO] Incontro completato:', result);
-                    showNotification('Incontro completato con successo!', 'success');
 
-                    // Aggiorna interfaccia
-                    console.log('[UI] Aggiornando interfaccia...');
+                    showNotification(
+                        `Incontro completato! ${result.risultato} (${result.vittorie_squadra1}-${result.vittorie_squadra2})`,
+                        'success'
+                    );
 
-                    if (incontroContainer) {
-                        // Nascondi pulsanti
-                        const buttonsToHide = incontroContainer.querySelectorAll(`[onclick*="completaIncontro(${incontroId})"], [onclick*="resetIncontro(${incontroId})"]`);
-                        console.log('[UI] Nascondendo', buttonsToHide.length, 'pulsanti');
-                        buttonsToHide.forEach(btn => btn.style.display = 'none');
+                    // Ricarica gli incontri per mostrare lo stato aggiornato
+                    await caricaIncontriTurno(turnoSelezionato.id);
 
-                        // Disabilita pulsanti squadre
-                        const coppiaBtns = incontroContainer.querySelectorAll('.coppia-btn, [style*="background"]');
-                        console.log('[UI] Disabilitando', coppiaBtns.length, 'pulsanti squadre');
-                        coppiaBtns.forEach(btn => {
-                            btn.style.pointerEvents = 'none';
-                            btn.style.opacity = '0.6';
-                            btn.removeAttribute('onclick');
-                        });
-
-                        // Aggiungi badge completato
-                        const header = incontroContainer.querySelector('.incontro-header, .incontro-header-live');
-                        if (header && !header.querySelector('.completato-badge')) {
-                            console.log('[UI] Aggiungendo badge COMPLETATO');
-                            const completatoBadge = document.createElement('div');
-                            completatoBadge.className = 'completato-badge';
-                            completatoBadge.innerHTML = '✅ COMPLETATO';
-                            completatoBadge.style.cssText = `
-                       background: #48bb78;
-                       color: white;
-                       padding: 4px 8px;
-                       border-radius: 12px;
-                       font-size: 0.8em;
-                       font-weight: bold;
-                       text-align: center;
-                       margin-left: 10px;
-                   `;
-                            header.appendChild(completatoBadge);
-                        }
-
-                        // Stile visivo completato
-                        incontroContainer.style.border = '2px solid #48bb78';
-                        incontroContainer.style.background = 'rgba(72, 187, 120, 0.1)';
-                    }
-
-                    // Pulisci memoria
-                    console.log('[PULIZIA] Rimuovendo selezione dalle coppie vincenti');
-                    coppieVincenti.delete(incontroId);
-                    coppieVincenti.delete(parseInt(incontroId));
-                    coppieVincenti.delete(incontroId.toString());
-
-                    // Ricarica master
-                    setTimeout(() => {
-                        if (window.opener) {
-                            console.log('[MASTER] Ricaricando finestra master');
-                            try {
-                                window.opener.location.reload();
-                            } catch (e) {
-                                console.log('[MASTER] Errore ricaricamento:', e);
-                            }
-                        }
-                    }, 1000);
+                    console.log('[STEP 6] Interfaccia ricaricata con successo');
 
                 } else {
                     const error = await completaResponse.json();
@@ -1156,8 +1004,8 @@
                 }
 
             } catch (generalError) {
-                console.log('[ERRORE] Errore generale:', generalError);
-                showNotification('Errore di connessione generale', 'error');
+                console.error('[ERRORE] Errore generale:', generalError);
+                showNotification('Errore di connessione: ' + generalError.message, 'error');
             }
 
             console.log('[FINE] Processo completamento terminato per incontro', incontroId);
