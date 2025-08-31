@@ -620,6 +620,8 @@
         let incontriTurno = [];
         let incontriCaricati = [];
         let squadreDisponibili = [];
+        let coppieVincenti = new Map();
+        let risultatiSelezionati = new Map();
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
@@ -920,6 +922,61 @@
             } catch (error) {
                 showNotification('Errore di connessione', 'error');
             }
+        }
+
+        // 2. FUNZIONE selezionaCoppia (aggiungere prima di completaIncontro)
+        function selezionaCoppia(incontroId, squadra) {
+            // Salva la selezione
+            coppieVincenti.set(incontroId, squadra);
+
+            // Trova la card dell'incontro
+            const card = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+            if (!card) return;
+
+            // Rimuovi selezione da entrambe le coppie
+            const allButtons = card.querySelectorAll('.coppia-btn');
+            allButtons.forEach(btn => btn.classList.remove('vincitore'));
+
+            // Aggiungi selezione alla coppia cliccata
+            const selectedButton = card.querySelector(`[data-squadra="${squadra}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('vincitore');
+            }
+
+            console.log(`[SELEZIONE] Squadra ${squadra} selezionata per incontro ${incontroId}`);
+        }
+
+        // 3. FUNZIONE selezionaVincitore (aggiungere se serve per compatibilità)
+        function selezionaVincitore(incontroId, posizione, squadra) {
+            const key = `${incontroId}_${posizione}`;
+            risultatiSelezionati.set(key, squadra);
+
+            // Aggiorna visualmente i bottoni
+            const container = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+            if (!container) return;
+
+            const posizioneContainer = container.querySelector(`[data-pos="${posizione}"]`);
+            if (!posizioneContainer) return;
+
+            // Rimuovi classe vincitore da tutti i bottoni della posizione
+            posizioneContainer.querySelectorAll('.giocatore-btn').forEach(btn => {
+                btn.classList.remove('vincitore');
+            });
+
+            // Aggiungi classe vincitore al bottone cliccato
+            const bottoneCliccato = posizioneContainer.querySelector(`[onclick*="'${squadra}'"]`);
+            if (bottoneCliccato) {
+                bottoneCliccato.classList.add('vincitore');
+            }
+
+            showNotification(`Selezionato vincitore per ${posizione}`, 'success');
+        }
+
+        // 4. FUNZIONE getRisultatoClass (per compatibilità)
+        function getRisultatoClass(incontroId, posizione, squadra) {
+            // Questa funzione restituirà 'vincitore' se il giocatore ha vinto
+            // Per ora restituisce stringa vuota
+            return '';
         }
 
         // FUNZIONE completaIncontro CHE FUNZIONA CON selezionaCoppia (SISTEMA ORIGINALE)
