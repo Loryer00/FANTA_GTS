@@ -922,7 +922,7 @@
             }
         }
 
-        // Funzione completaIncontro CORRETTA - da sostituire in incontri.html
+        // FUNZIONE completaIncontro CHE FUNZIONA CON selezionaCoppia (SISTEMA ORIGINALE)
         async function completaIncontro(incontroId) {
             console.log('[INIZIO] Tentativo di completare incontro ID:', incontroId);
 
@@ -941,16 +941,18 @@
             }
 
             try {
-                console.log('[STEP 1] Inizio processo completamento...');
+                // SISTEMA ORIGINALE: Verifica squadra selezionata con coppieVincenti
+                const squadraSelezionata = coppieVincenti.get(incontroId) ||
+                    coppieVincenti.get(parseInt(incontroId)) ||
+                    coppieVincenti.get(incontroId.toString());
 
-                // NUOVA LOGICA: Verifica che tutti i risultati necessari siano stati impostati
-                const dettagliResponse = await fetch(`/api/dettagli-incontro/${incontroId}`);
-                if (!dettagliResponse.ok) {
-                    throw new Error('Errore caricamento dettagli incontro');
+                console.log('[CHECK] Squadra selezionata:', squadraSelezionata);
+
+                if (!squadraSelezionata) {
+                    console.log('[ERRORE] Nessuna squadra selezionata');
+                    showNotification('Seleziona prima una squadra vincente!', 'error');
+                    return;
                 }
-
-                const dettagli = await dettagliResponse.json();
-                console.log('[STEP 2] Dettagli incontro caricati:', dettagli);
 
                 // Trova l'incontro corrente per ottenere le posizioni
                 const incontroCorrente = incontriCaricati.find(i => i.id == incontroId);
@@ -958,30 +960,60 @@
                     throw new Error('Incontro non trovato nei dati caricati');
                 }
 
-                const posizioniRichieste = [incontroCorrente.pos1, incontroCorrente.pos2];
-                console.log('[STEP 3] Posizioni richieste:', posizioniRichieste);
+                console.log('[STEP 1] Incontro trovato:', incontroCorrente);
 
-                // Verifica che ci siano risultati per tutte le posizioni
-                const posizioniConRisultato = dettagli.map(d => d.posizione);
-                const posizioniMancanti = posizioniRichieste.filter(pos => !posizioniConRisultato.includes(pos));
+                // Trova le squadre per ottenere i nomi dei giocatori
+                const squadra1 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra1);
+                const squadra2 = squadreDisponibili.find(s => s.numero === incontroCorrente.squadra2);
 
-                if (posizioniMancanti.length > 0) {
-                    console.log('[ERRORE] Posizioni mancanti:', posizioniMancanti);
-                    showNotification(`Prima imposta i vincitori per: ${posizioniMancanti.join(', ')}`, 'error');
-                    return;
+                if (!squadra1 || !squadra2) {
+                    throw new Error('Squadre non trovate');
                 }
 
-                console.log('[STEP 4] Tutti i risultati necessari sono presenti, completando incontro...');
+                console.log('[STEP 2] Squadre trovate:', squadra1.colore, 'vs', squadra2.colore);
 
-                // Completa l'incontro tramite API
-                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                const posizioni = [incontroCorrente.pos1, incontroCorrente.pos2];
+
+                // SISTEMA AUTOMATICO: Imposta vincitori per tutte le posizioni basandosi sulla squadra selezionata
+                console.log('[STEP 3] Impostazione automatica vincitori per posizioni:', posizioni);
+
+                for (const posizione of posizioni) {
+                    const giocatore1 = squadra1[posizione.toLowerCase()] || 'N/A';
+                    const giocatore2 = squadra2[posizione.toLowerCase()] || 'N/A';
+
+                    const requestData = {
+                        incontro_id: incontroId,
+                        posizione: posizione,
+                        vincitore: squadraSelezionata, // 1 o 2
+                        giocatore_squadra1: giocatore1,
+                        giocatore_squadra2: giocatore2,
+                        punti_assegnati: turnoSelezionato?.punti_vittoria || 1
+                    };
+
+                    console.log(`[API] Impostazione vincitore per ${posizione}:`, requestData);
+
+                    const response = await fetch('/api/set-vincitore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        console.log(`[ERRORE] Errore set-vincitore per ${posizione}:`, error);
+                        showNotification(`Errore impostazione vincitore ${posizione}: ` + error.error, 'error');
+                        return;
                     }
-                });
 
-                console.log('[STEP 5] Risposta API completamento:', completaResponse.status);
+                    console.log(`[SUCCESSO] Vincitore impostato per ${posizione}`);
+                }
+
+                console.log('[STEP 4] Tutti i vincitori impostati, completando incontro...');
+
+                // Completa l'incontro
+                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
+                    method: 'POST'
+                });
 
                 if (completaResponse.ok) {
                     const result = await completaResponse.json();
@@ -992,8 +1024,7 @@
                         'success'
                     );
 
-                    // AGGIORNAMENTO UI IMMEDIATO (senza ricaricamento completo)
-                    const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+                    // AGGIORNAMENTO UI IMMEDIATO
                     if (incontroContainer) {
                         // 1. Aggiorna status badge
                         const statusBadge = incontroContainer.querySelector('.status-badge');
@@ -1002,7 +1033,7 @@
                             statusBadge.innerHTML = '✅ COMPLETATO';
                         }
 
-                        // 2. Disabilita e nascondi pulsanti
+                        // 2. Disabilita pulsante completa
                         const completaBtn = incontroContainer.querySelector(`[onclick*="completaIncontro(${incontroId})"]`);
                         if (completaBtn) {
                             completaBtn.textContent = 'Completato';
@@ -1027,10 +1058,12 @@
                         console.log('[UI] Interfaccia aggiornata immediatamente');
                     }
 
-                    // Ricarica solo i dati per sincronizzare (opzionale, in background)
-                    setTimeout(() => caricaIncontriTurno(turnoSelezionato.id), 1000);
+                    // Pulizia memoria
+                    coppieVincenti.delete(incontroId);
+                    coppieVincenti.delete(parseInt(incontroId));
+                    coppieVincenti.delete(incontroId.toString());
 
-                    console.log('[STEP 6] Aggiornamento UI completato');
+                    console.log('[STEP 5] Completamento terminato con successo');
 
                 } else {
                     const error = await completaResponse.json();

@@ -2152,17 +2152,15 @@
                 const content = document.getElementById('classificaContent');
 
                 let html = '<table class="results-table"><thead><tr>';
-                html += '<th>Pos</th><th>Nome</th><th>Punti</th><th>Giocatori</th><th>Crediti</th>';
+                html += '<th>Pos</th><th>Nome</th><th>Punti</th>';
                 html += '</tr></thead><tbody>';
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-                            <td><strong>${index + 1}°</strong></td>
-                            <td>${p.nome}</td>
-                            <td>${p.punti_totali}</td>
-                            <td>${p.giocatori_totali}/10</td>
-                            <td>${p.crediti}</td>
-                        </tr>`;
+            <td><strong>${index + 1}°</strong></td>
+            <td>${p.nome}</td>
+            <td>${p.punti_totali}</td>
+        </tr>`;
                 });
 
                 html += '</tbody></table>';
