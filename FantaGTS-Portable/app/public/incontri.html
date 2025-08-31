@@ -992,10 +992,45 @@
                         'success'
                     );
 
-                    // Ricarica gli incontri per mostrare lo stato aggiornato
-                    await caricaIncontriTurno(turnoSelezionato.id);
+                    // AGGIORNAMENTO UI IMMEDIATO (senza ricaricamento completo)
+                    const incontroContainer = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+                    if (incontroContainer) {
+                        // 1. Aggiorna status badge
+                        const statusBadge = incontroContainer.querySelector('.status-badge');
+                        if (statusBadge) {
+                            statusBadge.className = 'status-badge completato';
+                            statusBadge.innerHTML = '✅ COMPLETATO';
+                        }
 
-                    console.log('[STEP 6] Interfaccia ricaricata con successo');
+                        // 2. Disabilita e nascondi pulsanti
+                        const completaBtn = incontroContainer.querySelector(`[onclick*="completaIncontro(${incontroId})"]`);
+                        if (completaBtn) {
+                            completaBtn.textContent = 'Completato';
+                            completaBtn.disabled = true;
+                            completaBtn.style.backgroundColor = '#48bb78';
+                            completaBtn.style.color = 'white';
+                            completaBtn.removeAttribute('onclick');
+                        }
+
+                        // 3. Disabilita pulsanti selezione squadre
+                        const coppiaBtns = incontroContainer.querySelectorAll('.coppia-btn');
+                        coppiaBtns.forEach(btn => {
+                            btn.style.pointerEvents = 'none';
+                            btn.style.opacity = '0.7';
+                            btn.removeAttribute('onclick');
+                        });
+
+                        // 4. Aggiorna bordi e sfondo
+                        incontroContainer.style.border = '2px solid #48bb78';
+                        incontroContainer.style.background = 'rgba(72, 187, 120, 0.1)';
+
+                        console.log('[UI] Interfaccia aggiornata immediatamente');
+                    }
+
+                    // Ricarica solo i dati per sincronizzare (opzionale, in background)
+                    setTimeout(() => caricaIncontriTurno(turnoSelezionato.id), 1000);
+
+                    console.log('[STEP 6] Aggiornamento UI completato');
 
                 } else {
                     const error = await completaResponse.json();
