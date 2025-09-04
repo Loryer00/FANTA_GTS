@@ -1311,13 +1311,7 @@
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
-                // CORRETTA LOGICA: confronta il numero della squadra vincente
-                let vincitore = false;
-                if (squadraAttr === 'squadra1' && squadraVincente == incontro.squadra1) {
-                    vincitore = true;
-                } else if (squadraAttr === 'squadra2' && squadraVincente == incontro.squadra2) {
-                    vincitore = true;
-                }
+                const vincitore = (squadraAttr === squadraVincente);
 
                 if (vincitore) {
                     // Applica stile vincente con colori PIÙ FORTI
