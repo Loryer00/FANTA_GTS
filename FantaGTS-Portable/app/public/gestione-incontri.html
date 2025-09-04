@@ -1441,6 +1441,140 @@
         // Visualizza incontri generati
         async function visualizzaIncontri(turnoId) {
             try {
+                const response = await fetch(`/api/incontri/turno/${turnoId}`);
+                const incontri = await response.json();
+
+                const section = document.getElementById('incontriSection');
+                const container = document.getElementById('incontriGenerati');
+
+                container.innerHTML = '';
+
+                if (incontri.length === 0) {
+                    container.innerHTML = '<p>Nessun incontro generato per questo turno</p>';
+                    return;
+                }
+
+                // Salva gli incontri per uso globale
+                incontriCaricati = incontri;
+
+                // Raggruppa incontri per scontro tra squadre
+                const incontriRaggruppati = {};
+
+                incontri.forEach(incontro => {
+                    // Ottieni colori squadre
+                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
+                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
+
+                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
+
+                    if (!incontriRaggruppati[chiaveGruppo]) {
+                        incontriRaggruppati[chiaveGruppo] = {
+                            squadra1: squadra1,
+                            squadra2: squadra2,
+                            incontri: []
+                        };
+                    }
+
+                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
+                });
+
+                // Crea il nuovo layout a colonne
+                const layoutColonne = document.createElement('div');
+                layoutColonne.className = 'layout-colonne-scontri';
+
+                // Crea una colonna per ogni scontro tra squadre
+                Object.keys(incontriRaggruppati).forEach((chiaveGruppo) => {
+                    const gruppo = incontriRaggruppati[chiaveGruppo];
+
+                    // Crea colonna per lo scontro
+                    const colonnaScontro = document.createElement('div');
+                    colonnaScontro.className = 'colonna-scontro';
+
+                    // Header dello scontro
+                    const headerSquadre = document.createElement('div');
+                    headerSquadre.className = 'header-squadre';
+
+                    const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
+                    const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
+
+                    headerSquadre.innerHTML = `
+                <div class="badge-squadra" style="background-color: ${squadra1Color};">
+                    SQUADRA ${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+                </div>
+                <div class="vs-text">VS</div>
+                <div class="badge-squadra" style="background-color: ${squadra2Color};">
+                    SQUADRA ${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
+                </div>
+            `;
+
+                    colonnaScontro.appendChild(headerSquadre);
+
+                    // Aggiungi tutti gli incontri di questo scontro
+                    gruppo.incontri.forEach(incontro => {
+                        const incontroBlock = document.createElement('div');
+                        incontroBlock.className = 'incontro-block';
+                        incontroBlock.setAttribute('data-incontro-id', incontro.id);
+                        incontroBlock.setAttribute('data-stato', incontro.completato ? 'completato' : 'attesa');
+
+                        // Ottieni nomi giocatori
+                        const pos1Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos1);
+                        const pos2Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos2);
+                        const pos1Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos1);
+                        const pos2Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos2);
+
+                        // Determina il pulsante azione e stato
+                        let btnAzione, statoClasse, statoTesto;
+                        if (incontro.completato) {
+                            btnAzione = `<button class="btn-azione btn-reset" onclick="resetIncontroNuovo('${incontro.id}')">Reset</button>`;
+                            statoClasse = 'completato';
+                            statoTesto = '✓ Completato';
+                        } else {
+                            btnAzione = `<button class="btn-azione btn-conferma" disabled onclick="confermaIncontro('${incontro.id}')">Conferma</button>`;
+                            statoClasse = 'attesa';
+                            statoTesto = '⏳ In attesa';
+                        }
+
+                        incontroBlock.innerHTML = `
+                    <div class="riga-info">
+                        ${btnAzione}
+                        <div class="etichetta-coppia">${incontro.pos1} + ${incontro.pos2}</div>
+                        <div class="stato-incontro ${statoClasse}">${statoTesto}</div>
+                    </div>
+                    <div class="confronto-coppie">
+                        <div class="coppia-box ${incontro.completato && incontro.squadra_vincente === incontro.squadra1 ? 'vincitore' : ''}" 
+                             data-squadra="squadra1" 
+                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
+                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
+                            ${pos1Squadra1?.nome || 'N/A'}<br>${pos2Squadra1?.nome || 'N/A'}
+                        </div>
+                        <div class="vs-centrale">vs</div>
+                        <div class="coppia-box ${incontro.completato && incontro.squadra_vincente === incontro.squadra2 ? 'vincitore' : ''}" 
+                             data-squadra="squadra2" 
+                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
+                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
+                            ${pos1Squadra2?.nome || 'N/A'}<br>${pos2Squadra2?.nome || 'N/A'}
+                        </div>
+                    </div>
+                `;
+
+                        colonnaScontro.appendChild(incontroBlock);
+                    });
+
+                    layoutColonne.appendChild(colonnaScontro);
+                });
+
+                container.appendChild(layoutColonne);
+
+                // Mostra la sezione
+                section.style.display = 'block';
+                section.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Errore visualizzazione incontri:', error);
+                showNotification('Errore nel caricamento degli incontri', 'error');
+            }
+        } {
+            try {
                 const response = await fetch(`/api/incontri-turno/${turnoId}`);
                 const incontri = await response.json();
 

@@ -706,6 +706,41 @@ app.post('/api/turni', async (req, res) => {
     }
 });
 
+// API per completare un incontro (nuovo sistema)
+app.post('/api/completa-incontro/:id', async (req, res) => {
+    try {
+        const incontroId = req.params.id;
+        const { squadra_vincente } = req.body;
+
+        await db.query(
+            "UPDATE incontri SET completato = true, squadra_vincente = $1 WHERE id = $2",
+            [squadra_vincente, incontroId]
+        );
+
+        res.json({ message: 'Incontro completato con successo' });
+    } catch (err) {
+        console.error('Errore completamento incontro:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API per resettare un incontro (nuovo sistema)
+app.post('/api/reset-incontro/:id', async (req, res) => {
+    try {
+        const incontroId = req.params.id;
+
+        await db.query(
+            "UPDATE incontri SET completato = false, squadra_vincente = NULL WHERE id = $1",
+            [incontroId]
+        );
+
+        res.json({ message: 'Incontro resettato con successo' });
+    } catch (err) {
+        console.error('Errore reset incontro:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API per coppie turno
 app.get('/api/coppie-turno/:turnoId', async (req, res) => {
     try {
@@ -1734,118 +1769,6 @@ app.post('/api/set-vincitore', async (req, res) => {
         res.json({ message: 'Vincitore impostato con successo' });
     } catch (err) {
         console.error('Errore API set-vincitore:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// API per completare un incontro
-app.post('/api/completa-incontro/:incontroId', async (req, res) => {
-    try {
-        const incontroId = req.params.incontroId;
-
-        // Verifica che ci siano risultati per tutte le posizioni
-        const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
-            FROM incontri i 
-            JOIN coppie_turno c ON i.coppia_turno_id = c.id 
-            WHERE i.id = $1`, [incontroId]);
-
-        if (incontroResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Incontro non trovato' });
-        }
-
-        const incontro = incontroResult.rows[0];
-        const posizioni = [incontro.pos1, incontro.pos2];
-
-        // Verifica che ci siano risultati per tutte le posizioni
-        const risultatiResult = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
-        const risultati = risultatiResult.rows;
-
-        const posizioniConRisultato = risultati.map(r => r.posizione);
-        const mancanti = posizioni.filter(pos => !posizioniConRisultato.includes(pos));
-
-        if (mancanti.length > 0) {
-            return res.status(400).json({
-                error: `Mancano risultati per le posizioni: ${mancanti.join(', ')}`
-            });
-        }
-
-        // Calcola risultato finale
-        let vittorie_squadra1 = 0;
-        let vittorie_squadra2 = 0;
-
-        risultati.forEach(r => {
-            if (r.vincitore === 1) vittorie_squadra1++;
-            else if (r.vincitore === 2) vittorie_squadra2++;
-        });
-
-        let risultato_coppia1, risultato_coppia2;
-        if (vittorie_squadra1 > vittorie_squadra2) {
-            risultato_coppia1 = 'Vittoria';
-            risultato_coppia2 = 'Sconfitta';
-        } else if (vittorie_squadra2 > vittorie_squadra1) {
-            risultato_coppia1 = 'Sconfitta';
-            risultato_coppia2 = 'Vittoria';
-        } else {
-            risultato_coppia1 = 'Pareggio';
-            risultato_coppia2 = 'Pareggio';
-        }
-
-        // Aggiorna incontro come completato
-        await db.query(`UPDATE incontri 
-            SET completato = true, risultato_coppia1 = $1, risultato_coppia2 = $2, inserito_da = 'Master'
-            WHERE id = $3`,
-            [risultato_coppia1, risultato_coppia2, incontroId]);
-
-        // Aggiorna punti nei slots (solo per i vincitori)
-        for (const risultato of risultati) {
-            if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
-                // Trova il numero della squadra vincitrice
-                const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
-
-                // Trova i dettagli della squadra vincitrice
-                const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
-
-                if (squadreResult.rows.length > 0) {
-                    const coloreSquadra = squadreResult.rows[0].colore;
-                    const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
-
-                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
-
-                    // Aggiorna i punti dello slot specifico
-                    await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
-                        [risultato.punti_assegnati, slotId]);
-                }
-            }
-        }
-
-        res.json({
-            message: 'Incontro completato con successo',
-            risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
-            vittorie_squadra1: vittorie_squadra1,
-            vittorie_squadra2: vittorie_squadra2
-        });
-    } catch (err) {
-        console.error('Errore API completa-incontro:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// API per resettare un incontro
-app.post('/api/reset-incontro/:incontroId', async (req, res) => {
-    try {
-        const incontroId = req.params.incontroId;
-
-        // Elimina tutti i risultati dettaglio
-        await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
-
-        // Reset stato incontro
-        await db.query(`UPDATE incontri 
-            SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
-            WHERE id = $1`, [incontroId]);
-
-        res.json({ message: 'Incontro resettato con successo' });
-    } catch (err) {
-        console.error('Errore API reset-incontro:', err);
         res.status(500).json({ error: err.message });
     }
 });
