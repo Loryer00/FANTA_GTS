@@ -776,26 +776,26 @@
                     card.className = 'turno-card';
 
                     card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3>Turno ${turno.turno_numero}</h3>
-            <div>
-                <span style="background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 10px;">
-                    ${turno.punti_vittoria} pt
-                </span>
-                <button class="btn btn-danger" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')" 
-                        style="padding: 6px 12px; font-size: 0.8em;">
-                    🗑️ Elimina
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>Turno ${turno.turno_numero}</h3>
+                <div>
+                    <span style="background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 10px;">
+                        ${turno.punti_vittoria} pt
+                    </span>
+                    <button class="btn btn-danger" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')"
+                            style="padding: 6px 12px; font-size: 0.8em;">
+                        🗑️ Elimina
+                    </button>
+                </div>
+            </div>
+            <h4>${turno.nome_turno}</h4>
+            <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
+            <div style="margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
+                    👁️ Visualizza Incontri
                 </button>
             </div>
-        </div>
-        <h4>${turno.nome_turno}</h4>
-        <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
-        <div style="margin-top: 15px;">           
-            <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
-                👁️ Visualizza Incontri
-            </button>
-        </div>
-    `;
+        `;
 
                     grid.appendChild(card);
                 });
@@ -1027,15 +1027,15 @@
                 const div = document.createElement('div');
                 div.className = 'scontro-item';
                 div.innerHTML = `
-            <span>
-                <strong>${scontro.nomeSquadra1}</strong> 
-                <span class="scontro-vs">VS</span> 
-                <strong>${scontro.nomeSquadra2}</strong>
-            </span>
-            <button class="btn btn-danger btn-sm" onclick="rimuoviScontro(${index})">
-                🗑️ Rimuovi
-            </button>
-        `;
+                <span>
+                    <strong>${scontro.nomeSquadra1}</strong>
+                    <span class="scontro-vs">VS</span>
+                    <strong>${scontro.nomeSquadra2}</strong>
+                </span>
+                <button class="btn btn-danger btn-sm" onclick="rimuoviScontro(${index})">
+                    🗑️ Rimuovi
+                </button>
+            `;
                 container.appendChild(div);
             });
         }
@@ -1106,15 +1106,15 @@
                 const div = document.createElement('div');
                 div.className = 'accoppiamento-item';
                 div.innerHTML = `
-            <span>
-                <strong>${acc.pos1}</strong> 
-                <span class="accoppiamento-plus">+</span> 
-                <strong>${acc.pos2}</strong>
-            </span>
-            <button class="btn btn-danger btn-sm" onclick="rimuoviAccoppiamento(${index})">
-                🗑️ Rimuovi
-            </button>
-        `;
+                <span>
+                    <strong>${acc.pos1}</strong>
+                    <span class="accoppiamento-plus">+</span>
+                    <strong>${acc.pos2}</strong>
+                </span>
+                <button class="btn btn-danger btn-sm" onclick="rimuoviAccoppiamento(${index})">
+                    🗑️ Rimuovi
+                </button>
+            `;
                 container.appendChild(div);
             });
 
@@ -1138,9 +1138,9 @@
         function generaRiepilogo() {
             // Riepilogo turno
             document.getElementById('riepilogoTurno').innerHTML = `
-        <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
-        <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
-    `;
+            <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
+            <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
+        `;
 
             // Riepilogo scontri
             const scontriHtml = configTurno.scontri.map(scontro =>
@@ -1157,11 +1157,11 @@
             // Calcolo incontri totali
             const totaleIncontri = configTurno.scontri.length * configTurno.accoppiamenti.length;
             document.getElementById('riepilogoIncontri').innerHTML = `
-        <p><strong>Totale incontri:</strong> ${totaleIncontri}</p>
-        <p class="text-info">
-            ${configTurno.scontri.length} scontri × ${configTurno.accoppiamenti.length} accoppiamenti = ${totaleIncontri} incontri
-        </p>
-    `;
+            <p><strong>Totale incontri:</strong> ${totaleIncontri}</p>
+            <p class="text-info">
+                ${configTurno.scontri.length} scontri × ${configTurno.accoppiamenti.length} accoppiamenti = ${totaleIncontri} incontri
+            </p>
+        `;
         }
 
         // ==================== CREAZIONE TURNO COMPLETO ====================
@@ -1257,7 +1257,7 @@
 
             // Reset form
             document.getElementById('numeroTurno').value = '';
-            document.getElementById('puntiVittoria').value = '1'; 
+            document.getElementById('puntiVittoria').value = '1';
 
             // Torna al primo step
             nascondiTuttiGliStep();
@@ -1320,15 +1320,15 @@
                     const squadra2 = squadreDisponibili.find(s => s.numero === coppia.squadra2);
 
                     row.innerHTML = `
-                            <div><strong>${coppia.pos1}</strong></div>
-                            <div><strong>${coppia.pos2}</strong></div>
-                            <div class="coppia-vs">VS</div>
-                            <div>${squadra1 ? squadra1.colore : 'N/A'}</div>
-                            <div>${squadra2 ? squadra2.colore : 'N/A'}</div>
-                            <button class="btn btn-danger" onclick="eliminaCoppia(${coppia.id})" style="padding: 5px 10px;">
-                                🗑️
-                            </button>
-                        `;
+                                <div><strong>${coppia.pos1}</strong></div>
+                                <div><strong>${coppia.pos2}</strong></div>
+                                <div class="coppia-vs">VS</div>
+                                <div>${squadra1 ? squadra1.colore : 'N/A'}</div>
+                                <div>${squadra2 ? squadra2.colore : 'N/A'}</div>
+                                <button class="btn btn-danger" onclick="eliminaCoppia(${coppia.id})" style="padding: 5px 10px;">
+                                    🗑️
+                                </button>
+                            `;
 
                     container.appendChild(row);
                 });
@@ -1564,113 +1564,6 @@
                 });
 
                 container.appendChild(layoutColonne);
-
-                // Mostra la sezione
-                section.style.display = 'block';
-                section.scrollIntoView({ behavior: 'smooth' });
-
-            } catch (error) {
-                console.error('Errore visualizzazione incontri:', error);
-                showNotification('Errore nel caricamento degli incontri', 'error');
-            }
-        } {
-            try {
-                const response = await fetch(`/api/incontri-turno/${turnoId}`);
-                const incontri = await response.json();
-
-                const section = document.getElementById('incontriSection');
-                const container = document.getElementById('incontriGenerati');
-
-                container.innerHTML = '';
-
-                if (incontri.length === 0) {
-                    container.innerHTML = '<p>Nessun incontro generato per questo turno</p>';
-                    return;
-                }
-
-                // Raggruppa incontri per scontro tra squadre
-                const incontriRaggruppati = {};
-
-                incontri.forEach(incontro => {
-                    // Ottieni colori squadre
-                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
-                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
-
-                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
-
-                    if (!incontriRaggruppati[chiaveGruppo]) {
-                        incontriRaggruppati[chiaveGruppo] = {
-                            squadra1: squadra1,
-                            squadra2: squadra2,
-                            incontri: []
-                        };
-                    }
-
-                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
-                });
-
-                // Crea HTML per ogni gruppo
-                Object.keys(incontriRaggruppati).forEach((chiaveGruppo, index) => {
-                    const gruppo = incontriRaggruppati[chiaveGruppo];
-
-                    // Divider header per ogni scontro tra squadre
-                    const dividerHeader = document.createElement('div');
-                    dividerHeader.className = 'scontro-divider-header';
-                    dividerHeader.innerHTML = `
-                <div class="scontro-title">
-                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra1?.colore)};">
-                        Squadra ${gruppo.squadra1?.colore?.toUpperCase() || 'N/A'}
-                    </span>
-                    <span class="vs-text">VS</span>
-                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra2?.colore)};">
-                        Squadra ${gruppo.squadra2?.colore?.toUpperCase() || 'N/A'}
-                    </span>
-                </div>
-                <div class="incontri-count">
-                    ${gruppo.incontri.length} incontri
-                </div>
-            `;
-                    container.appendChild(dividerHeader);
-
-                    // Container per gli incontri di questo scontro
-                    const incontriContainer = document.createElement('div');
-                    incontriContainer.className = 'incontri-gruppo';
-
-                    gruppo.incontri.forEach(incontro => {
-                        const card = document.createElement('div');
-                        card.className = 'incontro-card-compatto';
-
-                        card.innerHTML = `
-                    <div class="incontro-header-compatto">
-                        <div class="coppia-info">
-                            <span class="coppia-numero">Coppia ${incontro.coppia_numero}</span>
-                            <span class="posizioni">${incontro.pos1} + ${incontro.pos2}</span>
-                        </div>
-                        <span class="status-badge ${incontro.completato ? 'completato' : 'in-attesa'}">
-                            ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
-                        </span>
-                    </div>
-                    ${incontro.completato ? `
-                        <div class="risultato-compatto">
-                            <span class="risultato-finale">
-                                ${incontro.risultato_coppia1 || '0-0'} - ${incontro.risultato_coppia2 || '0-0'}
-                            </span>
-                        </div>
-                    ` : ''}
-                `;
-
-                        incontriContainer.appendChild(card);
-                    });
-
-                    container.appendChild(incontriContainer);
-
-                    // Divider di separazione tra gruppi (tranne per l'ultimo)
-                    if (index < Object.keys(incontriRaggruppati).length - 1) {
-                        const dividerSeparatore = document.createElement('div');
-                        dividerSeparatore.className = 'scontro-divider-separatore';
-                        container.appendChild(dividerSeparatore);
-                    }
-                });
 
                 // Mostra la sezione
                 section.style.display = 'block';
