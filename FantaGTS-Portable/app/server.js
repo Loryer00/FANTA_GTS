@@ -650,19 +650,105 @@ app.get('/api/squadre', async (req, res) => {
     }
 });
 
+// API per ottenere squadre con giocatori strutturati per gli incontri
+app.get('/api/squadre-con-giocatori', async (req, res) => {
+    try {
+        console.log('🔄 Caricamento squadre con giocatori per incontri...');
+
+        const result = await db.query(`
+            SELECT numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, attiva 
+            FROM squadre_circolo 
+            WHERE attiva = true 
+            ORDER BY numero
+        `);
+
+        // Trasforma i dati dal formato DB al formato necessario per gli incontri
+        const squadre = result.rows.map(squadra => {
+            // Crea array di giocatori strutturati
+            const giocatori = [];
+
+            // Aggiungi giocatori maschili
+            for (let i = 1; i <= 7; i++) {
+                const nomeGiocatore = squadra[`m${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    giocatori.push({
+                        posizione: `M${i}`,
+                        nome: nomeGiocatore.trim()
+                    });
+                }
+            }
+
+            // Aggiungi giocatori femminili
+            for (let i = 1; i <= 3; i++) {
+                const nomeGiocatore = squadra[`f${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    giocatori.push({
+                        posizione: `F${i}`,
+                        nome: nomeGiocatore.trim()
+                    });
+                }
+            }
+
+            return {
+                numero: squadra.numero,
+                colore: squadra.colore,
+                giocatori: giocatori,
+                attiva: squadra.attiva
+            };
+        });
+
+        console.log(`✅ Caricate ${squadre.length} squadre con giocatori:`,
+            squadre.map(s => `${s.colore} (${s.giocatori.length} giocatori)`));
+
+        res.json(squadre);
+    } catch (err) {
+        console.error('❌ Errore API squadre-con-giocatori:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/squadre-complete', async (req, res) => {
     try {
-        const squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true ORDER BY numero");
-        const squadre = squadreResult.rows;
+        const result = await db.query(`
+            SELECT numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, attiva 
+            FROM squadre_circolo 
+            WHERE attiva = true 
+            ORDER BY numero
+        `);
 
-        for (const squadra of squadre) {
-            try {
-                const result = await db.query("SELECT COUNT(*) as slots_count FROM slots WHERE squadra_numero = $1", [squadra.numero]);
-                squadra.slots_generati = result.rows[0].slots_count;
-            } catch (err) {
-                squadra.slots_generati = 0;
+        const squadre = result.rows.map(squadra => {
+            // Crea array di giocatori strutturati
+            const giocatori = [];
+
+            // Aggiungi giocatori maschili
+            for (let i = 1; i <= 7; i++) {
+                const nomeGiocatore = squadra[`m${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    giocatori.push({
+                        posizione: `M${i}`,
+                        nome: nomeGiocatore.trim()
+                    });
+                }
             }
-        }
+
+            // Aggiungi giocatori femminili
+            for (let i = 1; i <= 3; i++) {
+                const nomeGiocatore = squadra[`f${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    giocatori.push({
+                        posizione: `F${i}`,
+                        nome: nomeGiocatore.trim()
+                    });
+                }
+            }
+
+            return {
+                numero: squadra.numero,
+                colore: squadra.colore,
+                giocatori: giocatori,
+                attiva: squadra.attiva
+            };
+        });
 
         res.json(squadre);
     } catch (err) {
