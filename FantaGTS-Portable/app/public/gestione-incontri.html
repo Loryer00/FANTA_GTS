@@ -1748,7 +1748,7 @@
                 });
 
                 // 6.5. Crea SOLO overview compatto (rimuovi tutto il resto)
-                const overviewCompatto = creaOverviewCompatto(incontriRaggruppati);
+                const overviewCompatto = await creaOverviewCompatto(incontriRaggruppati);
                 container.appendChild(overviewCompatto);
 
                 // 7. Mostra la sezione incontri
@@ -1852,7 +1852,7 @@
         }
 
         // Crea overview compatto con progress bar
-        function creaOverviewCompatto(incontriRaggruppati) {
+        async function creaOverviewCompatto(incontriRaggruppati) {
             const overviewContainer = document.createElement('div');
             overviewContainer.className = 'overview-compatto-container';
 
