@@ -367,10 +367,76 @@
         // Carica squadre del circolo
         async function caricaSquadre() {
             try {
-                const response = await fetch('/api/squadre');
+                console.log('🔄 Caricamento squadre con giocatori per incontri.html...');
+
+                // Prova il nuovo endpoint specifico per giocatori
+                let response = await fetch('/api/squadre-con-giocatori');
+                if (!response.ok) {
+                    console.log('⚠️ Endpoint squadre-con-giocatori non disponibile, provo squadre-complete');
+                    response = await fetch('/api/squadre-complete');
+                }
+
+                if (!response.ok) {
+                    // Ultimo fallback - endpoint normale e trasformazione manuale
+                    console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
+                    response = await fetch('/api/squadre');
+
+                    if (response.ok) {
+                        const squadre = await response.json();
+                        console.log('🔄 Trasformo manualmente i dati squadre:', squadre);
+
+                        // Trasforma manualmente le squadre dal formato DB
+                        squadreDisponibili = squadre.map(squadra => {
+                            const giocatori = [];
+
+                            // Aggiungi giocatori maschili
+                            for (let i = 1; i <= 7; i++) {
+                                const nomeGiocatore = squadra[`m${i}`];
+                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                    giocatori.push({
+                                        posizione: `M${i}`,
+                                        nome: nomeGiocatore.trim()
+                                    });
+                                }
+                            }
+
+                            // Aggiungi giocatori femminili
+                            for (let i = 1; i <= 3; i++) {
+                                const nomeGiocatore = squadra[`f${i}`];
+                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                    giocatori.push({
+                                        posizione: `F${i}`,
+                                        nome: nomeGiocatore.trim()
+                                    });
+                                }
+                            }
+
+                            console.log(`🎯 Squadra ${squadra.colore} trasformata:`, {
+                                numero: squadra.numero,
+                                colore: squadra.colore,
+                                giocatori: giocatori.length
+                            });
+
+                            return {
+                                numero: squadra.numero,
+                                colore: squadra.colore,
+                                giocatori: giocatori
+                            };
+                        });
+
+                        console.log('✅ Squadre trasformate manualmente:', squadreDisponibili);
+                        return;
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                }
+
                 squadreDisponibili = await response.json();
+                console.log('✅ Squadre con giocatori caricate dal server:', squadreDisponibili);
+
             } catch (error) {
-                console.error('Errore caricamento squadre:', error);
+                console.error('❌ Errore caricamento squadre:', error);
+                squadreDisponibili = [];
             }
         }
 
@@ -451,6 +517,20 @@
                     }
 
                     incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
+                    // Debug: controlla se le squadre hanno i giocatori
+                    Object.keys(incontriRaggruppati).forEach(chiave => {
+                        const gruppo = incontriRaggruppati[chiave];
+                        console.log(`🎯 Debug squadre per ${chiave}:`, {
+                            squadra1: {
+                                colore: gruppo.squadra1?.colore,
+                                giocatori: gruppo.squadra1?.giocatori?.length || 0
+                            },
+                            squadra2: {
+                                colore: gruppo.squadra2?.colore,
+                                giocatori: gruppo.squadra2?.giocatori?.length || 0
+                            }
+                        });
+                    });
                 });
 
                 // Crea il nuovo layout a colonne
@@ -530,14 +610,14 @@
                              data-squadra="squadra1" 
                              onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
                              style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra1?.nome || 'N/A'}<br>${pos2Squadra1?.nome || 'N/A'}
+                            ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
                         </div>
                         <div class="vs-centrale">vs</div>
                         <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
                              data-squadra="squadra2" 
                              onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
                              style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra2?.nome || 'N/A'}<br>${pos2Squadra2?.nome || 'N/A'}
+                            ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
                         </div>
                     </div>
                 `;
