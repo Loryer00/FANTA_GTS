@@ -699,32 +699,6 @@
                     layoutColonne.appendChild(colonnaScontro);
                 });
 
-                // Applica colorazione per incontri già completati
-                setTimeout(() => {
-                    incontriCaricati.forEach(incontro => {
-                        if (incontro.completato) {
-                            console.log(`🎨 Colorando celle per incontro ${incontro.id}, risultato_coppia1: ${incontro.risultato_coppia1}, risultato_coppia2: ${incontro.risultato_coppia2}`);
-
-                            let squadraVincenteStr = null;
-                            if (incontro.risultato_coppia1 === 'Vittoria') {
-                                squadraVincenteStr = 'squadra1';
-                                console.log(`🔄 Incontro ${incontro.id}: risultato_coppia1='Vittoria' → squadra1`);
-                            } else if (incontro.risultato_coppia2 === 'Vittoria') {
-                                squadraVincenteStr = 'squadra2';
-                                console.log(`🔄 Incontro ${incontro.id}: risultato_coppia2='Vittoria' → squadra2`);
-                            }
-
-                            if (squadraVincenteStr) {
-                                // Simula la selezione per incontri già completati
-                                selezioniCoppie.set(incontro.id, squadraVincenteStr);
-                                aggiornaInterfacciaDopoConferma(incontro.id);
-                            } else {
-                                console.warn(`⚠️ Nessuna vittoria trovata per incontro ${incontro.id} (coppia1: ${incontro.risultato_coppia1}, coppia2: ${incontro.risultato_coppia2})`);
-                            }
-                        }
-                    });
-                }, 200);
-
                 container.appendChild(layoutColonne);
 
                 // 🆕 SCROLL AUTOMATICO se c'è un hash nell'URL
