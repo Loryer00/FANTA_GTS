@@ -237,15 +237,19 @@
         }
 
             .coppia-box:hover {
-                background: rgba(66, 153, 225, 0.15);
-                border-color: #4299e1;
-                transform: scale(1.02);
+                background-color: rgba(255,255,255,0.15) !important;
+                transform: translateY(-2px);
+                transition: all 0.2s ease;
+            }
+
+            .coppia-box[style*="pointer-events: auto"] {
+                border: 1px solid rgba(66, 153, 225, 0.3);
             }
 
             .coppia-box.vincitore {
-                background: rgba(72, 187, 120, 0.25);
-                border-color: #48bb78;
-                box-shadow: 0 0 15px rgba(72, 187, 120, 0.4);
+                background-color: rgba(72, 187, 120, 0.2) !important;
+                border: 2px solid #48bb78 !important;
+                box-shadow: 0 0 10px rgba(72, 187, 120, 0.3);
             }
 
         .vs-centrale {
@@ -1182,8 +1186,13 @@
 
         // FUNZIONE: Aggiorna interfaccia dopo reset
         function aggiornaInterfacciaDopoReset(incontroId) {
+            console.log(`[AGGIORNA UI RESET] Incontro ${incontroId}`);
+
             const blocco = document.querySelector(`[data-incontro-id="${incontroId}"]`);
-            if (!blocco) return;
+            if (!blocco) {
+                console.error(`Blocco incontro ${incontroId} non trovato!`);
+                return;
+            }
 
             // Aggiorna stato del blocco
             blocco.setAttribute('data-stato', 'attesa');
@@ -1191,23 +1200,37 @@
             // Cambia pulsante da "Reset" a "Conferma" disabilitato
             const rigaInfo = blocco.querySelector('.riga-info');
             const btnAzione = rigaInfo.querySelector('.btn-azione');
-            btnAzione.className = 'btn-azione btn-conferma';
-            btnAzione.textContent = 'Conferma';
-            btnAzione.disabled = true;
-            btnAzione.setAttribute('onclick', `confermaIncontro('${incontroId}')`);
+            if (btnAzione) {
+                btnAzione.className = 'btn-azione btn-conferma';
+                btnAzione.textContent = 'Conferma';
+                btnAzione.disabled = true;
+                btnAzione.setAttribute('onclick', `confermaIncontro('${incontroId}')`);
+            }
 
             // Aggiorna stato da "✓ Completato" a "⏳ In attesa"
             const statoElement = rigaInfo.querySelector('.stato-incontro');
-            statoElement.className = 'stato-incontro attesa';
-            statoElement.textContent = '⏳ In attesa';
+            if (statoElement) {
+                statoElement.className = 'stato-incontro attesa';
+                statoElement.textContent = '⏳ In attesa';
+            }
 
-            // Rimuovi selezione da tutte le coppie e riabilita click
+            // ⚠️ FIX CRITICO: Riabilita selezione coppie
             const coppie = blocco.querySelectorAll('.coppia-box');
             coppie.forEach(coppia => {
+                // Rimuovi vincitore
                 coppia.classList.remove('vincitore');
+
+                // Riabilita click
                 coppia.style.pointerEvents = 'auto';
                 coppia.style.opacity = '1';
+
+                // 🔧 RIATTIVA GLI ONCLICK - Questo era il problema!
+                const squadra = coppia.getAttribute('data-squadra');
+                coppia.setAttribute('onclick', `selezionaCoppia('${incontroId}', '${squadra}')`);
+                coppia.style.cursor = 'pointer';
             });
+
+            console.log(`[RESET UI OK] Incontro ${incontroId} pronto per nuova selezione`);
         }
 
         // Utility functions
