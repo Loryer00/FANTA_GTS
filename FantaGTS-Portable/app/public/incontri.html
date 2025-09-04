@@ -653,12 +653,16 @@
                         let squadra1Vincente = false, squadra2Vincente = false;
                         let coloreVincente = '';
                         if (incontro.completato && incontro.squadra_vincente) {
+                            console.log(`🔍 Debug incontro ${incontro.id}: squadra_vincente=${incontro.squadra_vincente}, squadra1=${incontro.squadra1}, squadra2=${incontro.squadra2}`);
+
                             if (incontro.squadra_vincente == incontro.squadra1) {
                                 squadra1Vincente = true;
                                 coloreVincente = getTeamColor(gruppo.squadra1.colore);
+                                console.log(`✅ Squadra1 vincente: ${gruppo.squadra1.colore} = ${coloreVincente}`);
                             } else if (incontro.squadra_vincente == incontro.squadra2) {
                                 squadra2Vincente = true;
                                 coloreVincente = getTeamColor(gruppo.squadra2.colore);
+                                console.log(`✅ Squadra2 vincente: ${gruppo.squadra2.colore} = ${coloreVincente}`);
                             }
                         }
 
@@ -1274,6 +1278,7 @@
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
+                // CORRETTA LOGICA: confronta data-squadra con squadraVincente
                 if (squadraAttr === squadraVincente) {
                     // Applica stile vincente con colori PIÙ FORTI
                     coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
