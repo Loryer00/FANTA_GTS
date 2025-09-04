@@ -1189,10 +1189,12 @@
                     throw new Error('Dati incontro non trovati');
                 }
 
-                // 🔧 NUOVO APPROCCIO: Prima creiamo i risultati dettaglio automaticamente
+                // 🔧 CORREZIONE: Usa il numero corretto della squadra
                 const posizioni = [incontroData.pos1, incontroData.pos2];
-                const squadraVincente = squadraSelezionata === 'squadra1' ? incontroData.squadra1 : incontroData.squadra2;
+                const numeroSquadraVincente = squadraSelezionata === 'squadra1' ? incontroData.squadra1 : incontroData.squadra2;
                 const numVincitore = squadraSelezionata === 'squadra1' ? 1 : 2;
+
+                console.log(`🔧 Correzione: squadraSelezionata=${squadraSelezionata}, numeroSquadraVincente=${numeroSquadraVincente}, numVincitore=${numVincitore}`);
 
                 console.log(`[AUTO-SETUP] Creazione risultati per posizioni: ${posizioni.join(', ')}`);
 
@@ -1265,21 +1267,45 @@
             const squadraVincente = selezioniCoppie.get(incontroId);
             console.log(`🎨 Colorando celle per incontro ${incontroId}, vincitore: ${squadraVincente}`);
 
-            // Determina il colore della squadra vincente
+            // Determina il colore della squadra vincente e quale coppia colorare
             let coloreVincente;
-            if (squadraVincente === 'squadra1') {
-                coloreVincente = getTeamColor(squadra1.colore);
-            } else if (squadraVincente === 'squadra2') {
-                coloreVincente = getTeamColor(squadra2.colore);
+            let squadraVincenteAttr; // 'squadra1' o 'squadra2'
+
+            // Se squadraVincente è una stringa ('squadra1'/'squadra2'), usala direttamente
+            if (squadraVincente === 'squadra1' || squadraVincente === 'squadra2') {
+                squadraVincenteAttr = squadraVincente;
+                if (squadraVincente === 'squadra1') {
+                    coloreVincente = getTeamColor(squadra1.colore);
+                } else {
+                    coloreVincente = getTeamColor(squadra2.colore);
+                }
+            } else {
+                // Se squadraVincente è un numero (dalla DB), converti in 'squadra1'/'squadra2'
+                if (squadraVincente == incontro.squadra1) {
+                    squadraVincenteAttr = 'squadra1';
+                    coloreVincente = getTeamColor(squadra1.colore);
+                } else if (squadraVincente == incontro.squadra2) {
+                    squadraVincenteAttr = 'squadra2';
+                    coloreVincente = getTeamColor(squadra2.colore);
+                }
             }
+
+            console.log(`🔧 Debug: squadraVincente=${squadraVincente}, squadraVincenteAttr=${squadraVincenteAttr}, colore=${coloreVincente}`);
 
             // Colora le celle dei giocatori
             const coppie = blocco.querySelectorAll('.coppia-box');
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
-                // CORRETTA LOGICA: confronta data-squadra con squadraVincente
-                if (squadraAttr === squadraVincente) {
+                // CORRETTA LOGICA: confronta il numero della squadra vincente
+                let vincitore = false;
+                if (squadraAttr === 'squadra1' && squadraVincente == incontro.squadra1) {
+                    vincitore = true;
+                } else if (squadraAttr === 'squadra2' && squadraVincente == incontro.squadra2) {
+                    vincitore = true;
+                }
+
+                if (vincitore) {
                     // Applica stile vincente con colori PIÙ FORTI
                     coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
                     coppia.style.border = `3px solid ${coloreVincente} !important`;
