@@ -649,13 +649,16 @@
                             statoTesto = '⏳ In attesa';
                         }
 
-                        // Determina quale squadra ha vinto (se completato)
+                        // Determina quale squadra ha vinto (se completato) e applica colorazione
                         let squadra1Vincente = false, squadra2Vincente = false;
+                        let coloreVincente = '';
                         if (incontro.completato && incontro.squadra_vincente) {
                             if (incontro.squadra_vincente == incontro.squadra1) {
                                 squadra1Vincente = true;
+                                coloreVincente = getTeamColor(gruppo.squadra1.colore);
                             } else if (incontro.squadra_vincente == incontro.squadra2) {
                                 squadra2Vincente = true;
+                                coloreVincente = getTeamColor(gruppo.squadra2.colore);
                             }
                         }
 
@@ -667,18 +670,22 @@
                     </div>
                     <div class="confronto-coppie">
                         <div class="coppia-box ${squadra1Vincente ? 'vincitore' : ''}" 
-                             data-squadra="squadra1" 
-                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
-                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
-                        </div>
+     data-squadra="squadra1" 
+     onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
+     style="${incontro.completato ? (squadra1Vincente ?
+                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}40, ${coloreVincente}60); border-color: ${coloreVincente}; color: #ffffff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 0 10px ${coloreVincente}60;` :
+                                'pointer-events: none; opacity: 0.6; filter: grayscale(30%);') : ''}">
+    ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
+</div>
                         <div class="vs-centrale">vs</div>
                         <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
-                             data-squadra="squadra2" 
-                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
-                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
-                        </div>
+     data-squadra="squadra2" 
+     onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
+     style="${incontro.completato ? (squadra2Vincente ?
+                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}40, ${coloreVincente}60); border-color: ${coloreVincente}; color: #ffffff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 0 10px ${coloreVincente}60;` :
+                                'pointer-events: none; opacity: 0.6; filter: grayscale(30%);') : ''}">
+    ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
+</div>
                     </div>
                 `;
 

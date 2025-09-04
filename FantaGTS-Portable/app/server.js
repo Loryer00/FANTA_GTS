@@ -1100,7 +1100,17 @@ app.get('/api/turno-statistiche/:turnoId', async (req, res) => {
 app.get('/api/incontri-turno/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
-        const result = await db.query(`SELECT i.*, c.pos1, c.pos2, c.coppia_numero
+        const result = await db.query(`
+            SELECT 
+                i.*, 
+                c.pos1, 
+                c.pos2, 
+                c.coppia_numero,
+                CASE 
+                    WHEN i.completato = true AND i.risultato_coppia1 = 'Vittoria' THEN i.squadra1
+                    WHEN i.completato = true AND i.risultato_coppia2 = 'Vittoria' THEN i.squadra2
+                    ELSE NULL 
+                END as squadra_vincente
             FROM incontri i 
             JOIN coppie_turno c ON i.coppia_turno_id = c.id 
             WHERE i.turno_id = $1 
