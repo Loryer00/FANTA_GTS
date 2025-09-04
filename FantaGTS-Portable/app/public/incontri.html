@@ -1311,10 +1311,17 @@
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
-                const vincitore = (squadraAttr === squadraVincente);
+                // 🔥 NUOVA LOGICA SEMPLICE: Usa direttamente i risultati dal database
+                let vincitore = false;
+                if (squadraAttr === 'squadra1' && incontro.risultato_coppia1 === 'Vittoria') {
+                    vincitore = true;
+                } else if (squadraAttr === 'squadra2' && incontro.risultato_coppia2 === 'Vittoria') {
+                    vincitore = true;
+                }
 
                 if (vincitore) {
-                    // Applica stile vincente con colori PIÙ FORTI
+                    // Applica stile vincente 
+                    const coloreVincente = squadraAttr === 'squadra1' ? getTeamColor(squadra1.colore) : getTeamColor(squadra2.colore);
                     coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
                     coppia.style.border = `3px solid ${coloreVincente} !important`;
                     coppia.style.color = '#ffffff !important';
@@ -1322,7 +1329,7 @@
                     coppia.style.textShadow = '0 2px 4px rgba(0,0,0,0.8) !important';
                     coppia.style.boxShadow = `0 0 20px ${coloreVincente}90 !important`;
                 } else {
-                    // Stile perdente PIÙ EVIDENTE
+                    // Stile perdente
                     coppia.style.opacity = '0.4 !important';
                     coppia.style.filter = 'grayscale(60%) !important';
                     coppia.style.background = 'rgba(255,255,255,0.02) !important';
@@ -1331,27 +1338,6 @@
                 // Disabilita il click (incontro completato)
                 coppia.style.pointerEvents = 'none';
             });
-
-            // Aggiorna stato del blocco
-            blocco.setAttribute('data-stato', 'completato');
-
-            // Cambia pulsante da "Conferma" a "Reset"
-            const rigaInfo = blocco.querySelector('.riga-info');
-            const btnAzione = rigaInfo.querySelector('.btn-azione');
-            btnAzione.className = 'btn-azione btn-reset';
-            btnAzione.textContent = 'Reset';
-            btnAzione.disabled = false;
-            btnAzione.setAttribute('onclick', `resetIncontroNuovo('${incontroId}')`);
-
-            // Aggiorna stato da "⏳ In attesa" a "✓ Completato"
-            const statoElement = rigaInfo.querySelector('.stato-incontro');
-            statoElement.className = 'stato-incontro completato';
-            statoElement.textContent = '✓ Completato';
-
-            // Aggiorna anche l'overview se siamo in gestione-incontri
-            if (typeof aggiornaOverviewDopoConferma === 'function') {
-                aggiornaOverviewDopoConferma(incontroId, squadraVincente);
-            }
         }
 
         // FUNZIONE: Reset incontro (nuovo sistema)
