@@ -5,19 +5,6 @@ const socketIo = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
-//const { v4: uuidv4 } = require('uuid');
-
-// QUI - Inserisci la definizione di 'pool'
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
 
 // Variabile globale sessione corrente
 let sessioneCorrente = process.env.SESSIONE_CORRENTE || 'fantagts_2025';
@@ -31,69 +18,45 @@ const io = socketIo(server, {
     }
 });
 
-// Configurazione Web Push - VERSIONE FINALE
-const webpush = require('web-push');
-let webPushConfigured = false;
-let currentVapidKeys = null;
-
-try {
-    // Usa chiavi da variabili ambiente SE ci sono
-    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-        webpush.setVapidDetails(
-            process.env.VAPID_EMAIL || 'mailto:fantagts@circolo.com',
-            process.env.VAPID_PUBLIC_KEY,
-            process.env.VAPID_PRIVATE_KEY
-        );
-        currentVapidKeys = {
-            publicKey: process.env.VAPID_PUBLIC_KEY,
-            privateKey: process.env.VAPID_PRIVATE_KEY
-        };
-        webPushConfigured = true;
-        console.log('✅ Web Push configurato con chiavi FISSE da ambiente');
-    }
-    // Altrimenti genera temporanee
-    else {
-        console.log('🔑 Generando chiavi VAPID temporanee...');
-        currentVapidKeys = webpush.generateVAPIDKeys();
-
-        webpush.setVapidDetails(
-            'mailto:fantagts@circolo.com',
-            currentVapidKeys.publicKey,
-            currentVapidKeys.privateKey
-        );
-        webPushConfigured = true;
-        console.log('⚠️ Web Push configurato con chiavi TEMPORANEE');
-        console.log('📤 PUBLIC KEY:', currentVapidKeys.publicKey);
-        console.log('🔐 PRIVATE KEY:', currentVapidKeys.privateKey);
-    }
-} catch (error) {
-    console.error('❌ Errore configurazione Web Push:', error);
-    webPushConfigured = false;
-}
-
-// Middleware
-app.use(express.static('public'));
-app.use(express.json());
-
-console.log('🔍 Directory corrente:', __dirname);
-
-// Database PostgreSQL
+// Database PostgreSQL - UNICA DEFINIZIONE CORRETTA
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
     process.env.POSTGRES_URL ||
     'postgresql://postgres:iUFrkUQnATpmwBXsbcUFcjtmtzMudUyk@postgres.railway.internal:5432/railway';
+
+console.log('🔗 Connessione PostgreSQL...', connectionString ? 'URL trovato' : 'URL mancante');
 
 const db = new Pool({
     connectionString: connectionString,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log('🔍 Connessione PostgreSQL...');
+// Test connessione database al startup
+async function testDatabaseConnection() {
+    try {
+        const client = await db.connect();
+        console.log('✅ Database PostgreSQL connesso con successo');
+        client.release();
+        return true;
+    } catch (error) {
+        console.error('❌ Errore connessione database:', error.message);
+        console.error('🔍 Verifica le variabili ambiente: DATABASE_URL, POSTGRES_URL');
+        return false;
+    }
+}
 
 // Inizializza database
 async function initializeDatabase() {
+    // Test connessione prima di procedere
+    const connected = await testDatabaseConnection();
+    if (!connected) {
+        throw new Error('Database non raggiungibile - controlla le variabili ambiente');
+    }
+
     try {
-        // Crea tabelle
+        console.log('🏗️ Inizializzazione tabelle database...');
+
+        // Crea tabelle (mantieni tutto il codice esistente delle CREATE TABLE...)
         await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
             id SERIAL PRIMARY KEY,
             numero INTEGER UNIQUE NOT NULL,
