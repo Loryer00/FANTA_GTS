@@ -962,7 +962,7 @@ app.get('/api/incontri/turno/:id', async (req, res) => {
             WHERE turno_id = $1
             ORDER BY id;
         `;
-        const result = await pool.query(queryIncontri, [id]);
+        const result = await db.query(queryIncontri, [id]);
 
         // Controlla se il risultato è vuoto
         if (result.rows.length === 0) {
@@ -1905,6 +1905,27 @@ app.get('/api/slots-round/:round', async (req, res) => {
     }
 });
 
+// API diagnostica temporanea
+app.get('/api/debug/database', async (req, res) => {
+    try {
+        const client = await db.connect();
+        const result = await client.query('SELECT NOW() as current_time');
+        client.release();
+
+        res.json({
+            status: 'Connected',
+            currentTime: result.rows[0].current_time,
+            message: 'Database funziona correttamente'
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'Failed',
+            error: error.message,
+            message: 'Errore connessione database'
+        });
+    }
+});
+
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
@@ -2541,7 +2562,7 @@ app.get('/gestione-incontri', (req, res) => {
 });
 
 app.get('/incontri', (req, res) => {
-    res.sendFile(path.join(__dirname, 'incontri.html'));
+    res.sendFile(path.join(__dirname, 'public', 'incontri.html'));
 });
 
 // Gestione WebSocket
