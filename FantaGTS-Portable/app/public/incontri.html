@@ -1230,6 +1230,21 @@
                 aggiornaInterfacciaDopoConferma(incontroId);
                 showNotification(`Incontro completato! ${result.risultato}`, 'success');
 
+                // Aggiorna i dati in memoria per riflettere lo stato completato
+                const incontroIndex = incontriCaricati.findIndex(i => i.id == incontroId);
+                if (incontroIndex !== -1) {
+                    incontriCaricati[incontroIndex].completato = true;
+                    // Determina i risultati basandosi sulla squadra vincente
+                    if (squadraSelezionata === 'squadra1') {
+                        incontriCaricati[incontroIndex].risultato_coppia1 = 'Vittoria';
+                        incontriCaricati[incontroIndex].risultato_coppia2 = 'Sconfitta';
+                    } else if (squadraSelezionata === 'squadra2') {
+                        incontriCaricati[incontroIndex].risultato_coppia1 = 'Sconfitta';
+                        incontriCaricati[incontroIndex].risultato_coppia2 = 'Vittoria';
+                    }
+                    console.log(`📝 Dati in memoria aggiornati per incontro ${incontroId}`);
+                }
+
                 // Salva anche nel sistema esistente per compatibilità
                 coppieVincenti.set(incontroId, squadraSelezionata);
 
