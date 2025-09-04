@@ -703,9 +703,23 @@
                 setTimeout(() => {
                     incontriCaricati.forEach(incontro => {
                         if (incontro.completato && incontro.squadra_vincente) {
-                            // Simula la selezione per incontri già completati
-                            selezioniCoppie.set(incontro.id, incontro.squadra_vincente);
-                            aggiornaInterfacciaDopoConferma(incontro.id);
+                            // 🔧 CORREZIONE: Converti il numero squadra in 'squadra1'/'squadra2'
+                            let squadraVincenteStr;
+                            if (incontro.squadra_vincente == incontro.squadra1) {
+                                squadraVincenteStr = 'squadra1';
+                            } else if (incontro.squadra_vincente == incontro.squadra2) {
+                                squadraVincenteStr = 'squadra2';
+                            }
+
+                            console.log(`🔄 Incontro ${incontro.id}: squadra_vincente=${incontro.squadra_vincente} → ${squadraVincenteStr}`);
+
+                            if (squadraVincenteStr) {
+                                // Simula la selezione per incontri già completati
+                                selezioniCoppie.set(incontro.id, squadraVincenteStr);
+                                aggiornaInterfacciaDopoConferma(incontro.id);
+                            } else {
+                                console.warn(`⚠️ Impossibile determinare squadra vincente per incontro ${incontro.id}`);
+                            }
                         }
                     });
                 }, 200);
