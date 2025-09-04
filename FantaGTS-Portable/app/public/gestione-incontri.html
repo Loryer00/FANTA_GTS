@@ -321,6 +321,244 @@
             font-weight: bold;
         }
 
+        /* CSS per overview compatto */
+        .overview-compatto-container {
+            background: rgba(66, 153, 225, 0.1);
+            border: 2px solid rgba(66, 153, 225, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .overview-header h3 {
+            color: #4299e1;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .caratteristiche {
+            color: #a0aec0;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .overview-box-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .scontro-overview-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .scontro-header-mini {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .squadra-mini {
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .vs-mini {
+            font-weight: bold;
+            color: #f56565;
+            font-size: 0.9em;
+        }
+
+        .stats-line {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #4299e1;
+            min-width: 35px;
+        }
+
+        .incontri-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 4px;
+        }
+
+        .incontro-mini {
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+            .incontro-mini.completato {
+                background: rgba(72, 187, 120, 0.2);
+                color: #48bb78;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+            }
+
+            .incontro-mini.attesa {
+                background: rgba(237, 137, 54, 0.2);
+                color: #ed8936;
+                border: 1px solid rgba(237, 137, 54, 0.3);
+            }
+
+        /* CSS per layout compatto */
+        .scontro-divider-header-compatto {
+            margin: 25px 0 10px 0;
+        }
+
+        .header-scontro-compatto {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .squadra-nome {
+            line-height: 1.2;
+        }
+
+        .vs-centrale-header {
+            background: #666;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1.1em;
+            color: white;
+        }
+
+        .incontro-item-compatto {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .incontro-header-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .btn-azione-compatto {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+            .btn-azione-compatto.btn-reset {
+                background: #ed8936;
+                color: white;
+            }
+
+            .btn-azione-compatto.btn-conferma {
+                background: #48bb78;
+                color: white;
+            }
+
+        .coppia-info-compatta {
+            color: #4299e1;
+            font-weight: bold;
+        }
+
+        .stato-badge-compatto {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+            .stato-badge-compatto.completato {
+                background: rgba(72, 187, 120, 0.2);
+                color: #48bb78;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+            }
+
+            .stato-badge-compatto.attesa {
+                background: rgba(237, 137, 54, 0.2);
+                color: #ed8936;
+                border: 1px solid rgba(237, 137, 54, 0.3);
+            }
+
+        .giocatori-line {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .coppia-giocatori {
+            background: rgba(255,255,255,0.08);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+            line-height: 1.3;
+        }
+
+            .coppia-giocatori:hover {
+                background: rgba(255,255,255,0.15);
+            }
+
+            .coppia-giocatori.vincitore {
+                background: rgba(72, 187, 120, 0.2);
+                border: 1px solid rgba(72, 187, 120, 0.4);
+            }
+
+        .vs-small {
+            text-align: center;
+            font-weight: bold;
+            color: #f56565;
+            font-size: 0.9em;
+        }
+
         /* Personalizzazione select */
         .turno-step select {
             background: rgba(255,255,255,0.1);
@@ -1438,12 +1676,12 @@
             }
         }
 
-        // Visualizza incontri generati - VERSIONE CORRETTA FINALE
+        // Visualizza incontri generati - LAYOUT COMPATTO con nomi CORRETTI
         async function visualizzaIncontri(turnoId) {
             try {
                 console.log('🔄 Caricamento incontri per turno ID:', turnoId);
 
-                // 1. Fetch incontri del turno
+                // 1. Fetch incontri del turno con JOIN per ottenere i dati delle coppie
                 const response = await fetch(`/api/incontri-turno/${turnoId}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1468,9 +1706,8 @@
                     return;
                 }
 
-                // 5. Carica squadre con giocatori usando il nuovo endpoint
+                // 5. Carica squadre con giocatori
                 await caricaSquadreConGiocatori();
-
                 console.log('👥 Squadre disponibili:', squadreDisponibili);
 
                 // 6. Raggruppa incontri per scontro tra squadre
@@ -1494,79 +1731,68 @@
                     incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
                 });
 
-                console.log('🗂️ Incontri raggruppati:', incontriRaggruppati);
+                // 6.5. Crea overview compatto
+                const overviewCompatto = creaOverviewCompatto(incontriRaggruppati);
+                container.appendChild(overviewCompatto);
 
-                // 7. Crea il layout principale
-                const layoutColonne = document.createElement('div');
-                layoutColonne.className = 'layout-colonne-scontri';
+                // Divider tra overview e lista dettagliata
+                const divider = document.createElement('div');
+                divider.className = 'overview-divider';
+                divider.innerHTML = '<hr style="border: 1px solid rgba(255,255,255,0.2); margin: 30px 0;">';
+                container.appendChild(divider);
 
-                // 8. Crea una colonna per ogni scontro tra squadre
-                Object.keys(incontriRaggruppati).forEach((chiaveGruppo) => {
+                // 7. LAYOUT COMPATTO VERTICALE (come nell'immagine 2)
+                Object.keys(incontriRaggruppati).forEach((chiaveGruppo, index) => {
                     const gruppo = incontriRaggruppati[chiaveGruppo];
 
-                    // Crea colonna per lo scontro
-                    const colonnaScontro = document.createElement('div');
-                    colonnaScontro.className = 'colonna-scontro';
-
-                    // Header dello scontro con colori squadre
-                    const headerSquadre = document.createElement('div');
-                    headerSquadre.className = 'header-squadre';
+                    // Header dello scontro con colori squadre (formato compatto)
+                    const dividerHeader = document.createElement('div');
+                    dividerHeader.className = 'scontro-divider-header-compatto';
 
                     const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
-                    // ⚠️ FIX CRITICO: Tutti i badge con <br> per andare a capo
-                    headerSquadre.innerHTML = `
-                <div class="badge-squadra" style="background-color: ${squadra1Color};">
-                    SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
-                </div>
-                <div class="vs-text">VS</div>
-                <div class="badge-squadra" style="background-color: ${squadra2Color};">
-                    SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
+                    dividerHeader.innerHTML = `
+                <div class="header-scontro-compatto" style="background: linear-gradient(90deg, ${squadra1Color} 0%, ${squadra1Color} 45%, #666 50%, ${squadra2Color} 55%, ${squadra2Color} 100%);">
+                    <div class="squadra-nome">SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase()}</div>
+                    <div class="vs-centrale-header">VS</div>
+                    <div class="squadra-nome">SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase()}</div>
                 </div>
             `;
+                    container.appendChild(dividerHeader);
 
-                    colonnaScontro.appendChild(headerSquadre);
-
-                    // 9. Aggiungi tutti gli incontri di questo scontro
+                    // 8. Lista incontri in formato compatto verticale
                     gruppo.incontri.forEach(incontro => {
-                        const incontroBlock = document.createElement('div');
-                        incontroBlock.className = 'incontro-block';
-                        incontroBlock.setAttribute('data-incontro-id', incontro.id);
-                        incontroBlock.setAttribute('data-stato', incontro.completato ? 'completato' : 'attesa');
+                        const incontroItem = document.createElement('div');
+                        incontroItem.className = 'incontro-item-compatto';
+                        incontroItem.setAttribute('data-incontro-id', incontro.id);
 
-                        // ⚠️ FIX GIOCATORI: Ottieni nomi giocatori dalle squadre caricate
+                        // Ottieni nomi giocatori per le coppie
                         const pos1Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos2);
                         const pos1Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos2);
 
                         console.log(`🎯 Debug giocatori per ${incontro.pos1}+${incontro.pos2}:`, {
-                            squadra1: {
-                                pos1: pos1Squadra1,
-                                pos2: pos2Squadra1,
-                                totaleGiocatori: gruppo.squadra1?.giocatori?.length
-                            },
-                            squadra2: {
-                                pos1: pos1Squadra2,
-                                pos2: pos2Squadra2,
-                                totaleGiocatori: gruppo.squadra2?.giocatori?.length
-                            }
+                            squadra1Pos1: pos1Squadra1?.nome,
+                            squadra1Pos2: pos2Squadra1?.nome,
+                            squadra2Pos1: pos1Squadra2?.nome,
+                            squadra2Pos2: pos2Squadra2?.nome
                         });
 
-                        // Determina pulsante azione e stato
+                        // Determina stato e azione
                         let btnAzione, statoClasse, statoTesto;
                         if (incontro.completato) {
-                            btnAzione = `<button class="btn-azione btn-reset" onclick="resetIncontroNuovo('${incontro.id}')">Reset</button>`;
+                            btnAzione = `<button class="btn-azione-compatto btn-reset" onclick="resetIncontroNuovo('${incontro.id}')">Reset</button>`;
                             statoClasse = 'completato';
                             statoTesto = '✓ Completato';
                         } else {
-                            btnAzione = `<button class="btn-azione btn-conferma" disabled onclick="confermaIncontro('${incontro.id}')">Conferma</button>`;
+                            btnAzione = `<button class="btn-azione-compatto btn-conferma" disabled onclick="confermaIncontro('${incontro.id}')">Conferma</button>`;
                             statoClasse = 'attesa';
                             statoTesto = '⏳ In attesa';
                         }
 
-                        // Determina quale squadra ha vinto (se completato)
+                        // Determina vincitore
                         let squadra1Vincente = false, squadra2Vincente = false;
                         if (incontro.completato && incontro.squadra_vincente) {
                             if (incontro.squadra_vincente == incontro.squadra1) {
@@ -1576,47 +1802,46 @@
                             }
                         }
 
-                        // Crea HTML dell'incontro
-                        incontroBlock.innerHTML = `
-                    <div class="riga-info">
+                        // HTML compatto verticale
+                        incontroItem.innerHTML = `
+                    <div class="incontro-header-line">
                         ${btnAzione}
-                        <div class="etichetta-coppia">${incontro.pos1} + ${incontro.pos2}</div>
-                        <div class="stato-incontro ${statoClasse}">${statoTesto}</div>
+                        <div class="coppia-info-compatta">
+                            <strong>${incontro.pos1} + ${incontro.pos2}</strong>
+                        </div>
+                        <div class="stato-badge-compatto ${statoClasse}">${statoTesto}</div>
                     </div>
-                    <div class="confronto-coppie">
-                        <div class="coppia-box ${squadra1Vincente ? 'vincitore' : ''}" 
-                             data-squadra="squadra1" 
+                    <div class="giocatori-line">
+                        <div class="coppia-giocatori ${squadra1Vincente ? 'vincitore' : ''}" 
                              onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
                              style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra1?.nome || 'N/A'}<br>${pos2Squadra1?.nome || 'N/A'}
+                            ${pos1Squadra1?.nome || 'N/A'}
+                            <br>
+                            ${pos2Squadra1?.nome || 'N/A'}
                         </div>
-                        <div class="vs-centrale">vs</div>
-                        <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
-                             data-squadra="squadra2" 
+                        <div class="vs-small">vs</div>
+                        <div class="coppia-giocatori ${squadra2Vincente ? 'vincitore' : ''}" 
                              onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
                              style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra2?.nome || 'N/A'}<br>${pos2Squadra2?.nome || 'N/A'}
+                            ${pos1Squadra2?.nome || 'N/A'}
+                            <br>
+                            ${pos2Squadra2?.nome || 'N/A'}
                         </div>
                     </div>
                 `;
 
-                        colonnaScontro.appendChild(incontroBlock);
+                        container.appendChild(incontroItem);
                     });
-
-                    layoutColonne.appendChild(colonnaScontro);
                 });
 
-                // 10. Aggiungi tutto al container principale
-                container.appendChild(layoutColonne);
-
-                // 11. Mostra la sezione incontri
+                // 9. Mostra la sezione incontri
                 const section = document.getElementById('incontriSection');
                 if (section) {
                     section.style.display = 'block';
                     section.scrollIntoView({ behavior: 'smooth' });
                 }
 
-                console.log('✅ Incontri visualizzati correttamente!');
+                console.log('✅ Incontri visualizzati in formato compatto!');
 
             } catch (error) {
                 console.error('❌ Errore visualizzazione incontri:', error);
@@ -1707,6 +1932,75 @@
                 console.error('❌ Errore caricamento squadre:', error);
                 squadreDisponibili = [];
             }
+        }
+
+        // Crea overview compatto con progress bar
+        function creaOverviewCompatto(incontriRaggruppati) {
+            const overviewContainer = document.createElement('div');
+            overviewContainer.className = 'overview-compatto-container';
+
+            // Header overview
+            const headerOverview = document.createElement('div');
+            headerOverview.className = 'overview-header';
+            headerOverview.innerHTML = `
+        <h3>📊 Overview Compatto per Pagina "Incontri Generati"</h3>
+        <div class="caratteristiche">
+            ✨ <strong>Caratteristiche:</strong> Vista d'insieme compatta, progress bar, stato a colpo d'occhio
+        </div>
+    `;
+            overviewContainer.appendChild(headerOverview);
+
+            // Container per i box overview
+            const boxContainer = document.createElement('div');
+            boxContainer.className = 'overview-box-container';
+
+            Object.keys(incontriRaggruppati).forEach((chiaveGruppo) => {
+                const gruppo = incontriRaggruppati[chiaveGruppo];
+
+                // Calcola statistiche
+                const totaleIncontri = gruppo.incontri.length;
+                const completati = gruppo.incontri.filter(i => i.completato).length;
+                const percentualeCompletamento = totaleIncontri > 0 ? Math.round((completati / totaleIncontri) * 100) : 0;
+
+                // Crea box per questo scontro
+                const scontroBox = document.createElement('div');
+                scontroBox.className = 'scontro-overview-box';
+
+                const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
+                const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
+
+                scontroBox.innerHTML = `
+            <div class="scontro-header-mini">
+                <div class="squadra-mini" style="background: ${squadra1Color};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
+                <span class="vs-mini">vs</span>
+                <div class="squadra-mini" style="background: ${squadra2Color};">${gruppo.squadra2?.colore?.toUpperCase()}</div>
+            </div>
+            
+            <div class="stats-line">
+                ${totaleIncontri} incontri • ${completati} completati
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${percentualeCompletamento}%; background: ${percentualeCompletamento === 100 ? '#48bb78' : '#4299e1'};"></div>
+                </div>
+                <div class="progress-text">${percentualeCompletamento}%</div>
+            </div>
+            
+            <div class="incontri-mini-grid">
+                ${gruppo.incontri.map((incontro, index) => `
+                    <div class="incontro-mini ${incontro.completato ? 'completato' : 'attesa'}" title="${incontro.pos1} + ${incontro.pos2}">
+                        C${index + 1} ${incontro.completato ? '✓' : '⏳'}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+                boxContainer.appendChild(scontroBox);
+            });
+
+            overviewContainer.appendChild(boxContainer);
+            return overviewContainer;
         }
 
         // Utility functions
