@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
-const { v4: uuidv4 } = require('uuid');
+//const { v4: uuidv4 } = require('uuid');
 
 // QUI - Inserisci la definizione di 'pool'
 const pool = new Pool({
