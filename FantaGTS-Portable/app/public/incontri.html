@@ -673,17 +673,17 @@
      data-squadra="squadra1" 
      onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
      style="${incontro.completato ? (squadra1Vincente ?
-                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}40, ${coloreVincente}60); border-color: ${coloreVincente}; color: #ffffff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 0 10px ${coloreVincente}60;` :
-                                'pointer-events: none; opacity: 0.6; filter: grayscale(30%);') : ''}">
+                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
+                                'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
     ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
 </div>
                         <div class="vs-centrale">vs</div>
                         <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
      data-squadra="squadra2" 
      onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
-     style="${incontro.completato ? (squadra2Vincente ?
-                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}40, ${coloreVincente}60); border-color: ${coloreVincente}; color: #ffffff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 0 10px ${coloreVincente}60;` :
-                                'pointer-events: none; opacity: 0.6; filter: grayscale(30%);') : ''}">
+     style="${incontro.completato ? (squadra1Vincente ?
+                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
+                                'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
     ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
 </div>
                     </div>
@@ -1275,17 +1275,18 @@
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
                 if (squadraAttr === squadraVincente) {
-                    // Applica stile vincente con il colore della squadra
-                    coppia.style.background = `linear-gradient(135deg, ${coloreVincente}40, ${coloreVincente}60)`;
-                    coppia.style.borderColor = coloreVincente;
-                    coppia.style.color = '#ffffff';
-                    coppia.style.fontWeight = 'bold';
-                    coppia.style.textShadow = '0 1px 2px rgba(0,0,0,0.5)';
-                    coppia.style.boxShadow = `0 0 10px ${coloreVincente}60`;
+                    // Applica stile vincente con colori PIÙ FORTI
+                    coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
+                    coppia.style.border = `3px solid ${coloreVincente} !important`;
+                    coppia.style.color = '#ffffff !important';
+                    coppia.style.fontWeight = 'bold !important';
+                    coppia.style.textShadow = '0 2px 4px rgba(0,0,0,0.8) !important';
+                    coppia.style.boxShadow = `0 0 20px ${coloreVincente}90 !important`;
                 } else {
-                    // Stile perdente (opaco)
-                    coppia.style.opacity = '0.6';
-                    coppia.style.filter = 'grayscale(30%)';
+                    // Stile perdente PIÙ EVIDENTE
+                    coppia.style.opacity = '0.4 !important';
+                    coppia.style.filter = 'grayscale(60%) !important';
+                    coppia.style.background = 'rgba(255,255,255,0.02) !important';
                 }
 
                 // Disabilita il click (incontro completato)
@@ -1377,17 +1378,25 @@
                 statoElement.textContent = '⏳ In attesa';
             }
 
-            // ⚠️ FIX CRITICO: Riabilita selezione coppie
+            // ⚠️ FIX CRITICO: Riabilita selezione coppie e RESET COMPLETO STILI
             const coppie = blocco.querySelectorAll('.coppia-box');
             coppie.forEach(coppia => {
                 // Rimuovi vincitore
                 coppia.classList.remove('vincitore');
 
-                // Riabilita click
+                // RESET COMPLETO di tutti gli stili applicati
                 coppia.style.pointerEvents = 'auto';
                 coppia.style.opacity = '1';
+                coppia.style.background = 'rgba(255,255,255,0.08)';
+                coppia.style.borderColor = 'rgba(255,255,255,0.2)';
+                coppia.style.color = '#e2e8f0';
+                coppia.style.fontWeight = 'normal';
+                coppia.style.textShadow = 'none';
+                coppia.style.boxShadow = 'none';
+                coppia.style.filter = 'none';
+                coppia.style.border = '2px solid rgba(255,255,255,0.2)';
 
-                // 🔧 RIATTIVA GLI ONCLICK - Questo era il problema!
+                // 🔧 RIATTIVA GLI ONCLICK
                 const squadra = coppia.getAttribute('data-squadra');
                 coppia.setAttribute('onclick', `selezionaCoppia('${incontroId}', '${squadra}')`);
                 coppia.style.cursor = 'pointer';
