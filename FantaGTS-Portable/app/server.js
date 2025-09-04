@@ -971,6 +971,28 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     }
 });
 
+// Endpoint per ottenere gli incontri di un turno
+app.get('/api/incontri/turno/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const queryIncontri = `
+            SELECT * FROM incontri 
+            WHERE turno_id = $1
+            ORDER BY id;
+        `;
+        const result = await pool.query(queryIncontri, [id]);
+
+        if (result.rows.length === 0) {
+            return res.json([]);
+        }
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore nel recupero degli incontri per il turno:', err);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
 // ==================== API MODIFICA TURNI ESISTENTI ====================
 
 // Modifica turno esistente
@@ -2535,7 +2557,7 @@ app.get('/gestione-incontri', (req, res) => {
 });
 
 app.get('/incontri', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'incontri.html'));
+    res.sendFile(path.join(__dirname, 'incontri.html'));
 });
 
 // Gestione WebSocket
