@@ -1656,6 +1656,8 @@
                 turnoId = turnoSelezionato.id;
             }
 
+            console.log(`🔗 Navigazione incontro: ID=${incontroId}, Turno=${turnoId}, TurnoSelezionato:`, turnoSelezionato);
+
             // Costruisci l'URL
             let url;
             if (turnoId) {
@@ -1720,6 +1722,15 @@
         async function visualizzaIncontri(turnoId) {
             try {
                 console.log('🔄 Caricamento incontri per turno ID:', turnoId);
+
+                // Memorizza il turno selezionato per il link
+                const turnoResponse = await fetch(`/api/turni/${turnoId}`);
+                if (turnoResponse.ok) {
+                    turnoSelezionato = await turnoResponse.json();
+                } else {
+                    turnoSelezionato = { id: turnoId, turno_numero: turnoId, nome_turno: `Turno ${turnoId}` };
+                }
+                console.log('🎯 Turno selezionato memorizzato:', turnoSelezionato);
 
                 // 1. Fetch incontri del turno con JOIN per ottenere i dati delle coppie
                 const response = await fetch(`/api/incontri-turno/${turnoId}`);
@@ -1880,15 +1891,25 @@
             const overviewContainer = document.createElement('div');
             overviewContainer.className = 'overview-compatto-container';
 
-            // Header overview
+            // Header overview con informazioni turno
             const headerOverview = document.createElement('div');
             headerOverview.className = 'overview-header';
+
+            // Ottieni informazioni del turno corrente
+            let infoTurno = 'Turno';
+            if (turnoSelezionato) {
+                infoTurno = `Turno ${turnoSelezionato.turno_numero}: ${turnoSelezionato.nome_turno}`;
+            }
+
             headerOverview.innerHTML = `
-        <h3>📊 Overview Compatto per Pagina "Incontri Generati"</h3>
-        <div class="caratteristiche">
-            ✨ <strong>Caratteristiche:</strong> Vista d'insieme compatta, progress bar, stato a colpo d'occhio
-        </div>
-    `;
+    <h3>📊 Overview Compatto per Pagina "Incontri Generati"</h3>
+    <div class="turno-info" style="background: rgba(66, 153, 225, 0.2); padding: 8px 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #4299e1;">
+        <strong>🎯 ${infoTurno}</strong>
+    </div>
+    <div class="caratteristiche">
+        ✨ <strong>Caratteristiche:</strong> Vista d'insieme compatta, progress bar, stato a colpo d'occhio
+    </div>
+`;
             overviewContainer.appendChild(headerOverview);
 
             // Container per i box overview
