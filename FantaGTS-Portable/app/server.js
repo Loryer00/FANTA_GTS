@@ -5,6 +5,19 @@ const socketIo = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
+const { v4: uuidv4 } = require('uuid');
+
+// QUI - Inserisci la definizione di 'pool'
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
 // Variabile globale sessione corrente
 let sessioneCorrente = process.env.SESSIONE_CORRENTE || 'fantagts_2025';
@@ -974,6 +987,12 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 // Endpoint per ottenere gli incontri di un turno
 app.get('/api/incontri/turno/:id', async (req, res) => {
     const { id } = req.params;
+
+    // Aggiungi un controllo per assicurarti che l'ID sia un numero
+    if (isNaN(id)) {
+        return res.status(400).json({ error: 'ID del turno non valido.' });
+    }
+
     try {
         const queryIncontri = `
             SELECT * FROM incontri 
@@ -982,12 +1001,14 @@ app.get('/api/incontri/turno/:id', async (req, res) => {
         `;
         const result = await pool.query(queryIncontri, [id]);
 
+        // Controlla se il risultato è vuoto
         if (result.rows.length === 0) {
             return res.json([]);
         }
 
         res.json(result.rows);
     } catch (err) {
+        // Logga l'errore esatto per il debug
         console.error('Errore nel recupero degli incontri per il turno:', err);
         res.status(500).json({ error: 'Errore interno del server' });
     }

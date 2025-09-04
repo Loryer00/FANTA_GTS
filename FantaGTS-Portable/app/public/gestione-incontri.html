@@ -1442,6 +1442,11 @@
         async function visualizzaIncontri(turnoId) {
             try {
                 const response = await fetch(`/api/incontri/turno/${turnoId}`);
+                // Aggiungi questo controllo per gestire le risposte non-ok
+                if (!response.ok) {
+                    throw new Error(`Errore HTTP: ${response.status}`);
+                }
+
                 const incontri = await response.json();
 
                 const section = document.getElementById('incontriSection');
