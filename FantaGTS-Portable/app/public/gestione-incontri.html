@@ -1886,15 +1886,7 @@
 
                 const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                 const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
-
-                // 🆕 Calcola quale squadra ha vinto questo scontro
-                const coloreVincente = await calcolaSquadraVincenteScontro(gruppo.squadra1?.numero, gruppo.squadra2?.numero);
-                const backgroundScontro = coloreVincente ? `linear-gradient(135deg, ${coloreVincente}15, ${coloreVincente}25)` : 'rgba(255, 165, 0, 0.1)';
-                const borderScontro = coloreVincente || 'rgba(255, 165, 0, 0.3)';
-
-                scontroBox.style.background = backgroundScontro;
-                scontroBox.style.border = `2px solid ${borderScontro}`;
-
+                
                 scontroBox.innerHTML = `
             <div class="scontro-header-mini">
                 <div class="squadra-mini" style="background: ${squadra1Color};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
