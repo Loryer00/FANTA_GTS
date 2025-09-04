@@ -649,7 +649,7 @@
                             statoTesto = '⏳ In attesa';
                         }
 
-                        // Determina quale squadra ha vinto (se completato) e applica colorazione
+                        // Determina quale squadra ha vinto basandosi sui risultati delle coppie
                         let squadra1Vincente = false, squadra2Vincente = false;
                         let coloreVincente = '';
                         if (incontro.completato) {
@@ -702,23 +702,24 @@
                 // Applica colorazione per incontri già completati
                 setTimeout(() => {
                     incontriCaricati.forEach(incontro => {
-                        if (incontro.completato && incontro.squadra_vincente) {
-                            // 🔧 CORREZIONE: Converti il numero squadra in 'squadra1'/'squadra2'
-                            let squadraVincenteStr;
-                            if (incontro.squadra_vincente == incontro.squadra1) {
-                                squadraVincenteStr = 'squadra1';
-                            } else if (incontro.squadra_vincente == incontro.squadra2) {
-                                squadraVincenteStr = 'squadra2';
-                            }
+                        if (incontro.completato) {
+                            console.log(`🎨 Colorando celle per incontro ${incontro.id}, risultato_coppia1: ${incontro.risultato_coppia1}, risultato_coppia2: ${incontro.risultato_coppia2}`);
 
-                            console.log(`🔄 Incontro ${incontro.id}: squadra_vincente=${incontro.squadra_vincente} → ${squadraVincenteStr}`);
+                            let squadraVincenteStr = null;
+                            if (incontro.risultato_coppia1 === 'Vittoria') {
+                                squadraVincenteStr = 'squadra1';
+                                console.log(`🔄 Incontro ${incontro.id}: risultato_coppia1='Vittoria' → squadra1`);
+                            } else if (incontro.risultato_coppia2 === 'Vittoria') {
+                                squadraVincenteStr = 'squadra2';
+                                console.log(`🔄 Incontro ${incontro.id}: risultato_coppia2='Vittoria' → squadra2`);
+                            }
 
                             if (squadraVincenteStr) {
                                 // Simula la selezione per incontri già completati
                                 selezioniCoppie.set(incontro.id, squadraVincenteStr);
                                 aggiornaInterfacciaDopoConferma(incontro.id);
                             } else {
-                                console.warn(`⚠️ Impossibile determinare squadra vincente per incontro ${incontro.id}`);
+                                console.warn(`⚠️ Nessuna vittoria trovata per incontro ${incontro.id} (coppia1: ${incontro.risultato_coppia1}, coppia2: ${incontro.risultato_coppia2})`);
                             }
                         }
                     });
