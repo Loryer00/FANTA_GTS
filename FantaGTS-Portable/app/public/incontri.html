@@ -620,6 +620,28 @@
 
                 container.appendChild(layoutColonne);
 
+                // 🆕 SCROLL AUTOMATICO se c'è un hash nell'URL
+                setTimeout(() => {
+                    const hash = window.location.hash;
+                    if (hash && hash.startsWith('#incontro-')) {
+                        const incontroId = hash.replace('#incontro-', '');
+                        const elemento = document.querySelector(`[data-incontro-id="${incontroId}"]`);
+                        if (elemento) {
+                            elemento.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                            // Evidenzia l'incontro per 3 secondi
+                            elemento.style.boxShadow = '0 0 20px #4299e1';
+                            elemento.style.transform = 'scale(1.02)';
+                            setTimeout(() => {
+                                elemento.style.boxShadow = '';
+                                elemento.style.transform = '';
+                            }, 3000);
+                        }
+                    }
+                }, 1000); // Aspetta 1 secondo che tutto sia caricato
+
             } catch (error) {
                 console.error('Errore caricamento incontri:', error);
                 showNotification('Errore nel caricamento degli incontri', 'error');

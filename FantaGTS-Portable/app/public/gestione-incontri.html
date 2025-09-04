@@ -1647,6 +1647,18 @@
             }
         }
 
+        // Funzione per navigare a un incontro specifico nella pagina incontri
+        function vaiAIncontroSpecifico(incontroId) {
+            // Costruisci l'URL con l'hash per scrollare all'incontro
+            const url = `/incontri?turno=${turnoSelezionato.id}#incontro-${incontroId}`;
+
+            // Apri in una nuova tab (più comodo per tornare indietro)
+            window.open(url, '_blank');
+
+            // Oppure se preferisci nella stessa finestra:
+            // window.location.href = url;
+        }
+
         // Elimina coppia
         async function eliminaCoppia(coppiaId) {
             if (!confirm('Eliminare questa coppia?')) return;
@@ -1908,9 +1920,9 @@
             <div class="incontri-mini-grid">
                 ${gruppo.incontri.map((incontro) => {
                     // Determina il colore di sfondo in base al vincitore
-                    let sfondoColore = 'rgba(237, 137, 54, 0.2)'; // Arancione default (in attesa)
-                    let bordoColore = 'rgba(237, 137, 54, 0.3)';
-                    let testoColore = '#ed8936';
+                    let sfondoColore = 'rgba(71, 85, 105, 0.2)'; // Grigio scuro simile allo sfondo
+                    let bordoColore = 'rgba(71, 85, 105, 0.4)';
+                    let testoColore = '#64748b'; // Grigio tenue per il testo
 
                     if (incontro.completato) {
                         // Usa i campi risultato dal database
@@ -1933,13 +1945,16 @@
                     }
 
                     return `
-        <div class="incontro-mini-migliorato" 
-             title="Incontro ${incontro.pos1} + ${incontro.pos2}"
-             style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore};"
-             data-incontro-id="${incontro.id}">
-            ${incontro.pos1}+${incontro.pos2}
-        </div>
-    `;
+    <div class="incontro-mini-migliorato clickable-incontro" 
+         title="Clicca per andare all'incontro ${incontro.pos1} + ${incontro.pos2}"
+         style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore}; cursor: pointer; transition: all 0.2s ease;"
+         data-incontro-id="${incontro.id}"
+         onclick="vaiAIncontroSpecifico(${incontro.id})"
+         onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='0.8';"
+         onmouseout="this.style.transform='scale(1)'; this.style.opacity='1';">
+        ${incontro.pos1}+${incontro.pos2}
+    </div>
+`;
                 }).join('')}
             </div>
         `;
