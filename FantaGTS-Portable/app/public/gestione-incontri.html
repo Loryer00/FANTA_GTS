@@ -1913,39 +1913,33 @@
                     let testoColore = '#ed8936';
 
                     if (incontro.completato) {
-                        // Verifica quale squadra ha vinto controllando i risultati dalla mappa selezioni
-                        const squadraVincente = coppieVincenti?.get(incontro.id) || coppieVincenti?.get(parseInt(incontro.id));
-
-                        if (squadraVincente === 'squadra1') {
+                        // Usa i campi risultato dal database
+                        if (incontro.risultato_coppia1 === 'Vittoria') {
+                            // Squadra 1 ha vinto
                             sfondoColore = squadra1Color + '40';
                             bordoColore = squadra1Color + '80';
                             testoColore = squadra1Color;
-                        } else if (squadraVincente === 'squadra2') {
+                        } else if (incontro.risultato_coppia2 === 'Vittoria') {
+                            // Squadra 2 ha vinto  
                             sfondoColore = squadra2Color + '40';
                             bordoColore = squadra2Color + '80';
                             testoColore = squadra2Color;
                         } else {
-                            // Prova a usare i campi risultato dal database
-                            if (incontro.risultato_coppia1 === 'Vittoria') {
-                                sfondoColore = squadra1Color + '40';
-                                bordoColore = squadra1Color + '80';
-                                testoColore = squadra1Color;
-                            } else if (incontro.risultato_coppia2 === 'Vittoria') {
-                                sfondoColore = squadra2Color + '40';
-                                bordoColore = squadra2Color + '80';
-                                testoColore = squadra2Color;
-                            }
+                            // Pareggio o risultato sconosciuto - grigio
+                            sfondoColore = 'rgba(156, 163, 175, 0.3)';
+                            bordoColore = 'rgba(156, 163, 175, 0.5)';
+                            testoColore = '#9ca3af';
                         }
                     }
 
                     return `
-                        <div class="incontro-mini-migliorato" 
-                             title="Incontro ${incontro.pos1} + ${incontro.pos2}"
-                             style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore};"
-                             data-incontro-id="${incontro.id}">
-                            ${incontro.pos1}+${incontro.pos2}
-                        </div>
-                    `;
+        <div class="incontro-mini-migliorato" 
+             title="Incontro ${incontro.pos1} + ${incontro.pos2}"
+             style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore};"
+             data-incontro-id="${incontro.id}">
+            ${incontro.pos1}+${incontro.pos2}
+        </div>
+    `;
                 }).join('')}
             </div>
         `;
