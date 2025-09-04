@@ -132,6 +132,10 @@
             text-align: center;
             min-width: 120px;
             font-size: 1em;
+            line-height: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .vs-text {
@@ -470,7 +474,7 @@
 
                     headerSquadre.innerHTML = `
                 <div class="badge-squadra" style="background-color: ${squadra1Color};">
-                    SQUADRA ${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+                    SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
                 </div>
                 <div class="vs-text">VS</div>
                 <div class="badge-squadra" style="background-color: ${squadra2Color};">

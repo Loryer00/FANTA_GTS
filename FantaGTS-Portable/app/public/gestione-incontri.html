@@ -1548,25 +1548,48 @@
             }
         } */
 
-        // Visualizza incontri generati  
+        // Visualizza incontri generati - VERSIONE COMPLETA CORRETTA
         async function visualizzaIncontri(turnoId) {
             try {
+                console.log('🔄 Caricamento incontri per turno ID:', turnoId);
+
+                // 1. Fetch incontri del turno
                 const response = await fetch(`/api/incontri-turno/${turnoId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const incontri = await response.json();
+                console.log('📋 Incontri caricati:', incontri);
 
-                const container = document.getElementById('incontriContainer');
-                container.innerHTML = '';
-
-                if (incontriCaricati.length === 0) {
-                    container.innerHTML = '<p>Nessun incontro generato per questo turno</p>';
+                // 2. Ottieni il container corretto
+                const container = document.getElementById('incontriGenerati');
+                if (!container) {
+                    console.error('❌ Container #incontriGenerati non trovato!');
                     return;
                 }
 
-                // Raggruppa incontri per scontro tra squadre
+                // 3. Reset container
+                container.innerHTML = '';
+
+                // 4. Verifica se ci sono incontri
+                if (!incontri || incontri.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 40px;">Nessun incontro generato per questo turno</p>';
+                    return;
+                }
+
+                // 5. Carica squadre con giocatori se non disponibili
+                if (!squadreDisponibili || squadreDisponibili.length === 0) {
+                    await caricaSquadreConGiocatori();
+                }
+
+                console.log('👥 Squadre disponibili:', squadreDisponibili);
+
+                // 6. Raggruppa incontri per scontro tra squadre
                 const incontriRaggruppati = {};
 
-                incontriCaricati.forEach(incontro => {
-                    // Ottieni colori squadre
+                incontri.forEach(incontro => {
+                    // Ottieni squadre complete (con giocatori)
                     const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
                     const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
 
@@ -1583,11 +1606,13 @@
                     incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
                 });
 
-                // Crea il nuovo layout a colonne
+                console.log('🗂️ Incontri raggruppati:', incontriRaggruppati);
+
+                // 7. Crea il layout principale
                 const layoutColonne = document.createElement('div');
                 layoutColonne.className = 'layout-colonne-scontri';
 
-                // Crea una colonna per ogni scontro tra squadre
+                // 8. Crea una colonna per ogni scontro tra squadre
                 Object.keys(incontriRaggruppati).forEach((chiaveGruppo) => {
                     const gruppo = incontriRaggruppati[chiaveGruppo];
 
@@ -1595,39 +1620,40 @@
                     const colonnaScontro = document.createElement('div');
                     colonnaScontro.className = 'colonna-scontro';
 
-                    // Header dello scontro
+                    // Header dello scontro con colori squadre
                     const headerSquadre = document.createElement('div');
                     headerSquadre.className = 'header-squadre';
 
                     const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
+                    // Header con badge squadra su due righe
                     headerSquadre.innerHTML = `
                 <div class="badge-squadra" style="background-color: ${squadra1Color};">
-                    SQUADRA ${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+                    SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
                 </div>
                 <div class="vs-text">VS</div>
                 <div class="badge-squadra" style="background-color: ${squadra2Color};">
-                    SQUADRA ${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
+                    SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
                 </div>
             `;
 
                     colonnaScontro.appendChild(headerSquadre);
 
-                    // Aggiungi tutti gli incontri di questo scontro
+                    // 9. Aggiungi tutti gli incontri di questo scontro
                     gruppo.incontri.forEach(incontro => {
                         const incontroBlock = document.createElement('div');
                         incontroBlock.className = 'incontro-block';
                         incontroBlock.setAttribute('data-incontro-id', incontro.id);
                         incontroBlock.setAttribute('data-stato', incontro.completato ? 'completato' : 'attesa');
 
-                        // Ottieni nomi giocatori
+                        // Ottieni nomi giocatori dalle squadre
                         const pos1Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos2);
                         const pos1Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos2);
 
-                        // Determina il pulsante azione e stato
+                        // Determina pulsante azione e stato
                         let btnAzione, statoClasse, statoTesto;
                         if (incontro.completato) {
                             btnAzione = `<button class="btn-azione btn-reset" onclick="resetIncontroNuovo('${incontro.id}')">Reset</button>`;
@@ -1649,6 +1675,7 @@
                             }
                         }
 
+                        // Crea HTML dell'incontro
                         incontroBlock.innerHTML = `
                     <div class="riga-info">
                         ${btnAzione}
@@ -1678,11 +1705,77 @@
                     layoutColonne.appendChild(colonnaScontro);
                 });
 
+                // 10. Aggiungi tutto al container principale
                 container.appendChild(layoutColonne);
 
+                // 11. Mostra la sezione incontri
+                const section = document.getElementById('incontriSection');
+                if (section) {
+                    section.style.display = 'block';
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                console.log('✅ Incontri visualizzati correttamente!');
+
             } catch (error) {
-                console.error('Errore caricamento incontri:', error);
-                showNotification('Errore nel caricamento degli incontri', 'error');
+                console.error('❌ Errore visualizzazione incontri:', error);
+                showNotification('Errore nel caricamento degli incontri: ' + error.message, 'error');
+
+                // Fallback: mostra errore nel container
+                const container = document.getElementById('incontriGenerati');
+                if (container) {
+                    container.innerHTML = `<p style="color: #f56565; text-align: center; padding: 20px;">
+                ❌ Errore nel caricamento degli incontri<br>
+                <small>${error.message}</small>
+            </p>`;
+                }
+            }
+        }
+
+        // Funzione helper per caricare squadre con giocatori
+        async function caricaSquadreConGiocatori() {
+            try {
+                console.log('🔄 Caricamento squadre con giocatori...');
+
+                // Prova prima l'endpoint completo
+                let response = await fetch('/api/squadre-complete');
+                if (!response.ok) {
+                    // Fallback all'endpoint normale
+                    console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
+                    response = await fetch('/api/squadre');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const squadre = await response.json();
+                console.log('👥 Squadre caricate:', squadre);
+
+                // Se le squadre non hanno giocatori, caricali separatamente
+                for (let squadra of squadre) {
+                    if (!squadra.giocatori || squadra.giocatori.length === 0) {
+                        try {
+                            const giocatoriResponse = await fetch(`/api/squadra/${squadra.numero}/giocatori`);
+                            if (giocatoriResponse.ok) {
+                                squadra.giocatori = await giocatoriResponse.json();
+                            } else {
+                                console.warn(`⚠️ Impossibile caricare giocatori per squadra ${squadra.numero}`);
+                                squadra.giocatori = [];
+                            }
+                        } catch (err) {
+                            console.warn(`⚠️ Errore caricamento giocatori squadra ${squadra.numero}:`, err);
+                            squadra.giocatori = [];
+                        }
+                    }
+                }
+
+                squadreDisponibili = squadre;
+                console.log('✅ Squadre con giocatori caricate:', squadreDisponibili);
+
+            } catch (error) {
+                console.error('❌ Errore caricamento squadre:', error);
+                squadreDisponibili = [];
             }
         }
 
