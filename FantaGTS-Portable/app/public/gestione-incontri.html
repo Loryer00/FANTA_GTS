@@ -414,9 +414,25 @@
 
         .incontri-mini-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
             gap: 4px;
         }
+
+        .incontro-mini-migliorato {
+            padding: 6px 4px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.65em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            line-height: 1.1;
+        }
+
+            .incontro-mini-migliorato:hover {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
 
         .incontro-mini {
             padding: 4px 6px;
@@ -1889,11 +1905,34 @@
             </div>
             
             <div class="incontri-mini-grid">
-                ${gruppo.incontri.map((incontro, index) => `
-                    <div class="incontro-mini ${incontro.completato ? 'completato' : 'attesa'}" title="${incontro.pos1} + ${incontro.pos2}">
-                        C${index + 1} ${incontro.completato ? '✓' : '⏳'}
-                    </div>
-                `).join('')}
+                ${gruppo.incontri.map((incontro) => {
+                    // Determina il colore di sfondo in base al vincitore
+                    let sfondoColore = 'rgba(237, 137, 54, 0.2)'; // Arancione default (in attesa)
+                    let bordoColore = 'rgba(237, 137, 54, 0.3)';
+                    let testoColore = '#ed8936';
+
+                    if (incontro.completato && incontro.squadra_vincente) {
+                        // Trova quale squadra ha vinto e usa il suo colore
+                        if (incontro.squadra_vincente == gruppo.squadra1?.numero) {
+                            sfondoColore = squadra1Color + '40'; // Colore squadra 1 + trasparenza
+                            bordoColore = squadra1Color + '80';
+                            testoColore = squadra1Color;
+                        } else if (incontro.squadra_vincente == gruppo.squadra2?.numero) {
+                            sfondoColore = squadra2Color + '40'; // Colore squadra 2 + trasparenza  
+                            bordoColore = squadra2Color + '80';
+                            testoColore = squadra2Color;
+                        }
+                    }
+
+                    return `
+                        <div class="incontro-mini-migliorato" 
+                             title="Incontro ${incontro.pos1} + ${incontro.pos2}"
+                             style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore};"
+                             data-incontro-id="${incontro.id}">
+                            ${incontro.pos1}+${incontro.pos2}
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
 
@@ -1902,6 +1941,120 @@
 
             overviewContainer.appendChild(boxContainer);
             return overviewContainer;
+        }
+
+        // Funzione per aggiornare l'overview quando un incontro viene completato
+        function aggiornaOverviewDopoConferma(incontroId, squadraVincente) {
+            const casella = document.querySelector(`[data-incontro-id="${incontroId}"].incontro-mini-migliorato`);
+            if (!casella) {
+                console.warn(`Casella overview per incontro ${incontroId} non trovata`);
+                return;
+            }
+
+            console.log(`🎨 Aggiornando overview per incontro ${incontroId} - Vincitore: squadra ${squadraVincente}`);
+
+            // Trova l'incontro nei dati per ottenere le squadre
+            let squadraNumero, coloreVincente;
+
+            // Cerca l'incontro nei dati raggruppati
+            incontriCaricati.forEach(incontro => {
+                if (incontro.id == incontroId) {
+                    squadraNumero = squadraVincente === 'squadra1' ? incontro.squadra1 : incontro.squadra2;
+
+                    // Trova il colore della squadra vincente
+                    const squadra = squadreDisponibili.find(s => s.numero === squadraNumero);
+                    if (squadra) {
+                        coloreVincente = getTeamColor(squadra.colore);
+                    }
+                }
+            });
+
+            if (coloreVincente) {
+                // Aggiorna il colore della casella
+                casella.style.background = coloreVincente + '40'; // Trasparenza
+                casella.style.borderColor = coloreVincente + '80';
+                casella.style.color = coloreVincente;
+
+                console.log(`✅ Casella colorata con ${coloreVincente}`);
+
+                // Aggiorna anche la progress bar del gruppo
+                aggiornaProgressBar(incontroId);
+            }
+        }
+
+        // Funzione per resettare l'overview quando un incontro viene resettato
+        function aggiornaOverviewDopoReset(incontroId) {
+            const casella = document.querySelector(`[data-incontro-id="${incontroId}"].incontro-mini-migliorato`);
+            if (!casella) {
+                console.warn(`Casella overview per incontro ${incontroId} non trovata`);
+                return;
+            }
+
+            console.log(`🔄 Resettando overview per incontro ${incontroId}`);
+
+            // Ritorna ai colori arancioni (in attesa)
+            casella.style.background = 'rgba(237, 137, 54, 0.2)';
+            casella.style.borderColor = 'rgba(237, 137, 54, 0.3)';
+            casella.style.color = '#ed8936';
+
+            console.log(`✅ Casella resettata a colore arancione`);
+
+            // Aggiorna anche la progress bar del gruppo
+            aggiornaProgressBar(incontroId);
+        }
+
+        // Funzione per aggiornare la progress bar di un gruppo
+        function aggiornaProgressBar(incontroId) {
+            // Trova quale gruppo contiene questo incontro
+            let gruppoTarget = null;
+
+            incontriCaricati.forEach(incontro => {
+                if (incontro.id == incontroId) {
+                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
+                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
+                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
+                    gruppoTarget = chiaveGruppo;
+                }
+            });
+
+            if (!gruppoTarget) return;
+
+            // Conta gli incontri completati in questo gruppo
+            const incontriGruppo = incontriCaricati.filter(incontro => {
+                const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
+                const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
+                const chiave = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
+                return chiave === gruppoTarget;
+            });
+
+            const totale = incontriGruppo.length;
+            const completati = incontriGruppo.filter(i => i.completato).length;
+            const percentuale = totale > 0 ? Math.round((completati / totale) * 100) : 0;
+
+            // Trova e aggiorna la progress bar nel DOM
+            const scontroBoxes = document.querySelectorAll('.scontro-overview-box');
+            scontroBoxes.forEach(box => {
+                const statsLine = box.querySelector('.stats-line');
+                if (statsLine && statsLine.textContent.includes(`${totale} incontri`)) {
+                    // Aggiorna testo statistiche
+                    statsLine.textContent = `${totale} incontri • ${completati} completati`;
+
+                    // Aggiorna progress bar
+                    const progressFill = box.querySelector('.progress-fill');
+                    const progressText = box.querySelector('.progress-text');
+
+                    if (progressFill) {
+                        progressFill.style.width = `${percentuale}%`;
+                        progressFill.style.background = percentuale === 100 ? '#48bb78' : '#4299e1';
+                    }
+
+                    if (progressText) {
+                        progressText.textContent = `${percentuale}%`;
+                    }
+
+                    console.log(`📊 Progress bar aggiornata: ${completati}/${totale} (${percentuale}%)`);
+                }
+            });
         }
 
         // Utility functions

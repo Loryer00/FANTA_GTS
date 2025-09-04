@@ -1161,6 +1161,13 @@
                 coppia.style.pointerEvents = 'none';
                 coppia.style.opacity = '0.8';
             });
+
+            // Aggiorna anche l'overview se siamo in gestione-incontri
+            if (typeof aggiornaOverviewDopoConferma === 'function') {
+                // Determina quale squadra ha vinto dalla selezione
+                const squadraVincente = selezioniCoppie.get(incontroId);
+                aggiornaOverviewDopoConferma(incontroId, squadraVincente);
+            }
         }
 
         // FUNZIONE: Reset incontro (nuovo sistema)
@@ -1240,8 +1247,13 @@
                 const squadra = coppia.getAttribute('data-squadra');
                 coppia.setAttribute('onclick', `selezionaCoppia('${incontroId}', '${squadra}')`);
                 coppia.style.cursor = 'pointer';
-            });
 
+                // Aggiorna anche l'overview se siamo in gestione-incontri
+                if (typeof aggiornaOverviewDopoReset === 'function') {
+                    aggiornaOverviewDopoReset(incontroId);
+                }
+            });
+                        
             console.log(`[RESET UI OK] Incontro ${incontroId} pronto per nuova selezione`);
         }
 
