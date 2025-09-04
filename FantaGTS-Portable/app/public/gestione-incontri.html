@@ -1438,117 +1438,7 @@
             }
         }
 
-        // Visualizza incontri generati VECCHIA 
-        /*async function visualizzaIncontri(turnoId) {
-            try {
-                const response = await fetch(`/api/incontri-turno/${turnoId}`);
-                const incontri = await response.json();
-
-                const section = document.getElementById('incontriSection');
-                const container = document.getElementById('incontriGenerati');
-
-                container.innerHTML = '';
-
-                if (incontri.length === 0) {
-                    container.innerHTML = '<p>Nessun incontro generato per questo turno</p>';
-                    return;
-                }
-
-                // Raggruppa incontri per scontro tra squadre
-                const incontriRaggruppati = {};
-
-                incontri.forEach(incontro => {
-                    // Ottieni colori squadre
-                    const squadra1 = squadreDisponibili.find(s => s.numero === incontro.squadra1);
-                    const squadra2 = squadreDisponibili.find(s => s.numero === incontro.squadra2);
-
-                    const chiaveGruppo = `${squadra1?.colore || 'Sconosciuta'}_vs_${squadra2?.colore || 'Sconosciuta'}`;
-
-                    if (!incontriRaggruppati[chiaveGruppo]) {
-                        incontriRaggruppati[chiaveGruppo] = {
-                            squadra1: squadra1,
-                            squadra2: squadra2,
-                            incontri: []
-                        };
-                    }
-
-                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
-                });
-
-                // Crea HTML per ogni gruppo
-                Object.keys(incontriRaggruppati).forEach((chiaveGruppo, index) => {
-                    const gruppo = incontriRaggruppati[chiaveGruppo];
-
-                    // Divider header per ogni scontro tra squadre
-                    const dividerHeader = document.createElement('div');
-                    dividerHeader.className = 'scontro-divider-header';
-                    dividerHeader.innerHTML = `
-                <div class="scontro-title">
-                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra1?.colore)};">
-                        Squadra ${gruppo.squadra1?.colore?.toUpperCase() || 'N/A'}
-                    </span>
-                    <span class="vs-text">VS</span>
-                    <span class="squadra-badge" style="background-color: ${getTeamColor(gruppo.squadra2?.colore)};">
-                        Squadra ${gruppo.squadra2?.colore?.toUpperCase() || 'N/A'}
-                    </span>
-                </div>
-                <div class="incontri-count">
-                    ${gruppo.incontri.length} incontri
-                </div>
-            `;
-                    container.appendChild(dividerHeader);
-
-                    // Container per gli incontri di questo scontro
-                    const incontriContainer = document.createElement('div');
-                    incontriContainer.className = 'incontri-gruppo';
-
-                    gruppo.incontri.forEach(incontro => {
-                        const card = document.createElement('div');
-                        card.className = 'incontro-card-compatto';
-
-                        card.innerHTML = `
-                    <div class="incontro-header-compatto">
-                        <div class="coppia-info">
-                            <span class="coppia-numero">Coppia ${incontro.coppia_numero}</span>
-                            <span class="posizioni">${incontro.pos1} + ${incontro.pos2}</span>
-                        </div>
-                        <span class="status-badge ${incontro.completato ? 'completato' : 'in-attesa'}">
-                            ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
-                        </span>
-                    </div>
-                    ${incontro.completato ? `
-                        <div class="risultato-compatto">
-                            <span class="risultato-finale">
-                                ${incontro.risultato_coppia1 || '0-0'} - ${incontro.risultato_coppia2 || '0-0'}
-                            </span>
-                        </div>
-                    ` : ''}
-                `;
-
-                        incontriContainer.appendChild(card);
-                    });
-
-                    container.appendChild(incontriContainer);
-
-                    // Divider di separazione tra gruppi (tranne per l'ultimo)
-                    if (index < Object.keys(incontriRaggruppati).length - 1) {
-                        const dividerSeparatore = document.createElement('div');
-                        dividerSeparatore.className = 'scontro-divider-separatore';
-                        container.appendChild(dividerSeparatore);
-                    }
-                });
-
-                // Mostra la sezione
-                section.style.display = 'block';
-                section.scrollIntoView({ behavior: 'smooth' });
-
-            } catch (error) {
-                console.error('Errore visualizzazione incontri:', error);
-                showNotification('Errore nel caricamento degli incontri', 'error');
-            }
-        } */
-
-        // Visualizza incontri generati - VERSIONE COMPLETA CORRETTA
+        // Visualizza incontri generati - VERSIONE CORRETTA FINALE
         async function visualizzaIncontri(turnoId) {
             try {
                 console.log('🔄 Caricamento incontri per turno ID:', turnoId);
@@ -1578,10 +1468,8 @@
                     return;
                 }
 
-                // 5. Carica squadre con giocatori se non disponibili
-                if (!squadreDisponibili || squadreDisponibili.length === 0) {
-                    await caricaSquadreConGiocatori();
-                }
+                // 5. Carica squadre con giocatori usando il nuovo endpoint
+                await caricaSquadreConGiocatori();
 
                 console.log('👥 Squadre disponibili:', squadreDisponibili);
 
@@ -1627,7 +1515,7 @@
                     const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
-                    // Header con badge squadra su due righe
+                    // ⚠️ FIX CRITICO: Tutti i badge con <br> per andare a capo
                     headerSquadre.innerHTML = `
                 <div class="badge-squadra" style="background-color: ${squadra1Color};">
                     SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
@@ -1647,11 +1535,24 @@
                         incontroBlock.setAttribute('data-incontro-id', incontro.id);
                         incontroBlock.setAttribute('data-stato', incontro.completato ? 'completato' : 'attesa');
 
-                        // Ottieni nomi giocatori dalle squadre
+                        // ⚠️ FIX GIOCATORI: Ottieni nomi giocatori dalle squadre caricate
                         const pos1Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos2);
                         const pos1Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos1);
                         const pos2Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos2);
+
+                        console.log(`🎯 Debug giocatori per ${incontro.pos1}+${incontro.pos2}:`, {
+                            squadra1: {
+                                pos1: pos1Squadra1,
+                                pos2: pos2Squadra1,
+                                totaleGiocatori: gruppo.squadra1?.giocatori?.length
+                            },
+                            squadra2: {
+                                pos1: pos1Squadra2,
+                                pos2: pos2Squadra2,
+                                totaleGiocatori: gruppo.squadra2?.giocatori?.length
+                            }
+                        });
 
                         // Determina pulsante azione e stato
                         let btnAzione, statoClasse, statoTesto;
@@ -1737,41 +1638,70 @@
             try {
                 console.log('🔄 Caricamento squadre con giocatori...');
 
-                // Prova prima l'endpoint completo
-                let response = await fetch('/api/squadre-complete');
+                // Prova il nuovo endpoint specifico per giocatori
+                let response = await fetch('/api/squadre-con-giocatori');
                 if (!response.ok) {
-                    // Fallback all'endpoint normale
+                    console.log('⚠️ Endpoint squadre-con-giocatori non disponibile, provo squadre-complete');
+                    response = await fetch('/api/squadre-complete');
+                }
+
+                if (!response.ok) {
+                    // Ultimo fallback - endpoint normale e trasformazione manuale
                     console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
                     response = await fetch('/api/squadre');
-                }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                    if (response.ok) {
+                        const squadre = await response.json();
+                        console.log('🔄 Trasformo manualmente i dati squadre:', squadre);
 
-                const squadre = await response.json();
-                console.log('👥 Squadre caricate:', squadre);
+                        // Trasforma manualmente le squadre dal formato DB
+                        squadreDisponibili = squadre.map(squadra => {
+                            const giocatori = [];
 
-                // Se le squadre non hanno giocatori, caricali separatamente
-                for (let squadra of squadre) {
-                    if (!squadra.giocatori || squadra.giocatori.length === 0) {
-                        try {
-                            const giocatoriResponse = await fetch(`/api/squadra/${squadra.numero}/giocatori`);
-                            if (giocatoriResponse.ok) {
-                                squadra.giocatori = await giocatoriResponse.json();
-                            } else {
-                                console.warn(`⚠️ Impossibile caricare giocatori per squadra ${squadra.numero}`);
-                                squadra.giocatori = [];
+                            // Aggiungi giocatori maschili
+                            for (let i = 1; i <= 7; i++) {
+                                const nomeGiocatore = squadra[`m${i}`];
+                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                    giocatori.push({
+                                        posizione: `M${i}`,
+                                        nome: nomeGiocatore.trim()
+                                    });
+                                }
                             }
-                        } catch (err) {
-                            console.warn(`⚠️ Errore caricamento giocatori squadra ${squadra.numero}:`, err);
-                            squadra.giocatori = [];
-                        }
+
+                            // Aggiungi giocatori femminili
+                            for (let i = 1; i <= 3; i++) {
+                                const nomeGiocatore = squadra[`f${i}`];
+                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                    giocatori.push({
+                                        posizione: `F${i}`,
+                                        nome: nomeGiocatore.trim()
+                                    });
+                                }
+                            }
+
+                            console.log(`🎯 Squadra ${squadra.colore} trasformata:`, {
+                                numero: squadra.numero,
+                                colore: squadra.colore,
+                                giocatori: giocatori.length
+                            });
+
+                            return {
+                                numero: squadra.numero,
+                                colore: squadra.colore,
+                                giocatori: giocatori
+                            };
+                        });
+
+                        console.log('✅ Squadre trasformate manualmente:', squadreDisponibili);
+                        return;
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                 }
 
-                squadreDisponibili = squadre;
-                console.log('✅ Squadre con giocatori caricate:', squadreDisponibili);
+                squadreDisponibili = await response.json();
+                console.log('✅ Squadre con giocatori caricate dal server:', squadreDisponibili);
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadre:', error);

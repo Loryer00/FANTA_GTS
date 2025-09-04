@@ -473,14 +473,14 @@
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
                     headerSquadre.innerHTML = `
-                <div class="badge-squadra" style="background-color: ${squadra1Color};">
-                    SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
-                </div>
-                <div class="vs-text">VS</div>
-                <div class="badge-squadra" style="background-color: ${squadra2Color};">
-                    SQUADRA ${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
-                </div>
-            `;
+    <div class="badge-squadra" style="background-color: ${squadra1Color};">
+        SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+    </div>
+    <div class="vs-text">VS</div>
+    <div class="badge-squadra" style="background-color: ${squadra2Color};">
+        SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
+    </div>
+`;
 
                     colonnaScontro.appendChild(headerSquadre);
 
