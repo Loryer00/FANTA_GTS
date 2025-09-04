@@ -1912,16 +1912,29 @@
                     let bordoColore = 'rgba(237, 137, 54, 0.3)';
                     let testoColore = '#ed8936';
 
-                    if (incontro.completato && incontro.squadra_vincente) {
-                        // Trova quale squadra ha vinto e usa il suo colore
-                        if (incontro.squadra_vincente == gruppo.squadra1?.numero) {
-                            sfondoColore = squadra1Color + '40'; // Colore squadra 1 + trasparenza
+                    if (incontro.completato) {
+                        // Verifica quale squadra ha vinto controllando i risultati dalla mappa selezioni
+                        const squadraVincente = coppieVincenti?.get(incontro.id) || coppieVincenti?.get(parseInt(incontro.id));
+
+                        if (squadraVincente === 'squadra1') {
+                            sfondoColore = squadra1Color + '40';
                             bordoColore = squadra1Color + '80';
                             testoColore = squadra1Color;
-                        } else if (incontro.squadra_vincente == gruppo.squadra2?.numero) {
-                            sfondoColore = squadra2Color + '40'; // Colore squadra 2 + trasparenza  
+                        } else if (squadraVincente === 'squadra2') {
+                            sfondoColore = squadra2Color + '40';
                             bordoColore = squadra2Color + '80';
                             testoColore = squadra2Color;
+                        } else {
+                            // Prova a usare i campi risultato dal database
+                            if (incontro.risultato_coppia1 === 'Vittoria') {
+                                sfondoColore = squadra1Color + '40';
+                                bordoColore = squadra1Color + '80';
+                                testoColore = squadra1Color;
+                            } else if (incontro.risultato_coppia2 === 'Vittoria') {
+                                sfondoColore = squadra2Color + '40';
+                                bordoColore = squadra2Color + '80';
+                                testoColore = squadra2Color;
+                            }
                         }
                     }
 
