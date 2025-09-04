@@ -1882,9 +1882,18 @@
                 // Crea box per questo scontro
                 const scontroBox = document.createElement('div');
                 scontroBox.className = 'scontro-overview-box';
+                scontroBox.setAttribute('data-scontro', `${gruppo.squadra1?.numero}_vs_${gruppo.squadra2?.numero}`);
 
                 const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                 const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
+
+                // 🆕 Calcola quale squadra ha vinto questo scontro
+                const coloreVincente = await calcolaSquadraVincenteScontro(gruppo.squadra1?.numero, gruppo.squadra2?.numero);
+                const backgroundScontro = coloreVincente ? `linear-gradient(135deg, ${coloreVincente}15, ${coloreVincente}25)` : 'rgba(255, 165, 0, 0.1)';
+                const borderScontro = coloreVincente || 'rgba(255, 165, 0, 0.3)';
+
+                scontroBox.style.background = backgroundScontro;
+                scontroBox.style.border = `2px solid ${borderScontro}`;
 
                 scontroBox.innerHTML = `
             <div class="scontro-header-mini">
@@ -2077,6 +2086,46 @@
 
             const coloreKey = nomeColore?.toLowerCase?.() || 'default';
             return colori[coloreKey] || '#4299e1';
+        }
+
+        // Calcola quale squadra ha vinto uno scontro
+        async function calcolaSquadraVincenteScontro(squadra1Num, squadra2Num) {
+            if (!turnoSelezionato) return null;
+
+            try {
+                const response = await fetch(`/api/risultati-scontri/${turnoSelezionato.id}`);
+                if (!response.ok) return null;
+
+                const risultati = await response.json();
+
+                // Filtra risultati per questo scontro specifico
+                const risultatiScontro = risultati.filter(r =>
+                    r.squadra1 === squadra1Num && r.squadra2 === squadra2Num
+                );
+
+                // Conta le vittorie
+                let vittorie_squadra1 = 0;
+                let vittorie_squadra2 = 0;
+
+                risultatiScontro.forEach(r => {
+                    if (r.vincitore === 1) vittorie_squadra1++;
+                    else if (r.vincitore === 2) vittorie_squadra2++;
+                });
+
+                // Determina squadra vincente
+                if (vittorie_squadra1 > vittorie_squadra2) {
+                    const squadra1 = squadreDisponibili.find(s => s.numero === squadra1Num);
+                    return squadra1 ? getTeamColor(squadra1.colore) : null;
+                } else if (vittorie_squadra2 > vittorie_squadra1) {
+                    const squadra2 = squadreDisponibili.find(s => s.numero === squadra2Num);
+                    return squadra2 ? getTeamColor(squadra2.colore) : null;
+                }
+
+                return null; // Pareggio o nessun risultato
+            } catch (error) {
+                console.error('Errore calcolo squadra vincente:', error);
+                return null;
+            }
         }
 
         function showNotification(message, type = 'success') {

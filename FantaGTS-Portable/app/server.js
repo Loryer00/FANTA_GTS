@@ -1763,6 +1763,36 @@ app.get('/api/vapid-public-key', (req, res) => {
     }
 });
 
+// API per ottenere risultati degli scontri per l'overview
+app.get('/api/risultati-scontri/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+
+        const result = await db.query(`
+            SELECT 
+                i.id as incontro_id,
+                i.squadra1, 
+                i.squadra2,
+                i.completato,
+                rd.posizione,
+                rd.vincitore,
+                sc1.colore as colore_squadra1,
+                sc2.colore as colore_squadra2
+            FROM incontri i
+            JOIN squadre_circolo sc1 ON i.squadra1 = sc1.numero
+            JOIN squadre_circolo sc2 ON i.squadra2 = sc2.numero
+            LEFT JOIN risultati_dettaglio rd ON i.id = rd.incontro_id
+            WHERE i.turno_id = $1
+            ORDER BY i.squadra1, i.squadra2, rd.posizione
+        `, [turnoId]);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API risultati-scontri:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API debug per pulire subscription
 app.get('/api/clean-subscriptions', async (req, res) => {
     try {
