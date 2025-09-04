@@ -1649,8 +1649,32 @@
 
         // Funzione per navigare a un incontro specifico nella pagina incontri
         function vaiAIncontroSpecifico(incontroId) {
+            // Trova l'incontro nei dati caricati per ottenere il turno
+            let turnoId = null;
+
+            if (incontriCaricati && incontriCaricati.length > 0) {
+                const incontro = incontriCaricati.find(i => i.id == incontroId);
+                if (incontro) {
+                    turnoId = incontro.turno_id;
+                }
+            }
+
+            // Fallback: usa turnoSelezionato se esiste
+            if (!turnoId && turnoSelezionato) {
+                turnoId = turnoSelezionato.id;
+            }
+
+            // Se ancora non abbiamo il turno, proviamo a ricavarlo dall'URL o da altre fonti
+            if (!turnoId) {
+                console.error('Impossibile determinare il turno per l\'incontro', incontroId);
+                showNotification('Errore: turno non identificato', 'error');
+                return;
+            }
+
             // Costruisci l'URL con l'hash per scrollare all'incontro
-            const url = `/incontri?turno=${turnoSelezionato.id}#incontro-${incontroId}`;
+            const url = `/incontri?turno=${turnoId}#incontro-${incontroId}`;
+
+            console.log(`🔗 Navigando a: ${url}`);
 
             // Apri in una nuova tab (più comodo per tornare indietro)
             window.open(url, '_blank');
