@@ -583,7 +583,7 @@
             document.getElementById('turnoSelezionatoNome').textContent = `${turno.nome_turno}`;
 
             // Carica incontri del turno
-            await caricaIncontriTurno(turno.id);
+            caricaIncontriTurno(turno.id);
 
             document.getElementById('incontriSection').style.display = 'block';
             document.getElementById('incontriSection').scrollIntoView({ behavior: 'smooth' });
