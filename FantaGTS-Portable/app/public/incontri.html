@@ -1086,7 +1086,7 @@
                 return;
             }
 
-            console.log(`[CONFERMA] Incontro ${incontroId} - Vincitore: ${squadraSelezionata}`);
+            console.log(`[CONFERMA SEMPLICE] Incontro ${incontroId} - Vincitore: ${squadraSelezionata}`);
 
             try {
                 // Trova l'incontro nei dati caricati
@@ -1095,26 +1095,58 @@
                     throw new Error('Dati incontro non trovati');
                 }
 
-                // Salva il vincitore anche nel sistema esistente per compatibilità
-                coppieVincenti.set(incontroId, squadraSelezionata);
+                // 🔧 NUOVO APPROCCIO: Prima creiamo i risultati dettaglio automaticamente
+                const posizioni = [incontroData.pos1, incontroData.pos2];
+                const squadraVincente = squadraSelezionata === 'squadra1' ? incontroData.squadra1 : incontroData.squadra2;
+                const numVincitore = squadraSelezionata === 'squadra1' ? 1 : 2;
 
-                // Chiamata API per completare l'incontro
-                const response = await fetch(`/api/completa-incontro/${incontroId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        squadra_vincente: squadraSelezionata === 'squadra1' ? incontroData.squadra1 : incontroData.squadra2
-                    })
+                console.log(`[AUTO-SETUP] Creazione risultati per posizioni: ${posizioni.join(', ')}`);
+
+                // Crea risultati per ogni posizione (automaticamente vince la squadra selezionata)
+                for (const posizione of posizioni) {
+                    const requestData = {
+                        incontro_id: incontroId,
+                        posizione: posizione,
+                        vincitore: numVincitore, // 1 = squadra1, 2 = squadra2
+                        giocatore_squadra1: `Giocatore ${posizione} Squadra ${incontroData.squadra1}`,
+                        giocatore_squadra2: `Giocatore ${posizione} Squadra ${incontroData.squadra2}`,
+                        punti_assegnati: turnoSelezionato?.punti_vittoria || 1
+                    };
+
+                    const response = await fetch('/api/set-vincitore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Errore impostazione ${posizione}: ${error.error}`);
+                    }
+
+                    console.log(`[OK] Vincitore ${posizione} impostato`);
+                }
+
+                // Ora completa l'incontro (dovrebbe funzionare perché abbiamo i risultati)
+                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
+                    method: 'POST'
                 });
 
-                if (response.ok) {
-                    // Aggiorna interfaccia locale
-                    aggiornaInterfacciaDopoConferma(incontroId);
-                    showNotification('Incontro completato con successo!', 'success');
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Errore durante il completamento');
+                if (!completaResponse.ok) {
+                    const error = await completaResponse.json();
+                    throw new Error(error.error);
                 }
+
+                // Successo!
+                const result = await completaResponse.json();
+                console.log('[SUCCESSO] Incontro completato:', result);
+
+                // Aggiorna interfaccia locale
+                aggiornaInterfacciaDopoConferma(incontroId);
+                showNotification(`Incontro completato! ${result.risultato}`, 'success');
+
+                // Salva anche nel sistema esistente per compatibilità
+                coppieVincenti.set(incontroId, squadraSelezionata);
 
             } catch (error) {
                 console.error('[ERRORE CONFERMA]', error);

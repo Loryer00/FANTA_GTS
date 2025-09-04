@@ -1731,117 +1731,18 @@
                     incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
                 });
 
-                // 6.5. Crea overview compatto
+                // 6.5. Crea SOLO overview compatto (rimuovi tutto il resto)
                 const overviewCompatto = creaOverviewCompatto(incontriRaggruppati);
                 container.appendChild(overviewCompatto);
 
-                // Divider tra overview e lista dettagliata
-                const divider = document.createElement('div');
-                divider.className = 'overview-divider';
-                divider.innerHTML = '<hr style="border: 1px solid rgba(255,255,255,0.2); margin: 30px 0;">';
-                container.appendChild(divider);
-
-                // 7. LAYOUT COMPATTO VERTICALE (come nell'immagine 2)
-                Object.keys(incontriRaggruppati).forEach((chiaveGruppo, index) => {
-                    const gruppo = incontriRaggruppati[chiaveGruppo];
-
-                    // Header dello scontro con colori squadre (formato compatto)
-                    const dividerHeader = document.createElement('div');
-                    dividerHeader.className = 'scontro-divider-header-compatto';
-
-                    const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
-                    const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
-
-                    dividerHeader.innerHTML = `
-                <div class="header-scontro-compatto" style="background: linear-gradient(90deg, ${squadra1Color} 0%, ${squadra1Color} 45%, #666 50%, ${squadra2Color} 55%, ${squadra2Color} 100%);">
-                    <div class="squadra-nome">SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase()}</div>
-                    <div class="vs-centrale-header">VS</div>
-                    <div class="squadra-nome">SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase()}</div>
-                </div>
-            `;
-                    container.appendChild(dividerHeader);
-
-                    // 8. Lista incontri in formato compatto verticale
-                    gruppo.incontri.forEach(incontro => {
-                        const incontroItem = document.createElement('div');
-                        incontroItem.className = 'incontro-item-compatto';
-                        incontroItem.setAttribute('data-incontro-id', incontro.id);
-
-                        // Ottieni nomi giocatori per le coppie
-                        const pos1Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos1);
-                        const pos2Squadra1 = gruppo.squadra1?.giocatori?.find(g => g.posizione === incontro.pos2);
-                        const pos1Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos1);
-                        const pos2Squadra2 = gruppo.squadra2?.giocatori?.find(g => g.posizione === incontro.pos2);
-
-                        console.log(`🎯 Debug giocatori per ${incontro.pos1}+${incontro.pos2}:`, {
-                            squadra1Pos1: pos1Squadra1?.nome,
-                            squadra1Pos2: pos2Squadra1?.nome,
-                            squadra2Pos1: pos1Squadra2?.nome,
-                            squadra2Pos2: pos2Squadra2?.nome
-                        });
-
-                        // Determina stato e azione
-                        let btnAzione, statoClasse, statoTesto;
-                        if (incontro.completato) {
-                            btnAzione = `<button class="btn-azione-compatto btn-reset" onclick="resetIncontroNuovo('${incontro.id}')">Reset</button>`;
-                            statoClasse = 'completato';
-                            statoTesto = '✓ Completato';
-                        } else {
-                            btnAzione = `<button class="btn-azione-compatto btn-conferma" disabled onclick="confermaIncontro('${incontro.id}')">Conferma</button>`;
-                            statoClasse = 'attesa';
-                            statoTesto = '⏳ In attesa';
-                        }
-
-                        // Determina vincitore
-                        let squadra1Vincente = false, squadra2Vincente = false;
-                        if (incontro.completato && incontro.squadra_vincente) {
-                            if (incontro.squadra_vincente == incontro.squadra1) {
-                                squadra1Vincente = true;
-                            } else if (incontro.squadra_vincente == incontro.squadra2) {
-                                squadra2Vincente = true;
-                            }
-                        }
-
-                        // HTML compatto verticale
-                        incontroItem.innerHTML = `
-                    <div class="incontro-header-line">
-                        ${btnAzione}
-                        <div class="coppia-info-compatta">
-                            <strong>${incontro.pos1} + ${incontro.pos2}</strong>
-                        </div>
-                        <div class="stato-badge-compatto ${statoClasse}">${statoTesto}</div>
-                    </div>
-                    <div class="giocatori-line">
-                        <div class="coppia-giocatori ${squadra1Vincente ? 'vincitore' : ''}" 
-                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
-                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra1?.nome || 'N/A'}
-                            <br>
-                            ${pos2Squadra1?.nome || 'N/A'}
-                        </div>
-                        <div class="vs-small">vs</div>
-                        <div class="coppia-giocatori ${squadra2Vincente ? 'vincitore' : ''}" 
-                             onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
-                             style="${incontro.completato ? 'pointer-events: none; opacity: 0.8;' : ''}">
-                            ${pos1Squadra2?.nome || 'N/A'}
-                            <br>
-                            ${pos2Squadra2?.nome || 'N/A'}
-                        </div>
-                    </div>
-                `;
-
-                        container.appendChild(incontroItem);
-                    });
-                });
-
-                // 9. Mostra la sezione incontri
+                // 7. Mostra la sezione incontri
                 const section = document.getElementById('incontriSection');
                 if (section) {
                     section.style.display = 'block';
                     section.scrollIntoView({ behavior: 'smooth' });
                 }
 
-                console.log('✅ Incontri visualizzati in formato compatto!');
+                console.log('✅ Overview compatta visualizzata!');
 
             } catch (error) {
                 console.error('❌ Errore visualizzazione incontri:', error);
