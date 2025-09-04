@@ -652,14 +652,14 @@
                         // Determina quale squadra ha vinto (se completato) e applica colorazione
                         let squadra1Vincente = false, squadra2Vincente = false;
                         let coloreVincente = '';
-                        if (incontro.completato && incontro.squadra_vincente) {
-                            console.log(`🔍 Debug incontro ${incontro.id}: squadra_vincente=${incontro.squadra_vincente}, squadra1=${incontro.squadra1}, squadra2=${incontro.squadra2}`);
+                        if (incontro.completato) {
+                            console.log(`🔍 Debug incontro ${incontro.id}: risultato_coppia1=${incontro.risultato_coppia1}, risultato_coppia2=${incontro.risultato_coppia2}`);
 
-                            if (incontro.squadra_vincente == incontro.squadra1) {
+                            if (incontro.risultato_coppia1 === 'Vittoria') {
                                 squadra1Vincente = true;
                                 coloreVincente = getTeamColor(gruppo.squadra1.colore);
                                 console.log(`✅ Squadra1 vincente: ${gruppo.squadra1.colore} = ${coloreVincente}`);
-                            } else if (incontro.squadra_vincente == incontro.squadra2) {
+                            } else if (incontro.risultato_coppia2 === 'Vittoria') {
                                 squadra2Vincente = true;
                                 coloreVincente = getTeamColor(gruppo.squadra2.colore);
                                 console.log(`✅ Squadra2 vincente: ${gruppo.squadra2.colore} = ${coloreVincente}`);
@@ -1311,17 +1311,10 @@
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
 
-                // 🔥 NUOVA LOGICA SEMPLICE: Usa direttamente i risultati dal database
-                let vincitore = false;
-                if (squadraAttr === 'squadra1' && incontro.risultato_coppia1 === 'Vittoria') {
-                    vincitore = true;
-                } else if (squadraAttr === 'squadra2' && incontro.risultato_coppia2 === 'Vittoria') {
-                    vincitore = true;
-                }
+                const vincitore = (squadraAttr === squadraVincente);
 
                 if (vincitore) {
-                    // Applica stile vincente 
-                    const coloreVincente = squadraAttr === 'squadra1' ? getTeamColor(squadra1.colore) : getTeamColor(squadra2.colore);
+                    // Applica stile vincente con colori PIÙ FORTI
                     coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
                     coppia.style.border = `3px solid ${coloreVincente} !important`;
                     coppia.style.color = '#ffffff !important';
@@ -1329,7 +1322,7 @@
                     coppia.style.textShadow = '0 2px 4px rgba(0,0,0,0.8) !important';
                     coppia.style.boxShadow = `0 0 20px ${coloreVincente}90 !important`;
                 } else {
-                    // Stile perdente
+                    // Stile perdente PIÙ EVIDENTE
                     coppia.style.opacity = '0.4 !important';
                     coppia.style.filter = 'grayscale(60%) !important';
                     coppia.style.background = 'rgba(255,255,255,0.02) !important';
@@ -1338,6 +1331,27 @@
                 // Disabilita il click (incontro completato)
                 coppia.style.pointerEvents = 'none';
             });
+
+            // Aggiorna stato del blocco
+            blocco.setAttribute('data-stato', 'completato');
+
+            // Cambia pulsante da "Conferma" a "Reset"
+            const rigaInfo = blocco.querySelector('.riga-info');
+            const btnAzione = rigaInfo.querySelector('.btn-azione');
+            btnAzione.className = 'btn-azione btn-reset';
+            btnAzione.textContent = 'Reset';
+            btnAzione.disabled = false;
+            btnAzione.setAttribute('onclick', `resetIncontroNuovo('${incontroId}')`);
+
+            // Aggiorna stato da "⏳ In attesa" a "✓ Completato"
+            const statoElement = rigaInfo.querySelector('.stato-incontro');
+            statoElement.className = 'stato-incontro completato';
+            statoElement.textContent = '✓ Completato';
+
+            // Aggiorna anche l'overview se siamo in gestione-incontri
+            if (typeof aggiornaOverviewDopoConferma === 'function') {
+                aggiornaOverviewDopoConferma(incontroId, squadraVincente);
+            }
         }
 
         // FUNZIONE: Reset incontro (nuovo sistema)
