@@ -317,6 +317,20 @@
             .notification.error {
                 background: #f56565;
             }
+
+        @keyframes highlight {
+            0% {
+                background-color: rgba(66, 153, 225, 0.3);
+            }
+
+            50% {
+                background-color: rgba(66, 153, 225, 0.6);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
     </style>
 </head>
 <body>
@@ -367,6 +381,59 @@
             caricaSquadre();
             caricaTurni();
         });
+
+        // Funzione per gestire parametri URL
+        function gestisciParametriURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const turnoIdDaURL = urlParams.get('turno');
+
+            if (turnoIdDaURL) {
+                console.log('🎯 Turno specificato nell\'URL:', turnoIdDaURL);
+                // Attendiamo che i turni siano caricati prima di selezionare
+                setTimeout(() => selezionaTurnoAutomatico(turnoIdDaURL), 500);
+            }
+        }
+
+        // Funzione per selezionare automaticamente il turno dall'URL
+        async function selezionaTurnoAutomatico(turnoId) {
+            const turno = turni.find(t => t.id == turnoId);
+            if (turno) {
+                console.log('✅ Turno trovato, selezione automatica:', turno);
+
+                // Evidenzia il bottone del turno
+                const turnoBtn = [...document.querySelectorAll('.turno-btn')].find(btn =>
+                    btn.textContent.includes(`Turno ${turno.turno_numero}`)
+                );
+                if (turnoBtn) {
+                    document.querySelectorAll('.turno-btn').forEach(btn => btn.classList.remove('active'));
+                    turnoBtn.classList.add('active');
+                }
+
+                // Seleziona il turno
+                turnoSelezionato = turno;
+                document.getElementById('turnoSelezionatoNome').textContent = `${turno.nome_turno}`;
+
+                // Carica gli incontri del turno
+                await caricaIncontriTurno(turno.id);
+
+                document.getElementById('incontriSection').style.display = 'block';
+                document.getElementById('incontriSection').scrollIntoView({ behavior: 'smooth' });
+
+                // Gestisci hash per incontro specifico
+                if (window.location.hash) {
+                    setTimeout(() => {
+                        const elementoTarget = document.querySelector(window.location.hash);
+                        if (elementoTarget) {
+                            elementoTarget.scrollIntoView({ behavior: 'smooth' });
+                            // Evidenzia l'incontro
+                            elementoTarget.style.animation = 'highlight 2s ease-in-out';
+                        }
+                    }, 1000);
+                }
+            } else {
+                console.warn('⚠️ Turno non trovato per ID:', turnoId);
+            }
+        }
 
         // Carica squadre del circolo
         async function caricaSquadre() {
@@ -465,6 +532,9 @@
                     btn.onclick = () => selezionaTurno(turno);
                     container.appendChild(btn);
                 });
+
+                // AGGIUNGI QUESTA RIGA:
+                gestisciParametriURL();
 
             } catch (error) {
                 console.error('Errore caricamento turni:', error);
