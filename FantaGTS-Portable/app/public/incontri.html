@@ -520,21 +520,7 @@
                         };
                     }
 
-                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
-                    // Debug: controlla se le squadre hanno i giocatori
-                    Object.keys(incontriRaggruppati).forEach(chiave => {
-                        const gruppo = incontriRaggruppati[chiave];
-                        console.log(`🎯 Debug squadre per ${chiave}:`, {
-                            squadra1: {
-                                colore: gruppo.squadra1?.colore,
-                                giocatori: gruppo.squadra1?.giocatori?.length || 0
-                            },
-                            squadra2: {
-                                colore: gruppo.squadra2?.colore,
-                                giocatori: gruppo.squadra2?.giocatori?.length || 0
-                            }
-                        });
-                    });
+                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);                    
                 });
 
                 // Crea il nuovo layout a colonne
@@ -1081,12 +1067,6 @@
                 showNotification('Seleziona prima una coppia vincente!', 'error');
                 return;
             }
-
-            if (!confirm('Confermare questo incontro? Non sarà più possibile modificarlo senza reset.')) {
-                return;
-            }
-
-            console.log(`[CONFERMA SEMPLICE] Incontro ${incontroId} - Vincitore: ${squadraSelezionata}`);
 
             try {
                 // Trova l'incontro nei dati caricati

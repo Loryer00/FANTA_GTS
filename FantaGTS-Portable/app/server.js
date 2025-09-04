@@ -1921,21 +1921,82 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
 
-        // Elimina tutti i risultati dettaglio
+        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti...`);
+
+        // 1. Prima di eliminare i risultati, salviamo i punti da togliere
+        const risultatiDaRimuovere = await db.query(
+            "SELECT * FROM risultati_dettaglio WHERE incontro_id = $1",
+            [incontroId]
+        );
+
+        console.log(`📋 Trovati ${risultatiDaRimuovere.rows.length} risultati da rimuovere:`, risultatiDaRimuovere.rows);
+
+        // 2. Per ogni risultato, togliamo i punti dalla tabella slots
+        for (const risultato of risultatiDaRimuovere.rows) {
+            if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
+
+                // Trova l'incontro per ottenere le squadre
+                const incontroResult = await db.query(`
+                    SELECT i.squadra1, i.squadra2 
+                    FROM incontri i 
+                    WHERE i.id = $1`, [incontroId]
+                );
+
+                if (incontroResult.rows.length > 0) {
+                    const incontro = incontroResult.rows[0];
+
+                    // Determina quale squadra ha vinto
+                    const squadraVincitrice = risultato.vincitore === 1 ?
+                        incontro.squadra1 : incontro.squadra2;
+
+                    // Trova il colore della squadra vincitrice
+                    const squadreResult = await db.query(
+                        "SELECT colore FROM squadre_circolo WHERE numero = $1",
+                        [squadraVincitrice]
+                    );
+
+                    if (squadreResult.rows.length > 0) {
+                        const coloreSquadra = squadreResult.rows[0].colore;
+                        const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
+
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
+
+                        // TOGLIE i punti (usa sottrazione invece di addizione)
+                        const updateResult = await db.query(
+                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
+                            [risultato.punti_assegnati, slotId]
+                        );
+
+                        if (updateResult.rows.length > 0) {
+                            console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
+                        } else {
+                            console.warn(`⚠️ Slot ${slotId} non trovato!`);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Ora elimina i risultati dettaglio
         await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
 
-        // Reset stato incontro
+        // 4. Reset stato incontro - SENZA squadra_vincente
         await db.query(`UPDATE incontri 
             SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
             WHERE id = $1`, [incontroId]);
 
-        res.json({ message: 'Incontro resettato con successo' });
+        console.log(`✅ Incontro ${incontroId} resettato completamente`);
+
+        res.json({
+            message: 'Incontro resettato con successo',
+            punti_rimossi: risultatiDaRimuovere.rows.length
+        });
+
     } catch (err) {
-        console.error('Errore API reset-incontro:', err);
+        console.error('❌ Errore API reset-incontro:', err);
         res.status(500).json({ error: err.message });
     }
 });
-
 // API per resettare subscription push
 app.post('/api/reset-push-subscriptions', async (req, res) => {
     try {
