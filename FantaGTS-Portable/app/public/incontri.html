@@ -1304,18 +1304,22 @@
                 const vincitore = (squadraAttr === squadraVincente);
 
                 if (vincitore) {
-                    // Applica stile vincente con colori PIÙ FORTI
-                    coppia.style.background = `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important`;
-                    coppia.style.border = `3px solid ${coloreVincente} !important`;
-                    coppia.style.color = '#ffffff !important';
-                    coppia.style.fontWeight = 'bold !important';
-                    coppia.style.textShadow = '0 2px 4px rgba(0,0,0,0.8) !important';
-                    coppia.style.boxShadow = `0 0 20px ${coloreVincente}90 !important`;
+                    // Applica stile vincente - RIMUOVI !important e usa setProperty
+                    coppia.style.setProperty('background', `linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90)`, 'important');
+                    coppia.style.setProperty('border', `3px solid ${coloreVincente}`, 'important');
+                    coppia.style.setProperty('color', '#ffffff', 'important');
+                    coppia.style.setProperty('font-weight', 'bold', 'important');
+                    coppia.style.setProperty('text-shadow', '0 2px 4px rgba(0,0,0,0.8)', 'important');
+                    coppia.style.setProperty('box-shadow', `0 0 20px ${coloreVincente}90`, 'important');
+
+                    console.log(`✅ Coppia vincente colorata: ${squadraAttr} con ${coloreVincente}`);
                 } else {
-                    // Stile perdente PIÙ EVIDENTE
-                    coppia.style.opacity = '0.4 !important';
-                    coppia.style.filter = 'grayscale(60%) !important';
-                    coppia.style.background = 'rgba(255,255,255,0.02) !important';
+                    // Stile perdente
+                    coppia.style.setProperty('opacity', '0.4', 'important');
+                    coppia.style.setProperty('filter', 'grayscale(60%)', 'important');
+                    coppia.style.setProperty('background', 'rgba(255,255,255,0.02)', 'important');
+
+                    console.log(`🔸 Coppia perdente sfumata: ${squadraAttr}`);
                 }
 
                 // Disabilita il click (incontro completato)
