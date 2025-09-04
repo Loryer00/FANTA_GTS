@@ -674,18 +674,18 @@
                     </div>
                     <div class="confronto-coppie">
                         <div class="coppia-box ${squadra1Vincente ? 'vincitore' : ''}" 
-     data-squadra="squadra1" 
-     onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
-     style="${incontro.completato ? (squadra1Vincente ?
+                                data-squadra="squadra1" 
+                                onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
+                                style="${incontro.completato ? (squadra1Vincente ?
                                 `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
                                 'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
-    ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
-</div>
+                                 ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
+                        </div>
                         <div class="vs-centrale">vs</div>
                         <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
      data-squadra="squadra2" 
      onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
-     style="${incontro.completato ? (squadra1Vincente ?
+     style="${incontro.completato ? (squadra2Vincente ?
                                 `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
                                 'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
     ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
