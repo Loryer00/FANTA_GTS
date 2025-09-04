@@ -1724,13 +1724,17 @@
                 console.log('🔄 Caricamento incontri per turno ID:', turnoId);
 
                 // Memorizza il turno selezionato per il link
-                const turnoResponse = await fetch(`/api/turni/${turnoId}`);
-                if (turnoResponse.ok) {
-                    turnoSelezionato = await turnoResponse.json();
-                } else {
+                try {
+                    const turnoResponse = await fetch(`/api/turno-statistiche/${turnoId}`);
+                    if (turnoResponse.ok) {
+                        const turnoStats = await turnoResponse.json();
+                        turnoSelezionato = turnoStats.turno;
+                        console.log('🎯 Turno selezionato memorizzato:', turnoSelezionato);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Errore caricamento turno per il link:', error);
                     turnoSelezionato = { id: turnoId, turno_numero: turnoId, nome_turno: `Turno ${turnoId}` };
                 }
-                console.log('🎯 Turno selezionato memorizzato:', turnoSelezionato);
 
                 // 1. Fetch incontri del turno con JOIN per ottenere i dati delle coppie
                 const response = await fetch(`/api/incontri-turno/${turnoId}`);
