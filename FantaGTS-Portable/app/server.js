@@ -80,7 +80,7 @@ const db = new Pool({
     }
 });
 
-console.log('🔍 Connessione PostgreSQL...');
+console.log('🔍 Connessione PostgreSQL...'); 
 console.log('🔍 Environment check:');
 console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
 console.log('  DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
