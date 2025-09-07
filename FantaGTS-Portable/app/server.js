@@ -67,8 +67,7 @@ console.log('🔍 Directory corrente:', __dirname);
 // Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL ||
-    'postgresql://neondb_owner:npg_fJ9i6TBrXZCd@ep-empty-credit-a2argvbb-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+    process.env.POSTGRES_URL;
 
 const db = new Pool({
     connectionString: connectionString,
