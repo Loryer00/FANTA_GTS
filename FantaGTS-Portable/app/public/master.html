@@ -953,6 +953,20 @@
             }
         }
 
+        // Funzione per aggiornare info partecipanti
+        function updateParticipantsInfo(data) {
+            try {
+                if (data && data.partecipanti) {
+                    const connessi = data.partecipanti.filter(p => p.stato === 'connesso').length;
+                    document.getElementById('statConnessi').textContent = connessi;
+
+                    console.log(`🔍 Debug partecipanti: {totaleConnessi: ${connessi}, partecipantiFiltrati: ${data.partecipanti.length}, dettaglio: ${JSON.stringify(data.partecipanti.map(p => ({ nome: p.nome, stato: p.stato })))}}`);
+                }
+            } catch (error) {
+                console.error('Errore aggiornamento partecipanti:', error);
+            }
+        }
+
         // Funzione per testare la connessione
         function testConnection() {
             console.log('🔄 Test connessione - Socket.io disabilitato');
@@ -1182,7 +1196,7 @@
                     const response = await fetch('/api/partecipanti');
                     if (response.ok) {
                         const data = await response.json();
-                        updateParticipantsDisplay(data);
+                        updateParticipantsInfo(data); // CORRETTO il nome della funzione
                     }
                 } catch (error) {
                     console.log('⚠️ Errore polling:', error.message);
@@ -1192,10 +1206,9 @@
 
         // Chiama il polling al posto di Socket.io
         document.addEventListener('DOMContentLoaded', () => {
-            // initializeSocket(); // COMMENTATO
-            startHttpPolling(); // NUOVO
             caricaStatoIniziale();
             setupEventListeners();
+            startHttpPolling(); // SPOSTATO DOPO per evitare errori di inizializzazione
         });
 
         function updateServerStatus(connected) {
