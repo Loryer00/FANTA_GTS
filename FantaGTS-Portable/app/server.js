@@ -75,7 +75,13 @@ const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
     process.env.POSTGRES_URL;
 
-console.log('🔍 Database URL presente:', !!process.env.DATABASE_URL);
+console.log('🔐 Database URL presente:', !!connectionString);
+console.log('🔐 Database tipo:', connectionString ? 'PostgreSQL' : 'Non configurato');
+
+if (!connectionString) {
+    console.error('❌ ERRORE: Nessuna stringa di connessione database trovata!');
+    console.error('Assicurati di aver configurato DATABASE_URL su Vercel');
+}
 
 const db = new Pool({
     connectionString: connectionString,
@@ -1603,6 +1609,11 @@ app.get('/api/aste-round/:round', async (req, res) => {
 // Ottieni classifica generale
 app.get('/api/classifica', async (req, res) => {
     try {
+        // Verifica connessione database
+        if (!db) {
+            return res.status(500).json({ error: 'Database non configurato' });
+        }
+
         const result = await db.query(`SELECT 
             p.id, p.nome, p.crediti, 
             COUNT(a.id) as giocatori_totali,
@@ -1611,8 +1622,9 @@ app.get('/api/classifica', async (req, res) => {
             FROM partecipanti_fantagts p 
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true
             LEFT JOIN slots s ON a.slot_id = s.id 
+            WHERE p.sessione_id = $1
             GROUP BY p.id, p.nome, p.crediti 
-            ORDER BY punti_totali DESC, crediti_spesi ASC`);
+            ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -3087,6 +3099,19 @@ function getLocalIP() {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
+// Test connessione database
+async function testDatabaseConnection() {
+    try {
+        console.log('🔍 Test connessione database...');
+        const result = await db.query('SELECT NOW()');
+        console.log('✅ Database connesso:', result.rows[0].now);
+        return true;
+    } catch (error) {
+        console.error('❌ Errore connessione database:', error.message);
+        return false;
+    }
+}
+
 // Inizializza database prima di avviare il server
 initializeDatabase().then(async () => {
     await updateDatabaseSchema();
@@ -3099,10 +3124,10 @@ initializeDatabase().then(async () => {
         if (process.env.NODE_ENV === 'production') {
             console.log(`🌐 Production URL disponibile`);
             console.log(`🎮 Master: /master`);
-            console.log(`⚙️  Setup: /setup`);
+            console.log(`⚙️ Setup: /setup`);
         } else {
             console.log(`📱 Client: http://localhost:${PORT}`);
-            console.log(`⚙️  Setup: http://localhost:${PORT}/setup`);
+            console.log(`⚙️ Setup: http://localhost:${PORT}/setup`);
             console.log(`🎮 Master: http://localhost:${PORT}/master`);
             console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
         }
