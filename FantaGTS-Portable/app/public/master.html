@@ -1012,15 +1012,56 @@
             caricaStatoIniziale();
             setupEventListeners();
 
-            // Prova Socket.io, se fallisce usa polling
+            // Prova Socket.io con timeout automatico
+            trySocketWithFallback();
+        });
+
+        function trySocketWithFallback() {
+            console.log('🔄 Tentativo connessione Socket.io...');
+
+            let socketConnected = false;
+            let fallbackTimer;
+
             try {
                 initializeSocket();
-                console.log('✅ Socket.io inizializzato');
+
+                // Timeout: se dopo 3 secondi non si connette, usa polling
+                fallbackTimer = setTimeout(() => {
+                    if (!socketConnected) {
+                        console.log('⚠️ Socket.io non si connette entro 3s, passo a polling HTTP');
+                        if (socket) {
+                            socket.disconnect();
+                            socket = null;
+                        }
+                        startHttpPolling();
+                    }
+                }, 3000);
+
+                // Se socket si connette, cancella il fallback
+                if (socket) {
+                    socket.on('connect', () => {
+                        socketConnected = true;
+                        clearTimeout(fallbackTimer);
+                        console.log('✅ Socket.io connesso con successo');
+                    });
+
+                    socket.on('connect_error', (error) => {
+                        if (!socketConnected) {
+                            console.log('❌ Errore Socket.io, passo a polling:', error.message);
+                            clearTimeout(fallbackTimer);
+                            socket.disconnect();
+                            socket = null;
+                            startHttpPolling();
+                        }
+                    });
+                }
+
             } catch (error) {
-                console.log('⚠️ Socket.io fallito, uso polling HTTP:', error.message);
+                console.log('❌ Errore inizializzazione Socket.io:', error.message);
+                clearTimeout(fallbackTimer);
                 startHttpPolling();
             }
-        });
+        }
 
         // Connessione WebSocket
         function initializeSocket() {
@@ -1197,18 +1238,21 @@
         function startHttpPolling() {
             console.log('🔄 Avvio polling HTTP alternativo...');
 
+            // Aggiorna subito lo status come disconnesso
+            updateServerStatus(false);
+
             setInterval(async () => {
                 try {
                     // Controlla stato partecipanti
                     const response = await fetch('/api/partecipanti');
                     if (response.ok) {
                         const data = await response.json();
-                        updateParticipantsInfo(data); // CORRETTO il nome della funzione
+                        updateParticipantsInfo(data);
                     }
                 } catch (error) {
                     console.log('⚠️ Errore polling:', error.message);
                 }
-            }, 5000); // Ogni 5 secondi
+            }, 5000);
         }
 
         function updateServerStatus(connected) {
