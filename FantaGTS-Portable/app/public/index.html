@@ -672,14 +672,45 @@
                 return;
             }
 
-            socket = io();
+            socket = io({
+                transports: ['websocket', 'polling'],
+                upgrade: true,
+                rememberUpgrade: false,
+                timeout: 20000,
+                forceNew: true,
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5,
+                maxReconnectionAttempts: 5
+            });
 
             socket.on('connect', () => {
                 console.log('Connesso al server via WebSocket');
+                connectionPersistence.reconnectAttempts = 0;
+                connectionPersistence.isReconnecting = false;
             });
 
-            socket.on('disconnect', () => {
-                console.log('Disconnesso dal server');
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnesso dal server:', reason);
+                if (reason === 'io server disconnect') {
+                    // Il server ha forzato la disconnessione, riconnetti manualmente
+                    socket.connect();
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Errore connessione Socket.io:', error);
+                connectionPersistence.reconnectAttempts++;
+
+                if (connectionPersistence.reconnectAttempts > connectionPersistence.maxReconnectAttempts) {
+                    console.log('Massimo numero di tentativi raggiunto, arrendo');
+                    return;
+                }
+
+                setTimeout(() => {
+                    console.log(`Tentativo riconnessione ${connectionPersistence.reconnectAttempts}...`);
+                    socket.connect();
+                }, 2000 * connectionPersistence.reconnectAttempts);
             });
 
             socket.on('reset_bid_state', (data) => {
@@ -1293,6 +1324,26 @@
                 };
             }
         }
+
+        // Funzione per testare la connessione
+        function testConnection() {
+            if (!socket) {
+                console.log('Socket non inizializzato');
+                return false;
+            }
+
+            if (socket.connected) {
+                console.log('✅ Socket connesso correttamente');
+                return true;
+            } else {
+                console.log('❌ Socket non connesso, tentativo riconnessione...');
+                socket.connect();
+                return false;
+            }
+        }
+
+        // Chiama questa funzione periodicamente per verificare lo stato
+        setInterval(testConnection, 30000); // Ogni 30 secondi
 
         // Utility per convertire VAPID key
         function urlBase64ToUint8Array(base64String) {

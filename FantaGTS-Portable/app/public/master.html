@@ -953,6 +953,26 @@
             }
         }
 
+        // Funzione per testare la connessione
+        function testConnection() {
+            if (!socket) {
+                console.log('Socket non inizializzato');
+                return false;
+            }
+
+            if (socket.connected) {
+                console.log('✅ Socket connesso correttamente');
+                return true;
+            } else {
+                console.log('❌ Socket non connesso, tentativo riconnessione...');
+                socket.connect();
+                return false;
+            }
+        }
+
+        // Chiama questa funzione periodicamente per verificare lo stato
+        setInterval(testConnection, 30000); // Ogni 30 secondi
+
         // NUOVA FUNZIONE: Aggiorna display ultimo round
         function updateLastRoundResults(round, risultati) {
             let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
@@ -993,7 +1013,17 @@
 
         // Connessione WebSocket
         function initializeSocket() {
-            socket = io();
+            socket = io({
+                transports: ['websocket', 'polling'],
+                upgrade: true,
+                rememberUpgrade: false,
+                timeout: 20000,
+                forceNew: true,
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5,
+                maxReconnectionAttempts: 5
+            });
 
             socket.on('connect', () => {
                 showNotification('Connesso al server', 'success');
@@ -1006,9 +1036,18 @@
                 });
             });
 
-            socket.on('disconnect', () => {
+            socket.on('disconnect', (reason) => {
                 showNotification('Disconnesso dal server', 'error');
                 updateServerStatus(false);
+
+                if (reason === 'io server disconnect') {
+                    socket.connect();
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Errore connessione Master:', error);
+                showNotification('Errore connessione al server', 'error');
             });
 
             socket.on('registered', (data) => {
