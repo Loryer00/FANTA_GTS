@@ -672,45 +672,37 @@
                 return;
             }
 
+            // Configurazione ottimizzata per Vercel
             socket = io({
-                transports: ['websocket', 'polling'],
-                upgrade: true,
-                rememberUpgrade: false,
+                transports: ['polling'], // Solo polling per Vercel
+                upgrade: false, // Non tentare upgrade
                 timeout: 20000,
-                forceNew: true,
+                forceNew: false,
                 reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5,
-                maxReconnectionAttempts: 5
+                reconnectionDelay: 2000,
+                reconnectionAttempts: 5
             });
 
             socket.on('connect', () => {
-                console.log('Connesso al server via WebSocket');
+                console.log('✅ Socket connesso via polling');
                 connectionPersistence.reconnectAttempts = 0;
                 connectionPersistence.isReconnecting = false;
             });
 
             socket.on('disconnect', (reason) => {
-                console.log('Disconnesso dal server:', reason);
-                if (reason === 'io server disconnect') {
-                    // Il server ha forzato la disconnessione, riconnetti manualmente
-                    socket.connect();
-                }
+                console.log('❌ Socket disconnesso:', reason);
             });
 
             socket.on('connect_error', (error) => {
-                console.error('Errore connessione Socket.io:', error);
+                console.error('❌ Errore connessione:', error);
                 connectionPersistence.reconnectAttempts++;
 
-                if (connectionPersistence.reconnectAttempts > connectionPersistence.maxReconnectAttempts) {
-                    console.log('Massimo numero di tentativi raggiunto, arrendo');
-                    return;
+                if (connectionPersistence.reconnectAttempts < 5) {
+                    setTimeout(() => {
+                        console.log(`🔄 Riconnessione tentativo ${connectionPersistence.reconnectAttempts}...`);
+                        socket.connect();
+                    }, 3000);
                 }
-
-                setTimeout(() => {
-                    console.log(`Tentativo riconnessione ${connectionPersistence.reconnectAttempts}...`);
-                    socket.connect();
-                }, 2000 * connectionPersistence.reconnectAttempts);
             });
 
             socket.on('reset_bid_state', (data) => {

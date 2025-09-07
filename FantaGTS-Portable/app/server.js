@@ -17,10 +17,11 @@ const io = socketIo(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['polling', 'websocket'], // Nota: polling prima
+    transports: ['polling', 'websocket'], // Polling PRIMA per Vercel
     allowEIO3: true,
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    maxHttpBufferSize: 1e6
 });
 
 // Configurazione Web Push - VERSIONE FINALE

@@ -1013,19 +1013,20 @@
 
         // Connessione WebSocket
         function initializeSocket() {
+            // Configurazione più robusta per Vercel
             socket = io({
-                transports: ['websocket', 'polling'],
-                upgrade: true,
-                rememberUpgrade: false,
+                transports: ['polling'], // Solo polling per Vercel
+                upgrade: false, // Non tentare upgrade a WebSocket
                 timeout: 20000,
-                forceNew: true,
+                forceNew: false,
                 reconnection: true,
-                reconnectionDelay: 1000,
+                reconnectionDelay: 2000,
                 reconnectionAttempts: 5,
-                maxReconnectionAttempts: 5
+                autoConnect: true
             });
 
             socket.on('connect', () => {
+                console.log('✅ Socket connesso (polling)');
                 showNotification('Connesso al server', 'success');
                 updateServerStatus(true);
 
@@ -1037,17 +1038,22 @@
             });
 
             socket.on('disconnect', (reason) => {
+                console.log('❌ Socket disconnesso:', reason);
                 showNotification('Disconnesso dal server', 'error');
                 updateServerStatus(false);
-
-                if (reason === 'io server disconnect') {
-                    socket.connect();
-                }
             });
 
             socket.on('connect_error', (error) => {
-                console.error('Errore connessione Master:', error);
+                console.error('❌ Errore connessione Socket.io:', error);
                 showNotification('Errore connessione al server', 'error');
+
+                // Riprova dopo 5 secondi
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        console.log('🔄 Tentativo riconnessione...');
+                        socket.connect();
+                    }
+                }, 5000);
             });
 
             socket.on('registered', (data) => {
