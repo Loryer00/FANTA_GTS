@@ -64,43 +64,17 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Database PostgreSQL
-const connectionString = process.env.DATABASE_URL ||
-    process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL;
+// Database PostgreSQL - HARDCODED TEMPORANEO
+const connectionString = 'postgresql://neondb_owner:npg_W2Gm0ePQDjFc@ep-empty-credit-a2argvbb-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
-// Debug della connection string
-console.log('🔍 Database URL presente:', !!process.env.DATABASE_URL);
-console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔍 Using hardcoded connection string');
 
 const db = new Pool({
     connectionString: connectionString,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
 });
 
-console.log('🔍 Connessione PostgreSQL...'); 
-console.log('🔍 Environment check:');
-console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
-console.log('  DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
-console.log('  NODE_ENV:', process.env.NODE_ENV);
-
-if (process.env.DATABASE_URL) {
-    console.log('🔍 Connection string preview:');
-    console.log('  First 30 chars:', process.env.DATABASE_URL.substring(0, 30));
-    console.log('  Last 20 chars:', process.env.DATABASE_URL.substring(process.env.DATABASE_URL.length - 20));
-
-    // Cerca la parola "base" nella connection string
-    if (process.env.DATABASE_URL.includes('base')) {
-        console.log('❌ FOUND "base" in connection string!');
-        console.log('  Full string:', process.env.DATABASE_URL);
-    }
-} else {
-    console.log('❌ DATABASE_URL is null/undefined');
-}
-
-console.log('🔍 Final connectionString:', connectionString?.substring(0, 50) || 'NULL');
+console.log('🔍 Connessione PostgreSQL...');
 
 // Inizializza database
 async function initializeDatabase() {
