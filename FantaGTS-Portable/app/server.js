@@ -17,16 +17,10 @@ const io = socketIo(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'], // Nota: polling prima
     allowEIO3: true,
     pingTimeout: 60000,
-    pingInterval: 25000,
-    upgradeTimeout: 30000,
-    maxHttpBufferSize: 1e6,
-    allowRequest: (req, callback) => {
-        // Permetti tutte le richieste per ora
-        callback(null, true);
-    }
+    pingInterval: 25000
 });
 
 // Configurazione Web Push - VERSIONE FINALE
