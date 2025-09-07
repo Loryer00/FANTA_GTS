@@ -64,10 +64,14 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL; 
+    process.env.POSTGRES_URL;
+
+console.log('🔍 Database connection string:', connectionString ? 'CONFIGURATO' : 'NON CONFIGURATO');
+if (!connectionString) {
+    console.error('❌ ERRORE: Nessuna variabile database configurata!');
+}
 
 const db = new Pool({
     connectionString: connectionString,
