@@ -81,6 +81,26 @@ const db = new Pool({
 });
 
 console.log('🔍 Connessione PostgreSQL...');
+console.log('🔍 Environment check:');
+console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('  DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+
+if (process.env.DATABASE_URL) {
+    console.log('🔍 Connection string preview:');
+    console.log('  First 30 chars:', process.env.DATABASE_URL.substring(0, 30));
+    console.log('  Last 20 chars:', process.env.DATABASE_URL.substring(process.env.DATABASE_URL.length - 20));
+
+    // Cerca la parola "base" nella connection string
+    if (process.env.DATABASE_URL.includes('base')) {
+        console.log('❌ FOUND "base" in connection string!');
+        console.log('  Full string:', process.env.DATABASE_URL);
+    }
+} else {
+    console.log('❌ DATABASE_URL is null/undefined');
+}
+
+console.log('🔍 Final connectionString:', connectionString?.substring(0, 50) || 'NULL');
 
 // Inizializza database
 async function initializeDatabase() {
