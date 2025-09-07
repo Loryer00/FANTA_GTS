@@ -1027,7 +1027,7 @@
                 transports: ['polling'],
                 upgrade: false,
                 timeout: 20000,
-                forceNew: false,  // CAMBIATO da true a false
+                forceNew: false,
                 reconnection: true,
                 reconnectionDelay: 5000,
                 reconnectionAttempts: 5,
@@ -1110,10 +1110,10 @@
                 }, 2000);
             });
 
-                // NUOVO: Seleziona automaticamente il prossimo round disponibile
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-                const currentIndex = rounds.indexOf(data.round);
-                let nextRoundSelected = false;
+            // NUOVO: Seleziona automaticamente il prossimo round disponibile
+            const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+            const currentIndex = rounds.indexOf(data?.round || '');
+            let nextRoundSelected = false;
 
                 // Cerca il prossimo round disponibile
                 for (let i = currentIndex + 1; i < rounds.length; i++) {
