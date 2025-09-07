@@ -17,11 +17,14 @@ const io = socketIo(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['polling', 'websocket'], // Polling PRIMA per Vercel
+    transports: ['polling'], // SOLO polling per Vercel
     allowEIO3: true,
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    maxHttpBufferSize: 1e6
+    pingTimeout: 30000,      // Ridotto
+    pingInterval: 10000,     // Ridotto
+    maxHttpBufferSize: 1e6,
+    // Configurazione specifica Vercel
+    allowUpgrades: false,
+    cookie: false
 });
 
 // Configurazione Web Push - VERSIONE FINALE
@@ -64,7 +67,12 @@ try {
     webPushConfigured = false;
 }
 
-// Middleware
+// Gestione icone PWA mancanti
+app.get('/icons/icon-:size.png', (req, res) => {
+    console.log(`⚠️ Icona mancante richiesta: ${req.url}`);
+    res.status(404).send('Icona non trovata');
+});
+
 app.use(express.static('public'));
 app.use(express.json());
 
@@ -86,6 +94,23 @@ if (!connectionString) {
 const db = new Pool({
     connectionString: connectionString,
     ssl: { rejectUnauthorized: false }
+});
+
+// Gestione errori globale database
+db.on('error', (err) => {
+    console.error('❌ Errore inaspettato dal pool database:', err);
+    if (err.code === 'ECONNRESET') {
+        console.log('🔄 Tentativo riconnessione database...');
+    }
+});
+
+// Middleware per gestione errori API
+app.use((err, req, res, next) => {
+    console.error('❌ Errore middleware:', err.stack);
+    res.status(500).json({
+        error: 'Errore interno del server',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Inizializza database
@@ -1592,17 +1617,41 @@ app.get('/api/aste-round/:round', async (req, res) => {
     try {
         const round = req.params.round;
 
-        const result = await db.query(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
-                FROM aste a 
-                JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
-                JOIN slots s ON a.slot_id = s.id 
-                WHERE a.round = $1 AND a.vincitore = true 
-                ORDER BY a.costo_finale DESC`, [round]);
+        // Verifica connessione database
+        if (!db) {
+            console.error('❌ Database non configurato per aste-round');
+            return res.status(500).json({ error: 'Database non configurato' });
+        }
 
+        // Test connessione prima della query
+        try {
+            await db.query('SELECT 1');
+        } catch (dbError) {
+            console.error('❌ Test connessione database fallito:', dbError.message);
+            return res.status(500).json({ error: 'Database non raggiungibile' });
+        }
+
+        console.log(`🔍 Richiesta aste per round: ${round}`);
+
+        const result = await db.query(`
+            SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+            FROM aste a 
+            JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
+            JOIN slots s ON a.slot_id = s.id 
+            WHERE a.round = $1 AND a.vincitore = true 
+            ORDER BY a.costo_finale DESC
+        `, [round]);
+
+        console.log(`✅ Trovate ${result.rows.length} aste per round ${round}`);
         res.json(result.rows);
+
     } catch (err) {
-        console.error('Errore aste-round:', err);
-        res.status(500).json({ error: err.message });
+        console.error(`❌ Errore aste-round per ${req.params.round}:`, err.message);
+        console.error('Stack:', err.stack);
+        res.status(500).json({
+            error: 'Errore del server',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Errore interno'
+        });
     }
 });
 
@@ -1611,20 +1660,33 @@ app.get('/api/classifica', async (req, res) => {
     try {
         // Verifica connessione database
         if (!db) {
+            console.error('❌ Database non configurato per classifica');
             return res.status(500).json({ error: 'Database non configurato' });
         }
 
-        const result = await db.query(`SELECT 
-            p.id, p.nome, p.crediti, 
-            COUNT(a.id) as giocatori_totali,
-            COALESCE(SUM(s.punti_totali), 0) as punti_totali,
-            COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
+        // Test connessione
+        try {
+            await db.query('SELECT 1');
+        } catch (dbError) {
+            console.error('❌ Test connessione database fallito per classifica:', dbError.message);
+            return res.status(500).json({ error: 'Database non raggiungibile' });
+        }
+
+        console.log(`🔍 Richiesta classifica per sessione: ${sessioneCorrente}`);
+
+        const result = await db.query(`
+            SELECT 
+                p.id, p.nome, p.crediti, 
+                COUNT(a.id) as giocatori_totali,
+                COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+                COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
             FROM partecipanti_fantagts p 
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true
             LEFT JOIN slots s ON a.slot_id = s.id 
             WHERE p.sessione_id = $1
             GROUP BY p.id, p.nome, p.crediti 
-            ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente]);
+            ORDER BY punti_totali DESC, crediti_spesi ASC
+        `, [sessioneCorrente]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -1632,14 +1694,18 @@ app.get('/api/classifica', async (req, res) => {
             return row;
         });
 
-        console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
+        console.log(`✅ Classifica caricata: ${classifica.length} partecipanti`);
         res.json(classifica);
+
     } catch (err) {
-        console.error('Errore classifica:', err);
-        res.status(500).json({ error: err.message });
+        console.error('❌ Errore classifica:', err.message);
+        console.error('Stack:', err.stack);
+        res.status(500).json({
+            error: 'Errore del server',
+            details: process.env.NODE_ENV === 'development' ? err.message : 'Errore interno'
+        });
     }
 });
-
 // ==================== NUOVE API PER SCONTRI E ACCOPPIAMENTI ====================
 
 // API per scontri tra squadre
