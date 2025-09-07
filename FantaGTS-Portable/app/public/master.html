@@ -1095,12 +1095,11 @@
                 if (endData.risultati) {
                     updateLastRoundResults(endData.round, endData.risultati);
                 }
-            });
 
-            // NUOVO: Seleziona automaticamente il prossimo round disponibile
-            const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-            const currentIndex = rounds.indexOf(data?.round || '');
-            let nextRoundSelected = false;
+                // NUOVO: Seleziona automaticamente il prossimo round disponibile
+                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const currentIndex = rounds.indexOf(endData?.round || '');
+                let nextRoundSelected = false;
 
                 // Cerca il prossimo round disponibile
                 for (let i = currentIndex + 1; i < rounds.length; i++) {
@@ -1129,17 +1128,12 @@
                 }
 
                 stopOffersDisplay();
-                mostraRisultatiRound(data.round, data.risultati);
+                mostraRisultatiRound(endData.round, endData.risultati);
 
                 setTimeout(() => {
                     caricaSquadreInFormazione();
                     saveMasterState();
                 }, 1000);
-            
-            socket.on('connessi_update', (connessi) => {
-                gameState.connessi = connessi;
-                updatePartecipanti();
-                updateStats();
             });
 
             socket.on('master_reset_ui', (data) => {
