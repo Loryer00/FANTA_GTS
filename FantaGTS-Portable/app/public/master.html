@@ -1204,13 +1204,6 @@
             }, 5000); // Ogni 5 secondi
         }
 
-        // Chiama il polling al posto di Socket.io
-        document.addEventListener('DOMContentLoaded', () => {
-            caricaStatoIniziale();
-            setupEventListeners();
-            startHttpPolling(); // SPOSTATO DOPO per evitare errori di inizializzazione
-        });
-
         function updateServerStatus(connected) {
             const statusEl = document.getElementById('serverStatus');
             if (connected) {
