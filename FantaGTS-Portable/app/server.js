@@ -3074,7 +3074,7 @@ function getLocalIP() {
 }
 
 // Avvio server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
 // Test connessione database
@@ -3099,10 +3099,11 @@ async function startServer() {
         });
 
         // Avvia il server indipendentemente dal database
-        server.listen(PORT, HOST, () => {
+        server.listen(PORT, '0.0.0.0', () => {
             const localIP = getLocalIP();
 
             console.log('\n🎾 FantaGTS Server Avviato!');
+            console.log(`🚀 Server listening on 0.0.0.0:${PORT}`);
 
             if (process.env.NODE_ENV === 'production') {
                 console.log('🌍 Production URL disponibile');
@@ -3115,7 +3116,7 @@ async function startServer() {
                 console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
             }
 
-            console.log('\n✅ Sistema pronto!');
+            console.log('\n✅ Sistema pronto per Koyeb!');
         });
 
         // Tenta updateDatabaseSchema in background
