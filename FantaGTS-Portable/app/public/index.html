@@ -703,7 +703,7 @@
                         socket.connect();
                     }, 3000);
                 }
-            });
+            }); 
 
             socket.on('reset_bid_state', (data) => {
                 console.log('🔄 Reset stato offerte ricevuto:', data);
