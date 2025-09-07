@@ -1011,11 +1011,19 @@
         document.addEventListener('DOMContentLoaded', () => {
             caricaStatoIniziale();
             setupEventListeners();
-            startHttpPolling();
+
+            // Prova Socket.io, se fallisce usa polling
+            try {
+                initializeSocket();
+                console.log('✅ Socket.io inizializzato');
+            } catch (error) {
+                console.log('⚠️ Socket.io fallito, uso polling HTTP:', error.message);
+                startHttpPolling();
+            }
         });
 
         // Connessione WebSocket
-        /*function initializeSocket() {
+        function initializeSocket() {
             console.log('🔌 Inizializzazione Socket.io ottimizzata per Vercel...');
 
             // Distruggi connessione esistente se presente
@@ -1184,8 +1192,7 @@
                 showNotification('🔄 Interfaccia Master resettata!', 'success');
             });
         }
-        */
-
+        
         // SISTEMA ALTERNATIVO: Polling HTTP per sostituire Socket.io
         function startHttpPolling() {
             console.log('🔄 Avvio polling HTTP alternativo...');
