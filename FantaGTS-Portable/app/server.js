@@ -69,9 +69,15 @@ const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
     process.env.POSTGRES_URL;
 
+// Debug della connection string
+console.log('🔍 Database URL presente:', !!process.env.DATABASE_URL);
+console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+
 const db = new Pool({
     connectionString: connectionString,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 console.log('🔍 Connessione PostgreSQL...');
