@@ -67,7 +67,7 @@ console.log('🔍 Directory corrente:', __dirname);
 // Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL;
+    process.env.POSTGRES_URL; 
 
 const db = new Pool({
     connectionString: connectionString,
