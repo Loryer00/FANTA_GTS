@@ -64,17 +64,17 @@ app.use(express.json());
 
 console.log('🔍 Directory corrente:', __dirname);
 
-// Database PostgreSQL - HARDCODED TEMPORANEO
-const connectionString = 'postgresql://neondb_owner:npg_W2Gm0ePQDjFc@ep-empty-credit-a2argvbb-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+// Database PostgreSQL
+const connectionString = process.env.DATABASE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.POSTGRES_URL;
 
-console.log('🔍 Using hardcoded connection string');
+console.log('🔍 Database URL presente:', !!process.env.DATABASE_URL);
 
 const db = new Pool({
     connectionString: connectionString,
     ssl: { rejectUnauthorized: false }
 });
-
-console.log('🔍 Connessione PostgreSQL...');
 
 // Inizializza database
 async function initializeDatabase() {
