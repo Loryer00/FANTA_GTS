@@ -13,21 +13,23 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production' ? ["https://fanta-gts.vercel.app"] : "*",
+        origin: process.env.NODE_ENV === 'production' ?
+            ["https://fanta-gts.vercel.app"] : "*",
         methods: ["GET", "POST"],
         credentials: false
     },
     transports: ['polling'],
     allowEIO3: false,
-    pingTimeout: 20000,
-    pingInterval: 5000,
-    maxHttpBufferSize: 1e5,
-    connectTimeout: 10000,
+    pingTimeout: 60000,    // Aumentato da 20000
+    pingInterval: 25000,   // Aumentato da 5000
+    maxHttpBufferSize: 1e6, // Aumentato da 1e5
+    connectTimeout: 60000,  // Aumentato da 10000
     allowUpgrades: false,
     cookie: false,
-    serveClient: false,  // AGGIUNTO: Non servire il client Socket.io
+    serveClient: true,     // CAMBIATO: Abilita serving del client
     destroyUpgrade: false,
-    destroyUpgradeTimeout: 1000
+    destroyUpgradeTimeout: 1000,
+    path: '/socket.io'     // AGGIUNTO: Path esplicito
 });
 
 // Configurazione Web Push - VERSIONE FINALE
@@ -2773,25 +2775,26 @@ io.use((socket, next) => {
     console.log('🔍 Socket middleware - Headers:', socket.handshake.headers);
     console.log('🔍 Socket middleware - Query:', socket.handshake.query);
 
-    // Controllo più permissivo per Vercel
-    const userAgent = socket.handshake.headers['user-agent'] ||
-        socket.handshake.headers['User-Agent'] ||
-        'Unknown';
+    // IMPORTANTE: Su Vercel l'origin può essere undefined durante polling
+    const origin = socket.handshake.headers.origin;
 
-    if (!userAgent || userAgent === 'Unknown') {
-        console.log('⚠️ Socket senza User-Agent, ma permesso per compatibilità Vercel');
+    // Permetti sempre se non c'è origin (tipico del polling su Vercel)
+    if (!origin) {
+        console.log('✅ Socket autorizzato: Nessun origin (polling Vercel)');
+        return next();
     }
 
-    // Blocca solo connessioni chiaramente malevole
-    if (socket.handshake.headers.origin &&
-        !socket.handshake.headers.origin.includes('fanta-gts.vercel.app') &&
-        !socket.handshake.headers.origin.includes('localhost')) {
-        console.log('❌ Socket rifiutato: Origin non autorizzato');
-        return next(new Error('Origin not allowed'));
+    // Se c'è un origin, controlla che sia autorizzato
+    if (origin.includes('fanta-gts.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')) {
+        console.log('✅ Socket autorizzato: Origin valido -', origin);
+        return next();
     }
 
-    console.log('✅ Socket autorizzato');
-    next();
+    // Solo ora blocca origin sospetti
+    console.log('❌ Socket rifiutato: Origin non autorizzato -', origin);
+    return next(new Error('Origin not allowed'));
 });
 
 // Gestione WebSocket

@@ -1023,13 +1023,16 @@
             }
 
             // Configurazione specifica per Vercel
-            socket = io({
+            socket = io(window.location.origin, {
                 transports: ['polling'],
                 upgrade: false,
-                timeout: 20000,
+                timeout: 60000,
                 forceNew: false,
-                reconnection: false, // MODIFICA: Disabilita riconnessione automatica per debug
-                autoConnect: true
+                reconnection: true,    // Riabilita riconnessione
+                reconnectionDelay: 5000,
+                reconnectionAttempts: 10,
+                autoConnect: true,
+                path: '/socket.io'
             });
 
             socket.on('connect', () => {

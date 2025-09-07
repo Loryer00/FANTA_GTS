@@ -673,14 +673,16 @@
             }
 
             // Configurazione ottimizzata per Vercel
-            socket = io({
-                transports: ['polling'], // Solo polling per Vercel
-                upgrade: false, // Non tentare upgrade
-                timeout: 20000,
+            socket = io(window.location.origin, {
+                transports: ['polling'],
+                upgrade: false,
+                timeout: 60000,        // Aumentato
                 forceNew: false,
                 reconnection: true,
-                reconnectionDelay: 2000,
-                reconnectionAttempts: 5
+                reconnectionDelay: 5000, // Aumentato
+                reconnectionAttempts: 10, // Aumentato
+                path: '/socket.io',    // Path esplicito
+                autoConnect: true
             });
 
             socket.on('connect', () => {
