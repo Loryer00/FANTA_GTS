@@ -1013,16 +1013,29 @@
 
         // Connessione WebSocket
         function initializeSocket() {
-            // Configurazione più robusta per Vercel
+            console.log('🔌 Inizializzazione Socket.io ottimizzata per Vercel...');
+
+            // Distruggi connessione esistente se presente
+            if (socket) {
+                socket.removeAllListeners();
+                socket.disconnect();
+                socket = null;
+            }
+
+            // Configurazione specifica per Vercel
             socket = io({
-                transports: ['polling'], // Solo polling per Vercel
-                upgrade: false, // Non tentare upgrade a WebSocket
-                timeout: 20000,
-                forceNew: false,
+                transports: ['polling'],
+                upgrade: false,
+                timeout: 10000,          // Ridotto drasticamente
+                forceNew: true,          // Forza nuova connessione
                 reconnection: true,
-                reconnectionDelay: 2000,
-                reconnectionAttempts: 5,
-                autoConnect: true
+                reconnectionDelay: 3000, // Aumentato il delay
+                reconnectionAttempts: 3, // Ridotto tentativi
+                autoConnect: true,
+                // Headers personalizzati per debug
+                extraHeaders: {
+                    'X-Client-Type': 'Master-Control'
+                }
             });
 
             socket.on('connect', () => {
@@ -1030,11 +1043,14 @@
                 showNotification('Connesso al server', 'success');
                 updateServerStatus(true);
 
-                // Registra come master
-                socket.emit('register', {
-                    nome: 'Master Control',
-                    tipo: 'master'
-                });
+                // Registra come master CON DELAY per evitare errori 400
+                setTimeout(() => {
+                    console.log('📡 Inviando registrazione master...');
+                    socket.emit('register', {
+                        nome: 'Master Control',
+                        tipo: 'master'
+                    });
+                }, 1000); // Aspetta 1 secondo prima di registrare
             });
 
             socket.on('disconnect', (reason) => {
@@ -1046,23 +1062,21 @@
             socket.on('connect_error', (error) => {
                 console.error('❌ Errore connessione Socket.io:', error);
                 showNotification('Errore connessione al server', 'error');
+                updateServerStatus(false);
 
-                // Riprova dopo 5 secondi
-                setTimeout(() => {
-                    if (!socket.connected) {
-                        console.log('🔄 Tentativo riconnessione...');
-                        socket.connect();
-                    }
-                }, 5000);
+                // Non tentare riconnessione automatica per evitare spam
+                console.log('⏸️ Riconnessione automatica disabilitata per debug');
             });
 
             socket.on('registered', (data) => {
+                console.log('✅ Registrazione master completata:', data);
                 if (data.success) {
                     gameState = { ...gameState, ...data.gameState };
                     updateUI();
                 }
             });
 
+            // Altri event listener...
             socket.on('round_started', (data) => {
                 gameState.roundAttivo = data.round;
                 gameState.asteAttive = true;
@@ -1076,33 +1090,27 @@
                 updatePartecipantiWithBids(data);
             });
 
-            // Modifica la funzione che gestisce fine round
             socket.on('round_ended', (data) => {
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
                 updateUI();
                 showNotification(`Round ${data.round} terminato!`, 'success');
 
-                // SOSTITUISCI il blocco const completedBtn = document.querySelector... con questo:
                 const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
                 if (completedBtn) {
-                    // DISABILITAZIONE TOTALE
                     completedBtn.classList.remove('active', 'available');
                     completedBtn.classList.add('completed');
                     completedBtn.disabled = true;
-                    completedBtn.style.opacity = '0.3';
+                    completedBtn.style.opacity = '0.6';
                     completedBtn.style.pointerEvents = 'none';
-                    completedBtn.style.cursor = 'not-allowed';
-                    completedBtn.style.filter = 'grayscale(100%)';
-                    completedBtn.style.outline = 'none';
-                    completedBtn.style.boxShadow = 'none';
-
-                    // RIMUOVI TUTTI GLI EVENT LISTENERS
-                    const newBtn = completedBtn.cloneNode(true);
-                    completedBtn.parentNode.replaceChild(newBtn, completedBtn);
-
-                    console.log(`🔒 Pulsante ${data.round} TOTALMENTE disabilitato`);
                 }
+
+                stopOffersDisplay();
+                setTimeout(() => {
+                    getRoundsCompletati();
+                    loadMasterState();
+                }, 2000);
+            });
 
                 // NUOVO: Seleziona automaticamente il prossimo round disponibile
                 const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
@@ -2055,28 +2063,57 @@
             });
         }
 
+        async function apiRequestWithRetry(url, maxRetries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`🔄 Tentativo ${attempt}/${maxRetries} per: ${url}`);
+
+                    const response = await fetch(url);
+
+                    if (response.ok) {
+                        return await response.json();
+                    }
+
+                    if (response.status === 500 && attempt < maxRetries) {
+                        console.log(`⚠️ Errore 500, tentativo ${attempt}/${maxRetries} - Retry in ${delay}ms`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // Exponential backoff
+                        continue;
+                    }
+
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+                } catch (error) {
+                    console.error(`❌ Errore tentativo ${attempt}:`, error.message);
+
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
         // NUOVA FUNZIONE: Ottieni round completati dal database
         async function getRoundsCompletati() {
-            try {
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-                const completati = [];
+            const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+            const completedRounds = [];
 
-                for (const round of rounds) {
-                    const response = await fetch(`/api/aste-round/${round}`);
-                    if (response.ok) {
-                        const aste = await response.json();
-                        if (aste.length > 0) {
-                            completati.push(round);
-                        }
+            for (const round of rounds) {
+                try {
+                    const results = await apiRequestWithRetry(`/api/aste-round/${round}`, 2, 500);
+                    if (results && results.length > 0) {
+                        completedRounds.push(round);
                     }
+                } catch (error) {
+                    console.log(`⚠️ Round ${round} non completato o errore API:`, error.message);
                 }
-
-                console.log('📊 Round completati trovati:', completati);
-                return completati;
-            } catch (error) {
-                console.error('Errore controllo round completati:', error);
-                return [];
             }
+
+            console.log('📊 Round completati trovati:', completedRounds);
+            return completedRounds;
         }
 
         function updateControlButtons() {

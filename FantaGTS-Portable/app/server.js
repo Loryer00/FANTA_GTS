@@ -13,18 +13,22 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "*",
+        origin: process.env.NODE_ENV === 'production' ? ["https://fanta-gts.vercel.app"] : "*",
         methods: ["GET", "POST"],
-        credentials: true
+        credentials: false  // Cambiato da true a false per Vercel
     },
     transports: ['polling'], // SOLO polling per Vercel
-    allowEIO3: true,
-    pingTimeout: 30000,      // Ridotto
-    pingInterval: 10000,     // Ridotto
-    maxHttpBufferSize: 1e6,
-    // Configurazione specifica Vercel
-    allowUpgrades: false,
-    cookie: false
+    allowEIO3: false,      // Disabilitato per compatibilità
+    pingTimeout: 20000,    // Ridotto significativamente
+    pingInterval: 5000,    // Ridotto significativamente  
+    maxHttpBufferSize: 1e5, // Ridotto a 100KB
+    connectTimeout: 10000,  // Timeout di connessione
+    allowUpgrades: false,   // Disabilita upgrade WebSocket
+    cookie: false,          // Disabilita cookie per Vercel
+    serveClient: false,     // Non servire il client
+    // Configurazioni specifiche per Vercel serverless
+    destroyUpgrade: false,
+    destroyUpgradeTimeout: 1000
 });
 
 // Configurazione Web Push - VERSIONE FINALE
@@ -2883,6 +2887,28 @@ app.get('/gestione-incontri', (req, res) => {
 
 app.get('/incontri', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'incontri.html'));
+});
+
+// Middleware per debug Socket.io
+io.engine.on("connection_error", (err) => {
+    console.log('❌ Errore engine Socket.io:', err.req);
+    console.log('❌ Errore codice:', err.code);
+    console.log('❌ Errore messaggio:', err.message);
+    console.log('❌ Errore context:', err.context);
+});
+
+// Gestione connessioni problematiche
+io.use((socket, next) => {
+    console.log('🔍 Socket middleware - Headers:', socket.handshake.headers);
+    console.log('🔍 Socket middleware - Query:', socket.handshake.query);
+
+    // Controlla se la richiesta è valida
+    if (!socket.handshake.headers['user-agent']) {
+        console.log('❌ Socket rifiutato: User-Agent mancante');
+        return next(new Error('User-Agent required'));
+    }
+
+    next();
 });
 
 // Gestione WebSocket
