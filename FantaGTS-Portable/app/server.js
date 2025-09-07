@@ -1517,23 +1517,23 @@ app.get('/api/risultati-partite', async (req, res) => {
     }
 });
 
-// Ottieni risultati aste per round specifico
+// API per ottieni risultati aste per round specifico
 app.get('/api/aste-round/:round', async (req, res) => {
     try {
         const round = req.params.round;
 
-        // Verifica connessione database
+        // Verifica connessione database con gestione errori
         if (!db) {
             console.error('❌ Database non configurato per aste-round');
-            return res.status(500).json({ error: 'Database non configurato' });
+            return res.json([]); // Restituisce array vuoto invece di errore
         }
 
         // Test connessione prima della query
         try {
             await db.query('SELECT 1');
         } catch (dbError) {
-            console.error('❌ Test connessione database fallito:', dbError.message);
-            return res.status(500).json({ error: 'Database non raggiungibile' });
+            console.error('❌ Database non raggiungibile:', dbError.message);
+            return res.json([]); // Restituisce array vuoto
         }
 
         console.log(`🔍 Richiesta aste per round: ${round}`);
@@ -1552,11 +1552,8 @@ app.get('/api/aste-round/:round', async (req, res) => {
 
     } catch (err) {
         console.error(`❌ Errore aste-round per ${req.params.round}:`, err.message);
-        console.error('Stack:', err.stack);
-        res.status(500).json({
-            error: 'Errore del server',
-            details: process.env.NODE_ENV === 'development' ? err.message : 'Errore interno'
-        });
+        // NON crashare, restituisci array vuoto
+        res.json([]);
     }
 });
 

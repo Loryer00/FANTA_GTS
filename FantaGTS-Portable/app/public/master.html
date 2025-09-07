@@ -1026,16 +1026,12 @@
             socket = io({
                 transports: ['polling'],
                 upgrade: false,
-                timeout: 10000,          // Ridotto drasticamente
-                forceNew: true,          // Forza nuova connessione
+                timeout: 20000,
+                forceNew: false,  // CAMBIATO da true a false
                 reconnection: true,
-                reconnectionDelay: 3000, // Aumentato il delay
-                reconnectionAttempts: 3, // Ridotto tentativi
-                autoConnect: true,
-                // Headers personalizzati per debug
-                extraHeaders: {
-                    'X-Client-Type': 'Master-Control'
-                }
+                reconnectionDelay: 5000,
+                reconnectionAttempts: 5,
+                autoConnect: true
             });
 
             socket.on('connect', () => {
@@ -1068,10 +1064,12 @@
                 console.log('⏸️ Riconnessione automatica disabilitata per debug');
             });
 
-            socket.on('registered', (data) => {
-                console.log('✅ Registrazione master completata:', data);
-                if (data.success) {
-                    gameState = { ...gameState, ...data.gameState };
+            socket.on('registered', (responseData) => {
+                console.log('✅ Registrazione master completata:', responseData);
+                if (responseData && responseData.success) {
+                    if (responseData.gameState) {
+                        gameState = { ...gameState, ...responseData.gameState };
+                    }
                     updateUI();
                 }
             });
