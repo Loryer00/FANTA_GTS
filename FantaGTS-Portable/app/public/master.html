@@ -1150,8 +1150,7 @@
                     caricaSquadreInFormazione();
                     saveMasterState();
                 }, 1000);
-            });
-
+            
             socket.on('connessi_update', (connessi) => {
                 gameState.connessi = connessi;
                 updatePartecipanti();
