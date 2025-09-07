@@ -1028,9 +1028,7 @@
                 upgrade: false,
                 timeout: 20000,
                 forceNew: false,
-                reconnection: true,
-                reconnectionDelay: 5000,
-                reconnectionAttempts: 5,
+                reconnection: false, // MODIFICA: Disabilita riconnessione automatica per debug
                 autoConnect: true
             });
 
@@ -1046,7 +1044,7 @@
                         nome: 'Master Control',
                         tipo: 'master'
                     });
-                }, 1000); // Aspetta 1 secondo prima di registrare
+                }, 1000);
             });
 
             socket.on('disconnect', (reason) => {
@@ -1075,39 +1073,28 @@
             });
 
             // Altri event listener...
-            socket.on('round_started', (data) => {
-                gameState.roundAttivo = data.round;
+            socket.on('round_started', (roundData) => { // MODIFICA: rinominato parametro da 'data' a 'roundData'
+                gameState.roundAttivo = roundData.round;
                 gameState.asteAttive = true;
                 updateUI();
-                showNotification(`Round ${data.round} avviato!`, 'success');
+                showNotification(`Round ${roundData.round} avviato!`, 'success');
                 startOffersDisplay();
             });
 
-            socket.on('offerte_update', (data) => {
-                updateOffersDisplay(data);
-                updatePartecipantiWithBids(data);
+            socket.on('offerte_update', (offerteData) => { // MODIFICA: rinominato parametro
+                updateOffersDisplay(offerteData);
+                updatePartecipantiWithBids(offerteData);
             });
 
-            socket.on('round_ended', (data) => {
+            socket.on('round_ended', (endData) => { // MODIFICA: rinominato parametro
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
                 updateUI();
-                showNotification(`Round ${data.round} terminato!`, 'success');
+                showNotification(`Round ${endData.round} terminato!`, 'success');
 
-                const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
-                if (completedBtn) {
-                    completedBtn.classList.remove('active', 'available');
-                    completedBtn.classList.add('completed');
-                    completedBtn.disabled = true;
-                    completedBtn.style.opacity = '0.6';
-                    completedBtn.style.pointerEvents = 'none';
+                if (endData.risultati) {
+                    updateLastRoundResults(endData.round, endData.risultati);
                 }
-
-                stopOffersDisplay();
-                setTimeout(() => {
-                    getRoundsCompletati();
-                    loadMasterState();
-                }, 2000);
             });
 
             // NUOVO: Seleziona automaticamente il prossimo round disponibile
