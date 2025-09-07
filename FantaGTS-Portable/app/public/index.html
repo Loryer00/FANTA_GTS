@@ -672,6 +672,10 @@
                 return;
             }
 
+            // TEMPORANEAMENTE DISABILITATO
+            console.log('⚠️ Socket.io disabilitato temporaneamente per compatibilità Vercel');
+            return;
+
             // Configurazione ottimizzata per Vercel
             socket = io(window.location.origin, {
                 transports: ['polling'],

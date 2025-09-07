@@ -955,19 +955,8 @@
 
         // Funzione per testare la connessione
         function testConnection() {
-            if (!socket) {
-                console.log('Socket non inizializzato');
-                return false;
-            }
-
-            if (socket.connected) {
-                console.log('✅ Socket connesso correttamente');
-                return true;
-            } else {
-                console.log('❌ Socket non connesso, tentativo riconnessione...');
-                socket.connect();
-                return false;
-            }
+            console.log('🔄 Test connessione - Socket.io disabilitato');
+            return false; // Socket sempre disconnesso
         }
 
         // Chiama questa funzione periodicamente per verificare lo stato
@@ -1012,7 +1001,7 @@
         });
 
         // Connessione WebSocket
-        function initializeSocket() {
+        /*function initializeSocket() {
             console.log('🔌 Inizializzazione Socket.io ottimizzata per Vercel...');
 
             // Distruggi connessione esistente se presente
@@ -1181,6 +1170,33 @@
                 showNotification('🔄 Interfaccia Master resettata!', 'success');
             });
         }
+        */
+
+        // SISTEMA ALTERNATIVO: Polling HTTP per sostituire Socket.io
+        function startHttpPolling() {
+            console.log('🔄 Avvio polling HTTP alternativo...');
+
+            setInterval(async () => {
+                try {
+                    // Controlla stato partecipanti
+                    const response = await fetch('/api/partecipanti');
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateParticipantsDisplay(data);
+                    }
+                } catch (error) {
+                    console.log('⚠️ Errore polling:', error.message);
+                }
+            }, 5000); // Ogni 5 secondi
+        }
+
+        // Chiama il polling al posto di Socket.io
+        document.addEventListener('DOMContentLoaded', () => {
+            // initializeSocket(); // COMMENTATO
+            startHttpPolling(); // NUOVO
+            caricaStatoIniziale();
+            setupEventListeners();
+        });
 
         function updateServerStatus(connected) {
             const statusEl = document.getElementById('serverStatus');
