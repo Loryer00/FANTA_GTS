@@ -698,20 +698,28 @@ function clearFormManualeEChiudi() {
 }
 
 // Funzione comune per salvare squadra
-async function salvaSquadra(squadra) {
-    const response = await fetch('/api/squadre', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(squadra)
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Errore salvataggio squadra');
-    }
-    
-    return response.json();
-}
+        async function salvaSquadra(squadra) {
+            const response = await fetch('/api/squadre', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(squadra)
+            });
+
+            if (!response.ok) {
+                // PROBLEMA QUI - modifica questa parte:
+                let errorMessage = 'Errore salvataggio squadra';
+                try {
+                    const error = await response.json();
+                    errorMessage = error.error || errorMessage;
+                } catch (e) {
+                    // Se non riesce a parsare il JSON, usa lo status HTTP
+                    errorMessage = `Errore server: ${response.status} ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            return response.json();
+        }
 
 function annullaUpload() {
     document.getElementById('fileSquadra').value = '';

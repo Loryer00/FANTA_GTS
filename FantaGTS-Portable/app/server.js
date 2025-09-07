@@ -79,6 +79,13 @@ const db = new Pool({
 });
 
 console.log('🔍 Connessione PostgreSQL...');
+console.log('📋 DATABASE_URL:', process.env.DATABASE_URL ? 'CONFIGURATO' : 'NON CONFIGURATO');
+console.log('📋 DATABASE_PUBLIC_URL:', process.env.DATABASE_PUBLIC_URL ? 'CONFIGURATO' : 'NON CONFIGURATO');
+console.log('📋 POSTGRES_URL:', process.env.POSTGRES_URL ? 'CONFIGURATO' : 'NON CONFIGURATO');
+
+if (!connectionString) {
+    console.error('❌ ERRORE CRITICO: Nessuna variabile database trovata!');
+}
 
 // Inizializza database
 async function initializeDatabase() {
