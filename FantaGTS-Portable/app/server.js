@@ -15,18 +15,17 @@ const io = socketIo(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production' ? ["https://fanta-gts.vercel.app"] : "*",
         methods: ["GET", "POST"],
-        credentials: false  // Cambiato da true a false per Vercel
+        credentials: false
     },
-    transports: ['polling'], // SOLO polling per Vercel
-    allowEIO3: false,      // Disabilitato per compatibilità
-    pingTimeout: 20000,    // Ridotto significativamente
-    pingInterval: 5000,    // Ridotto significativamente  
-    maxHttpBufferSize: 1e5, // Ridotto a 100KB
-    connectTimeout: 10000,  // Timeout di connessione
-    allowUpgrades: false,   // Disabilita upgrade WebSocket
-    cookie: false,          // Disabilita cookie per Vercel
-    serveClient: false,     // Non servire il client
-    // Configurazioni specifiche per Vercel serverless
+    transports: ['polling'],
+    allowEIO3: false,
+    pingTimeout: 20000,
+    pingInterval: 5000,
+    maxHttpBufferSize: 1e5,
+    connectTimeout: 10000,
+    allowUpgrades: false,
+    cookie: false,
+    serveClient: false,  // AGGIUNTO: Non servire il client Socket.io
     destroyUpgrade: false,
     destroyUpgradeTimeout: 1000
 });
@@ -75,6 +74,12 @@ try {
 app.get('/icons/icon-:size.png', (req, res) => {
     console.log(`⚠️ Icona mancante richiesta: ${req.url}`);
     res.status(404).send('Icona non trovata');
+});
+
+// Gestione esplicita per Socket.io client che da problemi su Vercel
+app.get('/socket.io/socket.io.js', (req, res) => {
+    console.log('⚠️ Tentativo accesso socket.io.js - Reindirizzamento a CDN');
+    res.redirect(301, 'https://cdn.socket.io/4.7.2/socket.io.min.js');
 });
 
 app.use(express.static('public'));
@@ -303,9 +308,35 @@ async function initializeDatabase() {
             ('backup_auto_minuti', '5', 'Frequenza backup automatici in minuti')
             ON CONFLICT (chiave) DO NOTHING`);
 
-        console.log('✅ Database PostgreSQL inizializzato con successo');
+        await db.query(`CREATE TABLE IF NOT EXISTS aste (
+            id SERIAL PRIMARY KEY,
+            round TEXT NOT NULL,
+            slot_id TEXT NOT NULL,
+            partecipante_id TEXT NOT NULL,
+            offerta INTEGER NOT NULL,
+            costo_finale INTEGER NOT NULL,
+            vincitore BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (partecipante_id) REFERENCES partecipanti_fantagts(id),
+            FOREIGN KEY (slot_id) REFERENCES slots(id)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
+            id SERIAL PRIMARY KEY,
+            turno INTEGER NOT NULL,
+            squadra_1 INTEGER NOT NULL,
+            squadra_2 INTEGER NOT NULL,
+            vincitori TEXT, -- JSON array dei vincitori per posizione
+            completato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (squadra_1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra_2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        console.log('✅ Tutte le tabelle create/verificate');
     } catch (error) {
-        console.error('❌ Errore inizializzazione database:', error);
+        console.error('❌ Errore creazione tabelle:', error);
+        throw error;
     }
 }
 
