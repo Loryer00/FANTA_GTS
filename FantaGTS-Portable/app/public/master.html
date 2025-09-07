@@ -1073,7 +1073,7 @@
             });
 
             // Altri event listener...
-            socket.on('round_started', (roundData) => { // MODIFICA: rinominato parametro da 'data' a 'roundData'
+            socket.on('round_started', (roundData) => {
                 gameState.roundAttivo = roundData.round;
                 gameState.asteAttive = true;
                 updateUI();
@@ -1081,12 +1081,12 @@
                 startOffersDisplay();
             });
 
-            socket.on('offerte_update', (offerteData) => { // MODIFICA: rinominato parametro
+            socket.on('offerte_update', (offerteData) => {
                 updateOffersDisplay(offerteData);
                 updatePartecipantiWithBids(offerteData);
             });
 
-            socket.on('round_ended', (endData) => { // MODIFICA: rinominato parametro
+            socket.on('round_ended', (endData) => {
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
                 updateUI();
