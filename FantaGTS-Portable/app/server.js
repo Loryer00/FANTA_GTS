@@ -2977,17 +2977,30 @@ io.on('connection', (socket) => {
         console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
 
         if (data.tipo === 'partecipante' && data.partecipanteId) {
+            // AGGIUNTO: Controlla se questo socket è già registrato
+            const socketGiaRegistrato = gameState.connessi.get(socket.id);
+            if (socketGiaRegistrato && socketGiaRegistrato.partecipanteId === data.partecipanteId) {
+                console.log(`⚠️ Socket ${socket.id} già registrato per ${data.nome}, ignoro registrazione duplicata`);
+                return;
+            }
+
             // CONTROLLO DUPLICATI: Rimuovi connessioni esistenti dello stesso partecipante
             for (let [existingSocketId, existingUser] of gameState.connessi.entries()) {
                 if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
                     console.log(`🔄 Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
                     gameState.connessi.delete(existingSocketId);
 
-                    // MODIFICA: Solo se il socket esiste e non è lo stesso
-                    const oldSocket = io.sockets.sockets.get(existingSocketId);
-                    if (oldSocket && oldSocket.id !== socket.id) {
-                        console.log(`🚪 Disconnettendo socket precedente: ${existingSocketId}`);
-                        oldSocket.disconnect(true);
+                    // MODIFICA: Disconnetti in modo più sicuro
+                    try {
+                        const oldSocket = io.sockets.sockets.get(existingSocketId);
+                        if (oldSocket && oldSocket.connected) {
+                            oldSocket.emit('force_disconnect', { reason: 'Nuova connessione dal stesso utente' });
+                            setTimeout(() => {
+                                oldSocket.disconnect(true);
+                            }, 100);
+                        }
+                    } catch (err) {
+                        console.log(`⚠️ Errore disconnessione socket ${existingSocketId}:`, err.message);
                     }
                 }
             }
