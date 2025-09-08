@@ -123,14 +123,29 @@ async function initializeDatabase() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Crea tabella sessioni se non esiste
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            anno INTEGER,
-            descrizione TEXT,
-            attiva BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    anno INTEGER,
+    descrizione TEXT,
+    attiva BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`);
+
+        // Crea tabella connessi attivi per tracking connessioni
+        await db.query(`CREATE TABLE IF NOT EXISTS connessi_attivi (
+    socket_id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    partecipante_id TEXT,
+    stato TEXT DEFAULT 'connesso',
+    verified BOOLEAN DEFAULT false,
+    connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`);
+
+        console.log('✅ Schema database aggiornato');
 
         // SECONDO: Crea la tabella turni_configurazione (necessaria per le foreign key)
         await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
