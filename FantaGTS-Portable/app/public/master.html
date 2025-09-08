@@ -989,6 +989,11 @@
             initializeSocket();
             caricaStatoIniziale();
             setupEventListeners();
+
+            // Timer per aggiornamento automatico partecipanti
+            setInterval(() => {
+                updatePartecipanti();
+            }, 5000); // Ogni 5 secondi
         });
 
         // Connessione WebSocket
@@ -2222,10 +2227,33 @@
             document.getElementById('btnFermaRound').disabled = !gameState.asteAttive;
         }
 
-        function updatePartecipanti() {
+        async function updatePartecipanti() {
             const container = document.getElementById('participantsContainer');
 
-            const partecipanti = Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante');
+            // Prima prova a usare i dati locali
+            let partecipanti = Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante');
+
+            // Se non ci sono partecipanti locali, prova a ottenerli via HTTP
+            if (partecipanti.length === 0) {
+                try {
+                    const response = await fetch('/api/connessi');
+                    if (response.ok) {
+                        const connessi = await response.json();
+                        partecipanti = connessi.filter(p => p.tipo === 'partecipante');
+
+                        // Aggiorna anche il gameState locale
+                        gameState.connessi = new Map();
+                        connessi.forEach((connesso, index) => {
+                            gameState.connessi.set(`http_${index}`, connesso);
+                        });
+
+                        console.log('🔄 Partecipanti aggiornati via HTTP:', partecipanti.length);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Errore aggiornamento partecipanti via HTTP:', error);
+                }
+            }
+
             console.log('🔍 Debug partecipanti:', {
                 totaleConnessi: gameState.connessi.size,
                 partecipantiFiltrati: partecipanti.length,
@@ -2255,15 +2283,16 @@
                     card.classList.add('bid-confirmed');
                 } else if (gameState.asteAttive) {
                     bidStatus = '⏳ In attesa...';
-                    bidClass = 'bid-pending';
-                    card.classList.add('bid-pending');
+                    bidClass = 'bid-waiting';
                 }
 
                 card.innerHTML = `
-                                <div><strong>${p.nome}</strong></div>
-                                <div>Stato: ${p.stato}</div>
-                                <div class="bid-status ${bidClass}">${bidStatus}</div>
-                            `;
+            <div class="participant-info">
+                <h4>${p.nome}</h4>
+                <div class="participant-status online">🟢 Online</div>
+                <div class="bid-status ${bidClass}">${bidStatus}</div>
+            </div>
+        `;
 
                 grid.appendChild(card);
             });
