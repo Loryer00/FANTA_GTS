@@ -1219,10 +1219,20 @@ Vuoi ricaricare la pagina ora?
 
                 console.log('✅ Permesso notifiche concesso');
 
-                // STEP 3: Attendi che service worker sia pronto
+                // STEP 3: Attendi che service worker sia pronto (con timeout)
                 console.log('⏳ Attendendo service worker...');
-                const registration = await navigator.serviceWorker.ready;
-                console.log('✅ Service worker pronto');
+                try {
+                    const registration = await Promise.race([
+                        navigator.serviceWorker.ready,
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Service Worker timeout')), 5000)
+                        )
+                    ]);
+                    console.log('✅ Service worker pronto');
+                } catch (error) {
+                    console.log('⚠️ Service worker non disponibile, continuo senza notifiche');
+                    return { success: false, reason: 'Service Worker timeout' };
+                }
 
                 // STEP 4: Ottieni chiave pubblica dal server
                 console.log('🔑 Ottenendo chiave pubblica dal server...');

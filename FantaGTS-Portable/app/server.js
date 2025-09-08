@@ -2708,6 +2708,29 @@ function elaboraRisultatiAste() {
     }, 3000); // Pausa di 3 secondi tra aste
 }
 
+// NUOVA FUNZIONE: Pulisci connessioni obsolete
+async function pulisciConnessioniObsolete() {
+    try {
+        // Rimuovi connessioni più vecchie di 1 ora
+        const result = await db.query(`
+            DELETE FROM connessi_attivi 
+            WHERE connected_at < NOW() - INTERVAL '1 hour'
+        `);
+
+        if (result.rowCount > 0) {
+            console.log(`🧹 Rimosse ${result.rowCount} connessioni obsolete dal DB`);
+        }
+
+        return result.rowCount;
+    } catch (error) {
+        console.error('❌ Errore pulizia connessioni obsolete:', error);
+        return 0;
+    }
+}
+
+// Pulizia automatica ogni 30 minuti
+setInterval(pulisciConnessioniObsolete, 30 * 60 * 1000);
+
 // 🔄 Rinomina funzione salvataggio
 async function salvaRisultatiAsta(round, risultati) {
     if (risultati.length === 0) return;
@@ -3184,11 +3207,18 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', async () => {
+        console.log('Disconnessione:', socket.id);
+
+        // Rimuovi dal database
+        try {
+            await rimuoviConnessoInDB(socket.id);
+        } catch (error) {
+            console.error('Errore rimozione connesso da DB:', error);
+        }
+
         gameState.connessi.delete(socket.id);
-        gameState.offerteTemporanee.delete(socket.id);
-        await rimuoviConnessoInDB(socket.id);
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
-        console.log('Disconnesso:', socket.id);
+        console.log(`📊 Connessi rimasti: ${gameState.connessi.size}`);
     });
 
     socket.on('heartbeat', (data) => {
@@ -3225,6 +3255,13 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 // Inizializza database prima di avviare il server
 initializeDatabase().then(async () => {
     await updateDatabaseSchema();
+
+    // Carica connessi esistenti all'avvio
+    caricaConnessiDaDB().then(() => {
+        console.log('📡 Connessi esistenti caricati dal database');
+    }).catch(error => {
+        console.error('❌ Errore caricamento connessi esistenti:', error);
+    });
 
     server.listen(PORT, '0.0.0.0', () => {
         const localIP = getLocalIP();
