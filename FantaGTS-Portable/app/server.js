@@ -1397,7 +1397,7 @@ app.get('/api/stato', async (req, res) => {
         });
     } catch (err) {
         console.error('Errore API stato:', err);
-        res.status(500).json({
+        res.json({
             fase: gameState.fase,
             roundAttivo: gameState.roundAttivo,
             asteAttive: gameState.asteAttive,

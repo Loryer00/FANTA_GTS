@@ -455,12 +455,9 @@ F3 Brunelli E</pre>
                 const response = await fetch('/api/stato');
                 const stato = await response.json();
 
-                // NUOVO: Verifica se esistono slots nel database
-                const slotsResponse = await fetch('/api/slots');
-                if (slotsResponse.ok) {
-                    const slots = await slotsResponse.json();
-                    systemReady = slots.length > 0;  // Se ci sono slots, il sistema è pronto
-                }
+                // NUOVO: Usa il campo slotsGenerati dal server
+                systemReady = stato.slotsGenerati || false;
+                console.log('📊 Stato caricato - slots generati:', systemReady);
 
                 updateSystemStatus();
             } catch (error) {
