@@ -1382,13 +1382,29 @@ app.post('/api/genera-slots', async (req, res) => {
 });
 
 // Stato del gioco
-app.get('/api/stato', (req, res) => {
-    res.json({
-        fase: gameState.fase,
-        roundAttivo: gameState.roundAttivo,
-        asteAttive: gameState.asteAttive,
-        connessi: Array.from(gameState.connessi.values())
-    });
+app.get('/api/stato', async (req, res) => {
+    try {
+        // Conta slots esistenti
+        const slotsResult = await db.query('SELECT COUNT(*) as count FROM slots WHERE attivo = true');
+        const slotsCount = parseInt(slotsResult.rows[0].count);
+
+        res.json({
+            fase: gameState.fase,
+            roundAttivo: gameState.roundAttivo,
+            asteAttive: gameState.asteAttive,
+            connessi: Array.from(gameState.connessi.values()),
+            slotsGenerati: slotsCount > 0  // NUOVO CAMPO
+        });
+    } catch (err) {
+        console.error('Errore API stato:', err);
+        res.status(500).json({
+            fase: gameState.fase,
+            roundAttivo: gameState.roundAttivo,
+            asteAttive: gameState.asteAttive,
+            connessi: Array.from(gameState.connessi.values()),
+            slotsGenerati: false  // Default in caso di errore
+        });
+    }
 });
 
 // API per info slot
