@@ -1621,6 +1621,25 @@ app.get('/api/risultati-partite', async (req, res) => {
     }
 });
 
+// API per connessi (fallback HTTP) - CON PERSISTENZA
+app.get('/api/connessi', async (req, res) => {
+    try {
+        let connessi = Array.from(gameState.connessi.values());
+
+        // Se non ci sono connessi in memoria, carica dal database
+        if (connessi.length === 0) {
+            console.log('🔄 Nessun connesso in memoria, carico dal DB...');
+            await caricaConnessiDaDB();
+            connessi = Array.from(gameState.connessi.values());
+        }
+
+        res.json(connessi);
+    } catch (error) {
+        console.error('Errore API connessi:', error);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Ottieni risultati aste per round specifico
 app.get('/api/aste-round/:round', async (req, res) => {
     try {
@@ -2422,6 +2441,71 @@ function terminaRound() {
     elaboraRisultatiAste();
 }
 
+// NUOVA FUNZIONE: Salva connessi nel database
+async function salvaConnessoInDB(socketId, datiConnesso) {
+    try {
+        await db.query(`
+            INSERT INTO connessi_attivi 
+            (socket_id, nome, tipo, partecipante_id, stato, verified, connected_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (socket_id) 
+            DO UPDATE SET 
+                nome = $2, tipo = $3, partecipante_id = $4, 
+                stato = $5, verified = $6, connected_at = NOW()
+        `, [
+            socketId,
+            datiConnesso.nome,
+            datiConnesso.tipo,
+            datiConnesso.partecipanteId,
+            datiConnesso.stato,
+            datiConnesso.verified
+        ]);
+        console.log('💾 Connesso salvato in DB:', datiConnesso.nome);
+    } catch (error) {
+        console.error('❌ Errore salvataggio connesso in DB:', error);
+    }
+}
+
+// NUOVA FUNZIONE: Rimuovi connesso dal database
+async function rimuoviConnessoInDB(socketId) {
+    try {
+        await db.query('DELETE FROM connessi_attivi WHERE socket_id = $1', [socketId]);
+        console.log('🗑️ Connesso rimosso da DB:', socketId);
+    } catch (error) {
+        console.error('❌ Errore rimozione connesso da DB:', error);
+    }
+}
+
+// NUOVA FUNZIONE: Carica connessi dal database
+async function caricaConnessiDaDB() {
+    try {
+        const result = await db.query(`
+            SELECT * FROM connessi_attivi 
+            WHERE connected_at > NOW() - INTERVAL '1 hour'
+            ORDER BY connected_at DESC
+        `);
+
+        // Ripopola gameState.connessi
+        gameState.connessi.clear();
+        result.rows.forEach(row => {
+            gameState.connessi.set(row.socket_id, {
+                nome: row.nome,
+                tipo: row.tipo,
+                partecipanteId: row.partecipante_id,
+                stato: row.stato,
+                verified: row.verified,
+                registeredAt: row.connected_at
+            });
+        });
+
+        console.log(`🔄 Caricati ${result.rows.length} connessi dal DB`);
+        return result.rows;
+    } catch (error) {
+        console.error('❌ Errore caricamento connessi da DB:', error);
+        return [];
+    }
+}
+
 // NUOVO: Sistema multi-round per posizione
 async function avviaMultiRoundPerPosizione(posizione) {
     console.log(`🎯 Avviando sistema multi-round per posizione: ${posizione}`);
@@ -2885,14 +2969,17 @@ io.on('connection', (socket) => {
                     }
 
                     // Registrazione WebSocket autorizzata
-                    gameState.connessi.set(socket.id, {
+                    const datiConnesso = {
                         nome: data.nome,
                         tipo: data.tipo,
                         partecipanteId: data.partecipanteId,
                         stato: 'connesso',
                         verified: true,
                         registeredAt: new Date().toISOString()
-                    });
+                    };
+
+                    gameState.connessi.set(socket.id, datiConnesso);
+                    await salvaConnessoInDB(socket.id, datiConnesso);
 
                     // Invia stato completo del gioco
                     socket.emit('registered', {
@@ -2920,14 +3007,17 @@ io.on('connection', (socket) => {
                 });
         } else {
             // Master o altri tipi non necessitano verifica DB
-            gameState.connessi.set(socket.id, {
+            const datiConnesso = {
                 nome: data.nome,
                 tipo: data.tipo,
                 partecipanteId: data.partecipanteId || null,
                 stato: 'connesso',
                 verified: data.tipo !== 'partecipante',
                 registeredAt: new Date().toISOString()
-            });
+            };
+
+            gameState.connessi.set(socket.id, datiConnesso);
+            await salvaConnessoInDB(socket.id, datiConnesso);
 
             socket.emit('registered', {
                 success: true,
@@ -3089,9 +3179,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         gameState.connessi.delete(socket.id);
         gameState.offerteTemporanee.delete(socket.id);
+        await rimuoviConnessoInDB(socket.id);
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
         console.log('Disconnesso:', socket.id);
     });
