@@ -2210,11 +2210,11 @@
         function updatePartecipanti() {
             const container = document.getElementById('participantsContainer');
 
-            const partecipanti = gameState.connessi.filter(p => p.tipo === 'partecipante');
+            const partecipanti = Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante');
             console.log('🔍 Debug partecipanti:', {
-                totaleConnessi: gameState.connessi.length,
+                totaleConnessi: gameState.connessi.size,
                 partecipantiFiltrati: partecipanti.length,
-                dettaglio: gameState.connessi.map(p => ({ nome: p.nome, tipo: p.tipo }))
+                dettaglio: Array.from(gameState.connessi.values()).map(p => ({ nome: p.nome, tipo: p.tipo }))
             });
 
             if (partecipanti.length === 0) {
