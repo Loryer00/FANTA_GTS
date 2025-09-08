@@ -1065,6 +1065,12 @@
             socket.on('connessi_update', (connessi) => {
                 console.log('🔄 Aggiornamento connessi ricevuto:', connessi);
 
+                // AGGIUNTA: Aggiorna il gameState locale con i connessi ricevuti
+                gameState.connessi = new Map();
+                connessi.forEach(connesso => {
+                    gameState.connessi.set(connesso.socketId || Math.random().toString(), connesso);
+                });
+
                 // Aggiorna la visualizzazione dei partecipanti
                 const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
 
@@ -1073,6 +1079,9 @@
                 if (contatore) {
                     contatore.textContent = partecipanti.length;
                 }
+
+                // AGGIUNTA: Forza aggiornamento della visualizzazione partecipanti
+                updatePartecipanti();
 
                 // Aggiorna la lista dettagliata se esiste
                 updateConnectedParticipants(partecipanti);
