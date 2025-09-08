@@ -264,6 +264,51 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
 
+        .connection-status {
+            background: rgba(0,0,0,0.3);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 500;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+            .connection-status.connected {
+                background: rgba(72, 187, 120, 0.2);
+                border: 1px solid rgba(72, 187, 120, 0.4);
+            }
+
+            .connection-status.poor {
+                background: rgba(236, 201, 75, 0.2);
+                border: 1px solid rgba(236, 201, 75, 0.4);
+            }
+
+            .connection-status.disconnected {
+                background: rgba(245, 101, 101, 0.2);
+                border: 1px solid rgba(245, 101, 101, 0.4);
+            }
+
+            .connection-status.failed {
+                background: rgba(229, 62, 62, 0.3);
+                border: 1px solid rgba(229, 62, 62, 0.5);
+                animation: pulse 2s infinite;
+            }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
         .confirm-bid {
             width: 100%;
             padding: 15px;
@@ -449,9 +494,10 @@
                         <strong>Nessun giocatore selezionato</strong>
                     </div>
 
-                    <!-- Sezione crediti -->
-                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-                        <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+                    <!-- Sezione crediti e stato connessione -->
+                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <strong>💰 Crediti: <span id="creditsDisplay">2000</span></strong>
+                        <span id="connection-status" class="connection-status">🟡 Connettendo...</span>
                     </div>
 
                     <input type="number" class="bid-input" id="bidAmount" placeholder="Inserisci quanto vuoi puntare" min="1">
@@ -495,15 +541,407 @@
             notificationsEnabled: false
         };
 
-        // SISTEMA DI PERSISTENZA CONNESSIONE
-        let connectionPersistence = {
+        // SISTEMA DI CONNESSIONE PERSISTENTE MIGLIORATO
+        let connectionManager = {
+            socket: null,
             heartbeatInterval: null,
-            reconnectAttempts: 0,
-            maxReconnectAttempts: 50,
-            isReconnecting: false,
-            lastServerResponse: Date.now()
+            reconnectInterval: null,
+            connectionCheckInterval: null,
+
+            // Configurazione
+            config: {
+                heartbeatFrequency: 10000,      // Heartbeat ogni 10 secondi
+                maxReconnectAttempts: 10,       // Massimo 10 tentativi
+                reconnectDelay: 2000,           // 2 secondi tra tentativi
+                connectionTimeout: 15000,       // Timeout connessione 15 secondi
+                maxReconnectDelay: 30000        // Massimo delay 30 secondi
+            },
+
+            // Stato connessione
+            state: {
+                isConnected: false,
+                reconnectAttempts: 0,
+                lastHeartbeat: null,
+                lastServerResponse: null,
+                isReconnecting: false,
+                connectionQuality: 'good'       // good, poor, offline
+            },
+
+            // Inizializza il sistema di connessione
+            initialize() {
+                if (typeof io === 'undefined') {
+                    console.log('Socket.io non disponibile');
+                    return false;
+                }
+
+                this.createSocket();
+                this.startConnectionMonitoring();
+                return true;
+            },
+
+            // Crea una nuova connessione socket
+            createSocket() {
+                try {
+                    // Configurazione socket ottimizzata per stabilità
+                    this.socket = io({
+                        transports: ['websocket', 'polling'],
+                        upgrade: true,
+                        rememberUpgrade: true,
+                        timeout: this.config.connectionTimeout,
+
+                        // Configurazioni per connessioni instabili
+                        pingTimeout: 20000,
+                        pingInterval: 10000,
+
+                        // Retry policy
+                        reconnection: true,
+                        reconnectionAttempts: this.config.maxReconnectAttempts,
+                        reconnectionDelay: this.config.reconnectDelay,
+                        reconnectionDelayMax: this.config.maxReconnectDelay,
+                        randomizationFactor: 0.2
+                    });
+
+                    this.setupSocketEvents();
+
+                } catch (error) {
+                    console.error('❌ Errore creazione socket:', error);
+                    this.scheduleReconnect();
+                }
+            },
+
+            // Configura tutti gli eventi del socket
+            setupSocketEvents() {
+                // Connessione riuscita
+                this.socket.on('connect', () => {
+                    console.log('🔗 Connesso al server via WebSocket');
+                    this.state.isConnected = true;
+                    this.state.reconnectAttempts = 0;
+                    this.state.isReconnecting = false;
+                    this.state.connectionQuality = 'good';
+                    this.state.lastServerResponse = Date.now();
+
+                    // Avvia heartbeat
+                    this.startHeartbeat();
+
+                    // Registra il giocatore se già autenticato
+                    if (playerData.registered) {
+                        this.registerPlayer();
+                    }
+
+                    // Aggiorna UI
+                    this.updateConnectionStatus('connected');
+                });
+
+                // Disconnessione
+                this.socket.on('disconnect', (reason) => {
+                    console.log('📡 Disconnesso dal server:', reason);
+                    this.state.isConnected = false;
+                    this.stopHeartbeat();
+
+                    // Aggiorna UI
+                    this.updateConnectionStatus('disconnected');
+
+                    // Gestisci diversi tipi di disconnessione
+                    if (reason === 'io server disconnect') {
+                        // Server ha chiuso la connessione
+                        console.log('🔄 Server ha chiuso la connessione, riconnetto...');
+                        this.scheduleReconnect();
+                    } else if (reason === 'transport close' || reason === 'transport error') {
+                        // Problema di rete
+                        console.log('🌐 Problema di rete rilevato');
+                        this.state.connectionQuality = 'poor';
+                        this.scheduleReconnect();
+                    }
+                });
+
+                // Errore di connessione
+                this.socket.on('connect_error', (error) => {
+                    console.error('❌ Errore connessione:', error.message);
+                    this.state.isConnected = false;
+                    this.state.connectionQuality = 'offline';
+
+                    this.state.reconnectAttempts++;
+                    console.log(`🔄 Tentativo riconnessione ${this.state.reconnectAttempts}/${this.config.maxReconnectAttempts}`);
+
+                    if (this.state.reconnectAttempts >= this.config.maxReconnectAttempts) {
+                        console.log('❌ Massimo numero di tentativi raggiunto');
+                        this.updateConnectionStatus('failed');
+                        this.showConnectionError();
+                    }
+                });
+
+                // Risposta heartbeat
+                this.socket.on('heartbeat_response', (data) => {
+                    this.state.lastServerResponse = Date.now();
+                    this.state.connectionQuality = 'good';
+
+                    // Calcola latenza
+                    const latency = Date.now() - this.state.lastHeartbeat;
+                    if (latency > 5000) {
+                        this.state.connectionQuality = 'poor';
+                        console.log('⚠️ Latenza alta rilevata:', latency + 'ms');
+                    }
+                });
+
+                // Altri eventi del gioco
+                this.setupGameEvents();
+            },
+
+            // Configura eventi specifici del gioco
+            setupGameEvents() {
+                this.socket.on('registered', (data) => {
+                    console.log('✅ Registrazione WebSocket confermata per partecipante');
+                    if (data.success) {
+                        this.handleGameState(data.gameState);
+                    } else {
+                        console.error('❌ Registrazione fallita:', data.error);
+                        if (data.shouldReload) {
+                            this.handleRegistrationFailure();
+                        }
+                    }
+                });
+
+                this.socket.on('game_state', (gameState) => {
+                    console.log('🎮 Stato gioco ricevuto:', gameState);
+                    this.handleGameState(gameState);
+                });
+
+                this.socket.on('show_notification', (data) => {
+                    console.log('🔔 NOTIFICA RICEVUTA:', data);
+                    alert(`🔔 ${data.title}\n\n${data.body}`);
+                });
+
+                // Altri eventi specifici del gioco...
+            },
+
+            // Avvia il sistema di heartbeat
+            startHeartbeat() {
+                this.stopHeartbeat(); // Assicurati che non ci siano duplicati
+
+                this.heartbeatInterval = setInterval(() => {
+                    if (this.socket && this.socket.connected) {
+                        this.state.lastHeartbeat = Date.now();
+                        this.socket.emit('heartbeat', {
+                            type: 'persistence_check',
+                            timestamp: Date.now(),
+                            clientId: playerData.id
+                        });
+                    }
+                }, this.config.heartbeatFrequency);
+            },
+
+            // Ferma il heartbeat
+            stopHeartbeat() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                    this.heartbeatInterval = null;
+                }
+            },
+
+            // Avvia il monitoraggio della connessione
+            startConnectionMonitoring() {
+                this.connectionCheckInterval = setInterval(() => {
+                    this.checkConnectionHealth();
+                }, 5000); // Controlla ogni 5 secondi
+            },
+
+            // Verifica la salute della connessione
+            checkConnectionHealth() {
+                const now = Date.now();
+
+                // Se non abbiamo ricevuto risposta dal server da troppo tempo
+                if (this.state.lastServerResponse &&
+                    now - this.state.lastServerResponse > 30000) { // 30 secondi
+
+                    console.log('⚠️ Nessuna risposta dal server da troppo tempo');
+                    this.state.connectionQuality = 'poor';
+
+                    // Se la connessione sembra morta, forza riconnessione
+                    if (now - this.state.lastServerResponse > 60000) { // 1 minuto
+                        console.log('💀 Connessione sembra morta, forzo riconnessione');
+                        this.forceReconnect();
+                    }
+                }
+
+                // Aggiorna UI basata sulla qualità connessione
+                this.updateConnectionStatus(this.state.connectionQuality);
+            },
+
+            // Programma una riconnessione
+            scheduleReconnect() {
+                if (this.state.isReconnecting) return;
+
+                this.state.isReconnecting = true;
+
+                // Calcola delay con backoff esponenziale
+                const delay = Math.min(
+                    this.config.reconnectDelay * Math.pow(2, this.state.reconnectAttempts),
+                    this.config.maxReconnectDelay
+                );
+
+                console.log(`⏳ Riconnessione programmata in ${delay}ms`);
+
+                this.reconnectInterval = setTimeout(() => {
+                    this.attemptReconnect();
+                }, delay);
+            },
+
+            // Tenta riconnessione
+            attemptReconnect() {
+                if (this.state.reconnectAttempts >= this.config.maxReconnectAttempts) {
+                    console.log('❌ Troppi tentativi di riconnessione');
+                    this.showConnectionError();
+                    return;
+                }
+
+                console.log('🔄 Tentativo di riconnessione...');
+
+                // Pulisci socket esistente
+                if (this.socket) {
+                    this.socket.removeAllListeners();
+                    this.socket.disconnect();
+                }
+
+                // Crea nuovo socket
+                this.createSocket();
+            },
+
+            // Forza riconnessione immediata
+            forceReconnect() {
+                console.log('⚡ Forzando riconnessione immediata...');
+                this.state.isReconnecting = false;
+                this.state.reconnectAttempts = 0;
+
+                if (this.reconnectInterval) {
+                    clearTimeout(this.reconnectInterval);
+                }
+
+                this.attemptReconnect();
+            },
+
+            // Registra il giocatore
+            registerPlayer() {
+                if (!this.socket || !this.socket.connected || !playerData.registered) {
+                    return;
+                }
+
+                console.log('🔌 Registrando socket come partecipante:', playerData.name);
+                this.socket.emit('register', {
+                    nome: playerData.name,
+                    tipo: 'partecipante',
+                    partecipanteId: playerData.id
+                });
+            },
+
+            // Gestisce lo stato del gioco
+            handleGameState(gameState) {
+                if (!gameState) return;
+
+                if (gameState.biddingActive || gameState.asteAttive) {
+                    console.log('🎯 Aste attive, caricando interfaccia...');
+                    loadAuctionInterface();
+                } else {
+                    console.log('⏳ Nessuna asta attiva, mostra fase di attesa');
+                    showWaitingPhase();
+                }
+            },
+
+            // Gestisce fallimento registrazione
+            handleRegistrationFailure() {
+                console.log('❌ Registrazione fallita, pulisco sessione');
+                clearSavedSession();
+                location.reload();
+            },
+
+            // Aggiorna UI status connessione
+            updateConnectionStatus(status) {
+                const statusElement = document.getElementById('connection-status');
+                if (!statusElement) return;
+
+                statusElement.className = `connection-status ${status}`;
+
+                switch (status) {
+                    case 'connected':
+                        statusElement.textContent = '🟢 Connesso';
+                        statusElement.style.color = '#48BB78';
+                        break;
+                    case 'poor':
+                        statusElement.textContent = '🟡 Connessione instabile';
+                        statusElement.style.color = '#ECC94B';
+                        break;
+                    case 'disconnected':
+                        statusElement.textContent = '🔴 Disconnesso';
+                        statusElement.style.color = '#F56565';
+                        break;
+                    case 'failed':
+                        statusElement.textContent = '❌ Connessione fallita';
+                        statusElement.style.color = '#E53E3E';
+                        break;
+                    default:
+                        statusElement.textContent = '🟡 Connettendo...';
+                        statusElement.style.color = '#ECC94B';
+                }
+            },
+
+            // Mostra errore di connessione
+            showConnectionError() {
+                const errorMsg = `
+🔴 PROBLEMA DI CONNESSIONE
+
+Non riesco a connettermi al server FantaGTS.
+
+Possibili soluzioni:
+• Controlla la tua connessione internet
+• Ricarica la pagina
+• Prova da un altro browser
+• Contatta l'amministratore se il problema persiste
+
+Vuoi ricaricare la pagina ora?
+        `;
+
+                if (confirm(errorMsg)) {
+                    location.reload();
+                }
+            },
+
+            // Pulisci tutte le risorse
+            cleanup() {
+                this.stopHeartbeat();
+
+                if (this.reconnectInterval) {
+                    clearTimeout(this.reconnectInterval);
+                }
+
+                if (this.connectionCheckInterval) {
+                    clearInterval(this.connectionCheckInterval);
+                }
+
+                if (this.socket) {
+                    this.socket.removeAllListeners();
+                    this.socket.disconnect();
+                }
+            },
+
+            // Ottieni stato connessione
+            getConnectionInfo() {
+                return {
+                    connected: this.state.isConnected,
+                    quality: this.state.connectionQuality,
+                    attempts: this.state.reconnectAttempts,
+                    lastHeartbeat: this.state.lastHeartbeat,
+                    lastResponse: this.state.lastServerResponse
+                };
+            }
         };
 
+        // Sostituisci la funzione initializeSocket esistente
+        function initializeSocket() {
+            return connectionManager.initialize();
+        }
+
+        // Esponi il manager globalmente per debug
+        window.connectionManager = connectionManager;
+       
         // Chiavi per localStorage
         const STORAGE_KEYS = {
             PLAYER_DATA: 'fantagts_player_data',
@@ -514,13 +952,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log('FantaGTS Client caricato');
             checkExistingSession();
-            try {
-                initializeSocket();
-            } catch (error) {
+
+            // Inizializza il nuovo sistema di connessione
+            if (!connectionManager.initialize()) {
                 console.log('Socket.io non disponibile, modalità base attiva');
+                document.getElementById('connection-status').textContent = '❌ Socket.io non disponibile';
             }
         });
-
+               
         // Controlla sessione esistente
         async function checkExistingSession() {
             try {
@@ -601,37 +1040,17 @@
 
         // Registra socket quando è pronto
         function registerSocketWhenReady() {
-            const tryRegister = () => {
-                if (socket && socket.connected) {
-                    console.log('🔌 Registrando socket come partecipante:', playerData.name);
-                    socket.emit('register', {
-                        nome: playerData.name,
-                        tipo: 'partecipante',
-                        partecipanteId: playerData.id
-                    });
-                } else {
-                    console.log('🔌 Socket non ancora pronto, riprovo...');
-                    setTimeout(tryRegister, 500);
-                }
-            };
-
-            // MODIFICA: Registra solo UNA volta quando socket è pronto
-            if (socket && socket.connected) {
-                tryRegister();
+            // Il nuovo sistema gestisce automaticamente la registrazione
+            // quando la connessione è stabilita
+            if (connectionManager.socket && connectionManager.socket.connected) {
+                connectionManager.registerPlayer();
             } else {
-                if (socket) {
-                    socket.off('connect'); // Rimuovi listener precedenti
-                    socket.on('connect', () => {
-                        console.log('🔗 Socket connesso, registrando...');
-                        tryRegister();
-                    });
-                } else {
-                    setTimeout(() => {
-                        if (socket) {
-                            registerSocketWhenReady();
-                        }
-                    }, 1000);
-                }
+                // Aspetta che la connessione sia pronta
+                setTimeout(() => {
+                    if (connectionManager.socket && connectionManager.socket.connected) {
+                        connectionManager.registerPlayer();
+                    }
+                }, 1000);
             }
         }
 
@@ -665,388 +1084,11 @@
             }
         }
 
-        // Connessione WebSocket
+        // Connessione WebSocket - ora gestita dal connectionManager
         function initializeSocket() {
-            if (typeof io === 'undefined') {
-                console.log('Socket.io non caricato');
-                return;
-            }
-
-            socket = io();
-
-            socket.on('connect', () => {
-                console.log('Connesso al server via WebSocket');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Disconnesso dal server');
-            });
-
-            socket.on('reset_bid_state', (data) => {
-                console.log('🔄 Reset stato offerte ricevuto:', data);
-
-                // Reset completo interfaccia aste
-                resetBiddingInterface();
-
-                // Assicurati che sia tutto pulito
-                document.querySelectorAll('.player-card').forEach(card => {
-                    card.classList.remove('selected');
-                    card.style.pointerEvents = 'auto';
-                    card.style.opacity = '1';
-                    card.style.border = '';
-                    card.style.backgroundColor = '';
-                });
-
-                // Reset sezione offerta
-                document.getElementById('bidSection').style.display = 'none';
-                document.getElementById('bidAmount').value = '';
-                document.getElementById('bidAmount').disabled = false;
-
-                const confirmBtn = document.getElementById('confirmBidBtn');
-                if (confirmBtn) {
-                    confirmBtn.disabled = true;
-                    confirmBtn.textContent = 'Conferma Puntata';
-                    confirmBtn.style.background = '#f56565';
-                    confirmBtn.style.cursor = 'not-allowed';
-                }
-
-                console.log(`✅ Interfaccia resettata per Asta ${data.astaNumero}`);
-            });
-
-            socket.on('registered', (data) => {
-                if (data.success) {
-                    console.log('✅ Registrazione WebSocket confermata per partecipante');
-
-                    // NUOVO: Controlla se c'è un'asta in corso
-                    if (data.gameState) {
-                        console.log('🎮 Stato gioco ricevuto:', data.gameState);
-
-                        if (data.gameState.asteAttive && data.gameState.roundAttivo) {
-                            console.log('🔥 ASTA IN CORSO! Mostrando interfaccia aste');
-
-                            // Simula la ricezione di un evento round_started
-                            showBiddingPhase({
-                                round: data.gameState.roundAttivo,
-                                slots: [] // I slots verranno caricati dopo
-                            });
-
-                            // Richiedi i slots per il round attivo
-                            loadSlotsForActiveRound(data.gameState.roundAttivo);
-                        } else {
-                            console.log('⏳ Nessuna asta attiva, mostra fase di attesa');
-                            showWaitingPhase();
-                        }
-                    }
-                } else {
-                    console.error('❌ Registrazione WebSocket fallita:', data);
-
-                    if (data.shouldReload) {
-                        alert('❌ Sessione non valida. L\'app verrà ricaricata per permettere una nuova registrazione.');
-                        clearSavedSession();
-                        location.reload();
-                    } else {
-                        alert('❌ Errore registrazione: ' + (data.error || 'Errore sconosciuto'));
-                    }
-                }
-            });
-
-            socket.on('round_started', (data) => {
-                console.log('🎯 Round started ricevuto:', data);
-
-                // NUOVO: Reset completo prima di iniziare
-                resetBiddingInterface();
-
-                // 1. Nascondi tutte le fasi
-                document.getElementById('waiting-phase').style.display = 'none';
-                document.getElementById('bidding-phase').style.display = 'none';
-
-                // 2. Reset completo interfaccia puntate
-                resetBiddingInterface();
-
-                // 3. Forza aggiornamento crediti
-                updateCreditsDisplay();
-
-                // 4. Mostra sezione asta con delay per garantire rendering
-                setTimeout(() => {
-                    showBiddingPhase(data);
-
-                    // 5. NUOVO: Forza refresh della griglia giocatori
-                    if (data && data.slots) {
-                        console.log('🔄 Forzando aggiornamento griglia giocatori:', data.slots);
-                        loadAvailablePlayers(data.slots);
-                    }
-
-                    // 6. Assicurati che sia visibile
-                    const biddingPhase = document.getElementById('bidding-phase');
-                    if (biddingPhase) {
-                        biddingPhase.style.display = 'block';
-
-                        // Scroll immediato (non smooth per essere più rapido)
-                        biddingPhase.scrollIntoView({
-                            behavior: 'auto',
-                            block: 'start'
-                        });
-
-                        // Evidenzia visivamente che è iniziata
-                        biddingPhase.style.border = '3px solid #4299e1';
-                        biddingPhase.style.backgroundColor = 'rgba(66, 153, 225, 0.1)';
-
-                        setTimeout(() => {
-                            biddingPhase.style.border = '';
-                            biddingPhase.style.backgroundColor = '';
-                        }, 3000);
-                    }
-
-                    console.log('✅ Interfaccia asta aggiornata forzatamente');
-
-                }, 200); // Piccolo delay per evitare conflitti
-            });
-
-            socket.on('offerte_update', (data) => {
-                updateOffersStatus(data);
-            });
-
-            socket.on('crediti_aggiornati', (data) => {
-                playerData.credits = data.crediti;
-                updateCreditsDisplay();
-                saveSession();
-                console.log('Crediti aggiornati:', data.crediti);
-            });
-
-            socket.on('round_ended', (data) => {
-                console.log('🏁 Round terminato ricevuto:', data);
-
-                showResultsPhase(data);
-
-                // Aggiorna squadra immediatamente
-                if (data.risultati && Array.isArray(data.risultati)) {
-                    updateMyTeamFromResults(data.round, data.risultati);
-                }
-
-                // Ricarica squadra completa dal server (senza delay)
-                loadPlayerTeam();
-
-                resetBiddingInterface();
-                saveSession();
-                showWaitingPhase();
-            });
-
-            // AGGIUNGI QUESTO NUOVO LISTENER
-            socket.on('asta_ended', (data) => {
-                console.log('🏁 Asta terminata ricevuta:', data);
-
-                // 1. RESET COMPLETO dell'interfaccia aste
-                resetBiddingInterface();
-
-                // 2. Aggiorna squadra se ci sono risultati
-                if (data.risultati && Array.isArray(data.risultati)) {
-                    updateMyTeamFromResults(data.round, data.risultati);
-                }
-
-                // 3. Ricarica squadra completa dal server
-                loadPlayerTeam();
-
-                // 4. Aggiorna crediti
-                updateCreditsDisplay();
-
-                // 5. Se continua il round, prepara per prossima asta
-                if (data.continuaRound) {
-                    console.log(`🔄 Round ${data.round} continua - Preparando prossima asta`);
-
-                    // SCROLL IN CIMA ALLA PAGINA per chi non ha vinto
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-
-                    // Reset selezioni per prossima asta
-                    setTimeout(() => {
-                        document.querySelectorAll('.player-card').forEach(card => {
-                            card.classList.remove('selected');
-                            card.style.pointerEvents = 'auto';
-                            card.style.opacity = '1';
-                        });
-
-                        document.getElementById('bidSection').style.display = 'none';
-                        document.getElementById('bidAmount').value = '';
-                        document.getElementById('confirmBidBtn').disabled = true;
-                        document.getElementById('confirmBidBtn').textContent = 'Conferma Puntata';
-                        document.getElementById('confirmBidBtn').style.background = '#f56565';
-
-                        console.log('✅ Interfaccia pronta per prossima asta');
-                    }, 1000);
-
-                } else {
-                    // Round completato - torna alla fase di attesa
-                    console.log(`🏁 Round ${data.round} completato totalmente`);
-                    showWaitingPhase();
-                }
-
-                // Salva sessione
-                saveSession();
-            });
-
-            socket.on('asta_started', (data) => {
-                console.log('🎪 Asta started ricevuto:', data);
-
-                // NUOVO: Reset completo prima della nuova asta
-                resetBiddingInterface();
-
-                // SCROLL AUTOMATICO IN CIMA
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-
-                // Gestione uguale a round_started per compatibilità
-                document.getElementById('waiting-phase').style.display = 'none';
-
-                setTimeout(() => {
-                    showBiddingPhase({
-                        round: data.round,
-                        slots: data.slots || [],
-                        astaNumero: data.astaNumero || 1
-                    });
-
-                    // EVIDENZIA che è iniziata una nuova asta
-                    const biddingSection = document.getElementById('bidding-phase');
-                    if (biddingSection) {
-                        biddingSection.style.border = '3px solid #4299e1';
-                        biddingSection.style.animation = 'pulse 0.5s ease-in-out 3 alternate';
-
-                        setTimeout(() => {
-                            biddingSection.style.border = '';
-                            biddingSection.style.animation = '';
-                        }, 3000);
-                    }
-                }, 200);
-            });
-
-            socket.on('player_won_exit_auction', (data) => {
-                console.log('🏆 Hai vinto un giocatore:', data);
-
-                // Nascondi l'interfaccia di asta
-                document.getElementById('bidding-phase').style.display = 'none';
-                document.getElementById('waiting-phase').style.display = 'block';
-
-                // Reset completo interfaccia
-                resetBiddingInterface();
-
-                // Aggiorna la squadra
-                loadPlayerTeam();
-
-                // Mostra messaggio di vittoria
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #48bb78;
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        font-size: 1.2em;
-        font-weight: bold;
-        z-index: 2000;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    `;
-                notification.innerHTML = `
-        <div>🏆 COMPLIMENTI!</div>
-        <div style="margin: 10px 0;">Hai vinto:</div>
-        <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
-        <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-    `;
-
-                document.body.appendChild(notification);
-
-                // Rimuovi notifica dopo 2 secondi
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.remove();
-                    }
-                }, 2000);
-
-                console.log('✅ Interfaccia aggiornata dopo vittoria');
-            });
-
-            socket.on('bid_confirmed', (data) => {
-                console.log('✅ Puntata confermata dal server:', data);
-
-                const button = document.getElementById('confirmBidBtn');
-                button.disabled = true;
-                button.textContent = '✅ Puntata Confermata - Attendi...';
-                button.style.background = '#10b981';
-
-                document.querySelectorAll('.player-card').forEach(card => {
-                    card.style.pointerEvents = 'none';
-                    card.style.opacity = '0.7';
-                });
-                document.getElementById('bidAmount').disabled = true;
-
-                // Mostra un messaggio discreto invece dell'alert
-                const statusDiv = document.createElement('div');
-                statusDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #10b981;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
-        z-index: 1000;
-        font-weight: bold;
-    `;
-                statusDiv.textContent = '✅ Puntata confermata! Attendi che tutti completino...';
-                document.body.appendChild(statusDiv);
-
-                // Rimuovi il messaggio dopo 3 secondi
-                setTimeout(() => {
-                    if (statusDiv.parentNode) {
-                        statusDiv.remove();
-                    }
-                }, 3000);
-            });
-
-            socket.on('bid_error', (data) => {
-                console.error('❌ Errore puntata:', data);
-                alert('❌ Errore: ' + data.message);
-                resetBiddingInterface();
-            });
-
-            socket.on('aste_resettate', (data) => {
-                console.log('🔄 Aste resettate dal server:', data);
-                playerData.credits = data.creditiRipristinati;
-                updateCreditsDisplay();
-                resetTeamUI();
-                clearSavedSession();
-                saveSession();
-                alert('🔄 Le aste sono state resettate dal Master!\n\nLa tua squadra è stata azzerata e i crediti ripristinati.');
-            });
-
-            socket.on('heartbeat_response', (data) => {
-                connectionPersistence.lastServerResponse = Date.now();
-            });
-
-            socket.on('show_notification', (data) => {
-                console.log('🔔 NOTIFICA RICEVUTA:', data);
-
-                // Alert immediato
-                alert(`🔔 ${data.title}\n\n${data.body}`);
-
-                // Notifica browser se supportata (solo se NON siamo in service worker context)
-                if ('Notification' in window && Notification.permission === 'granted' && !navigator.serviceWorker) {
-                    new Notification(data.title, {
-                        body: data.body,
-                        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-                        vibrate: [100, 50, 100]
-                    });
-                }
-            });
+            return connectionManager.initialize();
         }
-
+                
         // Registrazione giocatore con controllo duplicati
         async function registerPlayer() {
             const name = document.getElementById('playerName').value.trim();
