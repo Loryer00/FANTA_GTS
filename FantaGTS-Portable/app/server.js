@@ -78,9 +78,10 @@ const db = new Pool({
 console.log('🔍 Connessione PostgreSQL...');
 
 // Inizializza database
+// Inizializza database
 async function initializeDatabase() {
     try {
-        // Crea tabelle
+        // PRIMA: Crea le tabelle di base senza foreign key
         await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
             id SERIAL PRIMARY KEY,
             numero INTEGER UNIQUE NOT NULL,
@@ -115,6 +116,34 @@ async function initializeDatabase() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        await db.query(`CREATE TABLE IF NOT EXISTS configurazione (
+            chiave TEXT PRIMARY KEY,
+            valore TEXT,
+            descrizione TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            attiva BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // SECONDO: Crea la tabella turni_configurazione (necessaria per le foreign key)
+        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
+            id SERIAL PRIMARY KEY,
+            turno_numero INTEGER NOT NULL,
+            nome_turno TEXT NOT NULL,
+            descrizione TEXT,
+            punti_vittoria INTEGER DEFAULT 1,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // TERZO: Ora crea le tabelle che dipendono da turni_configurazione
         await db.query(`CREATE TABLE IF NOT EXISTS scontri_squadre (
             id SERIAL PRIMARY KEY,
             turno_id INTEGER NOT NULL,
@@ -124,73 +153,6 @@ async function initializeDatabase() {
             FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
             FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
             FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS aste (
-            id SERIAL PRIMARY KEY,
-            round TEXT NOT NULL,
-            partecipante_id TEXT NOT NULL,
-            slot_id TEXT NOT NULL,
-            offerta INTEGER NOT NULL,
-            costo_finale INTEGER NOT NULL,
-            premium REAL DEFAULT 0,
-            vincitore BOOLEAN DEFAULT false,
-            condiviso BOOLEAN DEFAULT false,
-            sessione_id TEXT DEFAULT 'default',
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS sostituzioni (
-            id SERIAL PRIMARY KEY,
-            slot_id TEXT NOT NULL,
-            giocatore_vecchio TEXT NOT NULL,
-            giocatore_nuovo TEXT NOT NULL,
-            dal_turno INTEGER,
-            motivo TEXT,
-            approvato BOOLEAN DEFAULT false,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
-            id SERIAL PRIMARY KEY,
-            turno INTEGER NOT NULL,
-            squadra_1 INTEGER NOT NULL,
-            squadra_2 INTEGER NOT NULL,
-            risultato TEXT,
-            vincitori TEXT,
-            inserito_da TEXT,
-            verificato BOOLEAN DEFAULT false,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
-            id SERIAL PRIMARY KEY,
-            partecipante_id TEXT,
-            endpoint TEXT UNIQUE,
-            p256dh_key TEXT,
-            auth_key TEXT,
-            user_agent TEXT,
-            sessione_id TEXT DEFAULT 'default',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            attiva BOOLEAN DEFAULT true
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS configurazione (
-            chiave TEXT PRIMARY KEY,
-            valore TEXT,
-            descrizione TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
-            id SERIAL PRIMARY KEY,
-            turno_numero INTEGER NOT NULL,
-            nome_turno TEXT NOT NULL,
-            descrizione TEXT,
-            punti_vittoria INTEGER DEFAULT 1,
-            attivo BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
         await db.query(`CREATE TABLE IF NOT EXISTS coppie_turno (
@@ -245,13 +207,55 @@ async function initializeDatabase() {
             FOREIGN KEY (incontro_id) REFERENCES incontri(id)
         )`);
 
-        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            anno INTEGER,
-            descrizione TEXT,
-            attiva BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        // QUARTO: Tabelle per le aste e altre funzionalità
+        await db.query(`CREATE TABLE IF NOT EXISTS aste (
+            id SERIAL PRIMARY KEY,
+            round TEXT NOT NULL,
+            partecipante_id TEXT NOT NULL,
+            slot_id TEXT NOT NULL,
+            offerta INTEGER NOT NULL,
+            costo_finale INTEGER NOT NULL,
+            premium REAL DEFAULT 0,
+            vincitore BOOLEAN DEFAULT false,
+            condiviso BOOLEAN DEFAULT false,
+            sessione_id TEXT DEFAULT 'default',
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS sostituzioni (
+            id SERIAL PRIMARY KEY,
+            slot_id TEXT NOT NULL,
+            giocatore_vecchio TEXT NOT NULL,
+            giocatore_nuovo TEXT NOT NULL,
+            dal_turno INTEGER,
+            motivo TEXT,
+            approvato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
+            id SERIAL PRIMARY KEY,
+            turno INTEGER NOT NULL,
+            squadra_1 INTEGER NOT NULL,
+            squadra_2 INTEGER NOT NULL,
+            risultato TEXT,
+            vincitori TEXT,
+            inserito_da TEXT,
+            verificato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id SERIAL PRIMARY KEY,
+            partecipante_id TEXT,
+            endpoint TEXT UNIQUE,
+            p256dh_key TEXT,
+            auth_key TEXT,
+            user_agent TEXT,
+            sessione_id TEXT DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            attiva BOOLEAN DEFAULT true
         )`);
 
         // Inserisci configurazione predefinita
