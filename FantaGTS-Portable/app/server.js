@@ -2456,41 +2456,6 @@ function terminaRound() {
     elaboraRisultatiAste();
 }
 
-// NUOVA FUNZIONE: Salva connessi nel database
-async function salvaConnessoInDB(socketId, datiConnesso) {
-    try {
-        await db.query(`
-            INSERT INTO connessi_attivi 
-            (socket_id, nome, tipo, partecipante_id, stato, verified, connected_at) 
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            ON CONFLICT (socket_id) 
-            DO UPDATE SET 
-                nome = $2, tipo = $3, partecipante_id = $4, 
-                stato = $5, verified = $6, connected_at = NOW()
-        `, [
-            socketId,
-            datiConnesso.nome,
-            datiConnesso.tipo,
-            datiConnesso.partecipanteId,
-            datiConnesso.stato,
-            datiConnesso.verified
-        ]);
-        console.log('💾 Connesso salvato in DB:', datiConnesso.nome);
-    } catch (error) {
-        console.error('❌ Errore salvataggio connesso in DB:', error);
-    }
-}
-
-// NUOVA FUNZIONE: Rimuovi connesso dal database
-async function rimuoviConnessoInDB(socketId) {
-    try {
-        await db.query('DELETE FROM connessi_attivi WHERE socket_id = $1', [socketId]);
-        console.log('🗑️ Connesso rimosso da DB:', socketId);
-    } catch (error) {
-        console.error('❌ Errore rimozione connesso da DB:', error);
-    }
-}
-
 // NUOVA FUNZIONE: Carica connessi dal database
 async function caricaConnessiDaDB() {
     try {
@@ -2977,96 +2942,76 @@ io.on('connection', (socket) => {
         console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
 
         if (data.tipo === 'partecipante' && data.partecipanteId) {
-            // SEMPLIFICATO: Controlla se questo socket è già registrato
-            const socketGiaRegistrato = gameState.connessi.get(socket.id);
-            if (socketGiaRegistrato && socketGiaRegistrato.partecipanteId === data.partecipanteId) {
-                console.log(`⚠️ Socket ${socket.id} già registrato per ${data.nome}, ignoro registrazione duplicata`);
-                return;
-            }
-
-            // SEMPLIFICATO: Rimuovi SOLO dalle Map, NON disconnettere
+            // Controllo duplicati semplificato
             for (let [existingSocketId, existingUser] of gameState.connessi.entries()) {
                 if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
-                    console.log(`🔄 Rimuovendo connessione precedente per ${data.nome}: Socket ${existingSocketId}`);
+                    console.log(`🔄 Rimuovendo connessione precedente per ${data.nome}`);
                     gameState.connessi.delete(existingSocketId);
-                    // NON disconnettere - lascia che le connessioni morte si puliscano da sole
                 }
             }
 
             // Verifica nel database
-            db.query(`
-           SELECT id, nome, crediti FROM partecipanti_fantagts 
-           WHERE id = $1 AND attivo = true AND sessione_id = $2
-       `, [data.partecipanteId, sessioneCorrente])
-                .then(result => {
-                    if (result.rows.length === 0) {
-                        console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
-                        socket.emit('registered', {
-                            success: false,
-                            error: 'Non sei registrato nel database. Effettua prima la registrazione.',
-                            shouldReload: true
-                        });
-                        return;
-                    }
+            try {
+                const result = await db.query(`
+                SELECT id, nome, crediti FROM partecipanti_fantagts 
+                WHERE id = $1 AND attivo = true AND sessione_id = $2
+            `, [data.partecipanteId, sessioneCorrente]);
 
-                    // Registrazione WebSocket autorizzata
-                    const datiConnesso = {
-                        nome: data.nome,
-                        tipo: data.tipo,
-                        partecipanteId: data.partecipanteId,
-                        stato: 'connesso',
-                        verified: true,
-                        registeredAt: new Date().toISOString()
-                    };
-
-                    gameState.connessi.set(socket.id, datiConnesso);
-                    salvaConnessoInDB(socket.id, datiConnesso).catch(err => {
-                        console.error('Errore salvataggio connesso:', err);
-                    });
-
-                    // Invia stato completo del gioco
-                    socket.emit('registered', {
-                        success: true,
-                        verified: true,
-                        gameState: {
-                            fase: gameState.fase,
-                            roundAttivo: gameState.roundAttivo,
-                            asteAttive: gameState.asteAttive,
-                            currentRound: gameState.roundAttivo,
-                            biddingActive: gameState.asteAttive
-                        }
-                    });
-
-                    console.log(`âœ… Registrazione confermata per: ${data.nome} (${data.partecipanteId})`);
-
-                    io.emit('connessi_update', Array.from(gameState.connessi.values()));
-                    console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
-                    console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
-                })
-                .catch(err => {
-                    console.error('❌ Errore verifica database:', err);
+                if (result.rows.length === 0) {
+                    console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
                     socket.emit('registered', {
                         success: false,
-                        error: 'Errore verifica database'
+                        error: 'Non sei registrato nel database. Effettua prima la registrazione.',
+                        shouldReload: true
                     });
+                    return;
+                }
+
+                // Registrazione WebSocket autorizzata
+                gameState.connessi.set(socket.id, {
+                    nome: data.nome,
+                    tipo: data.tipo,
+                    partecipanteId: data.partecipanteId,
+                    stato: 'connesso',
+                    verified: true,
+                    registeredAt: new Date().toISOString()
                 });
+
+                // Invia stato completo del gioco
+                socket.emit('registered', {
+                    success: true,
+                    verified: true,
+                    gameState: {
+                        fase: gameState.fase,
+                        roundAttivo: gameState.roundAttivo,
+                        asteAttive: gameState.asteAttive,
+                        currentRound: gameState.roundAttivo,
+                        biddingActive: gameState.asteAttive
+                    }
+                });
+
+                // NOTIFICA IMMEDIATA AI MASTER
+                io.emit('connessi_update', Array.from(gameState.connessi.values()));
+                console.log(`✅ Partecipante registrato: ${data.nome} - Connessi: ${gameState.connessi.size}`);
+
+            } catch (err) {
+                console.error('❌ Errore verifica database:', err);
+                socket.emit('registered', {
+                    success: false,
+                    error: 'Errore verifica database'
+                });
+            }
         } else {
-            // Master o altri tipi non necessitano verifica DB
-            const datiConnesso = {
+            // Master o altri tipi
+            gameState.connessi.set(socket.id, {
                 nome: data.nome,
                 tipo: data.tipo,
                 partecipanteId: data.partecipanteId || null,
                 stato: 'connesso',
                 verified: data.tipo !== 'partecipante',
                 registeredAt: new Date().toISOString()
-            };
-
-            gameState.connessi.set(socket.id, datiConnesso);
-            salvaConnessoInDB(socket.id, datiConnesso).catch(err => {
-                console.error('Errore salvataggio connesso:', err);
             });
 
-            // Invia stato completo del gioco
             socket.emit('registered', {
                 success: true,
                 verified: true,
@@ -3079,13 +3024,15 @@ io.on('connection', (socket) => {
                 }
             });
 
-            // AGGIUNGI QUESTE RIGHE SUBITO DOPO:
-            // Notifica aggiornamento connessi a tutti i client (inclusi i master)
+            // NOTIFICA IMMEDIATA AI MASTER
             io.emit('connessi_update', Array.from(gameState.connessi.values()));
-
-            console.log(`✅ Registrazione confermata per: ${data.nome} (${data.partecipanteId})`);
-            console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
+            console.log(`✅ Master registrato: ${data.nome} - Connessi: ${gameState.connessi.size}`);
         }
+    });
+
+    socket.on('request_update', () => {
+        console.log('📡 Richiesta aggiornamento manuale da:', socket.id);
+        io.emit('connessi_update', Array.from(gameState.connessi.values()));
     });
 
     socket.on('place_bid', async (data) => {
