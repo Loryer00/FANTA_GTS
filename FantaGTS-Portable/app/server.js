@@ -13,23 +13,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production' ?
-            ["https://fanta-gts.vercel.app"] : "*",
-        methods: ["GET", "POST"],
-        credentials: false
-    },
-    transports: ['polling'],
-    allowEIO3: false,
-    pingTimeout: 60000,    // Aumentato da 20000
-    pingInterval: 25000,   // Aumentato da 5000
-    maxHttpBufferSize: 1e6, // Aumentato da 1e5
-    connectTimeout: 60000,  // Aumentato da 10000
-    allowUpgrades: false,
-    cookie: false,
-    serveClient: true,     // CAMBIATO: Abilita serving del client
-    destroyUpgrade: false,
-    destroyUpgradeTimeout: 1000,
-    path: '/socket.io'     // AGGIUNTO: Path esplicito
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
 // Configurazione Web Push - VERSIONE FINALE
@@ -72,18 +58,7 @@ try {
     webPushConfigured = false;
 }
 
-// Gestione icone PWA mancanti
-app.get('/icons/icon-:size.png', (req, res) => {
-    console.log(`⚠️ Icona mancante richiesta: ${req.url}`);
-    res.status(404).send('Icona non trovata');
-});
-
-// Gestione esplicita per Socket.io client che da problemi su Vercel
-app.get('/socket.io/socket.io.js', (req, res) => {
-    console.log('⚠️ Tentativo accesso socket.io.js - Reindirizzamento a CDN');
-    res.redirect(301, 'https://cdn.socket.io/4.7.2/socket.io.min.js');
-});
-
+// Middleware
 app.use(express.static('public'));
 app.use(express.json());
 
@@ -92,98 +67,205 @@ console.log('🔍 Directory corrente:', __dirname);
 // Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
     process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL;
-
-console.log('🔐 Database URL presente:', !!connectionString);
-console.log('🔐 Database tipo:', connectionString ? 'PostgreSQL' : 'Non configurato');
-
-if (!connectionString) {
-    console.error('❌ ERRORE: Nessuna stringa di connessione database trovata!');
-    console.error('Assicurati di aver configurato DATABASE_URL su Vercel');
-}
+    process.env.POSTGRES_URL ||
+    'postgresql://postgres:iUFrkUQnATpmwBXsbcUFcjtmtzMudUyk@postgres.railway.internal:5432/railway';
 
 const db = new Pool({
     connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Gestione errori globale database
-db.on('error', (err) => {
-    console.error('❌ Errore inaspettato dal pool database:', err);
-    if (err.code === 'ECONNRESET') {
-        console.log('🔄 Tentativo riconnessione database...');
-    }
-});
-
-// Middleware per gestione errori API
-app.use((err, req, res, next) => {
-    console.error('❌ Errore middleware:', err.stack);
-    res.status(500).json({
-        error: 'Errore interno del server',
-        timestamp: new Date().toISOString()
-    });
-});
+console.log('🔍 Connessione PostgreSQL...');
 
 // Inizializza database
 async function initializeDatabase() {
     try {
-        console.log('🔧 Inizializzazione database semplificata...');
+        // Crea tabelle
+        await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
+            id SERIAL PRIMARY KEY,
+            numero INTEGER UNIQUE NOT NULL,
+            colore TEXT NOT NULL,
+            m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
+            f1 TEXT, f2 TEXT, f3 TEXT,
+            attiva BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        // Verifica solo le tabelle essenziali
-        const essentialTables = [
-            {
-                name: 'squadre_circolo',
-                query: `CREATE TABLE IF NOT EXISTS squadre_circolo (
-                    id SERIAL PRIMARY KEY,
-                    numero INTEGER UNIQUE NOT NULL,
-                    colore TEXT NOT NULL,
-                    m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
-                    f1 TEXT, f2 TEXT, f3 TEXT,
-                    attiva BOOLEAN DEFAULT true,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )`
-            },
-            {
-                name: 'partecipanti_fantagts',
-                query: `CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
-                    id TEXT PRIMARY KEY,
-                    nome TEXT NOT NULL,
-                    crediti INTEGER DEFAULT 2000,
-                    attivo BOOLEAN DEFAULT true,
-                    sessione_id TEXT DEFAULT 'default',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )`
-            },
-            {
-                name: 'slots',
-                query: `CREATE TABLE IF NOT EXISTS slots (
-                    id TEXT PRIMARY KEY,
-                    squadra_numero INTEGER NOT NULL,
-                    colore TEXT NOT NULL,
-                    posizione TEXT NOT NULL,
-                    giocatore_attuale TEXT,
-                    punti_totali INTEGER DEFAULT 0,
-                    attivo BOOLEAN DEFAULT true,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )`
-            }
-        ];
+        await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            email TEXT,
+            telefono TEXT,
+            crediti INTEGER DEFAULT 2000,
+            punti_totali INTEGER DEFAULT 0,
+            posizione_classifica INTEGER,
+            attivo BOOLEAN DEFAULT true,
+            sessione_id TEXT DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        // Crea solo le tabelle essenziali
-        for (const table of essentialTables) {
-            try {
-                await db.query(table.query);
-                console.log(`✅ Tabella ${table.name} verificata`);
-            } catch (error) {
-                console.log(`⚠️ Errore tabella ${table.name}:`, error.message);
-                // Continua anche se una tabella fallisce
-            }
-        }
+        await db.query(`CREATE TABLE IF NOT EXISTS slots (
+            id TEXT PRIMARY KEY,
+            squadra_numero INTEGER NOT NULL,
+            colore TEXT NOT NULL,
+            posizione TEXT NOT NULL,
+            giocatore_attuale TEXT,
+            punti_totali INTEGER DEFAULT 0,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 
-        console.log('✅ Inizializzazione database completata');
+        await db.query(`CREATE TABLE IF NOT EXISTS scontri_squadre (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            squadra1 INTEGER NOT NULL,
+            squadra2 INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS aste (
+            id SERIAL PRIMARY KEY,
+            round TEXT NOT NULL,
+            partecipante_id TEXT NOT NULL,
+            slot_id TEXT NOT NULL,
+            offerta INTEGER NOT NULL,
+            costo_finale INTEGER NOT NULL,
+            premium REAL DEFAULT 0,
+            vincitore BOOLEAN DEFAULT false,
+            condiviso BOOLEAN DEFAULT false,
+            sessione_id TEXT DEFAULT 'default',
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS sostituzioni (
+            id SERIAL PRIMARY KEY,
+            slot_id TEXT NOT NULL,
+            giocatore_vecchio TEXT NOT NULL,
+            giocatore_nuovo TEXT NOT NULL,
+            dal_turno INTEGER,
+            motivo TEXT,
+            approvato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
+            id SERIAL PRIMARY KEY,
+            turno INTEGER NOT NULL,
+            squadra_1 INTEGER NOT NULL,
+            squadra_2 INTEGER NOT NULL,
+            risultato TEXT,
+            vincitori TEXT,
+            inserito_da TEXT,
+            verificato BOOLEAN DEFAULT false,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id SERIAL PRIMARY KEY,
+            partecipante_id TEXT,
+            endpoint TEXT UNIQUE,
+            p256dh_key TEXT,
+            auth_key TEXT,
+            user_agent TEXT,
+            sessione_id TEXT DEFAULT 'default',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            attiva BOOLEAN DEFAULT true
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS configurazione (
+            chiave TEXT PRIMARY KEY,
+            valore TEXT,
+            descrizione TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
+            id SERIAL PRIMARY KEY,
+            turno_numero INTEGER NOT NULL,
+            nome_turno TEXT NOT NULL,
+            descrizione TEXT,
+            punti_vittoria INTEGER DEFAULT 1,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS coppie_turno (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_numero INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            squadra1 INTEGER,
+            squadra2 INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS incontri (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_turno_id INTEGER NOT NULL,
+            squadra1 INTEGER NOT NULL,
+            squadra2 INTEGER NOT NULL,
+            risultato_coppia1 TEXT,
+            risultato_coppia2 TEXT,
+            completato BOOLEAN DEFAULT false,
+            inserito_da TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
+            FOREIGN KEY (coppia_turno_id) REFERENCES coppie_turno(id),
+            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
+            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS accoppiamenti_posizioni (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_dettaglio (
+            id SERIAL PRIMARY KEY,
+            incontro_id INTEGER NOT NULL,
+            posizione TEXT NOT NULL,
+            giocatore_squadra1 TEXT,
+            giocatore_squadra2 TEXT,
+            vincitore INTEGER, -- 1 per squadra1, 2 per squadra2, 0 per pareggio
+            punti_assegnati INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (incontro_id) REFERENCES incontri(id)
+        )`);
+
+        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            attiva BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Inserisci configurazione predefinita
+        await db.query(`INSERT INTO configurazione (chiave, valore, descrizione) VALUES 
+            ('crediti_iniziali', '2000', 'Crediti iniziali per ogni partecipante'),
+            ('durata_asta_secondi', '30', 'Durata di ogni round di aste'),
+            ('premium_condivisione', '0.10', 'Premium percentuale per giocatori condivisi'),
+            ('max_partecipanti', '30', 'Numero massimo di partecipanti'),
+            ('backup_auto_minuti', '5', 'Frequenza backup automatici in minuti')
+            ON CONFLICT (chiave) DO NOTHING`);
+
+        console.log('✅ Database PostgreSQL inizializzato con successo');
     } catch (error) {
         console.error('❌ Errore inizializzazione database:', error);
-        // NON lanciare l'errore, lascia che il server continui
     }
 }
 
@@ -560,12 +642,11 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
-        const result = await safeDbQuery('SELECT * FROM squadre_circolo WHERE attiva = true ORDER BY numero');
+        const result = await db.query("SELECT * FROM squadre_circolo ORDER BY numero");
         res.json(result.rows);
-    } catch (error) {
-        console.error('❌ Errore API squadre:', error.message);
-        // Restituisce array vuoto invece di crashare
-        res.json([]);
+    } catch (err) {
+        console.error('Errore API squadre:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -1297,37 +1378,13 @@ app.post('/api/genera-slots', async (req, res) => {
 });
 
 // Stato del gioco
-app.get('/api/stato', async (req, res) => {
-    try {
-        // Risposta base sempre disponibile
-        const statoBase = {
-            fase: gameState?.fase || 'setup',
-            roundAttivo: gameState?.roundAttivo || null,
-            asteAttive: gameState?.asteAttive || false,
-            server: 'online',
-            timestamp: new Date().toISOString()
-        };
-
-        // Tenta di aggiungere info database
-        try {
-            const squadreResult = await safeDbQuery('SELECT COUNT(*) as count FROM squadre_circolo WHERE attiva = true');
-            statoBase.squadreAttive = squadreResult.rows[0]?.count || 0;
-        } catch (dbError) {
-            console.log('⚠️ Database non disponibile per stato');
-            statoBase.squadreAttive = 0;
-            statoBase.databaseStatus = 'unavailable';
-        }
-
-        res.json(statoBase);
-    } catch (error) {
-        console.error('❌ Errore API stato:', error);
-        res.status(200).json({
-            fase: 'setup',
-            server: 'online',
-            error: 'Errore interno',
-            timestamp: new Date().toISOString()
-        });
-    }
+app.get('/api/stato', (req, res) => {
+    res.json({
+        fase: gameState.fase,
+        roundAttivo: gameState.roundAttivo,
+        asteAttive: gameState.asteAttive,
+        connessi: Array.from(gameState.connessi.values())
+    });
 });
 
 // API per info slot
@@ -1495,94 +1552,77 @@ app.get('/api/stato-offerte/:round', async (req, res) => {
 // API per risultati partite
 app.get('/api/risultati-partite', async (req, res) => {
     try {
-        console.log('🔍 Caricamento risultati partite...');
+        const result = await db.query(`SELECT r.*, 
+                    s1.colore as squadra_1_colore, s2.colore as squadra_2_colore
+                    FROM risultati_partite r 
+                    LEFT JOIN squadre_circolo s1 ON r.squadra_1 = s1.numero 
+                    LEFT JOIN squadre_circolo s2 ON r.squadra_2 = s2.numero 
+                    ORDER BY r.turno DESC, r.timestamp DESC`);
 
-        const result = await safeDbQuery(`
-            SELECT 
-                id,
-                squadra1_id,
-                squadra2_id, 
-                vincitore_id,
-                round,
-                created_at
-            FROM incontri 
-            WHERE vincitore_id IS NOT NULL
-            ORDER BY created_at DESC
-        `);
+        // Parse JSON vincitori
+        const rows = result.rows.map(row => {
+            try {
+                row.vincitori = JSON.parse(row.vincitori || '[]');
+            } catch (e) {
+                row.vincitori = [];
+            }
+            return row;
+        });
 
-        res.json(result.rows);
-    } catch (error) {
-        console.error('❌ Errore caricamento risultati partite:', error);
-        res.json([]); // Restituisci array vuoto invece di errore 500
+        res.json(rows);
+    } catch (err) {
+        console.error('Errore API risultati-partite:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
-// API per ottieni risultati aste per round specifico
+// Ottieni risultati aste per round specifico
 app.get('/api/aste-round/:round', async (req, res) => {
     try {
         const round = req.params.round;
 
-        // Verifica connessione database con gestione errori
-        if (!db) {
-            console.error('❌ Database non configurato per aste-round');
-            return res.json([]); // Restituisce array vuoto invece di errore
-        }
+        const result = await db.query(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
+                FROM aste a 
+                JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
+                JOIN slots s ON a.slot_id = s.id 
+                WHERE a.round = $1 AND a.vincitore = true 
+                ORDER BY a.costo_finale DESC`, [round]);
 
-        // Test connessione prima della query
-        try {
-            await db.query('SELECT 1');
-        } catch (dbError) {
-            console.error('❌ Database non raggiungibile:', dbError.message);
-            return res.json([]); // Restituisce array vuoto
-        }
-
-        console.log(`🔍 Richiesta aste per round: ${round}`);
-
-        const result = await db.query(`
-            SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
-            FROM aste a 
-            JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
-            JOIN slots s ON a.slot_id = s.id 
-            WHERE a.round = $1 AND a.vincitore = true 
-            ORDER BY a.costo_finale DESC
-        `, [round]);
-
-        console.log(`✅ Trovate ${result.rows.length} aste per round ${round}`);
         res.json(result.rows);
-
     } catch (err) {
-        console.error(`❌ Errore aste-round per ${req.params.round}:`, err.message);
-        // NON crashare, restituisci array vuoto
-        res.json([]);
+        console.error('Errore aste-round:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
 // Ottieni classifica generale
 app.get('/api/classifica', async (req, res) => {
     try {
-        console.log('🔍 Caricamento classifica...');
+        const result = await db.query(`SELECT 
+            p.id, p.nome, p.crediti, 
+            COUNT(a.id) as giocatori_totali,
+            COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+            COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
+            FROM partecipanti_fantagts p 
+            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true
+            LEFT JOIN slots s ON a.slot_id = s.id 
+            GROUP BY p.id, p.nome, p.crediti 
+            ORDER BY punti_totali DESC, crediti_spesi ASC`);
 
-        const result = await safeDbQuery(`
-            SELECT 
-                p.id,
-                p.nome,
-                p.crediti,
-                COUNT(CASE WHEN i.vincitore_id = s.numero THEN 1 END) as vittorie,
-                COUNT(i.id) as partite_giocate
-            FROM partecipanti_fantagts p
-            LEFT JOIN squadre_circolo s ON p.id = s.proprietario_id
-            LEFT JOIN incontri i ON (i.squadra1_id = s.numero OR i.squadra2_id = s.numero)
-            WHERE p.attivo = true
-            GROUP BY p.id, p.nome, p.crediti
-            ORDER BY vittorie DESC, p.crediti DESC
-        `);
+        // Aggiungi posizione in classifica
+        const classifica = result.rows.map((row, index) => {
+            row.posizione = index + 1;
+            return row;
+        });
 
-        res.json(result.rows);
-    } catch (error) {
-        console.error('❌ Errore caricamento classifica:', error);
-        res.json([]); // Restituisci array vuoto invece di errore 500
+        console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
+        res.json(classifica);
+    } catch (err) {
+        console.error('Errore classifica:', err);
+        res.status(500).json({ error: err.message });
     }
 });
+
 // ==================== NUOVE API PER SCONTRI E ACCOPPIAMENTI ====================
 
 // API per scontri tra squadre
@@ -2762,41 +2802,6 @@ app.get('/incontri', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'incontri.html'));
 });
 
-// Middleware per debug Socket.io
-io.engine.on("connection_error", (err) => {
-    console.log('❌ Errore engine Socket.io:', err.req);
-    console.log('❌ Errore codice:', err.code);
-    console.log('❌ Errore messaggio:', err.message);
-    console.log('❌ Errore context:', err.context);
-});
-
-// Gestione connessioni problematiche
-io.use((socket, next) => {
-    console.log('🔍 Socket middleware - Headers:', socket.handshake.headers);
-    console.log('🔍 Socket middleware - Query:', socket.handshake.query);
-
-    // IMPORTANTE: Su Vercel l'origin può essere undefined durante polling
-    const origin = socket.handshake.headers.origin;
-
-    // Permetti sempre se non c'è origin (tipico del polling su Vercel)
-    if (!origin) {
-        console.log('✅ Socket autorizzato: Nessun origin (polling Vercel)');
-        return next();
-    }
-
-    // Se c'è un origin, controlla che sia autorizzato
-    if (origin.includes('fanta-gts.vercel.app') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1')) {
-        console.log('✅ Socket autorizzato: Origin valido -', origin);
-        return next();
-    }
-
-    // Solo ora blocca origin sospetti
-    console.log('❌ Socket rifiutato: Origin non autorizzato -', origin);
-    return next(new Error('Origin not allowed'));
-});
-
 // Gestione WebSocket
 io.on('connection', (socket) => {
     console.log('Nuova connessione:', socket.id);
@@ -3074,92 +3079,34 @@ function getLocalIP() {
 }
 
 // Avvio server
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
-// Test connessione database
-async function testDatabaseConnection() {
-    try {
-        console.log('🔍 Test connessione database...');
-        const result = await db.query('SELECT NOW()');
-        console.log('✅ Database connesso:', result.rows[0].now);
-        return true;
-    } catch (error) {
-        console.error('❌ Errore connessione database:', error.message);
-        return false;
-    }
-}
+// Inizializza database prima di avviare il server
+initializeDatabase().then(async () => {
+    await updateDatabaseSchema();
 
-// Avvio server con inizializzazione non bloccante
-async function startServer() {
-    try {
-        // Inizializza database in background (non bloccante)
-        initializeDatabase().catch(err => {
-            console.error('⚠️ Errore database inizializzazione:', err);
-        });
+    server.listen(PORT, HOST, () => {
+        const localIP = getLocalIP();
 
-        // Avvia il server indipendentemente dal database
-        server.listen(PORT, '0.0.0.0', () => {
-            const localIP = getLocalIP();
+        console.log('\n🎾 FantaGTS Server Avviato con PostgreSQL!');
 
-            console.log('\n🎾 FantaGTS Server Avviato!');
-            console.log(`🚀 Server listening on 0.0.0.0:${PORT}`);
-
-            if (process.env.NODE_ENV === 'production') {
-                console.log('🌍 Production URL disponibile');
-                console.log('🎮 Master: /master');
-                console.log('⚙️ Setup: /setup');
-            } else {
-                console.log(`📱 Client: http://localhost:${PORT}`);
-                console.log(`⚙️ Setup: http://localhost:${PORT}/setup`);
-                console.log(`🎮 Master: http://localhost:${PORT}/master`);
-                console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
-            }
-
-            console.log('\n✅ Sistema pronto per Koyeb!');
-        });
-
-        // Tenta updateDatabaseSchema in background
-        setTimeout(async () => {
-            try {
-                if (typeof updateDatabaseSchema === 'function') {
-                    await updateDatabaseSchema();
-                    console.log('✅ Schema database aggiornato');
-                }
-            } catch (error) {
-                console.log('⚠️ Errore aggiornamento schema:', error.message);
-            }
-        }, 2000);
-
-    } catch (error) {
-        console.error('❌ Errore critico avvio server:', error);
-        process.exit(1);
-    }
-}
-
-// Avvia server
-startServer();
-
-// Aggiungi questa funzione PRIMA delle definizioni delle API:
-async function safeDbQuery(query, params = []) {
-    try {
-        if (!db) {
-            console.log('⚠️ Database non configurato, restituisco dati vuoti');
-            return { rows: [] };
+        if (process.env.NODE_ENV === 'production') {
+            console.log(`🌐 Production URL disponibile`);
+            console.log(`🎮 Master: /master`);
+            console.log(`⚙️  Setup: /setup`);
+        } else {
+            console.log(`📱 Client: http://localhost:${PORT}`);
+            console.log(`⚙️  Setup: http://localhost:${PORT}/setup`);
+            console.log(`🎮 Master: http://localhost:${PORT}/master`);
+            console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
         }
 
-        // Test connessione rapido
-        await db.query('SELECT 1');
-
-        // Esegui query
-        const result = await db.query(query, params);
-        return result;
-    } catch (error) {
-        console.error('❌ Errore database query:', error.message);
-        console.log('🔄 Restituisco risultato vuoto per continuare');
-        return { rows: [] }; // Restituisci sempre un risultato valido
-    }
-}
+        console.log('\n✅ Sistema pronto per la configurazione!');
+    });
+}).catch(err => {
+    console.error('❌ Errore avvio server:', err);
+});
 
 // Gestione errori
 process.on('uncaughtException', (err) => {

@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎾%3C/text%3E%3C/svg%3E">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -672,44 +672,15 @@
                 return;
             }
 
-            // TEMPORANEAMENTE DISABILITATO
-            console.log('⚠️ Socket.io disabilitato temporaneamente per compatibilità Vercel');
-            return;
-
-            // Configurazione ottimizzata per Vercel
-            socket = io(window.location.origin, {
-                transports: ['polling'],
-                upgrade: false,
-                timeout: 60000,        // Aumentato
-                forceNew: false,
-                reconnection: true,
-                reconnectionDelay: 5000, // Aumentato
-                reconnectionAttempts: 10, // Aumentato
-                path: '/socket.io',    // Path esplicito
-                autoConnect: true
-            });
+            socket = io();
 
             socket.on('connect', () => {
-                console.log('✅ Socket connesso via polling');
-                connectionPersistence.reconnectAttempts = 0;
-                connectionPersistence.isReconnecting = false;
+                console.log('Connesso al server via WebSocket');
             });
 
-            socket.on('disconnect', (reason) => {
-                console.log('❌ Socket disconnesso:', reason);
+            socket.on('disconnect', () => {
+                console.log('Disconnesso dal server');
             });
-
-            socket.on('connect_error', (error) => {
-                console.error('❌ Errore connessione:', error);
-                connectionPersistence.reconnectAttempts++;
-
-                if (connectionPersistence.reconnectAttempts < 5) {
-                    setTimeout(() => {
-                        console.log(`🔄 Riconnessione tentativo ${connectionPersistence.reconnectAttempts}...`);
-                        socket.connect();
-                    }, 3000);
-                }
-            }); 
 
             socket.on('reset_bid_state', (data) => {
                 console.log('🔄 Reset stato offerte ricevuto:', data);
@@ -1321,27 +1292,7 @@
                     error: error
                 };
             }
-        } 
-
-        // Funzione per testare la connessione
-        function testConnection() {
-            if (!socket) {
-                console.log('Socket non inizializzato');
-                return false;
-            }
-
-            if (socket.connected) {
-                console.log('✅ Socket connesso correttamente');
-                return true;
-            } else {
-                console.log('❌ Socket non connesso, tentativo riconnessione...');
-                socket.connect();
-                return false;
-            }
         }
-
-        // Chiama questa funzione periodicamente per verificare lo stato
-        setInterval(testConnection, 30000); // Ogni 30 secondi
 
         // Utility per convertire VAPID key
         function urlBase64ToUint8Array(base64String) {

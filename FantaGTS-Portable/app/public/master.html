@@ -25,7 +25,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72x72.png">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -953,29 +953,6 @@
             }
         }
 
-        // Funzione per aggiornare info partecipanti
-        function updateParticipantsInfo(data) {
-            try {
-                if (data && data.partecipanti) {
-                    const connessi = data.partecipanti.filter(p => p.stato === 'connesso').length;
-                    document.getElementById('statConnessi').textContent = connessi;
-
-                    console.log(`🔍 Debug partecipanti: {totaleConnessi: ${connessi}, partecipantiFiltrati: ${data.partecipanti.length}, dettaglio: ${JSON.stringify(data.partecipanti.map(p => ({ nome: p.nome, stato: p.stato })))}}`);
-                }
-            } catch (error) {
-                console.error('Errore aggiornamento partecipanti:', error);
-            }
-        }
-
-        // Funzione per testare la connessione
-        function testConnection() {
-            console.log('🔄 Test connessione - Socket.io disabilitato');
-            return false; // Socket sempre disconnesso
-        }
-
-        // Chiama questa funzione periodicamente per verificare lo stato
-        setInterval(testConnection, 30000); // Ogni 30 secondi
-
         // NUOVA FUNZIONE: Aggiorna display ultimo round
         function updateLastRoundResults(round, risultati) {
             let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
@@ -1009,151 +986,82 @@
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
+            initializeSocket();
             caricaStatoIniziale();
             setupEventListeners();
-
-            // Prova Socket.io con timeout automatico
-            trySocketWithFallback();
         });
-
-        function trySocketWithFallback() {
-            console.log('🔄 Tentativo connessione Socket.io...');
-
-            let socketConnected = false;
-            let fallbackTimer;
-
-            try {
-                initializeSocket();
-
-                // Timeout: se dopo 3 secondi non si connette, usa polling
-                fallbackTimer = setTimeout(() => {
-                    if (!socketConnected) {
-                        console.log('⚠️ Socket.io non si connette entro 3s, passo a polling HTTP');
-                        if (socket) {
-                            socket.disconnect();
-                            socket = null;
-                        }
-                        startHttpPolling();
-                    }
-                }, 3000);
-
-                // Se socket si connette, cancella il fallback
-                if (socket) {
-                    socket.on('connect', () => {
-                        socketConnected = true;
-                        clearTimeout(fallbackTimer);
-                        console.log('✅ Socket.io connesso con successo');
-                    });
-
-                    socket.on('connect_error', (error) => {
-                        if (!socketConnected) {
-                            console.log('❌ Errore Socket.io, passo a polling:', error.message);
-                            clearTimeout(fallbackTimer);
-                            socket.disconnect();
-                            socket = null;
-                            startHttpPolling();
-                        }
-                    });
-                }
-
-            } catch (error) {
-                console.log('❌ Errore inizializzazione Socket.io:', error.message);
-                clearTimeout(fallbackTimer);
-                startHttpPolling();
-            }
-        }
 
         // Connessione WebSocket
         function initializeSocket() {
-            console.log('🔌 Inizializzazione Socket.io ottimizzata per Vercel...');
-
-            // Distruggi connessione esistente se presente
-            if (socket) {
-                socket.removeAllListeners();
-                socket.disconnect();
-                socket = null;
-            }
-
-            // Configurazione specifica per Vercel
-            socket = io(window.location.origin, {
-                transports: ['polling'],
-                upgrade: false,
-                timeout: 60000,
-                forceNew: false,
-                reconnection: true,    // Riabilita riconnessione
-                reconnectionDelay: 5000,
-                reconnectionAttempts: 10,
-                autoConnect: true,
-                path: '/socket.io'
-            });
+            socket = io();
 
             socket.on('connect', () => {
-                console.log('✅ Socket connesso (polling)');
                 showNotification('Connesso al server', 'success');
                 updateServerStatus(true);
 
-                // Registra come master CON DELAY per evitare errori 400
-                setTimeout(() => {
-                    console.log('📡 Inviando registrazione master...');
-                    socket.emit('register', {
-                        nome: 'Master Control',
-                        tipo: 'master'
-                    });
-                }, 1000);
+                // Registra come master
+                socket.emit('register', {
+                    nome: 'Master Control',
+                    tipo: 'master'
+                });
             });
 
-            socket.on('disconnect', (reason) => {
-                console.log('❌ Socket disconnesso:', reason);
+            socket.on('disconnect', () => {
                 showNotification('Disconnesso dal server', 'error');
                 updateServerStatus(false);
             });
 
-            socket.on('connect_error', (error) => {
-                console.error('❌ Errore connessione Socket.io:', error);
-                showNotification('Errore connessione al server', 'error');
-                updateServerStatus(false);
-
-                // Non tentare riconnessione automatica per evitare spam
-                console.log('⏸️ Riconnessione automatica disabilitata per debug');
-            });
-
-            socket.on('registered', (responseData) => {
-                console.log('✅ Registrazione master completata:', responseData);
-                if (responseData && responseData.success) {
-                    if (responseData.gameState) {
-                        gameState = { ...gameState, ...responseData.gameState };
-                    }
+            socket.on('registered', (data) => {
+                if (data.success) {
+                    gameState = { ...gameState, ...data.gameState };
                     updateUI();
                 }
             });
 
-            // Altri event listener...
-            socket.on('round_started', (roundData) => {
-                gameState.roundAttivo = roundData.round;
+            socket.on('round_started', (data) => {
+                gameState.roundAttivo = data.round;
                 gameState.asteAttive = true;
                 updateUI();
-                showNotification(`Round ${roundData.round} avviato!`, 'success');
+                showNotification(`Round ${data.round} avviato!`, 'success');
                 startOffersDisplay();
             });
 
-            socket.on('offerte_update', (offerteData) => {
-                updateOffersDisplay(offerteData);
-                updatePartecipantiWithBids(offerteData);
+            socket.on('offerte_update', (data) => {
+                updateOffersDisplay(data);
+                updatePartecipantiWithBids(data);
             });
 
-            socket.on('round_ended', (endData) => {
+            // Modifica la funzione che gestisce fine round
+            socket.on('round_ended', (data) => {
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
                 updateUI();
-                showNotification(`Round ${endData.round} terminato!`, 'success');
+                showNotification(`Round ${data.round} terminato!`, 'success');
 
-                if (endData.risultati) {
-                    updateLastRoundResults(endData.round, endData.risultati);
+                // SOSTITUISCI il blocco const completedBtn = document.querySelector... con questo:
+                const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
+                if (completedBtn) {
+                    // DISABILITAZIONE TOTALE
+                    completedBtn.classList.remove('active', 'available');
+                    completedBtn.classList.add('completed');
+                    completedBtn.disabled = true;
+                    completedBtn.style.opacity = '0.3';
+                    completedBtn.style.pointerEvents = 'none';
+                    completedBtn.style.cursor = 'not-allowed';
+                    completedBtn.style.filter = 'grayscale(100%)';
+                    completedBtn.style.outline = 'none';
+                    completedBtn.style.boxShadow = 'none';
+
+                    // RIMUOVI TUTTI GLI EVENT LISTENERS
+                    const newBtn = completedBtn.cloneNode(true);
+                    completedBtn.parentNode.replaceChild(newBtn, completedBtn);
+
+                    console.log(`🔒 Pulsante ${data.round} TOTALMENTE disabilitato`);
                 }
 
                 // NUOVO: Seleziona automaticamente il prossimo round disponibile
                 const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-                const currentIndex = rounds.indexOf(endData?.round || '');
+                const currentIndex = rounds.indexOf(data.round);
                 let nextRoundSelected = false;
 
                 // Cerca il prossimo round disponibile
@@ -1183,12 +1091,18 @@
                 }
 
                 stopOffersDisplay();
-                mostraRisultatiRound(endData.round, endData.risultati);
+                mostraRisultatiRound(data.round, data.risultati);
 
                 setTimeout(() => {
                     caricaSquadreInFormazione();
                     saveMasterState();
                 }, 1000);
+            });
+
+            socket.on('connessi_update', (connessi) => {
+                gameState.connessi = connessi;
+                updatePartecipanti();
+                updateStats();
             });
 
             socket.on('master_reset_ui', (data) => {
@@ -1232,27 +1146,6 @@
 
                 showNotification('🔄 Interfaccia Master resettata!', 'success');
             });
-        }
-        
-        // SISTEMA ALTERNATIVO: Polling HTTP per sostituire Socket.io
-        function startHttpPolling() {
-            console.log('🔄 Avvio polling HTTP alternativo...');
-
-            // Aggiorna subito lo status come disconnesso
-            updateServerStatus(false);
-
-            setInterval(async () => {
-                try {
-                    // Controlla stato partecipanti
-                    const response = await fetch('/api/partecipanti');
-                    if (response.ok) {
-                        const data = await response.json();
-                        updateParticipantsInfo(data);
-                    }
-                } catch (error) {
-                    console.log('⚠️ Errore polling:', error.message);
-                }
-            }, 5000);
         }
 
         function updateServerStatus(connected) {
@@ -2117,57 +2010,28 @@
             });
         }
 
-        async function apiRequestWithRetry(url, maxRetries = 3, delay = 1000) {
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`🔄 Tentativo ${attempt}/${maxRetries} per: ${url}`);
-
-                    const response = await fetch(url);
-
-                    if (response.ok) {
-                        return await response.json();
-                    }
-
-                    if (response.status === 500 && attempt < maxRetries) {
-                        console.log(`⚠️ Errore 500, tentativo ${attempt}/${maxRetries} - Retry in ${delay}ms`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2; // Exponential backoff
-                        continue;
-                    }
-
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-                } catch (error) {
-                    console.error(`❌ Errore tentativo ${attempt}:`, error.message);
-
-                    if (attempt === maxRetries) {
-                        throw error;
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                }
-            }
-        }
-
         // NUOVA FUNZIONE: Ottieni round completati dal database
         async function getRoundsCompletati() {
-            const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-            const completedRounds = [];
+            try {
+                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const completati = [];
 
-            for (const round of rounds) {
-                try {
-                    const results = await apiRequestWithRetry(`/api/aste-round/${round}`, 2, 500);
-                    if (results && results.length > 0) {
-                        completedRounds.push(round);
+                for (const round of rounds) {
+                    const response = await fetch(`/api/aste-round/${round}`);
+                    if (response.ok) {
+                        const aste = await response.json();
+                        if (aste.length > 0) {
+                            completati.push(round);
+                        }
                     }
-                } catch (error) {
-                    console.log(`⚠️ Round ${round} non completato o errore API:`, error.message);
                 }
-            }
 
-            console.log('📊 Round completati trovati:', completedRounds);
-            return completedRounds;
+                console.log('📊 Round completati trovati:', completati);
+                return completati;
+            } catch (error) {
+                console.error('Errore controllo round completati:', error);
+                return [];
+            }
         }
 
         function updateControlButtons() {
