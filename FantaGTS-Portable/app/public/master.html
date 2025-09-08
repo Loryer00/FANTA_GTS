@@ -1064,12 +1064,16 @@
 
             socket.on('connessi_update', (connessi) => {
                 console.log('🔄 Aggiornamento connessi ricevuto:', connessi);
+                console.log('🔍 Dettaglio connessi ricevuti:', connessi.map(c => ({ nome: c.nome, tipo: c.tipo, verificato: c.verified })));
 
                 // AGGIUNTA: Aggiorna il gameState locale con i connessi ricevuti
                 gameState.connessi = new Map();
-                connessi.forEach(connesso => {
-                    gameState.connessi.set(connesso.socketId || Math.random().toString(), connesso);
+                connessi.forEach((connesso, index) => {
+                    // Usa un ID temporaneo visto che non abbiamo socketId nel payload
+                    gameState.connessi.set(`temp_${index}`, connesso);
                 });
+
+                console.log('🎯 GameState.connessi aggiornato:', Array.from(gameState.connessi.values()));
 
                 // Aggiorna la visualizzazione dei partecipanti
                 const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
@@ -1086,7 +1090,9 @@
                 // Aggiorna la lista dettagliata se esiste
                 updateConnectedParticipants(partecipanti);
 
-                showNotification(`Partecipante connesso: ${partecipanti[partecipanti.length - 1]?.nome || 'Sconosciuto'}`, 'success');
+                if (partecipanti.length > 0) {
+                    showNotification(`Partecipanti connessi: ${partecipanti.length}`, 'success');
+                }
             });
 
             socket.on('round_started', (data) => {
