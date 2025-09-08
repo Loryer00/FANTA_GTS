@@ -545,288 +545,196 @@
         let connectionManager = {
             socket: null,
             heartbeatInterval: null,
-            reconnectInterval: null,
-            connectionCheckInterval: null,
+            isRegistered: false,
 
-            // Configurazione
+            // Configurazione ottimizzata per velocità
             config: {
-                heartbeatFrequency: 10000,      // Heartbeat ogni 10 secondi
-                maxReconnectAttempts: 10,       // Massimo 10 tentativi
-                reconnectDelay: 2000,           // 2 secondi tra tentativi
-                connectionTimeout: 15000,       // Timeout connessione 15 secondi
-                maxReconnectDelay: 30000        // Massimo delay 30 secondi
+                heartbeatFrequency: 3000,    // Heartbeat ogni 3 secondi
+                connectionTimeout: 5000,     // Timeout 5 secondi
+                maxReconnectAttempts: 3,     // Solo 3 tentativi
+                reconnectDelay: 1000         // 1 secondo tra tentativi
             },
 
-            // Stato connessione
+            // Stato connessione semplificato
             state: {
                 isConnected: false,
-                reconnectAttempts: 0,
-                lastHeartbeat: null,
-                lastServerResponse: null,
-                isReconnecting: false,
-                connectionQuality: 'good'       // good, poor, offline
+                reconnectAttempts: 0
             },
 
-            // Inizializza il sistema di connessione
+            // Inizializza connessione
             initialize() {
                 if (typeof io === 'undefined') {
                     console.log('Socket.io non disponibile');
                     return false;
                 }
-
                 this.createSocket();
-                this.startConnectionMonitoring();
                 return true;
             },
 
-            // Crea una nuova connessione socket
+            // Crea socket ottimizzato per velocità
             createSocket() {
-                try {
-                    // Configurazione socket ottimizzata per stabilità
-                    this.socket = io({
-                        transports: ['websocket', 'polling'],
-                        upgrade: true,
-                        rememberUpgrade: true,
-                        timeout: this.config.connectionTimeout,
+                console.log('🔌 Creando connessione socket veloce...');
 
-                        // Configurazioni per connessioni instabili
-                        pingTimeout: 20000,
-                        pingInterval: 10000,
+                this.socket = io({
+                    transports: ['polling', 'websocket'], // Polling primo per velocità
+                    upgrade: true,
+                    timeout: this.config.connectionTimeout,
 
-                        // Retry policy
-                        reconnection: true,
-                        reconnectionAttempts: this.config.maxReconnectAttempts,
-                        reconnectionDelay: this.config.reconnectDelay,
-                        reconnectionDelayMax: this.config.maxReconnectDelay,
-                        randomizationFactor: 0.2
-                    });
+                    // Parametri per connessione rapida
+                    pingTimeout: 8000,
+                    pingInterval: 4000,
 
-                    this.setupSocketEvents();
+                    // Riconnessione semplificata
+                    reconnection: true,
+                    reconnectionAttempts: this.config.maxReconnectAttempts,
+                    reconnectionDelay: this.config.reconnectDelay
+                });
 
-                } catch (error) {
-                    console.error('❌ Errore creazione socket:', error);
-                    this.scheduleReconnect();
-                }
+                this.setupEvents();
             },
 
-            // Configura tutti gli eventi del socket
-            setupSocketEvents() {
-                // Connessione riuscita
+            // Eventi socket semplificati
+            setupEvents() {
                 this.socket.on('connect', () => {
-                    console.log('🔗 Connesso al server via WebSocket');
+                    console.log('✅ Socket connesso VELOCEMENTE');
                     this.state.isConnected = true;
                     this.state.reconnectAttempts = 0;
-                    this.state.isReconnecting = false;
-                    this.state.connectionQuality = 'good';
-                    this.state.lastServerResponse = Date.now();
-
-                    // Avvia heartbeat
                     this.startHeartbeat();
 
-                    // Registra il giocatore se già autenticato
-                    if (playerData.registered) {
-                        this.registerPlayer();
+                    // Registra SUBITO se i dati sono disponibili
+                    if (playerData.registered && !this.isRegistered) {
+                        setTimeout(() => {
+                            this.registerPlayer();
+                        }, 100); // Registra dopo 100ms
                     }
 
-                    // Aggiorna UI
                     this.updateConnectionStatus('connected');
                 });
 
-                // Disconnessione
                 this.socket.on('disconnect', (reason) => {
-                    console.log('📡 Disconnesso dal server:', reason);
+                    console.log('❌ Socket disconnesso:', reason);
                     this.state.isConnected = false;
+                    this.isRegistered = false;
                     this.stopHeartbeat();
-
-                    // Aggiorna UI
                     this.updateConnectionStatus('disconnected');
-
-                    // SEMPLIFICATO: Non riconnettere automaticamente se è una disconnessione forzata
-                    if (reason === 'io server disconnect' || reason === 'forced close') {
-                        console.log('🛑 Disconnessione forzata dal server, NON riconnetto automaticamente');
-                        return;
-                    }
-
-                    // Solo per errori di rete
-                    if (reason === 'transport close' || reason === 'transport error') {
-                        console.log('🌐 Problema di rete rilevato');
-                        this.state.connectionQuality = 'poor';
-                        this.scheduleReconnect();
-                    }
                 });
 
-                // Errore di connessione
                 this.socket.on('connect_error', (error) => {
                     console.error('❌ Errore connessione:', error.message);
-                    this.state.isConnected = false;
-                    this.state.connectionQuality = 'offline';
-
                     this.state.reconnectAttempts++;
-                    console.log(`🔄 Tentativo riconnessione ${this.state.reconnectAttempts}/${this.config.maxReconnectAttempts}`);
 
                     if (this.state.reconnectAttempts >= this.config.maxReconnectAttempts) {
-                        console.log('❌ Massimo numero di tentativi raggiunto');
-                        this.updateConnectionStatus('failed');
+                        console.log('❌ Troppi tentativi falliti');
                         this.showConnectionError();
                     }
                 });
 
-                // Risposta heartbeat
-                this.socket.on('heartbeat_response', (data) => {
-                    this.state.lastServerResponse = Date.now();
-                    this.state.connectionQuality = 'good';
-
-                    // Calcola latenza
-                    const latency = Date.now() - this.state.lastHeartbeat;
-                    if (latency > 5000) {
-                        this.state.connectionQuality = 'poor';
-                        console.log('⚠️ Latenza alta rilevata:', latency + 'ms');
-                    }
+                this.socket.on('heartbeat_response', () => {
+                    // Heartbeat ricevuto - connessione OK
                 });
 
-                // Altri eventi del gioco
+                // Eventi di gioco
                 this.setupGameEvents();
             },
 
-            // Configura eventi specifici del gioco
+            // Eventi specifici del gioco
             setupGameEvents() {
                 this.socket.on('registered', (data) => {
-                    console.log('✅ Registrazione WebSocket confermata per partecipante');
                     if (data.success) {
-                        this.handleGameState(data.gameState);
+                        console.log('✅ Registrazione confermata SUBITO');
+                        this.isRegistered = true;
+
+                        // Aggiorna stato gioco se presente
+                        if (data.gameState) {
+                            this.handleGameState(data.gameState);
+                        }
                     } else {
                         console.error('❌ Registrazione fallita:', data.error);
                         if (data.shouldReload) {
-                            this.handleRegistrationFailure();
+                            alert('Sessione non valida. La pagina verrà ricaricata.');
+                            clearSavedSession();
+                            location.reload();
                         }
                     }
                 });
 
-                this.socket.on('game_state', (gameState) => {
-                    console.log('🎮 Stato gioco ricevuto:', gameState);
-                    this.handleGameState(gameState);
+                this.socket.on('round_started', (data) => {
+                    console.log('🎯 Round started ricevuto:', data);
+                    showBiddingPhase(data);
+                });
+
+                this.socket.on('round_ended', (data) => {
+                    console.log('🏁 Round terminato:', data);
+                    showWaitingPhase();
+                    if (data.risultati) {
+                        updateMyTeamFromResults(data.round, data.risultati);
+                    }
+                    loadPlayerTeam();
+                });
+
+                this.socket.on('offerte_update', (data) => {
+                    updateOffersStatus(data);
+                });
+
+                this.socket.on('crediti_aggiornati', (data) => {
+                    playerData.credits = data.crediti;
+                    updateCreditsDisplay();
+                    saveSession();
+                });
+
+                this.socket.on('bid_confirmed', (data) => {
+                    console.log('✅ Offerta confermata:', data);
+
+                    const button = document.getElementById('confirmBidBtn');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = '✅ Offerta Confermata';
+                        button.style.background = '#10b981';
+                    }
+                });
+
+                this.socket.on('bid_error', (data) => {
+                    console.error('❌ Errore offerta:', data);
+                    alert('Errore: ' + data.message);
                 });
 
                 this.socket.on('show_notification', (data) => {
-                    console.log('🔔 NOTIFICA RICEVUTA:', data);
+                    console.log('🔔 Notifica ricevuta:', data);
                     alert(`🔔 ${data.title}\n\n${data.body}`);
                 });
 
-                // Altri eventi specifici del gioco...
+                this.socket.on('reset_bid_state', (data) => {
+                    console.log('🔄 Reset stato offerte:', data);
+                    resetBiddingInterface();
+                });
+
+                this.socket.on('player_won_exit_auction', (data) => {
+                    console.log('🏆 Hai vinto:', data);
+                    document.getElementById('bidding-phase').style.display = 'none';
+                    document.getElementById('waiting-phase').style.display = 'block';
+                    resetBiddingInterface();
+                    loadPlayerTeam();
+
+                    alert(`🏆 COMPLIMENTI!\n\nHai vinto: ${data.slotWon}\nper ${data.amount} crediti`);
+                });
+
+                this.socket.on('aste_resettate', (data) => {
+                    console.log('🔄 Aste resettate:', data);
+                    playerData.credits = data.creditiRipristinati;
+                    updateCreditsDisplay();
+                    resetTeamUI();
+                    alert('🔄 Le aste sono state resettate dal Master!');
+                });
             },
 
-            // Avvia il sistema di heartbeat
-            startHeartbeat() {
-                this.stopHeartbeat(); // Assicurati che non ci siano duplicati
-
-                this.heartbeatInterval = setInterval(() => {
-                    if (this.socket && this.socket.connected) {
-                        this.state.lastHeartbeat = Date.now();
-                        this.socket.emit('heartbeat', {
-                            type: 'persistence_check',
-                            timestamp: Date.now(),
-                            clientId: playerData.id
-                        });
-                    }
-                }, this.config.heartbeatFrequency);
-            },
-
-            // Ferma il heartbeat
-            stopHeartbeat() {
-                if (this.heartbeatInterval) {
-                    clearInterval(this.heartbeatInterval);
-                    this.heartbeatInterval = null;
-                }
-            },
-
-            // Avvia il monitoraggio della connessione
-            startConnectionMonitoring() {
-                this.connectionCheckInterval = setInterval(() => {
-                    this.checkConnectionHealth();
-                }, 5000); // Controlla ogni 5 secondi
-            },
-
-            // Verifica la salute della connessione
-            checkConnectionHealth() {
-                const now = Date.now();
-
-                // Se non abbiamo ricevuto risposta dal server da troppo tempo
-                if (this.state.lastServerResponse &&
-                    now - this.state.lastServerResponse > 30000) { // 30 secondi
-
-                    console.log('⚠️ Nessuna risposta dal server da troppo tempo');
-                    this.state.connectionQuality = 'poor';
-
-                    // Se la connessione sembra morta, forza riconnessione
-                    if (now - this.state.lastServerResponse > 60000) { // 1 minuto
-                        console.log('💀 Connessione sembra morta, forzo riconnessione');
-                        this.forceReconnect();
-                    }
-                }
-
-                // Aggiorna UI basata sulla qualità connessione
-                this.updateConnectionStatus(this.state.connectionQuality);
-            },
-
-            // Programma una riconnessione
-            scheduleReconnect() {
-                if (this.state.isReconnecting) return;
-
-                this.state.isReconnecting = true;
-
-                // Calcola delay con backoff esponenziale
-                const delay = Math.min(
-                    this.config.reconnectDelay * Math.pow(2, this.state.reconnectAttempts),
-                    this.config.maxReconnectDelay
-                );
-
-                console.log(`⏳ Riconnessione programmata in ${delay}ms`);
-
-                this.reconnectInterval = setTimeout(() => {
-                    this.attemptReconnect();
-                }, delay);
-            },
-
-            // Tenta riconnessione
-            attemptReconnect() {
-                if (this.state.reconnectAttempts >= this.config.maxReconnectAttempts) {
-                    console.log('❌ Troppi tentativi di riconnessione');
-                    this.showConnectionError();
-                    return;
-                }
-
-                console.log('🔄 Tentativo di riconnessione...');
-
-                // Pulisci socket esistente
-                if (this.socket) {
-                    this.socket.removeAllListeners();
-                    this.socket.disconnect();
-                }
-
-                // Crea nuovo socket
-                this.createSocket();
-            },
-
-            // Forza riconnessione immediata
-            forceReconnect() {
-                console.log('⚡ Forzando riconnessione immediata...');
-                this.state.isReconnecting = false;
-                this.state.reconnectAttempts = 0;
-
-                if (this.reconnectInterval) {
-                    clearTimeout(this.reconnectInterval);
-                }
-
-                this.attemptReconnect();
-            },
-
-            // Registra il giocatore
+            // Registrazione immediata del giocatore
             registerPlayer() {
-                if (!this.socket || !this.socket.connected || !playerData.registered) {
+                if (!this.socket || !this.socket.connected || this.isRegistered || !playerData.registered) {
                     return;
                 }
 
-                console.log('🔌 Registrando socket come partecipante:', playerData.name);
+                console.log('📡 Registrando partecipante SUBITO:', playerData.name);
+
                 this.socket.emit('register', {
                     nome: playerData.name,
                     tipo: 'partecipante',
@@ -834,104 +742,74 @@
                 });
             },
 
-            // Gestisce lo stato del gioco
+            // Heartbeat semplificato
+            startHeartbeat() {
+                this.stopHeartbeat();
+                this.heartbeatInterval = setInterval(() => {
+                    if (this.socket && this.socket.connected) {
+                        this.socket.emit('heartbeat', {
+                            type: 'client_ping',
+                            clientId: playerData.id
+                        });
+                    }
+                }, this.config.heartbeatFrequency);
+            },
+
+            stopHeartbeat() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                    this.heartbeatInterval = null;
+                }
+            },
+
+            // Gestisce stato del gioco
             handleGameState(gameState) {
                 if (!gameState) return;
 
-                if (gameState.biddingActive || gameState.asteAttive) {
-                    console.log('🎯 Aste attive, caricando interfaccia...');
-                    loadAuctionInterface();
+                if (gameState.asteAttive || gameState.biddingActive) {
+                    console.log('🎯 Aste attive rilevate');
+                    // La logica specifica sarà gestita da eventi dedicati
                 } else {
-                    console.log('⏳ Nessuna asta attiva, mostra fase di attesa');
+                    console.log('⏳ Nessuna asta attiva');
                     showWaitingPhase();
                 }
             },
 
-            // Gestisce fallimento registrazione
-            handleRegistrationFailure() {
-                console.log('❌ Registrazione fallita, pulisco sessione');
-                clearSavedSession();
-                location.reload();
-            },
-
-            // Aggiorna UI status connessione
+            // Aggiorna stato connessione UI
             updateConnectionStatus(status) {
-                const statusElement = document.getElementById('connection-status');
+                const statusElement = document.getElementById('connectionStatus');
                 if (!statusElement) return;
-
-                statusElement.className = `connection-status ${status}`;
 
                 switch (status) {
                     case 'connected':
-                        statusElement.textContent = '🟢 Connesso';
-                        statusElement.style.color = '#48BB78';
-                        break;
-                    case 'poor':
-                        statusElement.textContent = '🟡 Connessione instabile';
-                        statusElement.style.color = '#ECC94B';
+                        statusElement.className = 'connection-status status-connected';
+                        statusElement.innerHTML = '✅ Connesso al FantaGTS';
                         break;
                     case 'disconnected':
-                        statusElement.textContent = '🔴 Disconnesso';
-                        statusElement.style.color = '#F56565';
-                        break;
-                    case 'failed':
-                        statusElement.textContent = '❌ Connessione fallita';
-                        statusElement.style.color = '#E53E3E';
+                        statusElement.className = 'connection-status status-waiting';
+                        statusElement.innerHTML = '🔴 Disconnesso dal server';
                         break;
                     default:
-                        statusElement.textContent = '🟡 Connettendo...';
-                        statusElement.style.color = '#ECC94B';
+                        statusElement.className = 'connection-status status-waiting';
+                        statusElement.innerHTML = '🟡 Connettendo...';
                 }
             },
 
-            // Mostra errore di connessione
+            // Mostra errore connessione
             showConnectionError() {
-                const errorMsg = `
-🔴 PROBLEMA DI CONNESSIONE
-
-Non riesco a connettermi al server FantaGTS.
-
-Possibili soluzioni:
-• Controlla la tua connessione internet
-• Ricarica la pagina
-• Prova da un altro browser
-• Contatta l'amministratore se il problema persiste
-
-Vuoi ricaricare la pagina ora?
-        `;
-
-                if (confirm(errorMsg)) {
+                const reload = confirm(`🔴 PROBLEMA DI CONNESSIONE\n\nNon riesco a connettermi al server.\n\nVuoi ricaricare la pagina?`);
+                if (reload) {
                     location.reload();
                 }
             },
 
-            // Pulisci tutte le risorse
+            // Pulisci risorse
             cleanup() {
                 this.stopHeartbeat();
-
-                if (this.reconnectInterval) {
-                    clearTimeout(this.reconnectInterval);
-                }
-
-                if (this.connectionCheckInterval) {
-                    clearInterval(this.connectionCheckInterval);
-                }
-
                 if (this.socket) {
                     this.socket.removeAllListeners();
                     this.socket.disconnect();
                 }
-            },
-
-            // Ottieni stato connessione
-            getConnectionInfo() {
-                return {
-                    connected: this.state.isConnected,
-                    quality: this.state.connectionQuality,
-                    attempts: this.state.reconnectAttempts,
-                    lastHeartbeat: this.state.lastHeartbeat,
-                    lastResponse: this.state.lastServerResponse
-                };
             }
         };
 
@@ -1050,8 +928,19 @@ Vuoi ricaricare la pagina ora?
                 setTimeout(() => {
                     if (connectionManager.socket && connectionManager.socket.connected) {
                         connectionManager.registerPlayer();
+                    } else {
+                        // Forza registrazione appena possibile
+                        const checkConnection = setInterval(() => {
+                            if (connectionManager.socket && connectionManager.socket.connected) {
+                                connectionManager.registerPlayer();
+                                clearInterval(checkConnection);
+                            }
+                        }, 100); // Controlla ogni 100ms
+
+                        // Timeout dopo 5 secondi
+                        setTimeout(() => clearInterval(checkConnection), 5000);
                     }
-                }, 1000);
+                }, 100);
             }
         }
 
@@ -1095,19 +984,13 @@ Vuoi ricaricare la pagina ora?
             const name = document.getElementById('playerName').value.trim();
             const notificationsEnabled = document.getElementById('enableNotifications').checked;
 
-            if (!name) {
-                alert('Inserisci il tuo nome!');
-                return;
-            }
-
-            if (name.length < 2) {
-                alert('Il nome deve essere di almeno 2 caratteri!');
+            if (!name || name.length < 2) {
+                alert('Inserisci un nome valido (almeno 2 caratteri)!');
                 return;
             }
 
             try {
-                // PRIMO: Controlla se esiste già
-                console.log('🔍 Verificando disponibilità del nome...');
+                // Controllo e registrazione API
                 const checkResponse = await fetch('/api/check-player', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1117,9 +1000,7 @@ Vuoi ricaricare la pagina ora?
                 const checkResult = await checkResponse.json();
 
                 if (checkResult.exists && checkResult.inCurrentSession) {
-                    // Giocatore già registrato - effettua login
-                    console.log('✅ Login giocatore esistente');
-
+                    // Login immediato
                     playerData.registered = true;
                     playerData.name = checkResult.player.nome;
                     playerData.id = checkResult.player.id;
@@ -1127,29 +1008,18 @@ Vuoi ricaricare la pagina ora?
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     saveSession();
-                    document.getElementById('currentPlayer').textContent = name;
-                    document.getElementById('playerCredits').textContent = checkResult.player.crediti;
-                    updateCreditsDisplay();
                     showGameArea();
                     await loadPlayerTeam();
 
-                    if (notificationsEnabled) {
-                        await setupPushNotifications();
-                    }
-                    registerSocketWhenReady();
+                    // REGISTRAZIONE SOCKET IMMEDIATA
+                    setTimeout(() => {
+                        connectionManager.registerPlayer();
+                    }, 50);
 
-                    console.log(`✅ Bentornato, ${name}! Hai ${checkResult.player.crediti} crediti disponibili.`);
-
-                } else if (checkResult.nameOccupied) {
-                    // Nome già utilizzato in altra sessione
-                    const suggestions = checkResult.suggestions.join(', ');
-                    alert(`❌ ${checkResult.message}\n\nSuggerimenti:\n${suggestions}`);
-                    return;
+                    console.log(`✅ Login immediato completato per: ${name}`);
 
                 } else if (checkResult.nameAvailable) {
-                    // Nome disponibile - procedi con registrazione
-                    console.log('🆕 Registrando nuovo giocatore...');
-
+                    // Registrazione nuova
                     const response = await fetch('/api/partecipanti', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1165,30 +1035,19 @@ Vuoi ricaricare la pagina ora?
                         playerData.notificationsEnabled = notificationsEnabled;
 
                         saveSession();
-                        registerSocketWhenReady();
-                        document.getElementById('currentPlayer').textContent = name;
-                        document.getElementById('playerCredits').textContent = result.crediti;
-                        updateCreditsDisplay();
                         showGameArea();
                         await loadPlayerTeam();
 
-                        if (notificationsEnabled) {
-                            await setupPushNotifications();
-                        }
+                        // REGISTRAZIONE SOCKET IMMEDIATA
+                        setTimeout(() => {
+                            connectionManager.registerPlayer();
+                        }, 50);
 
-                        console.log(`✅ Registrato con successo! Benvenuto nel FantaGTS, ${name}! Hai ricevuto ${result.crediti} crediti iniziali.`);
-
-                    } else {
-                        const error = await response.json();
-                        if (error.action === 'name_change_required') {
-                            alert(`❌ ${error.error}\n\nSuggerimenti: ${error.suggestions?.join(', ') || 'Modifica il nome'}`);
-                        } else {
-                            alert('❌ Errore registrazione: ' + error.error);
-                        }
+                        console.log(`✅ Registrazione immediata completata per: ${name}`);
                     }
                 }
             } catch (error) {
-                alert('❌ Errore di connessione al server');
+                alert('Errore di connessione al server');
                 console.error('Errore registrazione:', error);
             }
         }
