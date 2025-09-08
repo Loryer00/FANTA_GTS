@@ -2982,9 +2982,11 @@ io.on('connection', (socket) => {
                 if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
                     console.log(`🔄 Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
                     gameState.connessi.delete(existingSocketId);
-                    // Disconnetti il socket vecchio
+
+                    // MODIFICA: Solo se il socket esiste e non è lo stesso
                     const oldSocket = io.sockets.sockets.get(existingSocketId);
-                    if (oldSocket) {
+                    if (oldSocket && oldSocket.id !== socket.id) {
+                        console.log(`🚪 Disconnettendo socket precedente: ${existingSocketId}`);
                         oldSocket.disconnect(true);
                     }
                 }
@@ -3033,10 +3035,6 @@ io.on('connection', (socket) => {
                             biddingActive: gameState.asteAttive
                         }
                     });
-
-                    // AGGIUNGI QUESTE RIGHE SUBITO DOPO:
-                    // Invia aggiornamento connessi a tutti i master
-                    broadcastConnessiToMasters();
 
                     console.log(`âœ… Registrazione confermata per: ${data.nome} (${data.partecipanteId})`);
 
