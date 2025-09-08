@@ -3079,30 +3079,31 @@ function getLocalIP() {
 }
 
 // Avvio server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
 // Inizializza database prima di avviare il server
 initializeDatabase().then(async () => {
     await updateDatabaseSchema();
 
-    server.listen(PORT, HOST, () => {
+    server.listen(PORT, '0.0.0.0', () => {
         const localIP = getLocalIP();
 
-        console.log('\n🎾 FantaGTS Server Avviato con PostgreSQL!');
+        console.log('\n🎾 FantaGTS Server Avviato!');
+        console.log(`🚀 Server listening on 0.0.0.0:${PORT}`);
 
         if (process.env.NODE_ENV === 'production') {
-            console.log(`🌐 Production URL disponibile`);
-            console.log(`🎮 Master: /master`);
-            console.log(`⚙️  Setup: /setup`);
+            console.log('🌍 Production URL disponibile');
+            console.log('🎮 Master: /master');
+            console.log('⚙️ Setup: /setup');
         } else {
             console.log(`📱 Client: http://localhost:${PORT}`);
-            console.log(`⚙️  Setup: http://localhost:${PORT}/setup`);
+            console.log(`⚙️ Setup: http://localhost:${PORT}/setup`);
             console.log(`🎮 Master: http://localhost:${PORT}/master`);
             console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
         }
 
-        console.log('\n✅ Sistema pronto per la configurazione!');
+        console.log('\n✅ Sistema pronto per Koyeb!');
     });
 }).catch(err => {
     console.error('❌ Errore avvio server:', err);
