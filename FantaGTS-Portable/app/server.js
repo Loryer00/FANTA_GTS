@@ -2979,7 +2979,9 @@ io.on('connection', (socket) => {
                     };
 
                     gameState.connessi.set(socket.id, datiConnesso);
-                    await salvaConnessoInDB(socket.id, datiConnesso);
+                    salvaConnessoInDB(socket.id, datiConnesso).catch(err => {
+                        console.error('Errore salvataggio connesso:', err);
+                    });
 
                     // Invia stato completo del gioco
                     socket.emit('registered', {
@@ -3017,7 +3019,9 @@ io.on('connection', (socket) => {
             };
 
             gameState.connessi.set(socket.id, datiConnesso);
-            await salvaConnessoInDB(socket.id, datiConnesso);
+            salvaConnessoInDB(socket.id, datiConnesso).catch(err => {
+                console.error('Errore salvataggio connesso:', err);
+            });
 
             socket.emit('registered', {
                 success: true,
