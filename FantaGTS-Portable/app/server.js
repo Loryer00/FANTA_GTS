@@ -3025,7 +3025,14 @@ io.on('connection', (socket) => {
             });
 
             // NOTIFICA IMMEDIATA AI MASTER
+            console.log('📢 INVIANDO connessi_update a TUTTI i client:', Array.from(gameState.connessi.values()).length, 'connessi');
             io.emit('connessi_update', Array.from(gameState.connessi.values()));
+
+            // AGGIUNGI anche questa riga SUBITO DOPO:
+            setTimeout(() => {
+                console.log('📢 INVIANDO connessi_update RITARDATO (per sicurezza)');
+                io.emit('connessi_update', Array.from(gameState.connessi.values()));
+            }, 500);
             console.log(`✅ Master registrato: ${data.nome} - Connessi: ${gameState.connessi.size}`);
         }
     });

@@ -1068,36 +1068,33 @@
             });
 
             socket.on('connessi_update', (connessi) => {
-                console.log('🔄 Aggiornamento connessi ricevuto:', connessi);
-                console.log('🔍 Dettaglio connessi ricevuti:', connessi.map(c => ({ nome: c.nome, tipo: c.tipo, verificato: c.verified })));
-
-                // AGGIUNTA: Aggiorna il gameState locale con i connessi ricevuti
-                gameState.connessi = new Map();
-                connessi.forEach((connesso, index) => {
-                    // Usa un ID temporaneo visto che non abbiamo socketId nel payload
-                    gameState.connessi.set(`temp_${index}`, connesso);
+                console.log('🔄 EVENTO connessi_update RICEVUTO dal server!');
+                console.log('📊 Dettaglio connessi ricevuti:', {
+                    totale: connessi.length,
+                    partecipanti: connessi.filter(p => p.tipo === 'partecipante').length,
+                    master: connessi.filter(p => p.tipo === 'master').length,
+                    lista: connessi.map(c => ({ nome: c.nome, tipo: c.tipo, verificato: c.verified }))
                 });
 
-                console.log('🎯 GameState.connessi aggiornato:', Array.from(gameState.connessi.values()));
+                // Aggiorna gameState in modo semplice
+                gameState.connessi = connessi;
 
-                // Aggiorna la visualizzazione dei partecipanti
-                const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
-
-                // Aggiorna il contatore se esiste
-                const contatore = document.getElementById('partecipantiConnessi');
-                if (contatore) {
-                    contatore.textContent = partecipanti.length;
-                }
-
-                // AGGIUNTA: Forza aggiornamento della visualizzazione partecipanti
+                // Aggiorna UI
                 updatePartecipanti();
+                updateStats();
 
-                // Aggiorna la lista dettagliata se esiste
-                updateConnectedParticipants(partecipanti);
-
-                if (partecipanti.length > 0) {
-                    showNotification(`Partecipanti connessi: ${partecipanti.length}`, 'success');
+                // Visual feedback immediato
+                const container = document.getElementById('participantsContainer');
+                if (container) {
+                    container.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                    setTimeout(() => {
+                        container.style.backgroundColor = '';
+                    }, 1000);
                 }
+
+                // Log finale per conferma
+                const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
+                console.log(`✅ UI aggiornata: ${partecipanti.length} partecipanti visualizzati`);
             });
 
             socket.on('round_started', (data) => {
