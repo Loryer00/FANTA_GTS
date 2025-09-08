@@ -1018,6 +1018,24 @@
                 }
             });
 
+            socket.on('connessi_update', (connessi) => {
+                console.log('🔄 Aggiornamento connessi ricevuto:', connessi);
+
+                // Aggiorna la visualizzazione dei partecipanti
+                const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
+
+                // Aggiorna il contatore se esiste
+                const contatore = document.getElementById('partecipantiConnessi');
+                if (contatore) {
+                    contatore.textContent = partecipanti.length;
+                }
+
+                // Aggiorna la lista dettagliata se esiste
+                updateConnectedParticipants(partecipanti);
+
+                showNotification(`Partecipante connesso: ${partecipanti[partecipanti.length - 1]?.nome || 'Sconosciuto'}`, 'success');
+            });
+
             socket.on('round_started', (data) => {
                 gameState.roundAttivo = data.round;
                 gameState.asteAttive = true;
@@ -1336,6 +1354,22 @@
                 }
             } catch (error) {
                 showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        function updateConnectedParticipants(partecipanti) {
+            // Cerca un elemento per mostrare i partecipanti connessi
+            const container = document.getElementById('participantsList') ||
+                document.getElementById('connectedUsers') ||
+                document.getElementById('partecipantiContainer');
+
+            if (container) {
+                container.innerHTML = partecipanti.map(p =>
+                    `<div class="participant-item">
+                <strong>${p.nome}</strong> 
+                <span class="status-online">● Online</span>
+             </div>`
+                ).join('');
             }
         }
 
