@@ -3034,6 +3034,12 @@ io.on('connection', (socket) => {
                         }
                     });
 
+                    // AGGIUNGI QUESTE RIGHE SUBITO DOPO:
+                    // Invia aggiornamento connessi a tutti i master
+                    broadcastConnessiToMasters();
+
+                    console.log(`âœ… Registrazione confermata per: ${data.nome} (${data.partecipanteId})`);
+
                     io.emit('connessi_update', Array.from(gameState.connessi.values()));
                     console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
                     console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
@@ -3061,8 +3067,10 @@ io.on('connection', (socket) => {
                 console.error('Errore salvataggio connesso:', err);
             });
 
+            // Invia stato completo del gioco
             socket.emit('registered', {
                 success: true,
+                verified: true,
                 gameState: {
                     fase: gameState.fase,
                     roundAttivo: gameState.roundAttivo,
@@ -3072,8 +3080,11 @@ io.on('connection', (socket) => {
                 }
             });
 
+            // AGGIUNGI QUESTE RIGHE SUBITO DOPO:
+            // Notifica aggiornamento connessi a tutti i client (inclusi i master)
             io.emit('connessi_update', Array.from(gameState.connessi.values()));
-            console.log(`✅ Registrato: ${data.nome} come ${data.tipo} - Socket: ${socket.id}`);
+
+            console.log(`✅ Registrazione confermata per: ${data.nome} (${data.partecipanteId})`);
             console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
         }
     });
