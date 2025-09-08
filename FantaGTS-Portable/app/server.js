@@ -2935,7 +2935,7 @@ app.get('/incontri', (req, res) => {
 io.on('connection', (socket) => {
     console.log('Nuova connessione:', socket.id);
 
-    socket.on('register', (data) => {
+    socket.on('register', async (data) => {
         console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
 
         if (data.tipo === 'partecipante' && data.partecipanteId) {
