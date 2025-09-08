@@ -641,13 +641,14 @@
                     // Aggiorna UI
                     this.updateConnectionStatus('disconnected');
 
-                    // Gestisci diversi tipi di disconnessione
-                    if (reason === 'io server disconnect') {
-                        // Server ha chiuso la connessione
-                        console.log('🔄 Server ha chiuso la connessione, riconnetto...');
-                        this.scheduleReconnect();
-                    } else if (reason === 'transport close' || reason === 'transport error') {
-                        // Problema di rete
+                    // SEMPLIFICATO: Non riconnettere automaticamente se è una disconnessione forzata
+                    if (reason === 'io server disconnect' || reason === 'forced close') {
+                        console.log('🛑 Disconnessione forzata dal server, NON riconnetto automaticamente');
+                        return;
+                    }
+
+                    // Solo per errori di rete
+                    if (reason === 'transport close' || reason === 'transport error') {
                         console.log('🌐 Problema di rete rilevato');
                         this.state.connectionQuality = 'poor';
                         this.scheduleReconnect();

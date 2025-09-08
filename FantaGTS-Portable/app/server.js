@@ -2977,31 +2977,19 @@ io.on('connection', (socket) => {
         console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
 
         if (data.tipo === 'partecipante' && data.partecipanteId) {
-            // AGGIUNTO: Controlla se questo socket è già registrato
+            // SEMPLIFICATO: Controlla se questo socket è già registrato
             const socketGiaRegistrato = gameState.connessi.get(socket.id);
             if (socketGiaRegistrato && socketGiaRegistrato.partecipanteId === data.partecipanteId) {
                 console.log(`⚠️ Socket ${socket.id} già registrato per ${data.nome}, ignoro registrazione duplicata`);
                 return;
             }
 
-            // CONTROLLO DUPLICATI: Rimuovi connessioni esistenti dello stesso partecipante
+            // SEMPLIFICATO: Rimuovi SOLO dalle Map, NON disconnettere
             for (let [existingSocketId, existingUser] of gameState.connessi.entries()) {
                 if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
-                    console.log(`🔄 Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
+                    console.log(`🔄 Rimuovendo connessione precedente per ${data.nome}: Socket ${existingSocketId}`);
                     gameState.connessi.delete(existingSocketId);
-
-                    // MODIFICA: Disconnetti in modo più sicuro
-                    try {
-                        const oldSocket = io.sockets.sockets.get(existingSocketId);
-                        if (oldSocket && oldSocket.connected) {
-                            oldSocket.emit('force_disconnect', { reason: 'Nuova connessione dal stesso utente' });
-                            setTimeout(() => {
-                                oldSocket.disconnect(true);
-                            }, 100);
-                        }
-                    } catch (err) {
-                        console.log(`⚠️ Errore disconnessione socket ${existingSocketId}:`, err.message);
-                    }
+                    // NON disconnettere - lascia che le connessioni morte si puliscano da sole
                 }
             }
 
