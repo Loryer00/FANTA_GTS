@@ -2726,10 +2726,10 @@ function elaboraRisultatiAste() {
 // NUOVA FUNZIONE: Pulisci connessioni obsolete
 async function pulisciConnessioniObsolete() {
     try {
-        // Rimuovi connessioni più vecchie di 1 ora
+        // MODIFICA: Rimuovi connessioni più vecchie di 5 minuti invece di 1 ora
         const result = await db.query(`
             DELETE FROM connessi_attivi 
-            WHERE connected_at < NOW() - INTERVAL '1 hour'
+            WHERE connected_at < NOW() - INTERVAL '5 minutes'
         `);
 
         if (result.rowCount > 0) {
@@ -2738,7 +2738,7 @@ async function pulisciConnessioniObsolete() {
 
         return result.rowCount;
     } catch (error) {
-        console.error('❌ Errore pulizia connessioni obsolete:', error);
+        console.error('⌚ Errore pulizia connessioni obsolete:', error);
         return 0;
     }
 }
@@ -3281,13 +3281,18 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 initializeDatabase().then(async () => {
     await updateDatabaseSchema();
 
-    // Carica connessi esistenti all'avvio
-    caricaConnessiDaDB().then(() => {
-        console.log('📡 Connessi esistenti caricati dal database');
-    }).catch(error => {
-        console.error('❌ Errore caricamento connessi esistenti:', error);
-    });
+    // Pulisci connessi obsoleti PRIMA di caricare
+    await pulisciConnessioniObsolete();
 
+    // Azzera TUTTI i connessi all'avvio del server
+    try {
+        await db.query('DELETE FROM connessi_attivi');
+        console.log('🧹 Pulizia completa connessi_attivi all\'avvio');
+        gameState.connessi.clear();
+    } catch (error) {
+        console.error('⚠️ Errore pulizia connessi all\'avvio:', error);
+    }
+       
     server.listen(PORT, '0.0.0.0', () => {
         const localIP = getLocalIP();
 
