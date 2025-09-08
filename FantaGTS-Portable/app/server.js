@@ -1525,6 +1525,31 @@ app.post('/api/avvia-round/:round', async (req, res) => {
     }
 });
 
+// API per connessi (fallback HTTP)
+app.get('/api/connessi', (req, res) => {
+    try {
+        const connessi = Array.from(gameState.connessi.values());
+        res.json(connessi);
+    } catch (error) {
+        console.error('Errore API connessi:', error);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// API per round attivi (fallback HTTP)
+app.get('/api/round-attivo', (req, res) => {
+    try {
+        res.json({
+            roundAttivo: gameState.roundAttivo,
+            asteAttive: gameState.asteAttive,
+            fase: gameState.fase
+        });
+    } catch (error) {
+        console.error('Errore API round attivo:', error);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // API per controllare se tutti hanno fatto offerte - VERSIONE CORRETTA
 app.get('/api/stato-offerte/:round', async (req, res) => {
     const round = req.params.round;

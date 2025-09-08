@@ -993,9 +993,40 @@
 
         // Connessione WebSocket
         function initializeSocket() {
-            socket = io();
+            console.log('🔌 Inizializzazione Socket.io...');
+
+            // SOSTITUISCI LA FUNZIONE ESISTENTE CON:
+            socket = io({
+                timeout: 15000,
+                retries: 3,
+                transports: ['polling', 'websocket'], // Priorità a polling per stabilità
+                upgrade: true,
+                rememberUpgrade: false,
+
+                // Configurazioni per problemi di connessione
+                pingTimeout: 20000,
+                pingInterval: 10000,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 2000,
+                reconnectionDelayMax: 10000
+            });
 
             socket.on('connect', () => {
+                console.log('✅ Socket connesso (' + socket.io.engine.transport.name + ')');
+
+                // Pulisci fallback HTTP se attivo
+                if (window.httpFallbackInterval) {
+                    clearInterval(window.httpFallbackInterval);
+                    window.httpFallbackInterval = null;
+
+                    // Rimuovi indicatore
+                    const indicator = document.getElementById('httpFallbackIndicator');
+                    if (indicator) indicator.remove();
+
+                    console.log('🔄 Fallback HTTP disattivato, Socket.io ripristinato');
+                }
+
                 showNotification('Connesso al server', 'success');
                 updateServerStatus(true);
 
@@ -1006,9 +1037,22 @@
                 });
             });
 
-            socket.on('disconnect', () => {
+            socket.on('disconnect', (reason) => {
+                console.log('❌ Socket disconnesso:', reason);
                 showNotification('Disconnesso dal server', 'error');
                 updateServerStatus(false);
+
+                // Se errore di trasporto, tenta fallback HTTP
+                if (reason === 'transport error' || reason === 'transport close') {
+                    console.log('🔄 Avviando fallback HTTP...');
+                    startHTTPFallback();
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                console.log('❌ Errore connessione Socket.io:', error.message);
+                showNotification('Errore connessione Socket.io, usando HTTP', 'warning');
+                startHTTPFallback();
             });
 
             socket.on('registered', (data) => {
@@ -1166,14 +1210,27 @@
             });
         }
 
-        function updateServerStatus(connected) {
-            const statusEl = document.getElementById('serverStatus');
-            if (connected) {
-                statusEl.className = 'status-card status-active';
-                statusEl.innerHTML = '<span class="live-indicator"></span>Server attivo - Connesso';
-            } else {
-                statusEl.className = 'status-card status-error';
-                statusEl.innerHTML = '❌ Server disconnesso';
+        function updateServerStatus(isConnected) {
+            const statusElement = document.getElementById('serverStatus');
+            const statusIcon = document.getElementById('serverStatusIcon');
+
+            if (statusElement && statusIcon) {
+                if (isConnected) {
+                    statusElement.textContent = 'Online';
+                    statusElement.className = 'status online';
+                    statusIcon.textContent = '🟢';
+                } else {
+                    // AGGIUNGI QUESTO CONTROLLO:
+                    if (window.httpFallbackInterval) {
+                        statusElement.textContent = 'HTTP Backup';
+                        statusElement.className = 'status warning';
+                        statusIcon.textContent = '🟡';
+                    } else {
+                        statusElement.textContent = 'Offline';
+                        statusElement.className = 'status offline';
+                        statusIcon.textContent = '🔴';
+                    }
+                }
             }
         }
 
@@ -1235,6 +1292,83 @@
         async function mostraGestionePartecipanti() {
             document.getElementById('gestionePartecipantiModal').style.display = 'flex';
             await caricaPartecipantiPerGestione();
+        }
+
+        function startHTTPFallback() {
+            console.log('🔄 Avvio modalità HTTP fallback...');
+
+            // Mostra indicatore modalità fallback
+            showHTTPFallbackIndicator();
+
+            // Avvia polling HTTP ogni 3 secondi
+            if (window.httpFallbackInterval) {
+                clearInterval(window.httpFallbackInterval);
+            }
+
+            window.httpFallbackInterval = setInterval(async () => {
+                try {
+                    // Aggiorna stato generale
+                    const statoResponse = await fetch('/api/stato');
+                    if (statoResponse.ok) {
+                        const stato = await statoResponse.json();
+                        updateGameStateHTTP(stato);
+                    }
+
+                    // Aggiorna connessi
+                    const connessiResponse = await fetch('/api/connessi');
+                    if (connessiResponse.ok) {
+                        const connessi = await connessiResponse.json();
+                        updateConnectedUsersHTTP(connessi);
+                    }
+
+                } catch (error) {
+                    console.warn('⚠️ Errore polling HTTP:', error);
+                }
+            }, 3000);
+        }
+
+        // AGGIUNGI QUESTE NUOVE FUNZIONI:
+        function updateGameStateHTTP(stato) {
+            const oldFase = gameState.fase;
+
+            if (stato.fase) gameState.fase = stato.fase;
+            if (stato.roundAttivo !== undefined) gameState.roundAttivo = stato.roundAttivo;
+            if (stato.asteAttive !== undefined) gameState.asteAttive = stato.asteAttive;
+
+            if (oldFase !== gameState.fase) {
+                console.log(`🔄 Fase aggiornata via HTTP: ${oldFase} → ${gameState.fase}`);
+                updateUI();
+            }
+        }
+
+        function updateConnectedUsersHTTP(connessi) {
+            const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
+
+            const contatore = document.getElementById('partecipantiConnessi');
+            if (contatore) {
+                contatore.textContent = partecipanti.length;
+            }
+
+            updateConnectedParticipants(partecipanti);
+        }
+
+        function showHTTPFallbackIndicator() {
+            // Rimuovi indicatore esistente
+            const existing = document.getElementById('httpFallbackIndicator');
+            if (existing) existing.remove();
+
+            const indicator = document.createElement('div');
+            indicator.id = 'httpFallbackIndicator';
+            indicator.innerHTML = `
+        <div style="position: fixed; top: 10px; left: 10px; 
+                    background: #ed8936; color: white; padding: 10px 15px; 
+                    border-radius: 8px; z-index: 1000; font-size: 14px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+            🔄 Modalità HTTP Backup Attiva
+        </div>
+    `;
+
+            document.body.appendChild(indicator);
         }
 
         // Carica partecipanti per gestione
