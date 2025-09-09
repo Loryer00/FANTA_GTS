@@ -1082,10 +1082,11 @@
                 // STEP 3: Attendi che service worker sia pronto (con timeout)
                 console.log('⏳ Attendendo service worker...');
                 try {
+                    console.log('⏳ Attendendo service worker (timeout esteso)...');
                     const registration = await Promise.race([
                         navigator.serviceWorker.ready,
                         new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Service Worker timeout')), 5000)
+                            setTimeout(() => reject(new Error('Service Worker timeout')), 15000) // 15 secondi invece di 5
                         )
                     ]);
                     console.log('✅ Service worker pronto');
