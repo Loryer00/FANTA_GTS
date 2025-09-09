@@ -1681,6 +1681,24 @@ app.get('/api/debug/partecipanti', async (req, res) => {
     }
 });
 
+// NUOVA API: Stato dettagliato per Master
+app.get('/api/stato', (req, res) => {
+    try {
+        const connessi = Array.from(gameState.connessi.values());
+
+        res.json({
+            fase: gameState.fase,
+            roundAttivo: gameState.roundAttivo,
+            asteAttive: gameState.asteAttive,
+            connessi: connessi,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Errore API stato:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/debug/slots', async (req, res) => {
     try {
         const sampleResult = await db.query("SELECT * FROM slots LIMIT 10");

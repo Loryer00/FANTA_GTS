@@ -996,91 +996,81 @@
             }, 5000); // Ogni 5 secondi
         });
 
+        // SISTEMA HTTP POLLING per Master (no Socket.IO)
+        let masterPolling = {
+            interval: null,
+            isPolling: false,
+            lastConnectedCount: 0,
+
+            start() {
+                if (this.isPolling) return;
+                this.isPolling = true;
+
+                console.log('🔄 Avvio polling HTTP per Master...');
+
+                // Polling ogni 3 secondi
+                this.interval = setInterval(() => {
+                    this.pollConnessi();
+                }, 3000);
+
+                // Prima chiamata immediata
+                this.pollConnessi();
+            },
+
+            stop() {
+                if (this.interval) {
+                    clearInterval(this.interval);
+                    this.interval = null;
+                }
+                this.isPolling = false;
+            },
+
+            async pollConnessi() {
+                try {
+                    const response = await fetch('/api/stato');
+                    if (!response.ok) throw new Error('API non disponibile');
+
+                    const stato = await response.json();
+
+                    if (stato.connessi && Array.isArray(stato.connessi)) {
+                        const partecipanti = stato.connessi.filter(c => c.tipo === 'partecipante');
+
+                        // Aggiorna solo se cambiato
+                        if (partecipanti.length !== this.lastConnectedCount) {
+                            console.log('🔄 AGGIORNAMENTO HTTP:', partecipanti.length, 'partecipanti');
+
+                            gameState.connessi = stato.connessi;
+                            updatePartecipanti();
+                            updateStats();
+
+                            // Flash visivo
+                            document.body.style.border = '3px solid #4299e1';
+                            setTimeout(() => {
+                                document.body.style.border = '';
+                            }, 1000);
+
+                            this.lastConnectedCount = partecipanti.length;
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('❌ Errore polling:', error.message);
+                }
+            }
+        };
+
         // Connessione WebSocket
         function initializeSocket() {
-            console.log('🔌 Inizializzazione Socket.io STABILE...');
+            console.log('🔄 Master: usando HTTP polling invece di Socket.IO');
 
-            socket = io({
-                transports: ['polling'], // SOLO polling, più stabile
-                upgrade: false, // NON fare upgrade a websocket
-                timeout: 30000, // 30 secondi di timeout
+            // Avvia polling HTTP
+            masterPolling.start();
 
-                // Configurazioni per massima stabilità
-                pingTimeout: 60000, // 60 secondi
-                pingInterval: 25000, // 25 secondi
-
-                // Nessuna riconnessione automatica
-                reconnection: false,
-
-                // Headers forzati per Koyeb
-                extraHeaders: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                }
-            });
-
-            socket.on('connect', () => {
-                console.log('✅ Master connesso con polling STABILE');
-
-                // Registra SUBITO
-                socket.emit('register', {
-                    nome: 'Master Control',
-                    tipo: 'master'
-                });
-            });
-
-            socket.on('disconnect', (reason) => {
-                console.log('❌ Master disconnesso:', reason);
-
-                // Se si disconnette, ricarica la pagina dopo 2 secondi
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            });
-
-            socket.on('connect_error', (error) => {
-                console.error('❌ Errore Master:', error.message);
-                // Ricarica pagina se errore
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            });
-
-            socket.on('registered', (data) => {
-                if (data.success) {
-                    console.log('✅ Master registrato con successo');
-                    gameState = { ...gameState, ...data.gameState };
-                    updateUI();
-                }
-            });
-
-            socket.on('connessi_update', (connessi) => {
-                console.log('🔄 CONNESSI_UPDATE RICEVUTO DAL MASTER!');
-                console.log('📊 Dati:', {
-                    totale: connessi.length,
-                    partecipanti: connessi.filter(p => p.tipo === 'partecipante').length,
-                    timestamp: new Date().toLocaleTimeString()
-                });
-
-                gameState.connessi = connessi;
-                updatePartecipanti();
-                updateStats();
-
-                // Flash visivo per confermare
-                document.body.style.border = '5px solid #4299e1';
-                setTimeout(() => {
-                    document.body.style.border = '';
-                }, 1500);
-            });
-
-            // Altri eventi di gioco...
-            socket.on('round_started', (data) => {
-                gameState.roundAttivo = data.round;
-                gameState.asteAttive = true;
-                updateUI();
-                showNotification(`Round ${data.round} avviato!`, 'success');
-                startOffersDisplay();
-            });
+            // Simula "connessione" riuscita
+            setTimeout(() => {
+                updateServerStatus(true);
+                console.log('✅ Master: polling HTTP attivo');
+            }, 1000);
         }
 
         function updateServerStatus(isConnected) {
