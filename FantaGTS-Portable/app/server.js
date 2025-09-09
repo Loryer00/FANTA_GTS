@@ -3060,7 +3060,8 @@ io.on('connection', (socket) => {
 
         // Rimuovi dal database
         try {
-            await rimuoviConnessoInDB(socket.id);
+            // Rimuovi semplicemente senza DB
+            console.log('🗑️ Rimosso connesso dal gameState:', socket.id);
         } catch (error) {
             console.error('Errore rimozione connesso da DB:', error);
         }

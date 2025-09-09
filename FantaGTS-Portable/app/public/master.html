@@ -1000,6 +1000,14 @@
         function initializeSocket() {
             console.log('🔌 Inizializzazione Socket.io...');
 
+            // TEST: Aggiungi listener per TUTTI gli eventi
+            socket.onAny((eventName, ...args) => {
+                console.log('📡 EVENTO RICEVUTO:', eventName, args.length > 0 ? 'con dati' : 'senza dati');
+                if (eventName === 'connessi_update') {
+                    console.log('🎯 CONNESSI_UPDATE CATTURATO:', args[0]?.length || 0, 'connessi');
+                }
+            });
+
             // SOSTITUISCI LA FUNZIONE ESISTENTE CON:
             socket = io({
                 timeout: 15000,
@@ -1040,6 +1048,11 @@
                     nome: 'Master Control',
                     tipo: 'master'
                 });
+
+                // AGGIUNGI SUBITO DOPO LA CONNESSIONE:
+                console.log('🔍 LISTENER EVENTI REGISTRATI:');
+                console.log('- connessi_update:', typeof socket._callbacks?.$connessi_update !== 'undefined');
+                console.log('- registered:', typeof socket._callbacks?.$registered !== 'undefined');
             });
 
             socket.on('disconnect', (reason) => {
