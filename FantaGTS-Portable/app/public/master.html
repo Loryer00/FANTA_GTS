@@ -2548,6 +2548,67 @@
             saveMasterState();
         });
 
+        // AUTO-REFRESH INTELLIGENTE per Master
+        let autoRefresh = {
+            interval: null,
+            enabled: true,
+            refreshFrequency: 5000, // 5 secondi
+
+            start() {
+                if (!this.enabled || this.interval) return;
+
+                console.log('🔄 Auto-refresh Master attivato ogni 5 secondi');
+
+                this.interval = setInterval(() => {
+                    this.checkAndRefresh();
+                }, this.refreshFrequency);
+            },
+
+            async checkAndRefresh() {
+                try {
+                    // Controlla se ci sono nuovi partecipanti via API
+                    const response = await fetch('/api/partecipanti');
+                    if (!response.ok) return;
+
+                    const partecipanti = await response.json();
+                    const currentCount = gameState.connessi?.filter(c => c.tipo === 'partecipante').length || 0;
+
+                    // Se il numero di partecipanti nel DB è diverso da quello visualizzato
+                    if (partecipanti.length !== currentCount) {
+                        console.log(`🔄 Rilevati ${partecipanti.length} partecipanti vs ${currentCount} visualizzati - Refresh automatico`);
+
+                        // Flash visivo prima del refresh
+                        document.body.style.background = 'linear-gradient(45deg, #4299e1, #2d3748)';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    }
+
+                } catch (error) {
+                    console.log('Auto-refresh check fallito:', error.message);
+                }
+            },
+
+            stop() {
+                if (this.interval) {
+                    clearInterval(this.interval);
+                    this.interval = null;
+                }
+            }
+        };
+
+        // Avvia auto-refresh quando il documento è pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                autoRefresh.start();
+            }, 3000); // Inizia dopo 3 secondi
+        });
+
+        // Ferma auto-refresh quando si naviga via
+        window.addEventListener('beforeunload', () => {
+            autoRefresh.stop();
+        });
+
     </script>
 
     <!-- PWA Registration -->
