@@ -998,245 +998,88 @@
 
         // Connessione WebSocket
         function initializeSocket() {
-            console.log('🔌 Inizializzazione Socket.io...');
+            console.log('🔌 Inizializzazione Socket.io STABILE...');
 
-            // TEST: Aggiungi listener per TUTTI gli eventi
-            socket.onAny((eventName, ...args) => {
-                console.log('📡 EVENTO RICEVUTO:', eventName, args.length > 0 ? 'con dati' : 'senza dati');
-                if (eventName === 'connessi_update') {
-                    console.log('🎯 CONNESSI_UPDATE CATTURATO:', args[0]?.length || 0, 'connessi');
-                }
-            });
-
-            // SOSTITUISCI LA FUNZIONE ESISTENTE CON:
             socket = io({
-                timeout: 15000,
-                retries: 3,
-                transports: ['polling', 'websocket'], // Priorità a polling per stabilità
-                upgrade: true,
-                rememberUpgrade: false,
+                transports: ['polling'], // SOLO polling, più stabile
+                upgrade: false, // NON fare upgrade a websocket
+                timeout: 30000, // 30 secondi di timeout
 
-                // Configurazioni per problemi di connessione
-                pingTimeout: 20000,
-                pingInterval: 10000,
-                reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 2000,
-                reconnectionDelayMax: 10000
+                // Configurazioni per massima stabilità
+                pingTimeout: 60000, // 60 secondi
+                pingInterval: 25000, // 25 secondi
+
+                // Nessuna riconnessione automatica
+                reconnection: false,
+
+                // Headers forzati per Koyeb
+                extraHeaders: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
             });
 
             socket.on('connect', () => {
-                console.log('✅ Socket connesso (' + socket.io.engine.transport.name + ')');
+                console.log('✅ Master connesso con polling STABILE');
 
-                // Pulisci fallback HTTP se attivo
-                if (window.httpFallbackInterval) {
-                    clearInterval(window.httpFallbackInterval);
-                    window.httpFallbackInterval = null;
-
-                    // Rimuovi indicatore
-                    const indicator = document.getElementById('httpFallbackIndicator');
-                    if (indicator) indicator.remove();
-
-                    console.log('🔄 Fallback HTTP disattivato, Socket.io ripristinato');
-                }
-
-                showNotification('Connesso al server', 'success');
-                updateServerStatus(true);
-
-                // Registra come master
+                // Registra SUBITO
                 socket.emit('register', {
                     nome: 'Master Control',
                     tipo: 'master'
                 });
-
-                // AGGIUNGI SUBITO DOPO LA CONNESSIONE:
-                console.log('🔍 LISTENER EVENTI REGISTRATI:');
-                console.log('- connessi_update:', typeof socket._callbacks?.$connessi_update !== 'undefined');
-                console.log('- registered:', typeof socket._callbacks?.$registered !== 'undefined');
             });
 
             socket.on('disconnect', (reason) => {
-                console.log('❌ Socket disconnesso:', reason);
-                showNotification('Disconnesso dal server', 'error');
-                updateServerStatus(false);
+                console.log('❌ Master disconnesso:', reason);
 
-                // Se errore di trasporto, tenta fallback HTTP
-                if (reason === 'transport error' || reason === 'transport close') {
-                    console.log('🔄 Avviando fallback HTTP...');
-                    startHTTPFallback();
-                }
+                // Se si disconnette, ricarica la pagina dopo 2 secondi
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
             });
 
             socket.on('connect_error', (error) => {
-                console.log('❌ Errore connessione Socket.io:', error.message);
-                showNotification('Errore connessione Socket.io, usando HTTP', 'warning');
-                startHTTPFallback();
+                console.error('❌ Errore Master:', error.message);
+                // Ricarica pagina se errore
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             });
 
             socket.on('registered', (data) => {
                 if (data.success) {
+                    console.log('✅ Master registrato con successo');
                     gameState = { ...gameState, ...data.gameState };
                     updateUI();
                 }
             });
 
             socket.on('connessi_update', (connessi) => {
-                console.log('🔄 EVENTO connessi_update RICEVUTO dal server!');
-                console.log('📊 Dettaglio connessi ricevuti:', {
+                console.log('🔄 CONNESSI_UPDATE RICEVUTO DAL MASTER!');
+                console.log('📊 Dati:', {
                     totale: connessi.length,
                     partecipanti: connessi.filter(p => p.tipo === 'partecipante').length,
-                    master: connessi.filter(p => p.tipo === 'master').length,
-                    lista: connessi.map(c => ({ nome: c.nome, tipo: c.tipo, verificato: c.verified }))
+                    timestamp: new Date().toLocaleTimeString()
                 });
 
-                // Aggiorna gameState in modo semplice
                 gameState.connessi = connessi;
-
-                // Aggiorna UI
                 updatePartecipanti();
                 updateStats();
 
-                // Visual feedback immediato
-                const container = document.getElementById('participantsContainer');
-                if (container) {
-                    container.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                    setTimeout(() => {
-                        container.style.backgroundColor = '';
-                    }, 1000);
-                }
-
-                // Log finale per conferma
-                const partecipanti = connessi.filter(c => c.tipo === 'partecipante');
-                console.log(`✅ UI aggiornata: ${partecipanti.length} partecipanti visualizzati`);
+                // Flash visivo per confermare
+                document.body.style.border = '5px solid #4299e1';
+                setTimeout(() => {
+                    document.body.style.border = '';
+                }, 1500);
             });
 
+            // Altri eventi di gioco...
             socket.on('round_started', (data) => {
                 gameState.roundAttivo = data.round;
                 gameState.asteAttive = true;
                 updateUI();
                 showNotification(`Round ${data.round} avviato!`, 'success');
                 startOffersDisplay();
-            });
-
-            socket.on('offerte_update', (data) => {
-                updateOffersDisplay(data);
-                updatePartecipantiWithBids(data);
-            });
-
-            // Modifica la funzione che gestisce fine round
-            socket.on('round_ended', (data) => {
-                gameState.asteAttive = false;
-                gameState.roundAttivo = null;
-                updateUI();
-                showNotification(`Round ${data.round} terminato!`, 'success');
-
-                // SOSTITUISCI il blocco const completedBtn = document.querySelector... con questo:
-                const completedBtn = document.querySelector(`[data-round="${data.round}"]`);
-                if (completedBtn) {
-                    // DISABILITAZIONE TOTALE
-                    completedBtn.classList.remove('active', 'available');
-                    completedBtn.classList.add('completed');
-                    completedBtn.disabled = true;
-                    completedBtn.style.opacity = '0.3';
-                    completedBtn.style.pointerEvents = 'none';
-                    completedBtn.style.cursor = 'not-allowed';
-                    completedBtn.style.filter = 'grayscale(100%)';
-                    completedBtn.style.outline = 'none';
-                    completedBtn.style.boxShadow = 'none';
-
-                    // RIMUOVI TUTTI GLI EVENT LISTENERS
-                    const newBtn = completedBtn.cloneNode(true);
-                    completedBtn.parentNode.replaceChild(newBtn, completedBtn);
-
-                    console.log(`🔒 Pulsante ${data.round} TOTALMENTE disabilitato`);
-                }
-
-                // NUOVO: Seleziona automaticamente il prossimo round disponibile
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-                const currentIndex = rounds.indexOf(data.round);
-                let nextRoundSelected = false;
-
-                // Cerca il prossimo round disponibile
-                for (let i = currentIndex + 1; i < rounds.length; i++) {
-                    const nextBtn = document.querySelector(`[data-round="${rounds[i]}"]`);
-                    if (nextBtn && !nextBtn.classList.contains('completed')) {
-                        selectRound(rounds[i]);
-                        nextRoundSelected = true;
-                        console.log(`✅ Selezionato automaticamente il prossimo round: ${rounds[i]}`);
-                        break;
-                    }
-                }
-
-                // Se non c'è un prossimo round, deseleziona tutto
-                if (!nextRoundSelected) {
-                    roundSelezionato = null;
-                    document.getElementById('selectedRoundDisplay').textContent = 'Tutti completati';
-                    document.getElementById('btnAvviaRound').disabled = true;
-
-                    // Rimuovi selezione da tutti i pulsanti
-                    document.querySelectorAll('.round-btn').forEach(btn => {
-                        btn.style.outline = 'none';
-                        btn.style.boxShadow = 'none';
-                    });
-
-                    console.log('🏁 Tutti i round completati - nessuna selezione');
-                }
-
-                stopOffersDisplay();
-                mostraRisultatiRound(data.round, data.risultati);
-
-                setTimeout(() => {
-                    caricaSquadreInFormazione();
-                    saveMasterState();
-                }, 1000);
-            });
-
-            socket.on('connessi_update', (connessi) => {
-                gameState.connessi = connessi;
-                updatePartecipanti();
-                updateStats();
-            });
-
-            socket.on('master_reset_ui', (data) => {
-                console.log('🔄 Reset UI Master ricevuto:', data);
-
-                // Reset tutti i pulsanti round allo stato ORIGINALE (grigio/neutro)
-                document.querySelectorAll('.round-btn').forEach(btn => {
-                    btn.classList.remove('active', 'completed', 'available');
-
-                    // Stato originale: grigio neutro
-                    btn.style.background = '#4a5568';
-                    btn.style.color = '#a0aec0';
-                    btn.style.borderColor = '#4a5568';
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                    btn.disabled = false;
-                    btn.style.pointerEvents = 'auto';
-                    btn.style.outline = 'none';
-                    btn.style.boxShadow = 'none';
-                });
-
-                // Reset selezione
-                roundSelezionato = null;
-                document.getElementById('selectedRoundDisplay').textContent = 'Nessuno';
-                document.getElementById('btnAvviaRound').disabled = true;
-                document.getElementById('btnFermaRound').disabled = true;
-
-                // Reset display round attivo
-                document.getElementById('currentRoundInfo').style.display = 'none';
-
-                // Reset risultati ultimo round
-                document.getElementById('lastRoundResults').innerHTML = '<p>Nessun round completato ancora</p>';
-
-                // Reset statistiche
-                document.getElementById('statRounds').textContent = '0';
-                document.getElementById('statCrediti').textContent = '0';
-                document.getElementById('statOfferte').textContent = '0';
-
-                // Reset squadre in formazione
-                document.getElementById('squadreInFormazione').innerHTML = '<p>Nessuna squadra ancora formata</p>';
-
-                showNotification('🔄 Interfaccia Master resettata!', 'success');
             });
         }
 
