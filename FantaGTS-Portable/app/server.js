@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 const path = require('path');
 const os = require('os');
 
-// Variabile globale sessione corrente
+// Variabile globale sessione corrente 
 let sessioneCorrente = process.env.SESSIONE_CORRENTE || 'fantagts_2025';
 
 const app = express();
