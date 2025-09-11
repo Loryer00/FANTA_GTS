@@ -2714,10 +2714,26 @@ app.post('/api/reset/:livello', async (req, res) => {
                 break;
 
             case 'totale':
+                // ❌ ELIMINA tabelle inutili (DROP completo)
+                await db.query("DROP TABLE IF EXISTS backup_log CASCADE");
+                await db.query("DROP TABLE IF EXISTS risultati_partite CASCADE");
+
+                // ❓ Eventualmente anche questa se non serve
+                // await db.query("DROP TABLE IF EXISTS scontri_squadre CASCADE");
+
+                // ✅ SVUOTA tabelle utili (mantieni struttura)
                 await db.query("DELETE FROM aste");
                 await db.query("DELETE FROM partecipanti_fantagts");
                 await db.query("DELETE FROM squadre_circolo");
                 await db.query("DELETE FROM slots");
+                await db.query("DELETE FROM push_subscriptions");
+                await db.query("DELETE FROM sostituzioni"); // Mantieni struttura
+                await db.query("DELETE FROM turni_configurazione");
+                await db.query("DELETE FROM coppie_turno");
+                await db.query("DELETE FROM incontri");
+                await db.query("DELETE FROM accoppiamenti_posizioni");
+                await db.query("DELETE FROM risultati_dettaglio");
+                await db.query("DELETE FROM sessioni_fantagts");
 
                 gameState = {
                     fase: 'setup',
