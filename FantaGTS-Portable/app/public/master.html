@@ -534,6 +534,19 @@
                 <span class="live-indicator"></span>
                 Server attivo - Connesso
             </div>
+
+            <!-- PULSANTI DI NAVIGAZIONE - SPOSTATI IN ALTO -->
+            <div style="margin-top: 20px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
+                    ⚽ Incontri
+                </button>
+                <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
+                    👥 Partecipanti
+                </button>
+                <button class="btn btn-primary" onclick="mostraClassifica()">
+                    🏆 Classifica
+                </button>
+            </div>
         </div>
 
         <!-- Dashboard Principale -->
@@ -541,126 +554,88 @@
             <!-- Controllo Aste -->
             <div class="section">
                 <h2>🎯 Controllo Aste</h2>
-
-                <div id="currentRoundInfo" class="current-round-display" style="display: none;">
-                    <h3>Round Attivo: <span id="activeRoundName">M1</span></h3>
-                    <div class="big-display" id="offersDisplay">0/0</div>
-                    <p id="offersStatusMessage">In attesa delle offerte dei partecipanti</p>
-                </div>
-
-                <div class="rounds-grid">
-                    <button class="round-btn available" data-round="M1">M1</button>
-                    <button class="round-btn available" data-round="M2">M2</button>
-                    <button class="round-btn available" data-round="M3">M3</button>
-                    <button class="round-btn available" data-round="M4">M4</button>
-                    <button class="round-btn available" data-round="M5">M5</button>
-                    <button class="round-btn available" data-round="M6">M6</button>
-                    <button class="round-btn available" data-round="M7">M7</button>
-                    <button class="round-btn available" data-round="F1">F1</button>
-                    <button class="round-btn available" data-round="F2">F2</button>
-                    <button class="round-btn available" data-round="F3">F3</button>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
-                        <strong>Round selezionato: <span id="selectedRoundDisplay">Nessuno</span></strong>
-                    </div>
-                    <button class="btn btn-primary" id="btnAvviaRound" onclick="avviaRoundSelezionato()" disabled>
-                        🚀 Avvia Round Selezionato
-                    </button>
-                    <button class="btn btn-danger" id="btnFermaRound" onclick="forzaFineRound()" disabled>
-                        ⏹️ Forza Fine Round
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stato Partecipanti -->
-            <div class="section">
-                <h2>👥 Partecipanti Connessi</h2>
-                <div id="participantsContainer">
-                    <p>Nessun partecipante connesso</p>
-                </div>
-            </div>
-
-            <!-- Statistiche Live -->
-            <div class="section">
-                <h2>📊 Statistiche Live</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="statConnessi">0</div>
-                        <div class="stat-label">Connessi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statOfferte">0</div>
-                        <div class="stat-label">Offerte</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statRounds">0</div>
-                        <div class="stat-label">Round Completati</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statCrediti">0</div>
-                        <div class="stat-label">Crediti Spesi</div>
-                    </div>
-                </div>
+                <!-- ... resto del contenuto ... -->
             </div>
         </div>
 
-        <!-- Risultati Ultimo Round -->
+        <!-- Stato Partecipanti -->
         <div class="section">
-            <h2>🏆 Risultati Ultimo Round</h2>
-            <div id="lastRoundResults">
-                <p>Nessun round completato ancora</p>
+            <h2>👥 Partecipanti Connessi</h2>
+            <div id="participantsContainer">
+                <p>Nessun partecipante connesso</p>
             </div>
         </div>
 
-        <!-- Squadre in Formazione -->
+        <!-- Statistiche Live -->
         <div class="section">
-            <h2>👥 Squadre in Formazione</h2>
-            <div id="squadreInFormazione">
-                <p>Nessuna squadra ancora formata</p>
+            <h2>📊 Statistiche Live</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="statConnessi">0</div>
+                    <div class="stat-label">Connessi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statOfferte">0</div>
+                    <div class="stat-label">Offerte</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statRounds">0</div>
+                    <div class="stat-label">Round Completati</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statCrediti">0</div>
+                    <div class="stat-label">Crediti Spesi</div>
+                </div>
             </div>
         </div>
+    
 
-        <!-- Strumenti Admin -->
-        <div class="section">
-            <h2>🔧 Strumenti Amministrazione</h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <button class="btn btn-primary" onclick="vaiASetup()">
-                    ⚙️ Configurazione
-                </button>
-                <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
-                    👥 Gestisci Partecipanti
-                </button>
-                <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
-                    ⚽ Gestione Incontri
-                </button>
-                <button class="btn btn-primary" onclick="mostraClassifica()">
-                    🏆 Classifica
-                </button>
-                <button class="btn btn-warning" onclick="resetAste()">
-                    🔄 Reset Aste
-                </button>
-                <button class="btn btn-danger" onclick="resetTotale()">
-                    ⚠️ Reset Totale
-                </button>
-            </div>
+    <!-- Risultati Ultimo Round -->
+    <div class="section">
+        <h2>🏆 Risultati Ultimo Round</h2>
+        <div id="lastRoundResults">
+            <p>Nessun round completato ancora</p>
+        </div>
+    </div>
+
+    <!-- Squadre in Formazione -->
+    <div class="section">
+        <h2>👥 Squadre in Formazione</h2>
+        <div id="squadreInFormazione">
+            <p>Nessuna squadra ancora formata</p>
+        </div>
+    </div>
+
+    <!-- Strumenti Amministrazione - SOLO AZIONI -->
+    <div class="section">
+        <h2>🔧 Strumenti Amministrazione</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <button class="btn btn-primary" onclick="vaiASetup()">
+                ⚙️ Configurazione
+            </button>
+            <button class="btn btn-warning" onclick="resetAste()">
+                🔄 Reset Aste
+            </button>
+            <button class="btn btn-danger" onclick="resetTotale()">
+                ⚠️ Reset Totale
+            </button>
+        </div>
+    </div>
+
+    <!-- Gestione Sessioni -->
+    <div class="section">
+        <h2>📅 Gestione Sessioni</h2>
+        <div id="sessionInfo" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <p><strong>Sessione corrente:</strong> <span id="currentSession">Caricamento...</span></p>
+            <p><strong>Data inizio:</strong> <span id="sessionDate">-</span></p>
         </div>
 
-        <!-- Gestione Sessioni -->
-        <div class="section">
-            <h2>📅 Gestione Sessioni</h2>
-            <div id="sessionInfo" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                <p><strong>Sessione corrente:</strong> <span id="currentSession">Caricamento...</span></p>
-                <p><strong>Data inizio:</strong> <span id="sessionDate">-</span></p>
-            </div>
-
-            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <button class="btn btn-warning" onclick="mostraNuovaSessione()">
-                    📅 Nuova Sessione Annuale
-                </button>
-            </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <button class="btn btn-warning" onclick="mostraNuovaSessione()">
+                📅 Nuova Sessione Annuale
+            </button>
         </div>
+    </div>
 
     </div>
 
@@ -921,11 +896,11 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                        <td><strong>${r.slot_id || r.slot}</strong></td>
-                        <td>${r.partecipante_nome || r.nome}</td>
-                        <td>${r.offerta || r.offertaOriginale}</td>
-                        <td>${r.costo_finale}</td>
-                    </tr>`;
+                                    <td><strong>${r.slot_id || r.slot}</strong></td>
+                                    <td>${r.partecipante_nome || r.nome}</td>
+                                    <td>${r.offerta || r.offertaOriginale}</td>
+                                    <td>${r.costo_finale}</td>
+                                </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1192,42 +1167,42 @@
                 }
 
                 let html = `
-                <div style="margin-bottom: 15px;">
-                    <strong>Totale partecipanti: ${data.count}</strong> |
-                    <strong>Sessione: ${data.sessione_corrente}</strong>
-                </div>
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Crediti</th>
-                            <th>Giocatori</th>
-                            <th>Notifiche</th>
-                            <th>Registrato</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+                            <div style="margin-bottom: 15px;">
+                                <strong>Totale partecipanti: ${data.count}</strong> |
+                                <strong>Sessione: ${data.sessione_corrente}</strong>
+                            </div>
+                            <table class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Crediti</th>
+                                        <th>Giocatori</th>
+                                        <th>Notifiche</th>
+                                        <th>Registrato</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
 
                 data.partecipanti.forEach(p => {
                     const dataRegistrazione = new Date(p.registrato_il).toLocaleDateString('it-IT');
                     html += `
-                    <tr id="partecipante-${p.id}">
-                        <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
-                        <td>${p.crediti}</td>
-                        <td>${p.giocatori_vinti}/10</td>
-                        <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
-                        <td>${dataRegistrazione}</td>
-                        <td>
-                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
-                                    onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
-                                    title="Elimina partecipante">
-                                🗑️ Elimina
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                                <tr id="partecipante-${p.id}">
+                                    <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                                    <td>${p.crediti}</td>
+                                    <td>${p.giocatori_vinti}/10</td>
+                                    <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
+                                    <td>${dataRegistrazione}</td>
+                                    <td>
+                                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
+                                                onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
+                                                title="Elimina partecipante">
+                                            🗑️ Elimina
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
                 });
 
                 html += '</tbody></table>';
@@ -1318,14 +1293,14 @@
         async function creaCardSquadra(partecipante) {
             const card = document.createElement('div');
             card.style.cssText = `
-        background: rgba(255,255,255,0.08);
-        border-radius: 15px;
-        padding: 15px;
-        border: 1px solid rgba(255,255,255,0.1);
-        min-height: 400px;
-        display: flex;
-        flex-direction: column;
-    `;
+                    background: rgba(255,255,255,0.08);
+                    border-radius: 15px;
+                    padding: 15px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    min-height: 400px;
+                    display: flex;
+                    flex-direction: column;
+                `;
 
             try {
                 console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
@@ -1348,38 +1323,38 @@
 
                 // Header della card
                 card.innerHTML = `
-            <div style="
-                text-align: center;
-                margin-bottom: 15px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #4299e1;
-            ">
-                <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
-                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
-                    ${giocatoriAcquistati}/10 giocatori | 💰 ${creditiRimasti} | 🏆 ${puntiTotali}pt
-                </div>
-            </div>
+                        <div style="
+                            text-align: center;
+                            margin-bottom: 15px;
+                            padding-bottom: 10px;
+                            border-bottom: 2px solid #4299e1;
+                        ">
+                            <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
+                            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                                ${giocatoriAcquistati}/10 giocatori | 💰 ${creditiRimasti} | 🏆 ${puntiTotali}pt
+                            </div>
+                        </div>
 
-            <div id="squadra-slots-${partecipante.id}" style="
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 6px;
-                flex-grow: 1;
-            ">
-                <!-- I slots verranno popolati dinamicamente -->
-            </div>
+                        <div id="squadra-slots-${partecipante.id}" style="
+                            display: grid;
+                            grid-template-columns: 1fr;
+                            gap: 6px;
+                            flex-grow: 1;
+                        ">
+                            <!-- I slots verranno popolati dinamicamente -->
+                        </div>
 
-            <div style="
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid rgba(255,255,255,0.2);
-                font-size: 0.8em;
-                text-align: center;
-                opacity: 0.8;
-            ">
-                💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
-            </div>
-        `;
+                        <div style="
+                            margin-top: 10px;
+                            padding-top: 10px;
+                            border-top: 1px solid rgba(255,255,255,0.2);
+                            font-size: 0.8em;
+                            text-align: center;
+                            opacity: 0.8;
+                        ">
+                            💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
+                        </div>
+                    `;
 
                 // Popola i slots delle posizioni
                 const slotsContainer = card.querySelector(`#squadra-slots-${partecipante.id}`);
@@ -1394,43 +1369,43 @@
                         const textColor = getTextColorForTeamMaster(giocatore.colore);
 
                         slotDiv.style.cssText = `
-                    background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
-                    border: 2px solid ${teamColor};
-                    padding: 8px;
-                    border-radius: 8px;
-                    text-align: center;
-                    font-size: 0.85em;
-                    color: ${textColor};
-                    font-weight: bold;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                `;
+                                background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
+                                border: 2px solid ${teamColor};
+                                padding: 8px;
+                                border-radius: 8px;
+                                text-align: center;
+                                font-size: 0.85em;
+                                color: ${textColor};
+                                font-weight: bold;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            `;
 
                         slotDiv.innerHTML = `
-    <div style="color: ${textColor}; font-weight: bold; margin-bottom: 2px;">${pos}</div>
-    <div style="color: ${textColor}; font-size: 0.9em; line-height: 1.2;">${giocatore.giocatore_attuale}</div>
-    <div style="color: ${textColor}; font-size: 0.75em; opacity: 0.9; margin-top: 2px;">
-        ${giocatore.colore} • ${giocatore.costo_finale}€
-    </div>
-    <div style="color: #48bb78; font-size: 0.75em; font-weight: bold; margin-top: 2px;">
-        🎯 ${giocatore.punti_totali || 0}pt
-    </div>
+                <div style="color: ${textColor}; font-weight: bold; margin-bottom: 2px;">${pos}</div>
+                <div style="color: ${textColor}; font-size: 0.9em; line-height: 1.2;">${giocatore.giocatore_attuale}</div>
+                <div style="color: ${textColor}; font-size: 0.75em; opacity: 0.9; margin-top: 2px;">
+                    ${giocatore.colore} • ${giocatore.costo_finale}€
+                </div>
+                <div style="color: #48bb78; font-size: 0.75em; font-weight: bold; margin-top: 2px;">
+                    🎯 ${giocatore.punti_totali || 0}pt
+                </div>
 `;
                     } else {
                         slotDiv.style.cssText = `
-                    background: rgba(74,85,104,0.2);
-                    border: 1px dashed #4a5568;
-                    padding: 8px;
-                    border-radius: 8px;
-                    text-align: center;
-                    font-size: 0.85em;
-                    opacity: 0.5;
-                    color: #a0aec0;
-                `;
+                                background: rgba(74,85,104,0.2);
+                                border: 1px dashed #4a5568;
+                                padding: 8px;
+                                border-radius: 8px;
+                                text-align: center;
+                                font-size: 0.85em;
+                                opacity: 0.5;
+                                color: #a0aec0;
+                            `;
 
                         slotDiv.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 2px;">${pos}</div>
-                    <div style="font-size: 0.8em;">- disponibile -</div>
-                `;
+                                <div style="font-weight: bold; margin-bottom: 2px;">${pos}</div>
+                                <div style="font-size: 0.8em;">- disponibile -</div>
+                            `;
                     }
 
                     slotsContainer.appendChild(slotDiv);
@@ -1438,14 +1413,14 @@
 
             } catch (error) {
                 card.innerHTML = `
-            <div style="text-align: center;">
-                <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
-                <p style="opacity: 0.7; color: #f56565;">Errore caricamento squadra</p>
-                <div style="font-size: 0.9em; opacity: 0.9;">
-                    💰 Crediti: ${partecipante.crediti}
-                </div>
-            </div>
-        `;
+                        <div style="text-align: center;">
+                            <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+                            <p style="opacity: 0.7; color: #f56565;">Errore caricamento squadra</p>
+                            <div style="font-size: 0.9em; opacity: 0.9;">
+                                💰 Crediti: ${partecipante.crediti}
+                            </div>
+                        </div>
+                    `;
             }
 
             return card;
@@ -2020,10 +1995,10 @@
                 }
 
                 card.innerHTML = `
-                                <div><strong>${p.nome}</strong></div>
-                                <div>Stato: ${p.stato}</div>
-                                <div class="bid-status ${bidClass}">${bidStatus}</div>
-                            `;
+                                            <div><strong>${p.nome}</strong></div>
+                                            <div>Stato: ${p.stato}</div>
+                                            <div class="bid-status ${bidClass}">${bidStatus}</div>
+                                        `;
 
                 grid.appendChild(card);
             });
@@ -2059,12 +2034,12 @@
             if (risultati && Array.isArray(risultati)) {
                 risultati.forEach(r => {
                     html += `<tr>
-                <td><strong>${r.slot.replace('_', ' ')}</strong></td>
-                <td>${r.nome}</td>
-                <td>${r.offertaOriginale}</td>
-                <td>${r.costoFinale}</td>
-                <td>${r.condiviso ? '✅' : '❌'}</td>
-            </tr>`;
+                            <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                            <td>${r.nome}</td>
+                            <td>${r.offertaOriginale}</td>
+                            <td>${r.costoFinale}</td>
+                            <td>${r.condiviso ? '✅' : '❌'}</td>
+                        </tr>`;
                 });
             } else {
                 html += '<tr><td colspan="5">Nessun risultato disponibile</td></tr>';
@@ -2076,9 +2051,9 @@
 
             // Aggiorna anche la sezione risultati nella pagina
             document.getElementById('lastRoundResults').innerHTML = `
-        <h3>Round ${round} - ${risultati ? risultati.length : 0} assegnazioni</h3>
-        ${html}
-    `;
+                    <h3>Round ${round} - ${risultati ? risultati.length : 0} assegnazioni</h3>
+                    ${html}
+                `;
         }
 
         async function mostraClassifica() {
@@ -2100,10 +2075,10 @@
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-            <td><strong>${index + 1}°</strong></td>
-            <td>${p.nome}</td>
-            <td>${p.punti_totali}</td>
-        </tr>`;
+                        <td><strong>${index + 1}°</strong></td>
+                        <td>${p.nome}</td>
+                        <td>${p.punti_totali}</td>
+                    </tr>`;
                 });
 
                 html += '</tbody></table>';
@@ -2279,7 +2254,7 @@
             }
         }
 
-        
+
         // Utilities
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
