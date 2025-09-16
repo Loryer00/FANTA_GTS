@@ -603,14 +603,19 @@ function mostraFormManuale() {
             try {
                 showNotification(`Caricamento di ${files.length} file in corso...`, 'info');
 
+                // OTTIENI IL NUMERO INIZIALE DAL SERVER
+                const squadreEsistenti = await fetch('/api/squadre').then(r => r.json());
+                let numeroSequenziale = squadreEsistenti.length + 1;
+
                 for (let file of files) {
                     try {
                         const text = await file.text();
-                        const squadra = parseFileSquadra(text, file.name);
+                        const squadra = parseFileSquadra(text, file.name, numeroSequenziale); // Passa il numero
 
                         if (squadra) {
                             await salvaSquadra(squadra);
                             successCount++;
+                            numeroSequenziale++; // Incrementa per la prossima squadra
                         } else {
                             errorCount++;
                             errors.push(`${file.name}: formato non valido`);
@@ -644,7 +649,7 @@ function mostraFormManuale() {
             }
         }
 
-        function parseFileSquadra(text, fileName = '') {
+        function parseFileSquadra(text, fileName = '', numeroForzato = null) {
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
             if (lines.length < 1) {
@@ -660,35 +665,35 @@ function mostraFormManuale() {
                 console.error(`File ${fileName}: Nome squadra non valido. Formato richiesto: "Squadra Colore"`);
                 return null;
             }
-    
-    const squadra = {
-        numero: getNextSquadraNumber(),
-        colore: colore.toLowerCase(),
-        m1: '', m2: '', m3: '', m4: '', m5: '', m6: '', m7: '',
-        f1: '', f2: '', f3: ''
-    };
-    
-    // Parse giocatori
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        const match = line.match(/^([MF]\d+)\s+(.+)$/);
-        
-        if (match) {
-            const posizione = match[1].toLowerCase();
-            const nome = match[2].trim();
-            
-            if (squadra.hasOwnProperty(posizione)) {
-                squadra[posizione] = nome;
-            } else {
-                console.warn(`Posizione non riconosciuta: ${posizione}`);
+
+            const squadra = {
+                numero: numeroForzato || getNextSquadraNumber(), // Usa il numero forzato se disponibile
+                colore: colore.toLowerCase(),
+                m1: '', m2: '', m3: '', m4: '', m5: '', m6: '', m7: '',
+                f1: '', f2: '', f3: ''
+            };
+
+            // Parse giocatori
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                const match = line.match(/^([MF]\d+)\s+(.+)$/);
+
+                if (match) {
+                    const posizione = match[1].toLowerCase();
+                    const nome = match[2].trim();
+
+                    if (squadra.hasOwnProperty(posizione)) {
+                        squadra[posizione] = nome;
+                    } else {
+                        console.warn(`Posizione non riconosciuta: ${posizione}`);
+                    }
+                } else {
+                    console.warn(`Riga non valida: ${line}`);
+                }
             }
-        } else {
-            console.warn(`Riga non valida: ${line}`);
+
+            return squadra;
         }
-    }
-    
-    return squadra;
-}
 
 function getNextSquadraNumber() {
     // Trova il numero più alto tra le squadre esistenti e aggiungi 1
