@@ -767,11 +767,6 @@ function annullaUpload() {
             const container = document.getElementById('squadreList');
             container.innerHTML = '';
 
-            // DEBUG: Aggiungi questi log
-            console.log('🔍 DEBUG - Numero squadre da renderizzare:', squadre.length);
-            console.log('🔍 DEBUG - Container trovato:', container);
-            console.log('🔍 DEBUG - Squadre array:', squadre);
-
             // CONTROLLO DI SICUREZZA
             if (!Array.isArray(squadre)) {
                 console.error('❌ squadre non è un array:', squadre);
@@ -784,36 +779,31 @@ function annullaUpload() {
                 return;
             }
 
-            squadre.forEach((squadra, index) => {
-                console.log(`🔍 DEBUG - Creando card ${index + 1} per squadra:`, squadra.colore); // DEBUG
+            squadre.forEach(squadra => {
                 const card = document.createElement('div');
                 card.className = `squadra-card ${squadra.colore}`;
                 card.innerHTML = `
-                    <div class="squadra-header">
-                        <h3>Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</h3>
-                        <button class="btn btn-danger btn-sm" onclick="eliminaSquadra(${squadra.numero})" style="padding: 5px 10px; margin: 0;">
-                            🗑️
-                        </button>
-                    </div>
-                    <div class="giocatori-grid">
-                        <div><strong>M1:</strong> ${squadra.m1 || '-'}</div>
-                        <div><strong>M2:</strong> ${squadra.m2 || '-'}</div>
-                        <div><strong>M3:</strong> ${squadra.m3 || '-'}</div>
-                        <div><strong>M4:</strong> ${squadra.m4 || '-'}</div>
-                        <div><strong>M5:</strong> ${squadra.m5 || '-'}</div>
-                        <div><strong>M6:</strong> ${squadra.m6 || '-'}</div>
-                        <div><strong>M7:</strong> ${squadra.m7 || '-'}</div>
-                        <div><strong>F1:</strong> ${squadra.f1 || '-'}</div>
-                        <div><strong>F2:</strong> ${squadra.f2 || '-'}</div>
-                        <div><strong>F3:</strong> ${squadra.f3 || '-'}</div>
-                    </div>
-                `;
+            <div class="squadra-header">
+                <h3>Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</h3>
+                <button class="btn btn-danger btn-sm" onclick="eliminaSquadra(${squadra.numero})" style="padding: 5px 10px; margin: 0;">
+                    🗑️
+                </button>
+            </div>
+            <div class="giocatori-grid">
+                <div><strong>M1:</strong> ${squadra.m1 || '-'}</div>
+                <div><strong>M2:</strong> ${squadra.m2 || '-'}</div>
+                <div><strong>M3:</strong> ${squadra.m3 || '-'}</div>
+                <div><strong>M4:</strong> ${squadra.m4 || '-'}</div>
+                <div><strong>M5:</strong> ${squadra.m5 || '-'}</div>
+                <div><strong>M6:</strong> ${squadra.m6 || '-'}</div>
+                <div><strong>M7:</strong> ${squadra.m7 || '-'}</div>
+                <div><strong>F1:</strong> ${squadra.f1 || '-'}</div>
+                <div><strong>F2:</strong> ${squadra.f2 || '-'}</div>
+                <div><strong>F3:</strong> ${squadra.f3 || '-'}</div>
+            </div>
+        `;
                 container.appendChild(card);
-                console.log(`✅ DEBUG - Card ${index + 1} aggiunta al container`); // DEBUG
             });
-
-            // DEBUG finale
-            console.log('🔍 DEBUG - Numero card nel container:', container.children.length);
         }
 
         async function aggiungiSquadra() {

@@ -642,18 +642,10 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
-        console.log('🔍 DEBUG SERVER - Richiesta squadre ricevuta');
         const result = await db.query("SELECT * FROM squadre_circolo ORDER BY numero");
-        console.log('🔍 DEBUG SERVER - Query risultato:', result.rows.length, 'squadre trovate');
-
-        if (result.rows.length > 0) {
-            console.log('🔍 DEBUG SERVER - Prima squadra:', result.rows[0]);
-            console.log('🔍 DEBUG SERVER - Tutte le squadre:', result.rows.map(s => `${s.numero}-${s.colore}`));
-        }
-
         res.json(result.rows);
     } catch (err) {
-        console.error('❌ Errore API squadre:', err);
+        console.error('Errore API squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1134,9 +1126,6 @@ app.post('/api/squadre', async (req, res) => {
     try {
         const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
 
-        console.log('🔍 DEBUG SERVER - Salvando squadra:', { numero, colore });
-        console.log('🔍 DEBUG SERVER - Dati completi squadra:', req.body);
-
         await db.query(`INSERT INTO squadre_circolo 
             (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -1144,15 +1133,9 @@ app.post('/api/squadre', async (req, res) => {
             colore = $2, m1 = $3, m2 = $4, m3 = $5, m4 = $6, m5 = $7, m6 = $8, m7 = $9, f1 = $10, f2 = $11, f3 = $12`,
             [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3]);
 
-        console.log('✅ DEBUG SERVER - Squadra salvata con successo nel DB');
-
-        // Verifica immediata di cosa c'è nel DB dopo il salvataggio
-        const verifica = await db.query("SELECT COUNT(*) as count FROM squadre_circolo");
-        console.log('🔍 DEBUG SERVER - Squadre totali nel DB dopo salvataggio:', verifica.rows[0].count);
-
         res.json({ message: 'Squadra salvata con successo' });
     } catch (err) {
-        console.error('❌ Errore POST squadre:', err);
+        console.error('Errore POST squadre:', err);
         res.status(500).json({ error: err.message });
     }
 });
