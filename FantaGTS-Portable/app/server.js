@@ -2718,22 +2718,22 @@ app.post('/api/reset/:livello', async (req, res) => {
                 await db.query("DROP TABLE IF EXISTS backup_log CASCADE");
                 await db.query("DROP TABLE IF EXISTS risultati_partite CASCADE");
 
-                // ❓ Eventualmente anche questa se non serve
-                // await db.query("DROP TABLE IF EXISTS scontri_squadre CASCADE");
+                // ✅ SVUOTA tabelle utili nell'ORDINE CORRETTO (rispetta FOREIGN KEY)
+                // Prima elimina i record "figli" (che hanno riferimenti), poi i "genitori"
+                await db.query("DELETE FROM risultati_dettaglio");  // Dipende da incontri
+                await db.query("DELETE FROM incontri");             // Dipende da coppie_turno e turni_configurazione
+                await db.query("DELETE FROM coppie_turno");         // Dipende da turni_configurazione
+                await db.query("DELETE FROM scontri_squadre");      // Dipende da turni_configurazione
+                await db.query("DELETE FROM accoppiamenti_posizioni"); // Dipende da turni_configurazione
+                await db.query("DELETE FROM turni_configurazione"); // Tabella "genitore"
 
-                // ✅ SVUOTA tabelle utili (mantieni struttura)
+                // Altre tabelle senza vincoli particolari
                 await db.query("DELETE FROM aste");
                 await db.query("DELETE FROM partecipanti_fantagts");
                 await db.query("DELETE FROM squadre_circolo");
                 await db.query("DELETE FROM slots");
                 await db.query("DELETE FROM push_subscriptions");
-                await db.query("DELETE FROM sostituzioni"); // Mantieni struttura
-                await db.query("DELETE FROM risultati_dettaglio");
-                await db.query("DELETE FROM incontri");
-                await db.query("DELETE FROM coppie_turno");
-                await db.query("DELETE FROM scontri_squadre");
-                await db.query("DELETE FROM accoppiamenti_posizioni");
-                await db.query("DELETE FROM turni_configurazione");
+                await db.query("DELETE FROM sostituzioni");
                 await db.query("DELETE FROM sessioni_fantagts");
 
                 gameState = {
