@@ -554,88 +554,118 @@
             <!-- Controllo Aste -->
             <div class="section">
                 <h2>🎯 Controllo Aste</h2>
-                <!-- ... resto del contenuto ... -->
+
+                <div id="currentRoundInfo" class="current-round-display" style="display: none;">
+                    <h3>Round Attivo: <span id="activeRoundName">M1</span></h3>
+                    <div class="big-display" id="offersDisplay">0/0</div>
+                    <p id="offersStatusMessage">In attesa delle offerte dei partecipanti</p>
+                </div>
+
+                <div class="rounds-grid">
+                    <button class="round-btn available" data-round="M1">M1</button>
+                    <button class="round-btn available" data-round="M2">M2</button>
+                    <button class="round-btn available" data-round="M3">M3</button>
+                    <button class="round-btn available" data-round="M4">M4</button>
+                    <button class="round-btn available" data-round="M5">M5</button>
+                    <button class="round-btn available" data-round="M6">M6</button>
+                    <button class="round-btn available" data-round="M7">M7</button>
+                    <button class="round-btn available" data-round="F1">F1</button>
+                    <button class="round-btn available" data-round="F2">F2</button>
+                    <button class="round-btn available" data-round="F3">F3</button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                        <strong>Round selezionato: <span id="selectedRoundDisplay">Nessuno</span></strong>
+                    </div>
+                    <button class="btn btn-primary" id="btnAvviaRound" onclick="avviaRoundSelezionato()" disabled>
+                        🚀 Avvia Round Selezionato
+                    </button>
+                    <button class="btn btn-danger" id="btnFermaRound" onclick="forzaFineRound()" disabled>
+                        ⏹️ Forza Fine Round
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stato Partecipanti -->
+            <div class="section">
+                <h2>👥 Partecipanti Connessi</h2>
+                <div id="participantsContainer">
+                    <p>Nessun partecipante connesso</p>
+                </div>
+            </div>
+
+            <!-- Statistiche Live -->
+            <div class="section">
+                <h2>📊 Statistiche Live</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="statConnessi">0</div>
+                        <div class="stat-label">Connessi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="statOfferte">0</div>
+                        <div class="stat-label">Offerte</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="statRounds">0</div>
+                        <div class="stat-label">Round Completati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="statCrediti">0</div>
+                        <div class="stat-label">Crediti Spesi</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Stato Partecipanti -->
+
+        <!-- Risultati Ultimo Round -->
         <div class="section">
-            <h2>👥 Partecipanti Connessi</h2>
-            <div id="participantsContainer">
-                <p>Nessun partecipante connesso</p>
+            <h2>🏆 Risultati Ultimo Round</h2>
+            <div id="lastRoundResults">
+                <p>Nessun round completato ancora</p>
             </div>
         </div>
 
-        <!-- Statistiche Live -->
+        <!-- Squadre in Formazione -->
         <div class="section">
-            <h2>📊 Statistiche Live</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="statConnessi">0</div>
-                    <div class="stat-label">Connessi</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statOfferte">0</div>
-                    <div class="stat-label">Offerte</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statRounds">0</div>
-                    <div class="stat-label">Round Completati</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statCrediti">0</div>
-                    <div class="stat-label">Crediti Spesi</div>
-                </div>
+            <h2>👥 Squadre in Formazione</h2>
+            <div id="squadreInFormazione">
+                <p>Nessuna squadra ancora formata</p>
             </div>
         </div>
-    
 
-    <!-- Risultati Ultimo Round -->
-    <div class="section">
-        <h2>🏆 Risultati Ultimo Round</h2>
-        <div id="lastRoundResults">
-            <p>Nessun round completato ancora</p>
-        </div>
-    </div>
-
-    <!-- Squadre in Formazione -->
-    <div class="section">
-        <h2>👥 Squadre in Formazione</h2>
-        <div id="squadreInFormazione">
-            <p>Nessuna squadra ancora formata</p>
-        </div>
-    </div>
-
-    <!-- Strumenti Amministrazione - SOLO AZIONI -->
-    <div class="section">
-        <h2>🔧 Strumenti Amministrazione</h2>
-        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-            <button class="btn btn-primary" onclick="vaiASetup()">
-                ⚙️ Configurazione
-            </button>
-            <button class="btn btn-warning" onclick="resetAste()">
-                🔄 Reset Aste
-            </button>
-            <button class="btn btn-danger" onclick="resetTotale()">
-                ⚠️ Reset Totale
-            </button>
-        </div>
-    </div>
-
-    <!-- Gestione Sessioni -->
-    <div class="section">
-        <h2>📅 Gestione Sessioni</h2>
-        <div id="sessionInfo" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-            <p><strong>Sessione corrente:</strong> <span id="currentSession">Caricamento...</span></p>
-            <p><strong>Data inizio:</strong> <span id="sessionDate">-</span></p>
+        <!-- Strumenti Amministrazione - SOLO AZIONI -->
+        <div class="section">
+            <h2>🔧 Strumenti Amministrazione</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-primary" onclick="vaiASetup()">
+                    ⚙️ Configurazione
+                </button>
+                <button class="btn btn-warning" onclick="resetAste()">
+                    🔄 Reset Aste
+                </button>
+                <button class="btn btn-danger" onclick="resetTotale()">
+                    ⚠️ Reset Totale
+                </button>
+            </div>
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-            <button class="btn btn-warning" onclick="mostraNuovaSessione()">
-                📅 Nuova Sessione Annuale
-            </button>
+        <!-- Gestione Sessioni -->
+        <div class="section">
+            <h2>📅 Gestione Sessioni</h2>
+            <div id="sessionInfo" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                <p><strong>Sessione corrente:</strong> <span id="currentSession">Caricamento...</span></p>
+                <p><strong>Data inizio:</strong> <span id="sessionDate">-</span></p>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-warning" onclick="mostraNuovaSessione()">
+                    📅 Nuova Sessione Annuale
+                </button>
+            </div>
         </div>
-    </div>
 
     </div>
 
