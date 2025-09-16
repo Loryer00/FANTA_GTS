@@ -642,7 +642,10 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
+        console.log('🔍 DEBUG - Richiesta squadre ricevuta');
         const result = await db.query("SELECT * FROM squadre_circolo ORDER BY numero");
+        console.log('🔍 DEBUG - Risultato query:', result.rows.length, 'squadre');
+        console.log('🔍 DEBUG - Prime 2 squadre:', result.rows.slice(0, 2));
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);

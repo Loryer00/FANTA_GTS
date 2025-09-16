@@ -519,6 +519,7 @@ F3 Brunelli E</pre>
         // Gestione squadre
         async function caricaSquadre() {
             try {
+                console.log('🔍 DEBUG - Facendo richiesta a /api/squadre...');
                 const response = await fetch('/api/squadre');
 
                 if (!response.ok) {
@@ -531,6 +532,9 @@ F3 Brunelli E</pre>
                 }
 
                 const data = await response.json();
+                console.log('🔍 DEBUG - Response status:', response.status);
+                console.log('🔍 DEBUG - Response headers:', response.headers);
+                console.log('🔍 DEBUG - Dati ricevuti raw:', data);
                 console.log('✅ Squadre ricevute dal server:', data);
 
                 // Verifica che sia un array
