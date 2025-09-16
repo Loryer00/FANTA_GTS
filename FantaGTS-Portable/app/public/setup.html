@@ -758,6 +758,11 @@ function annullaUpload() {
             const container = document.getElementById('squadreList');
             container.innerHTML = '';
 
+            // DEBUG: Aggiungi questi log
+            console.log('🔍 DEBUG - Numero squadre da renderizzare:', squadre.length);
+            console.log('🔍 DEBUG - Container trovato:', container);
+            console.log('🔍 DEBUG - Squadre array:', squadre);
+
             // CONTROLLO DI SICUREZZA
             if (!Array.isArray(squadre)) {
                 console.error('❌ squadre non è un array:', squadre);
@@ -770,7 +775,8 @@ function annullaUpload() {
                 return;
             }
 
-            squadre.forEach(squadra => {
+            squadre.forEach((squadra, index) => {
+                console.log(`🔍 DEBUG - Creando card ${index + 1} per squadra:`, squadra.colore); // DEBUG
                 const card = document.createElement('div');
                 card.className = `squadra-card ${squadra.colore}`;
                 card.innerHTML = `
@@ -794,7 +800,11 @@ function annullaUpload() {
                     </div>
                 `;
                 container.appendChild(card);
+                console.log(`✅ DEBUG - Card ${index + 1} aggiunta al container`); // DEBUG
             });
+
+            // DEBUG finale
+            console.log('🔍 DEBUG - Numero card nel container:', container.children.length);
         }
 
         async function aggiungiSquadra() {
