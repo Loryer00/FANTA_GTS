@@ -2728,11 +2728,12 @@ app.post('/api/reset/:livello', async (req, res) => {
                 await db.query("DELETE FROM slots");
                 await db.query("DELETE FROM push_subscriptions");
                 await db.query("DELETE FROM sostituzioni"); // Mantieni struttura
-                await db.query("DELETE FROM turni_configurazione");
-                await db.query("DELETE FROM coppie_turno");
-                await db.query("DELETE FROM incontri");
-                await db.query("DELETE FROM accoppiamenti_posizioni");
                 await db.query("DELETE FROM risultati_dettaglio");
+                await db.query("DELETE FROM incontri");
+                await db.query("DELETE FROM coppie_turno");
+                await db.query("DELETE FROM scontri_squadre");
+                await db.query("DELETE FROM accoppiamenti_posizioni");
+                await db.query("DELETE FROM turni_configurazione");
                 await db.query("DELETE FROM sessioni_fantagts");
 
                 gameState = {
