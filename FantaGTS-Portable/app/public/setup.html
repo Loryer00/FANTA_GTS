@@ -323,7 +323,7 @@
     <div id="uploadSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
         <h3>📁 Upload Squadra da File</h3>
         <div class="info-box" style="margin-bottom: 15px;">
-            <h4>Formato file .txt richiesto:</h4>
+            <h4>Formato file .txt richiesto (puoi selezionare più file contemporaneamente):</h4>
             <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em;">Squadra Gialla
 M1 Spano
 M2 Cavo A
@@ -335,11 +335,12 @@ M7 Ferrari P
 F1 Tambroni B
 F2 Frojo F
 F3 Brunelli E</pre>
+            <p style="margin-top: 10px; font-size: 0.9em; color: #ffd700;">💡 <strong>Tip:</strong> Puoi selezionare tutti i 10 file delle squadre tenendo premuto Ctrl (o Cmd su Mac) mentre clicchi sui file.</p>
         </div>
-        <input type="file" id="fileSquadra" accept=".txt" style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
+        <input type="file" id="fileSquadra" accept=".txt" multiple style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
         <div>
             <button class="btn btn-primary" onclick="caricaSquadraDaFile()">
-                🚀 Carica Squadra
+                🚀 Carica Squadre
             </button>
             <button class="btn btn-secondary" onclick="annullaUpload()">
                 ❌ Annulla
@@ -573,53 +574,88 @@ function mostraFormManuale() {
     document.getElementById('formManualeSection').style.display = 'block';
 }
 
-// Upload da file
-async function caricaSquadraDaFile() {
-    const fileInput = document.getElementById('fileSquadra');
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        showNotification('Seleziona un file .txt', 'error');
-        return;
-    }
-    
-    if (!file.name.endsWith('.txt')) {
-        showNotification('Il file deve avere estensione .txt', 'error');
-        return;
-    }
-    
-    try {
-        const text = await file.text();
-        const squadra = parseFileSquadra(text);
-        
-        if (squadra) {
-            await salvaSquadra(squadra);
-            annullaUpload();
-            caricaSquadre();
-            showNotification('Squadra caricata con successo dal file!', 'success');
-        }
-    } catch (error) {
-        console.error('Errore lettura file:', error);
-        showNotification('Errore nella lettura del file', 'error');
-    }
-}
+        // Upload da file (supporta file multipli)
+        async function caricaSquadraDaFile() {
+            const fileInput = document.getElementById('fileSquadra');
+            const files = fileInput.files;
 
-function parseFileSquadra(text) {
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
-    if (lines.length < 1) {
-        showNotification('File vuoto o non valido', 'error');
-        return null;
-    }
-    
-    // Prima riga: nome squadra (es: "Squadra Gialla")
-    const nomeCompleto = lines[0];
-    const colore = nomeCompleto.replace(/^squadra\s+/i, '').trim();
-    
-    if (!colore) {
-        showNotification('Nome squadra non valido. Formato: "Squadra Colore"', 'error');
-        return null;
-    }
+            if (files.length === 0) {
+                showNotification('Seleziona almeno un file .txt', 'error');
+                return;
+            }
+
+            // Verifica che tutti i file siano .txt
+            for (let file of files) {
+                if (!file.name.endsWith('.txt')) {
+                    showNotification(`Il file "${file.name}" deve avere estensione .txt`, 'error');
+                    return;
+                }
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            try {
+                showNotification(`Caricamento di ${files.length} file in corso...`, 'info');
+
+                for (let file of files) {
+                    try {
+                        const text = await file.text();
+                        const squadra = parseFileSquadra(text, file.name);
+
+                        if (squadra) {
+                            await salvaSquadra(squadra);
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            errors.push(`${file.name}: formato non valido`);
+                        }
+                    } catch (error) {
+                        console.error(`Errore lettura file ${file.name}:`, error);
+                        errorCount++;
+                        errors.push(`${file.name}: ${error.message}`);
+                    }
+                }
+
+                // Aggiorna la visualizzazione
+                caricaSquadre();
+
+                // Mostra risultato finale
+                if (successCount > 0 && errorCount === 0) {
+                    showNotification(`✅ Caricate con successo ${successCount} squadre!`, 'success');
+                } else if (successCount > 0 && errorCount > 0) {
+                    showNotification(`⚠️ Caricate ${successCount} squadre. ${errorCount} errori: ${errors.join(', ')}`, 'warning');
+                } else {
+                    showNotification(`❌ Nessuna squadra caricata. Errori: ${errors.join(', ')}`, 'error');
+                }
+
+                if (successCount > 0) {
+                    annullaUpload();
+                }
+
+            } catch (error) {
+                console.error('Errore generale caricamento file:', error);
+                showNotification('Errore generale nel caricamento dei file', 'error');
+            }
+        }
+
+        function parseFileSquadra(text, fileName = '') {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            if (lines.length < 1) {
+                console.error(`File ${fileName}: vuoto o non valido`);
+                return null;
+            }
+
+            // Prima riga: nome squadra (es: "Squadra Gialla")
+            const nomeCompleto = lines[0];
+            const colore = nomeCompleto.replace(/^squadra\s+/i, '').trim();
+
+            if (!colore) {
+                console.error(`File ${fileName}: Nome squadra non valido. Formato richiesto: "Squadra Colore"`);
+                return null;
+            }
     
     const squadra = {
         numero: getNextSquadraNumber(),
