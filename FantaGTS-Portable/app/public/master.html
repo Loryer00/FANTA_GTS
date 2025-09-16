@@ -635,17 +635,11 @@
                 <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
                     ⚽ Gestione Incontri
                 </button>
-                <button class="btn btn-primary" onclick="esportaDati()">
-                    📊 Esporta Dati
-                </button>
                 <button class="btn btn-primary" onclick="mostraClassifica()">
                     🏆 Classifica
                 </button>
                 <button class="btn btn-warning" onclick="resetAste()">
                     🔄 Reset Aste
-                </button>
-                <button class="btn btn-warning" onclick="pulisciSubscriptions()">
-                    🧹 Pulisci Push Subscriptions
                 </button>
                 <button class="btn btn-danger" onclick="resetTotale()">
                     ⚠️ Reset Totale
@@ -662,14 +656,8 @@
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <button class="btn btn-primary" onclick="mostraPulisciTest()">
-                    🧹 Pulisci Dati Test
-                </button>
                 <button class="btn btn-warning" onclick="mostraNuovaSessione()">
                     📅 Nuova Sessione Annuale
-                </button>
-                <button class="btn btn-primary" onclick="mostraBackupList()">
-                    📦 Visualizza Backup
                 </button>
             </div>
         </div>
@@ -710,22 +698,6 @@
         </div>
     </div>
 
-    <!-- Modal Pulisci Test -->
-    <div id="pulisciTestModal" class="modal">
-        <div class="modal-content">
-            <h3>🧹 Pulisci Dati di Test</h3>
-            <p>Seleziona i partecipanti <strong>REALI</strong> da mantenere. Tutti gli altri verranno eliminati:</p>
-            <div id="participantsList" style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
-                <!-- Lista partecipanti verrà caricata qui -->
-            </div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-secondary" onclick="closeModal('pulisciTestModal')">Annulla</button>
-                <button class="btn btn-danger" onclick="eseguiPuliziaTest()">🧹 Pulisci Test</button>
-                <button class="btn btn-warning" onclick="eliminaTuttiPartecipanti()">❌ Elimina Tutti</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Nuova Sessione -->
     <div id="nuovaSessioneModal" class="modal">
         <div class="modal-content">
@@ -748,19 +720,6 @@
                 <button class="btn btn-secondary" onclick="closeModal('nuovaSessioneModal')">Annulla</button>
                 <button class="btn btn-warning" onclick="creaNuovaSessione()">📅 Crea Nuova Sessione</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal Lista Backup -->
-    <div id="backupListModal" class="modal">
-        <div class="modal-content">
-            <h3>📦 Backup Sessioni Precedenti</h3>
-            <div id="backupContent">
-                <p>Caricamento backup...</p>
-            </div>
-            <button class="btn btn-primary" onclick="closeModal('backupListModal')" style="margin-top: 20px;">
-                Chiudi
-            </button>
         </div>
     </div>
 
@@ -1321,22 +1280,6 @@
         async function ricaricaPartecipantiGestione() {
             document.getElementById('partecipantiGestioneContent').innerHTML = '<p>Caricamento partecipanti...</p>';
             await caricaPartecipantiPerGestione();
-        }
-
-        async function pulisciSubscriptions() {
-            try {
-                const response = await fetch('/api/clean-subscriptions');
-                const result = await response.json();
-
-                if (response.ok) {
-                    showNotification(`✅ ${result.deleted} subscription eliminate`, 'success');
-                    console.log('🔑 Nuova chiave pubblica:', result.newPublicKey);
-                } else {
-                    showNotification('Errore pulizia subscriptions', 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
         }
 
         // CORREZIONE: Carica squadre sempre, anche senza connessi
@@ -2176,28 +2119,6 @@
             window.location.href = '/setup';
         }
 
-        async function esportaDati() {
-            try {
-                const response = await fetch('/api/export');
-                if (!response.ok) {
-                    throw new Error('Export non disponibile');
-                }
-
-                const data = await response.json();
-
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fantagts_export_${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-
-                showNotification('Dati esportati con successo', 'success');
-            } catch (error) {
-                showNotification('Export non ancora disponibile', 'warning');
-            }
-        }
 
         function resetAste() {
             showConfirmModal(
@@ -2312,91 +2233,6 @@
             }
         }
 
-        // Mostra modal pulisci test
-        async function mostraPulisciTest() {
-            try {
-                const response = await fetch('/api/partecipanti');
-                const partecipanti = await response.json();
-
-                const container = document.getElementById('participantsList');
-                container.innerHTML = '';
-
-                if (partecipanti.length === 0) {
-                    container.innerHTML = '<p>Nessun partecipante registrato</p>';
-                } else {
-                    partecipanti.forEach(p => {
-                        const div = document.createElement('div');
-                        div.style.cssText = 'padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.1); border-radius: 5px;';
-                        div.innerHTML = `
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" value="${p.id}" style="margin-right: 10px;">
-                                <span><strong>${p.nome}</strong> - Crediti: ${p.crediti}</span>
-                            </label>
-                        `;
-                        container.appendChild(div);
-                    });
-                }
-
-                document.getElementById('pulisciTestModal').style.display = 'flex';
-            } catch (error) {
-                showNotification('Errore caricamento partecipanti', 'error');
-            }
-        }
-
-        // Esegui pulizia test
-        async function eseguiPuliziaTest() {
-            const checkboxes = document.querySelectorAll('#participantsList input[type="checkbox"]:checked');
-            const mantieni = Array.from(checkboxes).map(cb => cb.value);
-
-            if (!confirm(`Eliminare tutti i partecipanti tranne ${mantieni.length} selezionati?`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/pulisci-test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mantieni: mantieni })
-                });
-
-                if (response.ok) {
-                    showNotification('Dati di test puliti con successo!', 'success');
-                    closeModal('pulisciTestModal');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    const error = await response.json();
-                    showNotification('Errore: ' + error.error, 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
-        }
-
-        // Elimina tutti i partecipanti
-        async function eliminaTuttiPartecipanti() {
-            if (!confirm('ATTENZIONE: Eliminare TUTTI i partecipanti? Questa azione è irreversibile!')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/pulisci-test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mantieni: [] })
-                });
-
-                if (response.ok) {
-                    showNotification('Tutti i partecipanti eliminati', 'success');
-                    closeModal('pulisciTestModal');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showNotification('Errore durante eliminazione', 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
-        }
-
         // Mostra modal nuova sessione
         function mostraNuovaSessione() {
             const currentYear = new Date().getFullYear();
@@ -2443,16 +2279,7 @@
             }
         }
 
-        // Mostra lista backup (placeholder)
-        function mostraBackupList() {
-            document.getElementById('backupContent').innerHTML = `
-                <p>Funzionalità di visualizzazione backup in sviluppo.</p>
-                <p>I backup vengono salvati automaticamente nel database quando crei una nuova sessione.</p>
-                <p>Le tabelle di backup seguono il formato: <code>tabella_backup_ANNO_TIMESTAMP</code></p>
-            `;
-            document.getElementById('backupListModal').style.display = 'flex';
-        }
-
+        
         // Utilities
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
