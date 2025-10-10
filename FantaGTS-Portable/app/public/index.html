@@ -1359,8 +1359,10 @@
         async function effettuaLogin() {
             const nickname = document.getElementById('loginNickname').value.trim();
             const pinField = document.getElementById('loginPin');
-            const pin = (pinField.dataset.realPin || pinField.value.replace(/[^\d]/g, '')).trim();
+            const pin = (pinField.dataset.realPin || '').trim();
             const notificationsEnabled = document.getElementById('loginNotifications').checked;
+
+            console.log('🔍 Debug PIN Login:', { pin, length: pin.length, dataset: pinField.dataset.realPin });
 
             if (!nickname || !pin) {
                 mostraMessaggio('⚠️ Inserisci nickname e PIN!', 'warning');
@@ -1436,9 +1438,18 @@
             const nickname = document.getElementById('registerNickname').value.trim();
             const pinField = document.getElementById('registerPin');
             const pinConfirmField = document.getElementById('registerPinConfirm');
-            const pin = (pinField.dataset.realPin || pinField.value.replace(/[^\d]/g, '')).trim();
-            const pinConfirm = (pinConfirmField.dataset.realPin || pinConfirmField.value.replace(/[^\d]/g, '')).trim();
+            const pin = (pinField.dataset.realPin || '').trim();
+            const pinConfirm = (pinConfirmField.dataset.realPin || '').trim();
             const notificationsEnabled = document.getElementById('registerNotifications').checked;
+
+            console.log('🔍 Debug PIN Registrazione:', {
+                pin,
+                pinConfirm,
+                pinLength: pin.length,
+                pinConfirmLength: pinConfirm.length,
+                dataset1: pinField.dataset.realPin,
+                dataset2: pinConfirmField.dataset.realPin
+            });
 
             // Validazione
             if (!nickname || !pin || !pinConfirm) {
