@@ -452,7 +452,7 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="password" id="loginPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="current-password">
+                    <input type="password" id="loginPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
                 </div>
 
                 <div class="checkbox-group">
@@ -484,12 +484,12 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="password" id="registerPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="new-password">
+                    <input type="password" id="registerPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
                 </div>
 
                 <div class="input-group">
                     <label>Conferma PIN:</label>
-                    <input type="password" id="registerPinConfirm" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="new-password">
+                    <input type="password" id="registerPinConfirm" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
                 </div>
 
                 <div class="checkbox-group">
@@ -962,9 +962,11 @@
                     console.error('❌ Registrazione WebSocket fallita:', data);
 
                     if (data.shouldReload) {
-                        alert('❌ Sessione non valida. L\'app verrà ricaricata per permettere una nuova registrazione.');
-                        clearSavedSession();
-                        location.reload();
+                        mostraMessaggio('❌ Sessione non valida. L\'app verrà ricaricata per permettere una nuova registrazione.', 'error');
+                        setTimeout(() => {
+                            clearSavedSession();
+                            location.reload();
+                        }, 2000);
                     } else {
                         alert('❌ Errore registrazione: ' + (data.error || 'Errore sconosciuto'));
                     }
@@ -1233,7 +1235,7 @@
 
             socket.on('bid_error', (data) => {
                 console.error('❌ Errore puntata:', data);
-                alert('❌ Errore: ' + data.message);
+                mostraMessaggio('❌ Errore: ' + data.message, 'error');
                 resetBiddingInterface();
             });
 
@@ -1244,7 +1246,7 @@
                 resetTeamUI();
                 clearSavedSession();
                 saveSession();
-                alert('🔄 Le aste sono state resettate dal Master!\n\nLa tua squadra è stata azzerata e i crediti ripristinati.');
+                mostraMessaggio('🔄 Le aste sono state resettate dal Master! La tua squadra è stata azzerata e i crediti ripristinati.', 'warning');
             });
 
             socket.on('heartbeat_response', (data) => {
@@ -1587,7 +1589,7 @@
 
                 // Prova a mostrare un alert con l'errore specifico
                 try {
-                    alert(`❌ Errore configurazione notifiche:\n\n${error.message}\n\nLe notifiche non funzioneranno, ma puoi comunque usare l'app.`);
+                    mostraMessaggio(`❌ Errore configurazione notifiche: ${error.message}. Le notifiche non funzioneranno, ma puoi comunque usare l'app.`, 'error');
                 } catch (alertError) {
                     console.error('Impossibile mostrare alert errore');
                 }
@@ -1845,7 +1847,7 @@
             }
         }
 
-        function confirmBid() {
+        async function confirmBid() {
             const amount = parseInt(document.getElementById('bidAmount').value);
             const selectedCard = document.querySelector('.player-card.selected');
 
@@ -1857,9 +1859,9 @@
             const playerId = selectedCard.dataset.playerId;
             const playerName = selectedCard.querySelector('.player-name').textContent;
 
-            const confirmMessage = `Stai per puntare\n\n${amount} crediti\n\nsu ${playerName}`;
+            const conferma = await confermaPersonalizzata(`Stai per puntare<br><br><strong>${amount} crediti</strong><br><br>su <strong>${playerName}</strong>`);
 
-            if (!confirm(confirmMessage)) {
+            if (!conferma) {
                 return;
             }
 
