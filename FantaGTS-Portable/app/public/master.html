@@ -1248,7 +1248,8 @@
 
         // Elimina partecipante
         async function eliminaPartecipante(partecipanteId, nomePartecipante) {
-            if (!confirm(`Eliminare definitivamente il partecipante:\n\n"${nomePartecipante}"\n\nQuesta azione è irreversibile e cancellerà:\n- Il partecipante dal database\n- Tutte le sue aste\n- Le sue notifiche push\n\nProcedere?`)) {
+            const conferma = await confermaPersonalizzata(`Eliminare definitivamente il partecipante:<br><br><strong>"${nomePartecipante}"</strong><br><br>⚠️ Questa azione è irreversibile e cancellerà:<br>- Il partecipante dal database<br>- Tutte le sue aste<br>- Le sue notifiche push<br><br>Procedere?`);
+            if (!conferma) {
                 return;
             }
 

@@ -1942,7 +1942,7 @@
         }
 
         function showResultsPhase(data) {
-            alert('Round terminato!');
+            mostraMessaggio('🎉 Round terminato!', 'success');
             showWaitingPhase();
         }
 
@@ -2219,8 +2219,10 @@
             return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
         }
 
-        function logout() {
-            if (confirm('Sei sicuro di voler uscire?\n\nDovrai reinserire i tuoi dati per rientrare.')) {
+        async function logout() {
+            const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
+
+            if (conferma) {
                 clearSavedSession();
                 playerData = {
                     registered: false,

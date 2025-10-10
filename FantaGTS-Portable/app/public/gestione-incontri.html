@@ -1421,7 +1421,10 @@
         // ==================== CREAZIONE TURNO COMPLETO ====================
 
         async function creaTurnoCompleto() {
-            if (!confirm(`Creare il turno "${configTurno.numero}" con ${configTurno.scontri.length * configTurno.accoppiamenti.length} incontri?\n\nQuesta operazione è irreversibile!`)) {
+            const totaleIncontri = configTurno.scontri.length * configTurno.accoppiamenti.length;
+            const conferma = await confermaPersonalizzata(`Creare il turno "${configTurno.numero}" con ${totaleIncontri} incontri?<br><br>⚠️ Questa operazione è irreversibile!`);
+
+            if (!conferma) {
                 return;
             }
 
@@ -1529,7 +1532,8 @@
 
         // Elimina turno
         async function eliminaTurno(turnoId, nomeTurno) {
-            if (!confirm(`Eliminare definitivamente il turno "${nomeTurno}"?\n\nQuesta azione eliminerà anche:\n- Tutti gli incontri associati\n- Tutte le coppie configurate\n- Tutti i risultati\n\nL'azione è irreversibile!`)) {
+            const conferma = await confermaPersonalizzata(`Eliminare definitivamente il turno "${nomeTurno}"?<br><br>⚠️ Questa azione eliminerà anche:<br>- Tutti gli incontri associati<br>- Tutte le coppie configurate<br>- Tutti i risultati<br><br>L'azione è irreversibile!`);
+            if (!conferma) {
                 return;
             }
 
@@ -1675,13 +1679,13 @@
 
         // Elimina coppia
         async function eliminaCoppia(coppiaId) {
-            if (!confirm('Eliminare questa coppia?')) return;
+            const conferma = await confermaPersonalizzata('Eliminare questa coppia?');
+            if (!conferma) return;
 
             try {
                 const response = await fetch(`/api/coppie-turno/${coppiaId}`, {
                     method: 'DELETE'
                 });
-
                 if (response.ok) {
                     showNotification('Coppia eliminata', 'success');
                     caricaCoppieDelTurno(turnoSelezionato);
@@ -2190,6 +2194,53 @@
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
+        }
+
+        function confermaPersonalizzata(testo) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        `;
+
+                const box = document.createElement('div');
+                box.style.cssText = `
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 450px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
+
+                box.innerHTML = `
+            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" 
+                    style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                ✅ Sì
+            </button>
+            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" 
+                    style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                ❌ No
+            </button>
+        `;
+
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+
+                window.confirmResolve = resolve;
+            });
         }
 
         function tornaAlMaster() {
