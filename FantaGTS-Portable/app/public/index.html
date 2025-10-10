@@ -71,19 +71,56 @@
                 border: 1px solid rgba(255,255,255,0.2);
             }
 
-            .input-group input[type="password"] {
-                width: 100%;
-                padding: 15px;
-                border: none;
-                border-radius: 10px;
-                background: rgba(255,255,255,0.95);
-                color: #2d3748;
-                font-size: 1.1em;
-                text-align: center;
-                border: 1px solid rgba(255,255,255,0.2);
+        .checkbox-group {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+            .checkbox-group label {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                font-size: 1em;
+                line-height: 1.4;
             }
 
-        /* Messaggio di notifica personalizzato */
+            .checkbox-group input[type="checkbox"] {
+                margin-right: 12px;
+                width: 20px;
+                height: 20px;
+                cursor: pointer;
+            }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: #3182ce;
+                transform: translateY(-2px);
+            }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
         .custom-alert {
             position: fixed;
             top: 20px;
@@ -127,67 +164,6 @@
             background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
         }
 
-        .checkbox-group {
-            background: rgba(255,255,255,0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-            .checkbox-group label {
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-                font-size: 1em;
-                line-height: 1.4;
-            }
-
-            .checkbox-group input[type="checkbox"] {
-                margin-right: 12px;
-                width: 20px;
-                height: 20px;
-                cursor: pointer;
-            }
-
-        .checkbox-description {
-            font-size: 0.9em;
-            opacity: 0.8;
-            margin-top: 8px;
-            color: #cbd5e0;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 10px 0;
-        }
-
-        .btn-primary {
-            background: #4299e1;
-            color: white;
-            border: 1px solid #4299e1;
-        }
-
-            .btn-primary:hover {
-                background: #3182ce;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
-            }
-
-        .btn:disabled {
-            background: #4a5568;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
         .section {
             background: rgba(255,255,255,0.08);
             border-radius: 15px;
@@ -200,157 +176,10 @@
         .user-info {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.08);
             padding: 15px;
+            background: rgba(255,255,255,0.1);
             border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .connection-status {
-            text-align: center;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .status-connected {
-            background: rgba(72, 187, 120, 0.2);
-            border: 2px solid #48bb78;
-            color: #68d391;
-        }
-
-        .status-waiting {
-            background: rgba(237, 137, 54, 0.2);
-            border: 2px solid #ed8936;
-            color: #f6ad55;
-        }
-
-        .round-info {
-            background: rgba(245, 101, 101, 0.2);
-            border: 3px solid #f56565;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .big-timer {
-            font-size: 3em;
-            font-weight: bold;
-            color: #4299e1;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            margin: 15px 0;
-        }
-
-        .players-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .player-card {
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-            color: #e2e8f0;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 3px solid transparent;
-        }
-
-            .player-card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-                border-color: #4299e1;
-            }
-
-            .player-card.selected {
-                border-color: #4299e1;
-                background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-                color: white;
-            }
-
-        .player-name {
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        .team-color-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            margin: 0 auto 8px;
-            border: 2px solid white;
-        }
-
-        .bid-section {
-            background: rgba(255,255,255,0.08);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .selected-player-info {
-            background: rgba(72, 187, 120, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
             margin-bottom: 15px;
-            border: 2px solid #48bb78;
-            color: #68d391;
-        }
-
-        .bid-input {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.95);
-            color: #2d3748;
-            font-size: 1.3em;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .confirm-bid {
-            width: 100%;
-            padding: 15px;
-            background: #f56565;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            border: 1px solid #f56565;
-        }
-
-            .confirm-bid:disabled {
-                background: #4a5568;
-                cursor: not-allowed;
-                border-color: #4a5568;
-            }
-
-        .my-team {
-            background: rgba(255,255,255,0.08);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .team-slots {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-            margin-top: 15px;
         }
 
         .team-slot {
@@ -367,14 +196,7 @@
                 border: 4px solid #48bb78;
                 color: #68d391;
                 font-weight: bold;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-                min-height: 70px;
             }
-
-                .team-slot.filled small {
-                    font-weight: normal;
-                    opacity: 0.8;
-                }
 
             .team-slot.empty {
                 background: rgba(74, 85, 104, 0.3);
@@ -383,38 +205,38 @@
                 color: #a0aec0;
             }
 
-        @media (max-width: 480px) {
-            .players-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .big-timer {
-                font-size: 2.5em;
-            }
+        .team-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
         }
 
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.7);
-            }
-
-            100% {
-                transform: scale(1.02);
-                box-shadow: 0 0 0 10px rgba(66, 153, 225, 0);
-            }
-        }
-
-        /* Migliora la visibilità della sezione asta */
-        #bidding-phase {
+        .player-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             border: 2px solid transparent;
-            transition: border-color 0.3s ease;
         }
 
-            #bidding-phase.active {
-                border-color: #4299e1;
-                box-shadow: 0 0 15px rgba(66, 153, 225, 0.3);
+            .player-card:hover {
+                background: rgba(255,255,255,0.15);
+                transform: translateY(-2px);
             }
+
+            .player-card.selected {
+                border-color: #4299e1;
+                background: rgba(66, 153, 225, 0.2);
+            }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -426,17 +248,17 @@
 
         <!-- Area Registrazione/Login -->
         <div id="registration-area">
-            <!-- Schermata iniziale: Accedi o Registrati -->
+            <!-- Schermata iniziale -->
             <div id="welcome-screen" class="registration-form">
                 <h2>👋 Benvenuto nel FantaGTS!</h2>
                 <p style="margin-bottom: 30px;">Fantasy Tennis del Circolo</p>
 
-                <button class="btn btn-primary" onclick="mostraLogin()" style="margin-bottom: 15px; width: 100%;">
+                <button class="btn btn-primary" onclick="mostraLogin()" style="margin-bottom: 15px;">
                     🔐 ACCEDI
                 </button>
 
-                <button class="btn btn-secondary" onclick="mostraRegistrazione()" style="width: 100%;">
-                    ✍️ Registrati
+                <button class="btn btn-secondary" onclick="mostraRegistrazione()">
+                    ✏️ Registrati
                 </button>
             </div>
 
@@ -462,18 +284,18 @@
                     </label>
                 </div>
 
-                <button class="btn btn-primary" onclick="effettuaLogin()" style="margin-bottom: 10px; width: 100%;">
+                <button class="btn btn-primary" onclick="effettuaLogin()" style="margin-bottom: 10px;">
                     ✅ Accedi
                 </button>
 
-                <button class="btn btn-secondary" onclick="tornaWelcome()" style="width: 100%;">
+                <button class="btn btn-secondary" onclick="tornaWelcome()">
                     ← Indietro
                 </button>
             </div>
 
             <!-- Schermata REGISTRAZIONE -->
             <div id="register-screen" class="registration-form" style="display: none;">
-                <h2>✍️ Registrazione</h2>
+                <h2>✏️ Registrazione</h2>
                 <p style="margin-bottom: 25px;">Crea il tuo account</p>
 
                 <div class="input-group">
@@ -499,11 +321,11 @@
                     </label>
                 </div>
 
-                <button class="btn btn-primary" onclick="effettuaRegistrazione()" style="margin-bottom: 10px; width: 100%;">
+                <button class="btn btn-primary" onclick="effettuaRegistrazione()" style="margin-bottom: 10px;">
                     🚀 Registrati
                 </button>
 
-                <button class="btn btn-secondary" onclick="tornaWelcome()" style="width: 100%;">
+                <button class="btn btn-secondary" onclick="tornaWelcome()">
                     ← Indietro
                 </button>
             </div>
@@ -511,77 +333,48 @@
 
         <!-- Area di gioco -->
         <div id="game-area" style="display: none;">
-            <!-- Stato connessione -->
-            <div id="connectionStatus" class="connection-status status-connected">
-                ✅ Connesso al FantaGTS
-            </div>
-
-            <!-- Info utente -->
             <div class="user-info">
-                <div>
-                    <strong id="currentPlayer">--</strong>
-                </div>
-                <div>
-                    💰 <span id="playerCredits">2000</span> crediti
-                </div>
+                <div><strong id="currentPlayer">--</strong></div>
+                <div>💰 <span id="playerCredits">2000</span> crediti</div>
             </div>
 
-            <!-- Pulsante logout -->
             <div style="text-align: center; margin-bottom: 15px;">
                 <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
                     🚪 Cambia Utente
                 </button>
             </div>
 
-            <!-- Attesa round -->
-            <div id="waiting-phase" class="section" style="display: none;">
+            <!-- Fase attesa -->
+            <div id="waiting-phase" class="section">
                 <h2>⏳ In Attesa</h2>
                 <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
-                <p><strong>Prossimo round: <span id="nextRound">M1</span></strong></p>
             </div>
 
-            <!-- Round attivo -->
-            <div id="bidding-phase" style="display: none;">
-                <div class="round-info">
-                    <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px;">
-                        Round <span id="currentRound">M1</span>
-                    </div>
-                    <div id="offersStatus" class="big-timer">
-                        Waiting...
-                    </div>
-                    <p id="offersMessage">In attesa che tutti facciano le loro offerte</p>
-                </div>
+            <!-- Fase asta -->
+            <div id="bidding-phase" class="section" style="display: none;">
+                <h2 id="currentRound">Round M1</h2>
+                <div id="playersGrid" class="players-grid"></div>
 
-                <!-- Griglia giocatori -->
-                <div class="players-grid" id="playersGrid">
-                    <!-- I giocatori verranno caricati qui -->
-                </div>
-
-                <!-- Sezione puntata -->
-                <div id="bidSection" class="bid-section" style="display: none;">
-                    <div id="selectedPlayerInfo" class="selected-player-info">
+                <div id="bidSection" style="display: none; margin-top: 20px;">
+                    <div id="selectedPlayerInfo" style="margin-bottom: 15px; text-align: center;">
                         <strong>Nessun giocatore selezionato</strong>
                     </div>
 
-                    <!-- Sezione crediti -->
                     <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
                         <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
                     </div>
 
-                    <input type="number" class="bid-input" id="bidAmount" placeholder="Inserisci quanto vuoi puntare" min="1">
+                    <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
 
-                    <button class="confirm-bid" id="confirmBidBtn" onclick="confirmBid()" disabled>
+                    <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
                         Conferma Puntata
                     </button>
                 </div>
             </div>
 
             <!-- La mia squadra -->
-            <div class="my-team">
+            <div class="section">
                 <h2>🏆 La Mia Squadra</h2>
-                <div id="myTeamStats">
-                    <p>Giocatori: <span id="teamCount">0</span>/10 | Punti: <span id="teamPoints">0</span></p>
-                </div>
                 <div class="team-slots" id="teamSlots">
                     <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
                     <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
@@ -599,7 +392,9 @@
     </div>
 
     <script>
-        // Variabili globali
+        // ========================================
+        // VARIABILI GLOBALI
+        // ========================================
         let socket;
         let playerData = {
             registered: false,
@@ -609,25 +404,31 @@
             notificationsEnabled: false
         };
 
-        // ========================================
-        // SISTEMA NOTIFICHE PERSONALIZZATE
-        // ========================================
+        const STORAGE_KEYS = {
+            PLAYER_DATA: 'fantagts_player_data',
+            REGISTRATION_TIME: 'fantagts_registration_time'
+        };
 
+        let connectionPersistence = {
+            heartbeatInterval: null,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 50,
+            isReconnecting: false,
+            lastServerResponse: Date.now()
+        };
+
+        // ========================================
+        // FUNZIONI GLOBALI DI UTILITÀ
+        // ========================================
         function mostraMessaggio(testo, tipo = 'info') {
-            // Rimuovi messaggi precedenti
             const esistente = document.querySelector('.custom-alert');
-            if (esistente) {
-                esistente.remove();
-            }
+            if (esistente) esistente.remove();
 
-            // Crea nuovo messaggio
             const alert = document.createElement('div');
             alert.className = `custom-alert ${tipo}`;
             alert.textContent = testo;
-
             document.body.appendChild(alert);
 
-            // Rimuovi dopo 4 secondi
             setTimeout(() => {
                 alert.style.animation = 'slideDown 0.3s ease reverse';
                 setTimeout(() => alert.remove(), 300);
@@ -637,46 +438,19 @@
         function confermaPersonalizzata(testo) {
             return new Promise((resolve) => {
                 const overlay = document.createElement('div');
-                overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.7);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 10001;
-                `;
+                overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10001;`;
 
                 const box = document.createElement('div');
-                box.style.cssText = `
-                    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-                    padding: 30px;
-                    border-radius: 15px;
-                    max-width: 400px;
-                    text-align: center;
-                    color: white;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-                    border: 1px solid rgba(255,255,255,0.1);
-                `;
+                box.style.cssText = `background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); padding: 30px; border-radius: 15px; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);`;
 
                 box.innerHTML = `
-                    <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)"
-                            style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                        ✅ Sì
-                    </button>
-                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)"
-                            style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                        ❌ No
-                    </button>
-                `;
+                        <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
+                    `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
-
                 window.confirmResolve = resolve;
             });
         }
@@ -684,7 +458,6 @@
         // ========================================
         // NAVIGAZIONE TRA SCHERMATE
         // ========================================
-
         function mostraLogin() {
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('login-screen').style.display = 'block';
@@ -702,30 +475,114 @@
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('register-screen').style.display = 'none';
 
-            // Reset campi
             document.getElementById('loginNickname').value = '';
             document.getElementById('registerNickname').value = '';
 
-            // Reset campi PIN (incluso il valore reale)
             const pinFields = ['loginPin', 'registerPin', 'registerPinConfirm'];
             pinFields.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
-                field.value = '';
-                field.dataset.realPin = '';
+                if (field) {
+                    field.value = '';
+                    field.dataset.realPin = '';
+                }
             });
+        }
+
+        // ========================================
+        // GESTIONE SESSIONE
+        // ========================================
+        function saveSession() {
+            try {
+                const dataToSave = {
+                    name: playerData.name,
+                    id: playerData.id,
+                    credits: playerData.credits,
+                    notificationsEnabled: playerData.notificationsEnabled
+                };
+                localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
+                localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
+                console.log('✅ Sessione salvata per:', playerData.name);
+            } catch (error) {
+                console.error('Errore salvataggio sessione:', error);
+            }
+        }
+
+        function clearSavedSession() {
+            try {
+                localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
+                localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
+                console.log('🗑️ Sessione salvata rimossa');
+            } catch (error) {
+                console.error('Errore rimozione sessione:', error);
+            }
+        }
+
+        // ========================================
+        // GESTIONE UI
+        // ========================================
+        function updateCreditsDisplay() {
+            const creditsElement = document.getElementById('playerCredits');
+            const creditsDisplay = document.getElementById('creditsDisplay');
+            if (creditsElement) creditsElement.textContent = playerData.credits;
+            if (creditsDisplay) creditsDisplay.textContent = playerData.credits;
+        }
+
+        function showGameArea() {
+            document.getElementById('registration-area').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+        }
+
+        function showWaitingPhase() {
+            document.getElementById('bidding-phase').style.display = 'none';
+            document.getElementById('waiting-phase').style.display = 'block';
+        }
+
+        function resetTeamUI() {
+            const positions = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+            positions.forEach(pos => {
+                const slot = document.querySelector(`[data-position="${pos}"]`);
+                if (slot) {
+                    slot.classList.remove('filled');
+                    slot.classList.add('empty');
+                    slot.innerHTML = `<strong>${pos}</strong><br>-`;
+                }
+            });
+        }
+
+        function resetBiddingInterface() {
+            const bidAmount = document.getElementById('bidAmount');
+            if (bidAmount) {
+                bidAmount.value = '';
+                bidAmount.disabled = false;
+            }
+
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.style.pointerEvents = 'auto';
+                card.style.opacity = '1';
+                card.classList.remove('selected');
+            });
+
+            const confirmBtn = document.getElementById('confirmBidBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Conferma Puntata';
+                confirmBtn.style.background = '#f56565';
+            }
+
+            const bidSection = document.getElementById('bidSection');
+            if (bidSection) bidSection.style.display = 'none';
+
+            updateCreditsDisplay();
         }
 
         // ========================================
         // LOGIN
         // ========================================
-
         async function effettuaLogin() {
             const nickname = document.getElementById('loginNickname').value.trim();
             const pinField = document.getElementById('loginPin');
             const pin = (pinField.dataset.realPin || '').trim();
             const notificationsEnabled = document.getElementById('loginNotifications').checked;
-
-            console.log('🔍 Debug PIN Login:', { pin, length: pin.length, dataset: pinField.dataset.realPin });
 
             if (!nickname || !pin) {
                 mostraMessaggio('⚠️ Inserisci nickname e PIN!', 'warning');
@@ -738,20 +595,15 @@
             }
 
             try {
-                console.log('🔐 Tentativo di login per:', nickname);
-
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname: nickname, pin: pin })
+                    body: JSON.stringify({ nickname, pin })
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Login riuscito
-                    console.log('✅ Login effettuato con successo!');
-
                     playerData.registered = true;
                     playerData.name = result.player.nome;
                     playerData.id = result.player.id;
@@ -771,9 +623,7 @@
                     registerSocketWhenReady();
 
                     mostraMessaggio(`✅ Bentornato, ${result.player.nome}! Hai ${result.player.crediti} crediti disponibili.`, 'success');
-
                 } else {
-                    // Login fallito
                     if (result.error === 'Utente non trovato') {
                         const vuoleRegistrarsi = await confermaPersonalizzata(`❌ Nickname "${nickname}" non trovato.<br><br>Vuoi registrarti?`);
                         if (vuoleRegistrarsi) {
@@ -786,7 +636,6 @@
                         mostraMessaggio('❌ Errore: ' + result.error, 'error');
                     }
                 }
-
             } catch (error) {
                 mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore login:', error);
@@ -796,7 +645,6 @@
         // ========================================
         // REGISTRAZIONE
         // ========================================
-
         async function effettuaRegistrazione() {
             const nickname = document.getElementById('registerNickname').value.trim();
             const pinField = document.getElementById('registerPin');
@@ -805,16 +653,6 @@
             const pinConfirm = (pinConfirmField.dataset.realPin || '').trim();
             const notificationsEnabled = document.getElementById('registerNotifications').checked;
 
-            console.log('🔍 Debug PIN Registrazione:', {
-                pin,
-                pinConfirm,
-                pinLength: pin.length,
-                pinConfirmLength: pinConfirm.length,
-                dataset1: pinField.dataset.realPin,
-                dataset2: pinConfirmField.dataset.realPin
-            });
-
-            // Validazione
             if (!nickname || !pin || !pinConfirm) {
                 mostraMessaggio('⚠️ Compila tutti i campi!', 'warning');
                 return;
@@ -836,24 +674,15 @@
             }
 
             try {
-                console.log('📝 Tentativo di registrazione per:', nickname);
-
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nickname: nickname,
-                        pin: pin,
-                        crediti: 2000
-                    })
+                    body: JSON.stringify({ nickname, pin, crediti: 2000 })
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Registrazione riuscita
-                    console.log('✅ Registrazione completata!');
-
                     playerData.registered = true;
                     playerData.name = result.player.nome;
                     playerData.id = result.player.id;
@@ -861,54 +690,349 @@
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     saveSession();
-                    registerSocketWhenReady();
                     document.getElementById('currentPlayer').textContent = result.player.nome;
                     document.getElementById('playerCredits').textContent = result.player.crediti;
                     updateCreditsDisplay();
                     showGameArea();
-                    await loadPlayerTeam();
 
                     if (notificationsEnabled) {
                         await setupPushNotifications();
                     }
+                    registerSocketWhenReady();
 
-                    mostraMessaggio(`✅ Registrazione completata! Benvenuto nel FantaGTS, ${result.player.nome}! Hai ricevuto ${result.player.crediti} crediti iniziali.`, 'success');
-
+                    mostraMessaggio(`✅ Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
                 } else {
-                    // Registrazione fallita
-                    if (result.error === 'Nickname già in uso') {
-                        mostraMessaggio('❌ Questo nickname è già utilizzato! Scegline un altro.', 'error');
-                    } else {
-                        mostraMessaggio('❌ Errore registrazione: ' + result.error, 'error');
-                    }
+                    mostraMessaggio('❌ Errore: ' + (result.error || 'Registrazione fallita'), 'error');
                 }
-
             } catch (error) {
                 mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore registrazione:', error);
             }
         }
 
-        // SISTEMA DI PERSISTENZA CONNESSIONE
-        let connectionPersistence = {
-            heartbeatInterval: null,
-            reconnectAttempts: 0,
-            maxReconnectAttempts: 50,
-            isReconnecting: false,
-            lastServerResponse: Date.now()
-        };
+        // ========================================
+        // GESTIONE SQUADRA
+        // ========================================
+        async function loadPlayerTeam() {
+            try {
+                const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+                if (!response.ok) {
+                    resetTeamUI();
+                    return;
+                }
 
-        // Chiavi per localStorage
-        const STORAGE_KEYS = {
-            PLAYER_DATA: 'fantagts_player_data',
-            REGISTRATION_TIME: 'fantagts_registration_time'
-        };
+                const data = await response.json();
+                const squadra = data.squadra || data;
 
-        // Inizializzazione
+                if (data.crediti) {
+                    playerData.credits = data.crediti;
+                    updateCreditsDisplay();
+                }
+
+                resetTeamUI();
+                squadra.forEach(giocatore => {
+                    const [posizione] = giocatore.slot_id.split('_');
+                    const slot = document.querySelector(`[data-position="${posizione}"]`);
+                    if (slot) {
+                        slot.classList.remove('empty');
+                        slot.classList.add('filled');
+                        slot.innerHTML = `<strong>${posizione}</strong><br>${giocatore.nome_giocatore}<br><small>Squadra ${giocatore.colore_squadra}</small>`;
+                    }
+                });
+            } catch (error) {
+                console.error('Errore caricamento squadra:', error);
+            }
+        }
+
+        // ========================================
+        // NOTIFICHE
+        // ========================================
+        async function setupPushNotifications() {
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                console.log('⚠️ Notifiche non supportate');
+                return;
+            }
+
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('✅ Permesso notifiche concesso');
+                }
+            } catch (error) {
+                console.error('Errore setup notifiche:', error);
+            }
+        }
+
+        // ========================================
+        // SOCKET
+        // ========================================
+        function registerSocketWhenReady() {
+            const tryRegister = () => {
+                if (socket && socket.connected) {
+                    console.log('📌 Registrando socket come partecipante:', playerData.name);
+                    socket.emit('register', {
+                        nome: playerData.name,
+                        tipo: 'partecipante',
+                        partecipanteId: playerData.id
+                    });
+                } else {
+                    setTimeout(tryRegister, 500);
+                }
+            };
+
+            if (socket && socket.connected) {
+                tryRegister();
+            } else if (socket) {
+                socket.off('connect');
+                socket.on('connect', () => {
+                    console.log('🔗 Socket connesso, registrando...');
+                    tryRegister();
+                });
+            }
+        }
+
+        function initializeSocket() {
+            if (typeof io === 'undefined') {
+                console.log('Socket.io non caricato');
+                return;
+            }
+
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connesso al server via WebSocket');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnesso dal server');
+            });
+
+            socket.on('round_started', (data) => {
+                console.log('🎯 Round started:', data);
+                resetBiddingInterface();
+                document.getElementById('waiting-phase').style.display = 'none';
+                document.getElementById('bidding-phase').style.display = 'block';
+                showBiddingPhase(data);
+            });
+
+            socket.on('crediti_aggiornati', (data) => {
+                playerData.credits = data.crediti;
+                updateCreditsDisplay();
+                saveSession();
+            });
+
+            socket.on('round_ended', (data) => {
+                console.log('🏁 Round terminato:', data);
+                loadPlayerTeam();
+                resetBiddingInterface();
+                showWaitingPhase();
+            });
+
+            socket.on('player_won_exit_auction', (data) => {
+                console.log('🏆 Hai vinto un giocatore:', data);
+                document.getElementById('bidding-phase').style.display = 'none';
+                document.getElementById('waiting-phase').style.display = 'block';
+                resetBiddingInterface();
+                loadPlayerTeam();
+
+                const notification = document.createElement('div');
+                notification.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #48bb78; color: white; padding: 20px; border-radius: 15px; font-size: 1.2em; font-weight: bold; z-index: 2000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
+                notification.innerHTML = `
+                        <div>🏆 COMPLIMENTI!</div>
+                        <div style="margin: 10px 0;">Hai vinto:</div>
+                        <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
+                        <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                    `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            });
+
+            socket.on('bid_confirmed', (data) => {
+                console.log('✅ Puntata confermata:', data);
+                const button = document.getElementById('confirmBidBtn');
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = '✅ Puntata Confermata';
+                    button.style.background = '#10b981';
+                }
+            });
+        }
+
+        // ========================================
+        // GESTIONE ASTE
+        // ========================================
+        function showBiddingPhase(data) {
+            if (data.round) {
+                document.getElementById('currentRound').textContent = `Round ${data.round}`;
+            }
+            if (data.slots) {
+                loadAvailablePlayers(data.slots);
+            }
+            document.getElementById('bidding-phase').style.display = 'block';
+        }
+
+        function loadAvailablePlayers(slots) {
+            const grid = document.getElementById('playersGrid');
+            grid.innerHTML = '';
+
+            if (!slots || slots.length === 0) {
+                grid.innerHTML = '<p style="text-align: center;">Nessun giocatore disponibile</p>';
+                return;
+            }
+
+            slots.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
+                    `;
+                card.addEventListener('click', () => selectPlayer(player));
+                grid.appendChild(card);
+            });
+        }
+
+        function selectPlayer(player) {
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            event.currentTarget.classList.add('selected');
+
+            const selectedInfo = document.getElementById('selectedPlayerInfo');
+            if (selectedInfo) {
+                selectedInfo.innerHTML = `<strong>Selezionato: ${player.giocatore_attuale} (Squadra ${player.colore})</strong>`;
+            }
+
+            document.getElementById('bidSection').style.display = 'block';
+            document.getElementById('bidAmount').focus();
+            updateBidButton();
+
+            window.selectedPlayer = player;
+        }
+
+        function updateBidButton() {
+            const bidAmount = document.getElementById('bidAmount').value;
+            const confirmBtn = document.getElementById('confirmBidBtn');
+
+            if (bidAmount && parseInt(bidAmount) > 0 && parseInt(bidAmount) <= playerData.credits) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.cursor = 'pointer';
+                confirmBtn.style.background = '#48bb78';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.style.cursor = 'not-allowed';
+                confirmBtn.style.background = '#f56565';
+            }
+        }
+
+        async function confirmBid() {
+            const bidAmount = parseInt(document.getElementById('bidAmount').value);
+
+            if (!window.selectedPlayer || !bidAmount) {
+                mostraMessaggio('⚠️ Seleziona un giocatore e inserisci una puntata!', 'warning');
+                return;
+            }
+
+            if (bidAmount > playerData.credits) {
+                mostraMessaggio('⚠️ Crediti insufficienti!', 'error');
+                return;
+            }
+
+            try {
+                socket.emit('place_bid', {
+                    playerId: playerData.id,
+                    playerName: playerData.name,
+                    slotId: window.selectedPlayer.id,
+                    amount: bidAmount
+                });
+
+                const confirmBtn = document.getElementById('confirmBidBtn');
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = '✅ Puntata Inviata';
+                confirmBtn.style.background = '#10b981';
+
+                document.querySelectorAll('.player-card').forEach(card => {
+                    card.style.pointerEvents = 'none';
+                    card.style.opacity = '0.6';
+                });
+
+                mostraMessaggio('✅ Puntata inviata con successo!', 'success');
+            } catch (error) {
+                console.error('Errore invio puntata:', error);
+                mostraMessaggio('❌ Errore invio puntata', 'error');
+            }
+        }
+
+        // ========================================
+        // LOGOUT
+        // ========================================
+        async function logout() {
+            const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
+
+            if (conferma) {
+                clearSavedSession();
+                playerData = {
+                    registered: false,
+                    name: '',
+                    id: '',
+                    credits: 2000,
+                    notificationsEnabled: false
+                };
+
+                if (socket && socket.connected) {
+                    socket.disconnect();
+                }
+
+                location.reload();
+            }
+        }
+
+        // ========================================
+        // INIZIALIZZAZIONE
+        // ========================================
         document.addEventListener('DOMContentLoaded', () => {
             console.log('FantaGTS Client caricato');
 
-            // Controllo disponibilità nickname in tempo reale
+            // Gestione PIN fields
+            document.querySelectorAll('[data-pin-field]').forEach(input => {
+                input.dataset.realPin = '';
+
+                input.addEventListener('input', function (e) {
+                    const currentReal = this.dataset.realPin || '';
+                    const displayed = this.value;
+
+                    if (displayed.length > currentReal.length) {
+                        const newChar = displayed[displayed.length - 1];
+                        if (/^\d$/.test(newChar) && currentReal.length < 4) {
+                            this.dataset.realPin = currentReal + newChar;
+                            this.value = '•'.repeat(this.dataset.realPin.length);
+                        } else {
+                            this.value = '•'.repeat(currentReal.length);
+                        }
+                    } else if (displayed.length < currentReal.length) {
+                        this.dataset.realPin = currentReal.slice(0, -1);
+                        this.value = '•'.repeat(this.dataset.realPin.length);
+                    }
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'];
+                    const isNumber = /^\d$/.test(e.key);
+                    const currentLength = (this.dataset.realPin || '').length;
+
+                    if (!isNumber && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    if (isNumber && currentLength >= 4) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            // Controllo disponibilità nickname
             const nicknameInput = document.getElementById('registerNickname');
             if (nicknameInput) {
                 nicknameInput.addEventListener('input', async (e) => {
@@ -922,15 +1046,15 @@
                         const response = await fetch('/api/check-nickname', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ nickname: nickname })
+                            body: JSON.stringify({ nickname })
                         });
                         const result = await response.json();
                         if (result.available) {
-                            checkElement.style.color = '#48bb78';
                             checkElement.textContent = '✅ Nickname disponibile';
+                            checkElement.style.color = '#48bb78';
                         } else {
-                            checkElement.style.color = '#f56565';
                             checkElement.textContent = '❌ Nickname già in uso';
+                            checkElement.style.color = '#f56565';
                         }
                     } catch (error) {
                         checkElement.textContent = '';
@@ -938,1411 +1062,74 @@
                 });
             }
 
-            // ========================================
-            // MASCHERAMENTO AUTOMATICO CAMPI PIN
-            // ========================================
+            // Event listener per puntata
+            const bidAmountField = document.getElementById('bidAmount');
+            if (bidAmountField) {
+                bidAmountField.addEventListener('input', updateBidButton);
+            }
 
-            // Gestione mascheramento PIN
-            document.querySelectorAll('input[data-pin-field="true"]').forEach(input => {
-                // Inizializza
-                input.dataset.realPin = '';
-
-                input.addEventListener('input', function (e) {
-                    let currentDisplay = this.value;
-                    let currentReal = this.dataset.realPin || '';
-
-                    console.log('📝 Input:', { display: currentDisplay, real: currentReal });
-
-                    // Rimuovi i pallini e conta quanti caratteri ci sono
-                    let newCharsCount = currentDisplay.length;
-                    let oldCharsCount = currentReal.length;
-
-                    // Se l'utente sta cancellando
-                    if (newCharsCount < oldCharsCount) {
-                        currentReal = currentReal.slice(0, newCharsCount);
-                        this.dataset.realPin = currentReal;
-                        this.value = '•'.repeat(currentReal.length);
-                        console.log('🗑️ Cancellato, nuovo PIN:', currentReal);
-                        return;
-                    }
-
-                    // Se l'utente sta aggiungendo
-                    if (newCharsCount > oldCharsCount) {
-                        // Estrai solo l'ultimo carattere digitato (che non è un pallino)
-                        let lastChar = currentDisplay[currentDisplay.length - 1];
-
-                        // Se è un numero, aggiungilo
-                        if (/\d/.test(lastChar)) {
-                            currentReal += lastChar;
-                            currentReal = currentReal.slice(0, 4); // Max 4 cifre
-                            this.dataset.realPin = currentReal;
-                            this.value = '•'.repeat(currentReal.length);
-                            console.log('✅ Aggiunto, nuovo PIN:', currentReal);
-                        } else {
-                            // Non è un numero, ripristina lo stato precedente
-                            this.value = '•'.repeat(currentReal.length);
-                            console.log('❌ Carattere non valido ignorato');
-                        }
-                    }
-                });
-
-                input.addEventListener('keydown', function (e) {
-                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'];
-                    const isNumber = /^\d$/.test(e.key);
-                    const currentLength = (this.dataset.realPin || '').length;
-
-                    // Blocca se non è un numero o un tasto permesso
-                    if (!isNumber && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        return;
-                    }
-
-                    // Blocca se abbiamo già 4 cifre e sta cercando di aggiungerne altre
-                    if (isNumber && currentLength >= 4) {
-                        e.preventDefault();
-                        return;
-                    }
-                });
-
-                input.addEventListener('paste', function (e) {
-                    e.preventDefault();
-                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                    const numbers = pastedText.replace(/[^\d]/g, '').slice(0, 4);
-
-                    this.dataset.realPin = numbers;
-                    this.value = '•'.repeat(numbers.length);
-                    console.log('📋 Incollato:', numbers);
-                });
-
-                // Fix: Previeni il focus sul campo per evitare l'errore
-                input.addEventListener('focus', function () {
-                    // Assicurati che il valore visualizzato sia sempre pallini
-                    if (this.dataset.realPin) {
-                        this.value = '•'.repeat(this.dataset.realPin.length);
-                    }
-                });
-            });
+            // Inizializza socket
+            initializeSocket();
 
             // Controlla sessione esistente
-            async function checkExistingSession() {
-                try {
-                    const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
-                    const registrationTime = localStorage.getItem(STORAGE_KEYS.REGISTRATION_TIME);
-
-                    if (!savedData || !registrationTime) {
-                        console.log('Nessuna sessione salvata trovata');
-                        return;
-                    }
-
-                    // Controlla se la sessione non è troppo vecchia (24 ore)
-                    const now = new Date().getTime();
-                    const savedTime = parseInt(registrationTime);
-                    const maxAge = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
-
-                    if (now - savedTime > maxAge) {
-                        console.log('Sessione scaduta, rimuovo dati salvati');
-                        clearSavedSession();
-                        return;
-                    }
-
-                    const parsedData = JSON.parse(savedData);
-
-                    // Verifica che il partecipante esista ancora nel database
-                    const response = await fetch('/api/partecipanti');
-                    if (!response.ok) {
-                        console.log('Errore verifica partecipanti esistenti');
-                        return;
-                    }
-
-                    const partecipanti = await response.json();
-                    const partecipanteEsistente = partecipanti.find(p => p.id === parsedData.id);
-
-                    // Trova questa sezione nella funzione checkExistingSession():
-                    if (partecipanteEsistente) {
-                        // Ripristina i dati del giocatore
-                        playerData = {
-                            registered: true,
-                            name: parsedData.name,
-                            id: parsedData.id,
-                            credits: partecipanteEsistente.crediti,
-                            notificationsEnabled: parsedData.notificationsEnabled || false
-                        };
-
-                        console.log('✅ Sessione ripristinata per:', playerData.name);
-
-                        // AGGIUNTO: Verifica che sia effettivamente registrato nel DB
-                        if (!partecipanteEsistente.id) {
-                            console.log('❌ Giocatore non ha ID valido nel database');
-                            clearSavedSession();
-                            return;
-                        }
-
-                        // Mostra direttamente l'area di gioco
-                        document.getElementById('currentPlayer').textContent = playerData.name;
-                        document.getElementById('playerCredits').textContent = playerData.credits;
-                        showGameArea();
-
-                        // Registra socket quando è pronto
-                        registerSocketWhenReady();
-
-                        // Carica la squadra del giocatore
-                        await loadPlayerTeam();
-
-                        // Log di benvenuto (senza alert)
-                        console.log(`👋 Bentornato, ${playerData.name}! Crediti: ${playerData.credits}`);
-                    } else {
-                        console.log('❌ Partecipante non più esistente nel database o non registrato correttamente');
-                        clearSavedSession();
-                    }
-
-                } catch (error) {
-                    console.error('Errore durante il ripristino della sessione:', error);
-                    clearSavedSession();
-                }
-            }
-
-            // Registra socket quando è pronto
-            function registerSocketWhenReady() {
-                const tryRegister = () => {
-                    if (socket && socket.connected) {
-                        console.log('🔌 Registrando socket come partecipante:', playerData.name);
-                        socket.emit('register', {
-                            nome: playerData.name,
-                            tipo: 'partecipante',
-                            partecipanteId: playerData.id
-                        });
-                    } else {
-                        console.log('🔌 Socket non ancora pronto, riprovo...');
-                        setTimeout(tryRegister, 500);
-                    }
-                };
-
-                // MODIFICA: Registra solo UNA volta quando socket è pronto
-                if (socket && socket.connected) {
-                    tryRegister();
-                } else {
-                    if (socket) {
-                        socket.off('connect'); // Rimuovi listener precedenti
-                        socket.on('connect', () => {
-                            console.log('🔗 Socket connesso, registrando...');
-                            tryRegister();
-                        });
-                    } else {
-                        setTimeout(() => {
-                            if (socket) {
-                                registerSocketWhenReady();
-                            }
-                        }, 1000);
-                    }
-                }
-            }
-
-            // Salva sessione
-            function saveSession() {
-                try {
-                    const dataToSave = {
-                        name: playerData.name,
-                        id: playerData.id,
-                        credits: playerData.credits,
-                        notificationsEnabled: playerData.notificationsEnabled
-                    };
-
-                    localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
-                    localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
-
-                    console.log('✅ Sessione salvata per:', playerData.name);
-                } catch (error) {
-                    console.error('Errore salvataggio sessione:', error);
-                }
-            }
-
-            // Pulisci sessione salvata
-            function clearSavedSession() {
-                try {
-                    localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
-                    localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
-                    console.log('🗑️ Sessione salvata rimossa');
-                } catch (error) {
-                    console.error('Errore rimozione sessione:', error);
-                }
-            }
-
-            // Connessione WebSocket
-            function initializeSocket() {
-                if (typeof io === 'undefined') {
-                    console.log('Socket.io non caricato');
-                    return;
-                }
-
-                socket = io();
-
-                socket.on('connect', () => {
-                    console.log('Connesso al server via WebSocket');
-                });
-
-                socket.on('disconnect', () => {
-                    console.log('Disconnesso dal server');
-                });
-
-                socket.on('reset_bid_state', (data) => {
-                    console.log('🔄 Reset stato offerte ricevuto:', data);
-
-                    // Reset completo interfaccia aste
-                    resetBiddingInterface();
-
-                    // Assicurati che sia tutto pulito
-                    document.querySelectorAll('.player-card').forEach(card => {
-                        card.classList.remove('selected');
-                        card.style.pointerEvents = 'auto';
-                        card.style.opacity = '1';
-                        card.style.border = '';
-                        card.style.backgroundColor = '';
-                    });
-
-                    // Reset sezione offerta
-                    document.getElementById('bidSection').style.display = 'none';
-                    document.getElementById('bidAmount').value = '';
-                    document.getElementById('bidAmount').disabled = false;
-
-                    const confirmBtn = document.getElementById('confirmBidBtn');
-                    if (confirmBtn) {
-                        confirmBtn.disabled = true;
-                        confirmBtn.textContent = 'Conferma Puntata';
-                        confirmBtn.style.background = '#f56565';
-                        confirmBtn.style.cursor = 'not-allowed';
-                    }
-
-                    console.log(`✅ Interfaccia resettata per Asta ${data.astaNumero}`);
-                });
-
-                socket.on('registered', (data) => {
-                    if (data.success) {
-                        console.log('✅ Registrazione WebSocket confermata per partecipante');
-
-                        // NUOVO: Controlla se c'è un'asta in corso
-                        if (data.gameState) {
-                            console.log('🎮 Stato gioco ricevuto:', data.gameState);
-
-                            if (data.gameState.asteAttive && data.gameState.roundAttivo) {
-                                console.log('🔥 ASTA IN CORSO! Mostrando interfaccia aste');
-
-                                // Simula la ricezione di un evento round_started
-                                showBiddingPhase({
-                                    round: data.gameState.roundAttivo,
-                                    slots: [] // I slots verranno caricati dopo
-                                });
-
-                                // Richiedi i slots per il round attivo
-                                loadSlotsForActiveRound(data.gameState.roundAttivo);
-                            } else {
-                                console.log('⏳ Nessuna asta attiva, mostra fase di attesa');
-                                showWaitingPhase();
-                            }
-                        }
-                    } else {
-                        console.error('❌ Registrazione WebSocket fallita:', data);
-
-                        if (data.shouldReload) {
-                            mostraMessaggio('❌ Sessione non valida. L\'app verrà ricaricata per permettere una nuova registrazione.', 'error');
-                            setTimeout(() => {
-                                clearSavedSession();
-                                location.reload();
-                            }, 2000);
-                        } else {
-                            alert('❌ Errore registrazione: ' + (data.error || 'Errore sconosciuto'));
-                        }
-                    }
-                });
-
-                socket.on('round_started', (data) => {
-                    console.log('🎯 Round started ricevuto:', data);
-
-                    // NUOVO: Reset completo prima di iniziare
-                    resetBiddingInterface();
-
-                    // 1. Nascondi tutte le fasi
-                    document.getElementById('waiting-phase').style.display = 'none';
-                    document.getElementById('bidding-phase').style.display = 'none';
-
-                    // 2. Reset completo interfaccia puntate
-                    resetBiddingInterface();
-
-                    // 3. Forza aggiornamento crediti
-                    updateCreditsDisplay();
-
-                    // 4. Mostra sezione asta con delay per garantire rendering
-                    setTimeout(() => {
-                        showBiddingPhase(data);
-
-                        // 5. NUOVO: Forza refresh della griglia giocatori
-                        if (data && data.slots) {
-                            console.log('🔄 Forzando aggiornamento griglia giocatori:', data.slots);
-                            loadAvailablePlayers(data.slots);
-                        }
-
-                        // 6. Assicurati che sia visibile
-                        const biddingPhase = document.getElementById('bidding-phase');
-                        if (biddingPhase) {
-                            biddingPhase.style.display = 'block';
-
-                            // Scroll immediato (non smooth per essere più rapido)
-                            biddingPhase.scrollIntoView({
-                                behavior: 'auto',
-                                block: 'start'
-                            });
-
-                            // Evidenzia visivamente che è iniziata
-                            biddingPhase.style.border = '3px solid #4299e1';
-                            biddingPhase.style.backgroundColor = 'rgba(66, 153, 225, 0.1)';
-
-                            setTimeout(() => {
-                                biddingPhase.style.border = '';
-                                biddingPhase.style.backgroundColor = '';
-                            }, 3000);
-                        }
-
-                        console.log('✅ Interfaccia asta aggiornata forzatamente');
-
-                    }, 200); // Piccolo delay per evitare conflitti
-                });
-
-                socket.on('offerte_update', (data) => {
-                    updateOffersStatus(data);
-                });
-
-                socket.on('crediti_aggiornati', (data) => {
-                    playerData.credits = data.crediti;
-                    updateCreditsDisplay();
-                    saveSession();
-                    console.log('Crediti aggiornati:', data.crediti);
-                });
-
-                socket.on('round_ended', (data) => {
-                    console.log('🏁 Round terminato ricevuto:', data);
-
-                    showResultsPhase(data);
-
-                    // Aggiorna squadra immediatamente
-                    if (data.risultati && Array.isArray(data.risultati)) {
-                        updateMyTeamFromResults(data.round, data.risultati);
-                    }
-
-                    // Ricarica squadra completa dal server (senza delay)
-                    loadPlayerTeam();
-
-                    resetBiddingInterface();
-                    saveSession();
-                    showWaitingPhase();
-                });
-
-                // AGGIUNGI QUESTO NUOVO LISTENER
-                socket.on('asta_ended', (data) => {
-                    console.log('🏁 Asta terminata ricevuta:', data);
-
-                    // 1. RESET COMPLETO dell'interfaccia aste
-                    resetBiddingInterface();
-
-                    // 2. Aggiorna squadra se ci sono risultati
-                    if (data.risultati && Array.isArray(data.risultati)) {
-                        updateMyTeamFromResults(data.round, data.risultati);
-                    }
-
-                    // 3. Ricarica squadra completa dal server
-                    loadPlayerTeam();
-
-                    // 4. Aggiorna crediti
-                    updateCreditsDisplay();
-
-                    // 5. Se continua il round, prepara per prossima asta
-                    if (data.continuaRound) {
-                        console.log(`🔄 Round ${data.round} continua - Preparando prossima asta`);
-
-                        // SCROLL IN CIMA ALLA PAGINA per chi non ha vinto
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
-                        });
-
-                        // Reset selezioni per prossima asta
-                        setTimeout(() => {
-                            document.querySelectorAll('.player-card').forEach(card => {
-                                card.classList.remove('selected');
-                                card.style.pointerEvents = 'auto';
-                                card.style.opacity = '1';
-                            });
-
-                            document.getElementById('bidSection').style.display = 'none';
-                            document.getElementById('bidAmount').value = '';
-                            document.getElementById('confirmBidBtn').disabled = true;
-                            document.getElementById('confirmBidBtn').textContent = 'Conferma Puntata';
-                            document.getElementById('confirmBidBtn').style.background = '#f56565';
-
-                            console.log('✅ Interfaccia pronta per prossima asta');
-                        }, 1000);
-
-                    } else {
-                        // Round completato - torna alla fase di attesa
-                        console.log(`🏁 Round ${data.round} completato totalmente`);
-                        showWaitingPhase();
-                    }
-
-                    // Salva sessione
-                    saveSession();
-                });
-
-                socket.on('asta_started', (data) => {
-                    console.log('🎪 Asta started ricevuto:', data);
-
-                    // NUOVO: Reset completo prima della nuova asta
-                    resetBiddingInterface();
-
-                    // SCROLL AUTOMATICO IN CIMA
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-
-                    // Gestione uguale a round_started per compatibilità
-                    document.getElementById('waiting-phase').style.display = 'none';
-
-                    setTimeout(() => {
-                        showBiddingPhase({
-                            round: data.round,
-                            slots: data.slots || [],
-                            astaNumero: data.astaNumero || 1
-                        });
-
-                        // EVIDENZIA che è iniziata una nuova asta
-                        const biddingSection = document.getElementById('bidding-phase');
-                        if (biddingSection) {
-                            biddingSection.style.border = '3px solid #4299e1';
-                            biddingSection.style.animation = 'pulse 0.5s ease-in-out 3 alternate';
-
-                            setTimeout(() => {
-                                biddingSection.style.border = '';
-                                biddingSection.style.animation = '';
-                            }, 3000);
-                        }
-                    }, 200);
-                });
-
-                socket.on('player_won_exit_auction', (data) => {
-                    console.log('🏆 Hai vinto un giocatore:', data);
-
-                    // Nascondi l'interfaccia di asta
-                    document.getElementById('bidding-phase').style.display = 'none';
-                    document.getElementById('waiting-phase').style.display = 'block';
-
-                    // Reset completo interfaccia
-                    resetBiddingInterface();
-
-                    // Aggiorna la squadra
-                    loadPlayerTeam();
-
-                    // Mostra messaggio di vittoria
-                    const notification = document.createElement('div');
-                    notification.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: #48bb78;
-                color: white;
-                padding: 20px;
-                border-radius: 15px;
-                font-size: 1.2em;
-                font-weight: bold;
-                z-index: 2000;
-                text-align: center;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            `;
-                    notification.innerHTML = `
-                <div>🏆 COMPLIMENTI!</div>
-                <div style="margin: 10px 0;">Hai vinto:</div>
-                <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
-                <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-            `;
-
-                    document.body.appendChild(notification);
-
-                    // Rimuovi notifica dopo 2 secondi
-                    setTimeout(() => {
-                        if (notification.parentNode) {
-                            notification.remove();
-                        }
-                    }, 2000);
-
-                    console.log('✅ Interfaccia aggiornata dopo vittoria');
-                });
-
-                socket.on('bid_confirmed', (data) => {
-                    console.log('✅ Puntata confermata dal server:', data);
-
-                    const button = document.getElementById('confirmBidBtn');
-                    button.disabled = true;
-                    button.textContent = '✅ Puntata Confermata - Attendi...';
-                    button.style.background = '#10b981';
-
-                    document.querySelectorAll('.player-card').forEach(card => {
-                        card.style.pointerEvents = 'none';
-                        card.style.opacity = '0.7';
-                    });
-                    document.getElementById('bidAmount').disabled = true;
-
-                    // Mostra un messaggio discreto invece dell'alert
-                    const statusDiv = document.createElement('div');
-                    statusDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #10b981;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 8px;
-                z-index: 1000;
-                font-weight: bold;
-            `;
-                    statusDiv.textContent = '✅ Puntata confermata! Attendi che tutti completino...';
-                    document.body.appendChild(statusDiv);
-
-                    // Rimuovi il messaggio dopo 3 secondi
-                    setTimeout(() => {
-                        if (statusDiv.parentNode) {
-                            statusDiv.remove();
-                        }
-                    }, 3000);
-                });
-
-                socket.on('bid_error', (data) => {
-                    console.error('❌ Errore puntata:', data);
-                    mostraMessaggio('❌ Errore: ' + data.message, 'error');
-                    resetBiddingInterface();
-                });
-
-                socket.on('aste_resettate', (data) => {
-                    console.log('🔄 Aste resettate dal server:', data);
-                    playerData.credits = data.creditiRipristinati;
-                    updateCreditsDisplay();
-                    resetTeamUI();
-                    clearSavedSession();
-                    saveSession();
-                    mostraMessaggio('🔄 Le aste sono state resettate dal Master! La tua squadra è stata azzerata e i crediti ripristinati.', 'warning');
-                });
-
-                socket.on('heartbeat_response', (data) => {
-                    connectionPersistence.lastServerResponse = Date.now();
-                });
-
-                socket.on('show_notification', (data) => {
-                    console.log('🔔 NOTIFICA RICEVUTA:', data);
-
-                    // Alert immediato
-                    mostraMessaggio(`🔔 ${data.title}\n\n${data.body}`, 'info');
-
-                    // Notifica browser se supportata (solo se NON siamo in service worker context)
-                    if ('Notification' in window && Notification.permission === 'granted' && !navigator.serviceWorker) {
-                        new Notification(data.title, {
-                            body: data.body,
-                            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-                            vibrate: [100, 50, 100]
-                        });
-                    }
-                });
-            }
-            
-            // Setup notifiche push - VERSIONE COMPLETA E MIGLIORATA
-            async function setupPushNotifications() {
-                try {
-                    console.log('🔔 Inizializzazione notifiche push...');
-
-                    // STEP 1: Verifica supporto notifiche
-                    if (!('Notification' in window)) {
-                        console.log('❌ Browser non supporta notifiche');
-                        return { success: false, reason: 'Browser non supportato' };
-                    }
-
-                    if (!('serviceWorker' in navigator)) {
-                        console.log('❌ Browser non supporta service worker');
-                        return { success: false, reason: 'Service Worker non supportato' };
-                    }
-
-                    // STEP 2: Richiedi permesso notifiche
-                    console.log('🔐 Richiedendo permesso notifiche...');
-                    const permission = await Notification.requestPermission();
-
-                    if (permission !== 'granted') {
-                        console.log('❌ Permesso notifiche negato');
-                        return { success: false, reason: 'Permesso negato' };
-                    }
-
-                    console.log('✅ Permesso notifiche concesso');
-
-                    // STEP 3: Attendi che service worker sia pronto
-                    console.log('⏳ Attendendo service worker...');
-                    const registration = await navigator.serviceWorker.ready;
-                    console.log('✅ Service worker pronto');
-
-                    // STEP 4: Ottieni chiave pubblica dal server
-                    console.log('🔑 Ottenendo chiave pubblica dal server...');
-                    const keyResponse = await fetch('/api/vapid-public-key');
-
-                    if (!keyResponse.ok) {
-                        console.log('❌ Server Web Push non configurato');
-                        return { success: false, reason: 'Server non configurato' };
-                    }
-
-                    const keyData = await keyResponse.json();
-                    const publicKey = keyData.publicKey;
-
-                    console.log('🔑 Chiave pubblica ricevuta:', publicKey.substring(0, 30) + '...');
-
-                    // STEP 5: Rimuovi subscription esistenti
-                    try {
-                        console.log('🗑️ Controllando subscription esistenti...');
-                        const existingSubscription = await registration.pushManager.getSubscription();
-
-                        if (existingSubscription) {
-                            console.log('🗑️ Rimuovendo subscription locale esistente...');
-                            await existingSubscription.unsubscribe();
-                            console.log('✅ Subscription locale rimossa');
-                        } else {
-                            console.log('ℹ️ Nessuna subscription locale esistente');
-                        }
-                    } catch (unsubError) {
-                        console.log('⚠️ Errore rimozione subscription locale:', unsubError.message);
-                        // Continua comunque
-                    }
-
-                    // STEP 6: Crea nuova subscription
-                    console.log('🆕 Creando nuova subscription push...');
-                    const subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(publicKey)
-                    });
-
-                    console.log('✅ Nuova subscription creata con successo');
-
-                    // STEP 7: Invia subscription al server
-                    console.log('📤 Inviando subscription al server...');
-                    const subscribeResponse = await fetch('/api/subscribe-notifications', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            subscription: subscription,
-                            partecipanteId: playerData.id
-                        })
-                    });
-
-                    if (!subscribeResponse.ok) {
-                        const error = await subscribeResponse.json();
-                        console.error('❌ Errore registrazione subscription server:', error);
-                        return { success: false, reason: 'Errore server: ' + error.error };
-                    }
-
-                    const result = await subscribeResponse.json();
-                    console.log('✅ Subscription registrata sul server:', result);
-
-                    // STEP 8: Test notifica immediata
-                    try {
-                        console.log('🧪 Inviando notifica di test...');
-                        const testNotification = new Notification('FantaGTS', {
-                            body: 'Notifiche push attivate con successo! 🎾',
-                            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-                            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-                            vibrate: [100, 50, 100],
-                            requireInteraction: false,
-                            silent: false
-                        });
-
-                        // Chiudi automaticamente la notifica di test dopo 3 secondi
-                        setTimeout(() => {
-                            try {
-                                testNotification.close();
-                            } catch (e) {
-                                // Ignora errori di chiusura
-                            }
-                        }, 3000);
-
-                        console.log('✅ Notifica di test inviata');
-                    } catch (testNotifError) {
-                        console.log('⚠️ Impossibile inviare notifica di test:', testNotifError.message);
-                        // Non è un errore critico
-                    }
-
-                    console.log('🎉 Setup notifiche push completato con successo!');
-                    return {
-                        success: true,
-                        message: 'Notifiche push configurate correttamente',
-                        subscriptionCount: result.saved || 1
-                    };
-
-                } catch (error) {
-                    console.error('❌ ERRORE CRITICO setup notifiche:', error);
-
-                    // Prova a mostrare un alert con l'errore specifico
-                    try {
-                        mostraMessaggio(`❌ Errore configurazione notifiche: ${error.message}. Le notifiche non funzioneranno, ma puoi comunque usare l'app.`, 'error');
-                    } catch (alertError) {
-                        console.error('Impossibile mostrare alert errore');
-                    }
-
-                    return {
-                        success: false,
-                        reason: 'Errore critico: ' + error.message,
-                        error: error
-                    };
-                }
-            }
-
-            // Utility per convertire VAPID key
-            function urlBase64ToUint8Array(base64String) {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding)
-                    .replace(/-/g, '+')
-                    .replace(/_/g, '/');
-
-                const rawData = window.atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-
-                for (let i = 0; i < rawData.length; ++i) {
-                    outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-            }
-
-            function showGameArea() {
-                document.getElementById('registration-area').style.display = 'none';
-                document.getElementById('game-area').style.display = 'block';
-                showWaitingPhase();
-            }
-
-            function showWaitingPhase() {
-                document.getElementById('waiting-phase').style.display = 'block';
-                document.getElementById('bidding-phase').style.display = 'none';
-            }
-
-            function showBiddingPhase(data) {
-                console.log('🎮 showBiddingPhase chiamata con:', data);
-
-                // NUOVO: Verifica se questo partecipante dovrebbe ancora partecipare
-                if (data.partecipantiInAttesa && !data.partecipantiInAttesa.includes(playerData.id)) {
-                    console.log('⚠️ Questo partecipante ha già vinto - non mostrare asta');
-                    showWaitingPhase();
-                    return;
-                }
-
-                // FORZA reset di tutte le sezioni
-                document.getElementById('waiting-phase').style.display = 'none';
-                document.getElementById('bidding-phase').style.display = 'block';
-
-                if (data && data.round) {
-                    document.getElementById('currentRound').textContent = data.round;
-
-                    // NUOVO: Verifica che i slots esistano
-                    if (data.slots && Array.isArray(data.slots)) {
-                        console.log('📋 Caricando giocatori per round:', data.round, 'Slots:', data.slots.length);
-                        loadAvailablePlayers(data.slots);
-                    } else {
-                        console.log('⚠️ Nessun slot fornito, caricando dal server...');
-                        // Fallback: carica slots dal server
-                        loadSlotsForActiveRound(data.round);
-                    }
-                }
-
-                // Scroll automatico - ora più aggressivo
-                setTimeout(() => {
-                    const biddingSection = document.getElementById('bidding-phase');
-                    if (biddingSection) {
-                        // Scroll immediato in cima alla pagina
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'auto' // Cambiato da 'smooth' a 'auto' per essere istantaneo
-                        });
-
-                        console.log('📱 Scroll istantaneo alla sezione asta completato');
-                    }
-                }, 100); // Ridotto delay
-            }
-
-            function updateCreditsDisplay() {
-                document.getElementById('creditsDisplay').textContent = playerData.credits;
-                document.getElementById('playerCredits').textContent = playerData.credits;
-            }
-
-            function showBiddingPhase(data) {
-                document.getElementById('waiting-phase').style.display = 'none';
-                document.getElementById('bidding-phase').style.display = 'block';
-
-                if (data && data.round) {
-                    document.getElementById('currentRound').textContent = data.round;
-                    loadAvailablePlayers(data.slots || []);
-                }
-
-                // NUOVO: Scroll automatico alla sezione asta
-                setTimeout(() => {
-                    const biddingSection = document.getElementById('bidding-phase');
-                    if (biddingSection) {
-                        biddingSection.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-
-                        // Assicurati che sia visibile
-                        window.scrollTo({
-                            top: biddingSection.offsetTop - 10,
-                            behavior: 'smooth'
-                        });
-
-                        console.log('📱 Scroll automatico alla sezione asta completato');
-
-                        // AGGIUNTO: Animazione visiva per attirare attenzione
-                        biddingSection.style.animation = 'pulse 0.5s ease-in-out 3 alternate';
-
-                        // Rimuovi animazione dopo 3 secondi
-                        setTimeout(() => {
-                            biddingSection.style.animation = '';
-                        }, 3000);
-                    }
-                }, 500);
-            }
-
-            function loadAvailablePlayers(slots) {
-                console.log('🎯 loadAvailablePlayers chiamata con:', slots);
-
-                const grid = document.getElementById('playersGrid');
-                if (!grid) {
-                    console.error('❌ playersGrid non trovato!');
-                    return;
-                }
-
-                // PULISCI completamente la griglia
-                grid.innerHTML = '';
-
-                // NUOVO: Verifica che slots sia un array valido e filtri solo quelli disponibili
-                let players = [];
-
-                if (slots && Array.isArray(slots) && slots.length > 0) {
-                    // FILTRA solo i giocatori ancora disponibili (non già acquistati)
-                    players = slots.filter(slot => {
-                        // Verifica che il giocatore non sia già stato acquistato da qualcuno
-                        return slot.giocatore_attuale && slot.giocatore_attuale.trim() !== '';
-                    });
-
-                    console.log(`✅ Usando slots filtrati: ${players.length} disponibili su ${slots.length} totali`);
-                } else {
-                    // Fallback con dati di esempio
-                    console.log('⚠️ Slots non validi, usando fallback');
-                    players = [
-                        { id: 'LOADING_1', giocatore_attuale: 'Caricamento...', colore: 'grigio' },
-                        { id: 'LOADING_2', giocatore_attuale: 'Attendere...', colore: 'grigio' }
-                    ];
-                }
-
-                console.log('📋 Creando cards per', players.length, 'giocatori disponibili');
-
-                if (players.length === 0) {
-                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #f59e0b;">Nessun giocatore disponibile</div>';
-                    return;
-                }
-
-                players.forEach((player, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'player-card';
-                    card.dataset.playerId = player.id;
-
-                    card.innerHTML = `
-                    <div class="team-color-dot" style="background-color: ${getTeamColor(player.colore)}"></div>
-                    <div class="player-name">${player.giocatore_attuale || 'N/A'}</div>
-                    <div style="font-size: 0.8em; opacity: 0.8;">Squadra ${player.colore}</div>
-                `;
-
-                    // NUOVO: Aggiungi listener solo se non è un placeholder
-                    if (!player.id.startsWith('LOADING_')) {
-                        card.addEventListener('click', () => selectPlayer(player));
-                    } else {
-                        card.style.opacity = '0.6';
-                        card.style.cursor = 'not-allowed';
-                    }
-
-                    grid.appendChild(card);
-
-                    // Log per debug
-                    console.log(`➕ Aggiunta card ${index + 1}: ${player.giocatore_attuale} (${player.colore})`);
-                });
-
-                console.log('✅ Griglia giocatori aggiornata:', grid.children.length, 'cards create');
-
-                // NUOVO: Forza re-render della griglia
-                grid.style.display = 'none';
-                setTimeout(() => {
-                    grid.style.display = 'grid';
-                }, 50);
-            }
-
-            function selectPlayer(player) {
-                console.log('🎯 Giocatore selezionato:', player);
-
-                // NUOVO: Verifica che non sia già stata fatta un'offerta
-                const confirmBtn = document.getElementById('confirmBidBtn');
-                if (confirmBtn.textContent.includes('✅') || confirmBtn.textContent.includes('Confermata')) {
-                    console.log('❌ Offerta già confermata, selezione bloccata');
-                    return;
-                }
-
-                // Reset selezione precedente
-                document.querySelectorAll('.player-card').forEach(card => {
-                    card.classList.remove('selected');
-                    card.style.border = '';
-                    card.style.backgroundColor = '';
-                });
-
-                // Seleziona nuovo giocatore
-                const selectedCard = document.querySelector(`[data-player-id="${player.id}"]`);
-                if (selectedCard) {
-                    selectedCard.classList.add('selected');
-                    selectedCard.style.border = '3px solid #4299e1';
-                    selectedCard.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                }
-
-                // Mostra sezione puntata
-                document.getElementById('bidSection').style.display = 'block';
-                document.getElementById('selectedPlayerInfo').innerHTML = `
-                <strong>Selezionato: ${player.giocatore_attuale || player.name}</strong><br>
-                <small>Squadra ${player.colore}</small>
-            `;
-
-                // Reset campo importo e pulsante
-                document.getElementById('bidAmount').value = '';
-                document.getElementById('confirmBidBtn').disabled = true;
-                document.getElementById('confirmBidBtn').textContent = 'Conferma Puntata';
-                document.getElementById('confirmBidBtn').style.background = '#f56565';
-
-                updateCreditsDisplay();
-                updateBidButton();
-
-                console.log('✅ Selezione giocatore completata');
-            }
-
-            function updateBidButton() {
-                const button = document.getElementById('confirmBidBtn');
-                const amount = parseInt(document.getElementById('bidAmount').value) || 0;
-                const hasValidBid = amount > 0 && amount <= playerData.credits;
-                const hasSelection = document.querySelector('.player-card.selected') !== null;
-
-                button.disabled = !(hasSelection && hasValidBid);
-
-                if (hasSelection && hasValidBid) {
-                    const playerName = document.querySelector('.player-card.selected .player-name').textContent;
-                    button.textContent = `Punta ${amount} su ${playerName}`;
-                } else {
-                    button.textContent = 'Conferma Puntata';
-                }
-            }
-
-            async function confirmBid() {
-                const amount = parseInt(document.getElementById('bidAmount').value);
-                const selectedCard = document.querySelector('.player-card.selected');
-
-                if (!selectedCard || !amount || amount <= 0) {
-                    alert('Seleziona un giocatore e inserisci un importo valido!');
-                    return;
-                }
-
-                const playerId = selectedCard.dataset.playerId;
-                const playerName = selectedCard.querySelector('.player-name').textContent;
-
-                const conferma = await confermaPersonalizzata(`Stai per puntare<br><br><strong>${amount} crediti</strong><br><br>su <strong>${playerName}</strong>`);
-
-                if (!conferma) {
-                    return;
-                }
-
-                if (socket && socket.connected) {
-                    socket.emit('place_bid', {
-                        round: document.getElementById('currentRound').textContent,
-                        slot: playerId,
-                        importo: amount
-                    });
-                }
-
-                const button = document.getElementById('confirmBidBtn');
-                button.disabled = true;
-                button.textContent = '⏳ Invio in corso...';
-                button.style.background = '#ed8936';
-            }
-
-            function updateOffersStatus(data) {
-                const statusEl = document.getElementById('offersStatus');
-                const messageEl = document.getElementById('offersMessage');
-
-                if (data.mancano > 0) {
-                    statusEl.textContent = `${data.offerteRicevute}/${data.partecipantiConnessi}`;
-                    statusEl.style.color = '#f59e0b';
-                    messageEl.textContent = `Mancano ${data.mancano} offerte per proseguire`;
-                } else {
-                    statusEl.textContent = '✅ Tutti hanno offerto!';
-                    statusEl.style.color = '#10b981';
-                    messageEl.textContent = 'Elaborazione risultati in corso...';
-                }
-            }
-
-            function resetBiddingInterface() {
-                console.log('🔄 Resettando interfaccia aste...');
-
-                // 1. Reset campo importo
-                const bidAmount = document.getElementById('bidAmount');
-                if (bidAmount) {
-                    bidAmount.disabled = false;
-                    bidAmount.value = '';
-                    bidAmount.placeholder = 'Inserisci quanto vuoi puntare';
-                }
-
-                // 2. Reset cards giocatori
-                document.querySelectorAll('.player-card').forEach(card => {
-                    card.style.pointerEvents = 'auto';
-                    card.style.opacity = '1';
-                    card.classList.remove('selected');
-                    card.style.border = '';
-                    card.style.backgroundColor = '';
-                });
-
-                // 3. Reset pulsante conferma
-                const confirmBtn = document.getElementById('confirmBidBtn');
-                if (confirmBtn) {
-                    confirmBtn.disabled = true;
-                    confirmBtn.textContent = 'Conferma Puntata';
-                    confirmBtn.style.background = '#f56565';
-                    confirmBtn.style.cursor = 'not-allowed';
-                }
-
-                // 4. Reset sezione selezione
-                const bidSection = document.getElementById('bidSection');
-                if (bidSection) {
-                    bidSection.style.display = 'none';
-                }
-
-                // 5. Reset info giocatore selezionato
-                const selectedInfo = document.getElementById('selectedPlayerInfo');
-                if (selectedInfo) {
-                    selectedInfo.innerHTML = '<strong>Nessun giocatore selezionato</strong>';
-                }
-
-                // 6. Forza aggiornamento crediti
-                updateCreditsDisplay();
-
-                console.log('✅ Interfaccia aste resettata completamente');
-            }
-
-            function showResultsPhase(data) {
-                mostraMessaggio('🎉 Round terminato!', 'success');
-                showWaitingPhase();
-            }
-
-            // Carica slots per round attivo
-            async function loadSlotsForActiveRound(round) {
-                try {
-                    console.log(`🎯 Caricando slots per round attivo: ${round}`);
-
-                    const response = await fetch(`/api/slots-round/${round}`);
-                    if (response.ok) {
-                        const slots = await response.json();
-                        console.log(`✅ Slots caricati per ${round}:`, slots);
-                        loadAvailablePlayers(slots);
-                    } else {
-                        console.log(`⚠️ Impossibile caricare slots per ${round}`);
-                        // Carica slots di default
-                        loadAvailablePlayers([]);
-                    }
-                } catch (error) {
-                    console.error('❌ Errore caricamento slots round attivo:', error);
-                    loadAvailablePlayers([]);
-                }
-            }
-
-            async function loadPlayerTeam() {
-                try {
-                    console.log('🔄 Caricando squadra per:', playerData.name);
-
-                    const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
-                    if (!response.ok) {
-                        console.log('Squadra non ancora formata o endpoint non disponibile');
-                        resetTeamUI();
-                        return;
-                    }
-
-                    const data = await response.json();
-                    const squadra = data.squadra || data; // Compatibilità con vecchia API
-
-                    // Aggiorna crediti se disponibili
-                    if (data.crediti) {
-                        playerData.credits = data.crediti;
-                        updateCreditsDisplay();
-                    }
-                    console.log('✅ Squadra caricata:', squadra);
-
-                    // Reset della UI prima di popolare
-                    resetTeamUI();
-
-                    // Popola la squadra
-                    squadra.forEach(giocatore => {
-                        const [posizione] = giocatore.slot_id.split('_');
-                        const slotElement = document.querySelector(`[data-position="${posizione}"]`);
-
-                        if (slotElement) {
-                            slotElement.classList.remove('empty');
-                            slotElement.classList.add('filled');
-
-                            const teamColor = getTeamColor(giocatore.colore);
-                            const textColor = getTextColorForTeam(giocatore.colore);
-
-                            slotElement.innerHTML = `
-                            <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                            <span style="color: ${textColor} !important;">${giocatore.giocatore_attuale}</span><br>
-                            <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${giocatore.colore}</small>
-                        `;
-
-                            slotElement.style.borderColor = teamColor;
-                            slotElement.style.borderWidth = '4px';
-                            slotElement.style.borderStyle = 'solid';
-
-                            if (teamColor.startsWith('#')) {
-                                slotElement.style.backgroundColor = teamColor + '80';
-                            } else {
-                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                            }
-                        }
-                    });
-
-                    // Aggiorna contatori
-                    const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
-                    document.getElementById('teamCount').textContent = slotsRiempiti;
-
-                    // Calcola punti totali se disponibili
-                    const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
-                    document.getElementById('teamPoints').textContent = puntiTotali;
-
-                    console.log(`✅ Squadra visualizzata: ${slotsRiempiti} giocatori, ${puntiTotali} punti`);
-
-                } catch (error) {
-                    console.error('❌ Errore caricamento squadra:', error);
-                    resetTeamUI();
-                }
-            }
-
-            function resetTeamUI() {
-                document.querySelectorAll('.team-slot').forEach(slot => {
-                    slot.classList.remove('filled');
-                    slot.classList.add('empty');
-                    slot.style.borderColor = '#4a5568';
-                    slot.style.backgroundColor = 'rgba(74, 85, 104, 0.3)';
-
-                    const position = slot.dataset.position;
-                    slot.innerHTML = `<strong>${position}</strong><br>-`;
-                });
-
-                document.getElementById('teamCount').textContent = '0';
-                document.getElementById('teamPoints').textContent = '0';
-            }
-
-            function updateMyTeamFromResults(round, risultati) {
-                console.log('🔄 Aggiornando squadra da risultati:', { round, risultati, playerName: playerData.name });
-
-                // CORREZIONE: Verifica che risultati esista ed è un array
-                if (!risultati || !Array.isArray(risultati)) {
-                    console.log('⚠️ Risultati non validi:', risultati);
-                    return;
-                }
-
-                // NUOVO: Cerca anche per ID partecipante oltre che per nome
-                const mieiAcquisti = risultati.filter(r => {
-                    return r.nome === playerData.name ||
-                        r.partecipante === playerData.id ||
-                        r.partecipante_nome === playerData.name;
-                });
-
-                console.log('🎯 I miei acquisti trovati:', mieiAcquisti);
-
-                if (mieiAcquisti.length === 0) {
-                    console.log('❌ Nessun acquisto trovato per questo giocatore');
-                    return;
-                }
-
-                mieiAcquisti.forEach(acquisto => {
-                    console.log('💎 Processando acquisto:', acquisto);
-
-                    const slotId = acquisto.slot || acquisto.slot_id;
-                    const [posizione, coloreSquadra] = slotId.split('_');
-                    const slotElement = document.querySelector(`[data-position="${posizione}"]`);
-
-                    if (slotElement) {
-                        console.log(`✅ Aggiornando slot ${posizione} con ${slotId}`);
-
-                        slotElement.classList.remove('empty');
-                        slotElement.classList.add('filled');
-
-                        // NUOVO: Aggiorna subito con i dati disponibili
-                        const teamColor = getTeamColor(coloreSquadra.toLowerCase());
-                        const textColor = getTextColorForTeam(coloreSquadra.toLowerCase());
-
-                        // Se abbiamo il nome del giocatore direttamente dai risultati
-                        if (acquisto.giocatore_attuale || acquisto.nomeGiocatore) {
-                            const nomeGiocatore = acquisto.giocatore_attuale || acquisto.nomeGiocatore;
-                            const costoFinale = acquisto.costo_finale || acquisto.costoFinale || 0;
-
-                            slotElement.innerHTML = `
-                            <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                            <span style="color: ${textColor} !important;">${nomeGiocatore}</span><br>
-                            <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${coloreSquadra.toLowerCase()} - ${costoFinale}€</small>
-                        `;
-
-                            slotElement.style.borderColor = teamColor;
-                            slotElement.style.borderWidth = '4px';
-                            slotElement.style.borderStyle = 'solid';
-
-                            if (teamColor.startsWith('#')) {
-                                slotElement.style.backgroundColor = teamColor + '80';
-                            } else {
-                                slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                            }
-
-                            console.log(`✅ Slot ${posizione} aggiornato immediatamente`);
-                        } else {
-                            // Fallback: carica info dal server
-                            fetch(`/api/slot-info/${slotId}`)
-                                .then(response => response.json())
-                                .then(slotInfo => {
-                                    const teamColor = getTeamColor(slotInfo.colore);
-                                    const textColor = getTextColorForTeam(slotInfo.colore);
-
-                                    slotElement.innerHTML = `
-                                    <strong style="color: ${textColor} !important;">${posizione}</strong><br>
-                                    <span style="color: ${textColor} !important;">${slotInfo.giocatore_attuale}</span><br>
-                                    <small style="opacity: 0.8; color: ${textColor} !important;">Squadra: ${slotInfo.colore} - ${acquisto.costo_finale || 0}€</small>
-                                `;
-
-                                    slotElement.style.borderColor = teamColor;
-                                    slotElement.style.borderWidth = '4px';
-                                    slotElement.style.borderStyle = 'solid';
-
-                                    if (teamColor.startsWith('#')) {
-                                        slotElement.style.backgroundColor = teamColor + '80';
-                                    } else {
-                                        slotElement.style.backgroundColor = teamColor.replace('hsl', 'hsla').replace(')', ', 0.5)');
-                                    }
-
-                                    console.log(`✅ Slot ${posizione} aggiornato da server`);
-                                })
-                                .catch((error) => {
-                                    console.error('❌ Errore fetch slot-info:', error);
-                                    // Aggiornamento base senza dettagli
-                                    slotElement.innerHTML = `<strong>${posizione}</strong><br>Giocatore<br><small>${acquisto.costo_finale || 0}€</small>`;
-                                    slotElement.style.borderColor = teamColor;
-                                    slotElement.style.borderWidth = '4px';
-                                    slotElement.style.borderStyle = 'solid';
-                                    slotElement.style.backgroundColor = teamColor + '80';
-                                });
-                        }
-                    } else {
-                        console.error(`❌ Slot element non trovato per posizione: ${posizione}`);
-                    }
-                });
-
-                // NUOVO: Aggiorna contatori
-                setTimeout(() => {
-                    const slotsRiempiti = document.querySelectorAll('.team-slot.filled').length;
-                    document.getElementById('teamCount').textContent = slotsRiempiti;
-                    console.log(`📊 Contatori aggiornati: ${slotsRiempiti} giocatori`);
-                }, 500);
-            }
-
-            function getTeamColor(nomeColore) {
-                const colori = {
-                    'rosso': '#ef4444', 'rossa': '#ef4444',
-                    'blu': '#3b82f6', 'azzurro': '#06b6d4', 'azzurra': '#06b6d4',
-                    'verde': '#10b981', 'giallo': '#f59e0b', 'gialla': '#f59e0b',
-                    'viola': '#8b5cf6', 'arancione': '#f97316', 'rosa': '#ec4899',
-                    'marrone': '#92400e', 'nero': '#374151', 'nera': '#374151',
-                    'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
-                    'grigio': '#6b7280', 'grigia': '#6b7280',
-                    'lime': '#84cc16', 'indaco': '#6366f1', 'fucsia': '#d946ef',
-                    'smeraldo': '#10b981', 'royal': '#1e40af', 'ciano': '#06b6d4',
-                    'bordeaux': '#7c2d12', 'crema': '#fef3c7', 'lilla': '#c4b5fd',
-                    'celeste': '#06b6d4', 'cielo': '#06b6d4',
-                    'oro': '#eab308', 'dorato': '#eab308', 'dorata': '#eab308',
-                    'argento': '#9ca3af', 'beige': '#d6d3d1', 'lavanda': '#c4b5fd'
-                };
-
-                const coloreLowerCase = nomeColore.toLowerCase().trim();
-
-                if (colori[coloreLowerCase]) {
-                    return colori[coloreLowerCase];
-                }
-
-                return generaColoreHash(nomeColore);
-            }
-
-            function getTextColorForTeam(nomeColore) {
-                const coloriChiari = [
-                    'bianco', 'bianca', 'crema', 'giallo', 'gialla',
-                    'lime', 'oro', 'dorato', 'dorata', 'argento', 'beige'
-                ];
-
-                const coloreLowerCase = nomeColore.toLowerCase().trim();
-
-                const isColoreChiaro = coloriChiari.some(colore =>
-                    coloreLowerCase.includes(colore) || colore.includes(coloreLowerCase)
-                );
-
-                return isColoreChiaro ? '#1a202c' : '#ffffff';
-            }
-
-            function generaColoreHash(str) {
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    const char = str.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash;
-                }
-
-                const hue = Math.abs(hash) % 360;
-                const saturation = 65 + (Math.abs(hash) % 35);
-                const lightness = 45 + (Math.abs(hash) % 20);
-
-                return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-            }
-
-            async function logout() {
-                const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
-
-                if (conferma) {
-                    clearSavedSession();
-                    playerData = {
-                        registered: false,
-                        name: '',
-                        id: '',
-                        credits: 2000,
-                        notificationsEnabled: false
-                    };
-
-                    if (socket && socket.connected) {
-                        socket.disconnect();
-                    }
-
-                    location.reload();
-                }
-            }
-
-            // Event listeners
-            document.getElementById('bidAmount').addEventListener('input', updateBidButton);
-            const playerNameField = document.getElementById('playerName');
-            if (playerNameField) {
-                playerNameField.focus();
-            }
+            checkExistingSession();
 
             console.log('✅ FantaGTS Client inizializzato correttamente');
         });
-    </script>
 
+        // ========================================
+        // CONTROLLA SESSIONE ESISTENTE
+        // ========================================
+        async function checkExistingSession() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
+                const registrationTime = localStorage.getItem(STORAGE_KEYS.REGISTRATION_TIME);
+
+                if (!savedData || !registrationTime) {
+                    return;
+                }
+
+                const now = new Date().getTime();
+                const savedTime = parseInt(registrationTime);
+                const maxAge = 24 * 60 * 60 * 1000;
+
+                if (now - savedTime > maxAge) {
+                    clearSavedSession();
+                    return;
+                }
+
+                const parsedData = JSON.parse(savedData);
+
+                const response = await fetch('/api/partecipanti');
+                if (!response.ok) return;
+
+                const partecipanti = await response.json();
+                const partecipanteEsistente = partecipanti.find(p => p.id === parsedData.id);
+
+                if (partecipanteEsistente) {
+                    playerData = {
+                        registered: true,
+                        name: parsedData.name,
+                        id: parsedData.id,
+                        credits: partecipanteEsistente.crediti,
+                        notificationsEnabled: parsedData.notificationsEnabled || false
+                    };
+
+                    document.getElementById('currentPlayer').textContent = playerData.name;
+                    document.getElementById('playerCredits').textContent = playerData.credits;
+                    showGameArea();
+                    registerSocketWhenReady();
+                    await loadPlayerTeam();
+
+                    console.log('✅ Sessione ripristinata per:', playerData.name);
+                } else {
+                    clearSavedSession();
+                }
+            } catch (error) {
+                console.error('Errore ripristino sessione:', error);
+                clearSavedSession();
+            }
+        }
+    </script>
 </body>
 </html>
