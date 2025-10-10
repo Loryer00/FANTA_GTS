@@ -736,38 +736,63 @@
 
             // Gestione mascheramento PIN
             document.querySelectorAll('input[data-pin-field="true"]').forEach(input => {
-                let actualValue = ''; // Valore reale del PIN
+                // Inizializza
+                input.dataset.realPin = '';
 
                 input.addEventListener('input', function (e) {
-                    const cursorPosition = this.selectionStart;
-                    let inputValue = this.value;
+                    let currentDisplay = this.value;
+                    let currentReal = this.dataset.realPin || '';
 
-                    // Rimuovi tutto ciò che non è un numero
-                    let numbers = inputValue.replace(/[^\d]/g, '');
+                    console.log('📝 Input:', { display: currentDisplay, real: currentReal });
 
-                    // Limita a 4 cifre
-                    numbers = numbers.slice(0, 4);
+                    // Rimuovi i pallini e conta quanti caratteri ci sono
+                    let newCharsCount = currentDisplay.length;
+                    let oldCharsCount = currentReal.length;
 
-                    // Salva il valore reale
-                    actualValue = numbers;
+                    // Se l'utente sta cancellando
+                    if (newCharsCount < oldCharsCount) {
+                        currentReal = currentReal.slice(0, newCharsCount);
+                        this.dataset.realPin = currentReal;
+                        this.value = '•'.repeat(currentReal.length);
+                        console.log('🗑️ Cancellato, nuovo PIN:', currentReal);
+                        return;
+                    }
 
-                    // Mostra pallini
-                    this.value = '•'.repeat(numbers.length);
+                    // Se l'utente sta aggiungendo
+                    if (newCharsCount > oldCharsCount) {
+                        // Estrai solo l'ultimo carattere digitato (che non è un pallino)
+                        let lastChar = currentDisplay[currentDisplay.length - 1];
 
-                    // Ripristina posizione cursore
-                    this.setSelectionRange(cursorPosition, cursorPosition);
-
-                    // Salva il PIN reale in un attributo data
-                    this.dataset.realPin = actualValue;
+                        // Se è un numero, aggiungilo
+                        if (/\d/.test(lastChar)) {
+                            currentReal += lastChar;
+                            currentReal = currentReal.slice(0, 4); // Max 4 cifre
+                            this.dataset.realPin = currentReal;
+                            this.value = '•'.repeat(currentReal.length);
+                            console.log('✅ Aggiunto, nuovo PIN:', currentReal);
+                        } else {
+                            // Non è un numero, ripristina lo stato precedente
+                            this.value = '•'.repeat(currentReal.length);
+                            console.log('❌ Carattere non valido ignorato');
+                        }
+                    }
                 });
 
                 input.addEventListener('keydown', function (e) {
-                    // Permetti solo numeri, backspace, delete, tab e frecce
-                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-                    const isNumber = (e.key >= '0' && e.key <= '9');
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'];
+                    const isNumber = /^\d$/.test(e.key);
+                    const currentLength = (this.dataset.realPin || '').length;
 
+                    // Blocca se non è un numero o un tasto permesso
                     if (!isNumber && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
                         e.preventDefault();
+                        return;
+                    }
+
+                    // Blocca se abbiamo già 4 cifre e sta cercando di aggiungerne altre
+                    if (isNumber && currentLength >= 4) {
+                        e.preventDefault();
+                        return;
                     }
                 });
 
@@ -776,19 +801,19 @@
                     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
                     const numbers = pastedText.replace(/[^\d]/g, '').slice(0, 4);
 
-                    actualValue = numbers;
+                    this.dataset.realPin = numbers;
                     this.value = '•'.repeat(numbers.length);
-                    this.dataset.realPin = actualValue;
+                    console.log('📋 Incollato:', numbers);
+                });
+
+                // Fix: Previeni il focus sul campo per evitare l'errore
+                input.addEventListener('focus', function () {
+                    // Assicurati che il valore visualizzato sia sempre pallini
+                    if (this.dataset.realPin) {
+                        this.value = '•'.repeat(this.dataset.realPin.length);
+                    }
                 });
             });
-
-            checkExistingSession();
-            try {
-                initializeSocket();
-            } catch (error) {
-                console.log('Socket.io non disponibile, modalità base attiva');
-            }
-        });
 
         // Controlla sessione esistente
         async function checkExistingSession() {
@@ -2310,7 +2335,10 @@
 
         // Event listeners
         document.getElementById('bidAmount').addEventListener('input', updateBidButton);
-        document.getElementById('playerName').focus();
+            const playerNameField = document.getElementById('playerName');
+            if (playerNameField) {
+                playerNameField.focus();
+            }
 
         console.log('✅ FantaGTS Client inizializzato correttamente');
     </script>
