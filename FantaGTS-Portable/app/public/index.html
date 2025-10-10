@@ -452,7 +452,7 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="password" id="loginPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
+                    <input type="text" id="loginPin" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="checkbox-group">
@@ -484,12 +484,12 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="password" id="registerPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
+                    <input type="text" id="registerPin" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="input-group">
                     <label>Conferma PIN:</label>
-                    <input type="password" id="registerPinConfirm" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="off">
+                    <input type="text" id="registerPinConfirm" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="checkbox-group">
@@ -706,21 +706,17 @@
                 nicknameInput.addEventListener('input', async (e) => {
                     const nickname = e.target.value.trim();
                     const checkElement = document.getElementById('nicknameCheck');
-
                     if (nickname.length < 2) {
                         checkElement.textContent = '';
                         return;
                     }
-
                     try {
                         const response = await fetch('/api/check-nickname', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ nickname: nickname })
                         });
-
                         const result = await response.json();
-
                         if (result.available) {
                             checkElement.style.color = '#48bb78';
                             checkElement.textContent = '✅ Nickname disponibile';
@@ -733,6 +729,58 @@
                     }
                 });
             }
+
+            // ========================================
+            // MASCHERAMENTO AUTOMATICO CAMPI PIN
+            // ========================================
+
+            // Gestione mascheramento PIN
+            document.querySelectorAll('input[data-pin-field="true"]').forEach(input => {
+                let actualValue = ''; // Valore reale del PIN
+
+                input.addEventListener('input', function (e) {
+                    const cursorPosition = this.selectionStart;
+                    let inputValue = this.value;
+
+                    // Rimuovi tutto ciò che non è un numero
+                    let numbers = inputValue.replace(/[^\d]/g, '');
+
+                    // Limita a 4 cifre
+                    numbers = numbers.slice(0, 4);
+
+                    // Salva il valore reale
+                    actualValue = numbers;
+
+                    // Mostra pallini
+                    this.value = '•'.repeat(numbers.length);
+
+                    // Ripristina posizione cursore
+                    this.setSelectionRange(cursorPosition, cursorPosition);
+
+                    // Salva il PIN reale in un attributo data
+                    this.dataset.realPin = actualValue;
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    // Permetti solo numeri, backspace, delete, tab e frecce
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                    const isNumber = (e.key >= '0' && e.key <= '9');
+
+                    if (!isNumber && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                    }
+                });
+
+                input.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^\d]/g, '').slice(0, 4);
+
+                    actualValue = numbers;
+                    this.value = '•'.repeat(numbers.length);
+                    this.dataset.realPin = actualValue;
+                });
+            });
 
             checkExistingSession();
             try {
@@ -1290,12 +1338,18 @@
             document.getElementById('welcome-screen').style.display = 'block';
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('register-screen').style.display = 'none';
+
             // Reset campi
             document.getElementById('loginNickname').value = '';
-            document.getElementById('loginPin').value = '';
             document.getElementById('registerNickname').value = '';
-            document.getElementById('registerPin').value = '';
-            document.getElementById('registerPinConfirm').value = '';
+
+            // Reset campi PIN (incluso il valore reale)
+            const pinFields = ['loginPin', 'registerPin', 'registerPinConfirm'];
+            pinFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.value = '';
+                field.dataset.realPin = '';
+            });
         }
 
         // ========================================
@@ -1304,7 +1358,8 @@
 
         async function effettuaLogin() {
             const nickname = document.getElementById('loginNickname').value.trim();
-            const pin = document.getElementById('loginPin').value.trim();
+            const pinField = document.getElementById('loginPin');
+            const pin = (pinField.dataset.realPin || pinField.value.replace(/[^\d]/g, '')).trim();
             const notificationsEnabled = document.getElementById('loginNotifications').checked;
 
             if (!nickname || !pin) {
@@ -1379,8 +1434,10 @@
 
         async function effettuaRegistrazione() {
             const nickname = document.getElementById('registerNickname').value.trim();
-            const pin = document.getElementById('registerPin').value.trim();
-            const pinConfirm = document.getElementById('registerPinConfirm').value.trim();
+            const pinField = document.getElementById('registerPin');
+            const pinConfirmField = document.getElementById('registerPinConfirm');
+            const pin = (pinField.dataset.realPin || pinField.value.replace(/[^\d]/g, '')).trim();
+            const pinConfirm = (pinConfirmField.dataset.realPin || pinConfirmField.value.replace(/[^\d]/g, '')).trim();
             const notificationsEnabled = document.getElementById('registerNotifications').checked;
 
             // Validazione
