@@ -71,6 +71,62 @@
                 border: 1px solid rgba(255,255,255,0.2);
             }
 
+            .input-group input[type="password"] {
+                width: 100%;
+                padding: 15px;
+                border: none;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.95);
+                color: #2d3748;
+                font-size: 1.1em;
+                text-align: center;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+
+        /* Messaggio di notifica personalizzato */
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10000;
+            min-width: 300px;
+            max-width: 90%;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .custom-alert.success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .custom-alert.error {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        }
+
+        .custom-alert.warning {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
         .checkbox-group {
             background: rgba(255,255,255,0.1);
             padding: 15px;
@@ -552,6 +608,78 @@
             credits: 2000,
             notificationsEnabled: false
         };
+
+        // ========================================
+        // SISTEMA NOTIFICHE PERSONALIZZATE
+        // ========================================
+
+        function mostraMessaggio(testo, tipo = 'info') {
+            // Rimuovi messaggi precedenti
+            const esistente = document.querySelector('.custom-alert');
+            if (esistente) {
+                esistente.remove();
+            }
+
+            // Crea nuovo messaggio
+            const alert = document.createElement('div');
+            alert.className = `custom-alert ${tipo}`;
+            alert.textContent = testo;
+
+            document.body.appendChild(alert);
+
+            // Rimuovi dopo 4 secondi
+            setTimeout(() => {
+                alert.style.animation = 'slideDown 0.3s ease reverse';
+                setTimeout(() => alert.remove(), 300);
+            }, 4000);
+        }
+
+        function confermaPersonalizzata(testo) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        `;
+
+                const box = document.createElement('div');
+                box.style.cssText = `
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
+
+                box.innerHTML = `
+            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" 
+                    style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                ✅ Sì
+            </button>
+            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" 
+                    style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                ❌ No
+            </button>
+        `;
+
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+
+                window.confirmResolve = resolve;
+            });
+        }
 
         // SISTEMA DI PERSISTENZA CONNESSIONE
         let connectionPersistence = {
@@ -1127,7 +1255,7 @@
                 console.log('🔔 NOTIFICA RICEVUTA:', data);
 
                 // Alert immediato
-                alert(`🔔 ${data.title}\n\n${data.body}`);
+                mostraMessaggio(`🔔 ${data.title}\n\n${data.body}`, 'info');
 
                 // Notifica browser se supportata (solo se NON siamo in service worker context)
                 if ('Notification' in window && Notification.permission === 'granted' && !navigator.serviceWorker) {
@@ -1178,12 +1306,12 @@
             const notificationsEnabled = document.getElementById('loginNotifications').checked;
 
             if (!nickname || !pin) {
-                alert('⚠️ Inserisci nickname e PIN!');
+                mostraMessaggio('⚠️ Inserisci nickname e PIN!', 'warning');
                 return;
             }
 
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-                alert('⚠️ Il PIN deve essere di 4 cifre numeriche!');
+                mostraMessaggio('⚠️ Il PIN deve essere di 4 cifre numeriche!', 'warning');
                 return;
             }
 
@@ -1220,25 +1348,25 @@
                     }
                     registerSocketWhenReady();
 
-                    alert(`✅ Bentornato, ${result.player.nome}! Hai ${result.player.crediti} crediti disponibili.`);
+                    mostraMessaggio(`✅ Bentornato, ${result.player.nome}! Hai ${result.player.crediti} crediti disponibili.`, 'success');
 
                 } else {
                     // Login fallito
                     if (result.error === 'Utente non trovato') {
-                        const vuoleRegistrarsi = confirm(`❌ Nickname "${nickname}" non trovato.\n\nVuoi registrarti?`);
+                        const vuoleRegistrarsi = await confermaPersonalizzata(`❌ Nickname "${nickname}" non trovato.<br><br>Vuoi registrarti?`);
                         if (vuoleRegistrarsi) {
                             mostraRegistrazione();
                             document.getElementById('registerNickname').value = nickname;
                         }
                     } else if (result.error === 'PIN errato') {
-                        alert('❌ PIN non corretto! Riprova.');
+                        mostraMessaggio('❌ PIN non corretto! Riprova.', 'error');
                     } else {
-                        alert('❌ Errore: ' + result.error);
+                        mostraMessaggio('❌ Errore: ' + result.error, 'error');
                     }
                 }
 
             } catch (error) {
-                alert('❌ Errore di connessione al server');
+                mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore login:', error);
             }
         }
@@ -1255,22 +1383,22 @@
 
             // Validazione
             if (!nickname || !pin || !pinConfirm) {
-                alert('⚠️ Compila tutti i campi!');
+                mostraMessaggio('⚠️ Compila tutti i campi!', 'warning');
                 return;
             }
 
             if (nickname.length < 2) {
-                alert('⚠️ Il nickname deve essere di almeno 2 caratteri!');
+                mostraMessaggio('⚠️ Il nickname deve essere di almeno 2 caratteri!', 'warning');
                 return;
             }
 
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-                alert('⚠️ Il PIN deve essere di 4 cifre numeriche!');
+                mostraMessaggio('⚠️ Il PIN deve essere di 4 cifre numeriche!', 'error');
                 return;
             }
 
             if (pin !== pinConfirm) {
-                alert('⚠️ I PIN non coincidono!');
+                mostraMessaggio('⚠️ I PIN non coincidono!', 'error');
                 return;
             }
 
@@ -1311,19 +1439,19 @@
                         await setupPushNotifications();
                     }
 
-                    alert(`✅ Registrazione completata! Benvenuto nel FantaGTS, ${result.player.nome}! Hai ricevuto ${result.player.crediti} crediti iniziali.`);
+                    mostraMessaggio(`✅ Registrazione completata! Benvenuto nel FantaGTS, ${result.player.nome}! Hai ricevuto ${result.player.crediti} crediti iniziali.`, 'success');
 
                 } else {
                     // Registrazione fallita
                     if (result.error === 'Nickname già in uso') {
-                        alert('❌ Questo nickname è già utilizzato! Scegline un altro.');
+                        mostraMessaggio('❌ Questo nickname è già utilizzato! Scegline un altro.', 'error');
                     } else {
-                        alert('❌ Errore registrazione: ' + result.error);
+                        mostraMessaggio('❌ Errore registrazione: ' + result.error, 'error');
                     }
                 }
 
             } catch (error) {
-                alert('❌ Errore di connessione al server');
+                mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore registrazione:', error);
             }
         }
