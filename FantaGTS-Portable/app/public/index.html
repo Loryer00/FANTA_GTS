@@ -368,29 +368,87 @@
             <p>Fantasy Tennis del Circolo</p>
         </div>
 
-        <!-- Registrazione -->
+        <!-- Area Registrazione/Login -->
         <div id="registration-area">
-            <div class="registration-form">
-                <h2>👋 Benvenuto!</h2>
-                <p style="margin-bottom: 25px;">Inserisci il tuo nome per partecipare al FantaGTS</p>
+            <!-- Schermata iniziale: Accedi o Registrati -->
+            <div id="welcome-screen" class="registration-form">
+                <h2>👋 Benvenuto nel FantaGTS!</h2>
+                <p style="margin-bottom: 30px;">Fantasy Tennis del Circolo</p>
+
+                <button class="btn btn-primary" onclick="mostraLogin()" style="margin-bottom: 15px; width: 100%;">
+                    🔐 ACCEDI
+                </button>
+
+                <button class="btn btn-secondary" onclick="mostraRegistrazione()" style="width: 100%;">
+                    ✍️ Registrati
+                </button>
+            </div>
+
+            <!-- Schermata LOGIN -->
+            <div id="login-screen" class="registration-form" style="display: none;">
+                <h2>🔐 Accedi</h2>
+                <p style="margin-bottom: 25px;">Inserisci le tue credenziali</p>
 
                 <div class="input-group">
-                    <label>Il tuo nome:</label>
-                    <input type="text" id="playerName" placeholder="Lorenzo Buselli" autocomplete="name">
+                    <label>Nickname:</label>
+                    <input type="text" id="loginNickname" placeholder="Il tuo nickname" autocomplete="username">
+                </div>
+
+                <div class="input-group">
+                    <label>PIN (4 cifre):</label>
+                    <input type="password" id="loginPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="current-password">
                 </div>
 
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" id="enableNotifications" checked>
-                        <span>Desidero ricevere notifiche push</span>
+                        <input type="checkbox" id="loginNotifications" checked>
+                        <span>Abilita notifiche push</span>
                     </label>
-                    <div class="checkbox-description">
-                        Riceverai notifiche per aste, risultati e aggiornamenti classifica
-                    </div>
                 </div>
 
-                <button class="btn btn-primary" onclick="registerPlayer()">
-                    🚀 Entra nel FantaGTS
+                <button class="btn btn-primary" onclick="effettuaLogin()" style="margin-bottom: 10px; width: 100%;">
+                    ✅ Accedi
+                </button>
+
+                <button class="btn btn-secondary" onclick="tornaWelcome()" style="width: 100%;">
+                    ← Indietro
+                </button>
+            </div>
+
+            <!-- Schermata REGISTRAZIONE -->
+            <div id="register-screen" class="registration-form" style="display: none;">
+                <h2>✍️ Registrazione</h2>
+                <p style="margin-bottom: 25px;">Crea il tuo account</p>
+
+                <div class="input-group">
+                    <label>Nickname:</label>
+                    <input type="text" id="registerNickname" placeholder="Scegli un nickname univoco" autocomplete="username">
+                    <small id="nicknameCheck" style="display: block; margin-top: 5px; font-size: 0.85em;"></small>
+                </div>
+
+                <div class="input-group">
+                    <label>PIN (4 cifre):</label>
+                    <input type="password" id="registerPin" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="new-password">
+                </div>
+
+                <div class="input-group">
+                    <label>Conferma PIN:</label>
+                    <input type="password" id="registerPinConfirm" placeholder="****" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" autocomplete="new-password">
+                </div>
+
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="registerNotifications" checked>
+                        <span>Abilita notifiche push</span>
+                    </label>
+                </div>
+
+                <button class="btn btn-primary" onclick="effettuaRegistrazione()" style="margin-bottom: 10px; width: 100%;">
+                    🚀 Registrati
+                </button>
+
+                <button class="btn btn-secondary" onclick="tornaWelcome()" style="width: 100%;">
+                    ← Indietro
                 </button>
             </div>
         </div>
@@ -513,6 +571,41 @@
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
             console.log('FantaGTS Client caricato');
+
+            // Controllo disponibilità nickname in tempo reale
+            const nicknameInput = document.getElementById('registerNickname');
+            if (nicknameInput) {
+                nicknameInput.addEventListener('input', async (e) => {
+                    const nickname = e.target.value.trim();
+                    const checkElement = document.getElementById('nicknameCheck');
+
+                    if (nickname.length < 2) {
+                        checkElement.textContent = '';
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/check-nickname', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nickname: nickname })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.available) {
+                            checkElement.style.color = '#48bb78';
+                            checkElement.textContent = '✅ Nickname disponibile';
+                        } else {
+                            checkElement.style.color = '#f56565';
+                            checkElement.textContent = '❌ Nickname già in uso';
+                        }
+                    } catch (error) {
+                        checkElement.textContent = '';
+                    }
+                });
+            }
+
             checkExistingSession();
             try {
                 initializeSocket();
@@ -1047,45 +1140,77 @@
             });
         }
 
-        // Registrazione giocatore con controllo duplicati
-        async function registerPlayer() {
-            const name = document.getElementById('playerName').value.trim();
-            const notificationsEnabled = document.getElementById('enableNotifications').checked;
+        // ========================================
+        // NAVIGAZIONE TRA SCHERMATE
+        // ========================================
 
-            if (!name) {
-                alert('Inserisci il tuo nome!');
+        function mostraLogin() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('register-screen').style.display = 'none';
+        }
+
+        function mostraRegistrazione() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('register-screen').style.display = 'block';
+        }
+
+        function tornaWelcome() {
+            document.getElementById('welcome-screen').style.display = 'block';
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('register-screen').style.display = 'none';
+            // Reset campi
+            document.getElementById('loginNickname').value = '';
+            document.getElementById('loginPin').value = '';
+            document.getElementById('registerNickname').value = '';
+            document.getElementById('registerPin').value = '';
+            document.getElementById('registerPinConfirm').value = '';
+        }
+
+        // ========================================
+        // LOGIN
+        // ========================================
+
+        async function effettuaLogin() {
+            const nickname = document.getElementById('loginNickname').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+            const notificationsEnabled = document.getElementById('loginNotifications').checked;
+
+            if (!nickname || !pin) {
+                alert('⚠️ Inserisci nickname e PIN!');
                 return;
             }
 
-            if (name.length < 2) {
-                alert('Il nome deve essere di almeno 2 caratteri!');
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                alert('⚠️ Il PIN deve essere di 4 cifre numeriche!');
                 return;
             }
 
             try {
-                // PRIMO: Controlla se esiste già
-                console.log('🔍 Verificando disponibilità del nome...');
-                const checkResponse = await fetch('/api/check-player', {
+                console.log('🔐 Tentativo di login per:', nickname);
+
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome: name })
+                    body: JSON.stringify({ nickname: nickname, pin: pin })
                 });
 
-                const checkResult = await checkResponse.json();
+                const result = await response.json();
 
-                if (checkResult.exists && checkResult.inCurrentSession) {
-                    // Giocatore già registrato - effettua login
-                    console.log('✅ Login giocatore esistente');
+                if (response.ok && result.success) {
+                    // Login riuscito
+                    console.log('✅ Login effettuato con successo!');
 
                     playerData.registered = true;
-                    playerData.name = checkResult.player.nome;
-                    playerData.id = checkResult.player.id;
-                    playerData.credits = checkResult.player.crediti;
+                    playerData.name = result.player.nome;
+                    playerData.id = result.player.id;
+                    playerData.credits = result.player.crediti;
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     saveSession();
-                    document.getElementById('currentPlayer').textContent = name;
-                    document.getElementById('playerCredits').textContent = checkResult.player.crediti;
+                    document.getElementById('currentPlayer').textContent = result.player.nome;
+                    document.getElementById('playerCredits').textContent = result.player.crediti;
                     updateCreditsDisplay();
                     showGameArea();
                     await loadPlayerTeam();
@@ -1095,55 +1220,108 @@
                     }
                     registerSocketWhenReady();
 
-                    console.log(`✅ Bentornato, ${name}! Hai ${checkResult.player.crediti} crediti disponibili.`);
+                    alert(`✅ Bentornato, ${result.player.nome}! Hai ${result.player.crediti} crediti disponibili.`);
 
-                } else if (checkResult.nameOccupied) {
-                    // Nome già utilizzato in altra sessione
-                    const suggestions = checkResult.suggestions.join(', ');
-                    alert(`❌ ${checkResult.message}\n\nSuggerimenti:\n${suggestions}`);
-                    return;
-
-                } else if (checkResult.nameAvailable) {
-                    // Nome disponibile - procedi con registrazione
-                    console.log('🆕 Registrando nuovo giocatore...');
-
-                    const response = await fetch('/api/partecipanti', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome: name, crediti: 2000 })
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        playerData.registered = true;
-                        playerData.name = result.nome;
-                        playerData.id = result.id;
-                        playerData.credits = result.crediti;
-                        playerData.notificationsEnabled = notificationsEnabled;
-
-                        saveSession();
-                        registerSocketWhenReady();
-                        document.getElementById('currentPlayer').textContent = name;
-                        document.getElementById('playerCredits').textContent = result.crediti;
-                        updateCreditsDisplay();
-                        showGameArea();
-                        await loadPlayerTeam();
-
-                        if (notificationsEnabled) {
-                            await setupPushNotifications();
+                } else {
+                    // Login fallito
+                    if (result.error === 'Utente non trovato') {
+                        const vuoleRegistrarsi = confirm(`❌ Nickname "${nickname}" non trovato.\n\nVuoi registrarti?`);
+                        if (vuoleRegistrarsi) {
+                            mostraRegistrazione();
+                            document.getElementById('registerNickname').value = nickname;
                         }
-
-                        console.log(`✅ Registrato con successo! Benvenuto nel FantaGTS, ${name}! Hai ricevuto ${result.crediti} crediti iniziali.`);
-
+                    } else if (result.error === 'PIN errato') {
+                        alert('❌ PIN non corretto! Riprova.');
                     } else {
-                        const error = await response.json();
-                        if (error.action === 'name_change_required') {
-                            alert(`❌ ${error.error}\n\nSuggerimenti: ${error.suggestions?.join(', ') || 'Modifica il nome'}`);
-                        } else {
-                            alert('❌ Errore registrazione: ' + error.error);
-                        }
+                        alert('❌ Errore: ' + result.error);
                     }
                 }
+
+            } catch (error) {
+                alert('❌ Errore di connessione al server');
+                console.error('Errore login:', error);
+            }
+        }
+
+        // ========================================
+        // REGISTRAZIONE
+        // ========================================
+
+        async function effettuaRegistrazione() {
+            const nickname = document.getElementById('registerNickname').value.trim();
+            const pin = document.getElementById('registerPin').value.trim();
+            const pinConfirm = document.getElementById('registerPinConfirm').value.trim();
+            const notificationsEnabled = document.getElementById('registerNotifications').checked;
+
+            // Validazione
+            if (!nickname || !pin || !pinConfirm) {
+                alert('⚠️ Compila tutti i campi!');
+                return;
+            }
+
+            if (nickname.length < 2) {
+                alert('⚠️ Il nickname deve essere di almeno 2 caratteri!');
+                return;
+            }
+
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                alert('⚠️ Il PIN deve essere di 4 cifre numeriche!');
+                return;
+            }
+
+            if (pin !== pinConfirm) {
+                alert('⚠️ I PIN non coincidono!');
+                return;
+            }
+
+            try {
+                console.log('📝 Tentativo di registrazione per:', nickname);
+
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nickname: nickname,
+                        pin: pin,
+                        crediti: 2000
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Registrazione riuscita
+                    console.log('✅ Registrazione completata!');
+
+                    playerData.registered = true;
+                    playerData.name = result.player.nome;
+                    playerData.id = result.player.id;
+                    playerData.credits = result.player.crediti;
+                    playerData.notificationsEnabled = notificationsEnabled;
+
+                    saveSession();
+                    registerSocketWhenReady();
+                    document.getElementById('currentPlayer').textContent = result.player.nome;
+                    document.getElementById('playerCredits').textContent = result.player.crediti;
+                    updateCreditsDisplay();
+                    showGameArea();
+                    await loadPlayerTeam();
+
+                    if (notificationsEnabled) {
+                        await setupPushNotifications();
+                    }
+
+                    alert(`✅ Registrazione completata! Benvenuto nel FantaGTS, ${result.player.nome}! Hai ricevuto ${result.player.crediti} crediti iniziali.`);
+
+                } else {
+                    // Registrazione fallita
+                    if (result.error === 'Nickname già in uso') {
+                        alert('❌ Questo nickname è già utilizzato! Scegline un altro.');
+                    } else {
+                        alert('❌ Errore registrazione: ' + result.error);
+                    }
+                }
+
             } catch (error) {
                 alert('❌ Errore di connessione al server');
                 console.error('Errore registrazione:', error);

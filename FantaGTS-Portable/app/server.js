@@ -1308,6 +1308,173 @@ app.post('/api/partecipanti', async (req, res) => {
         }
     }
 });
+
+// ========================================
+// API: Controlla disponibilità nickname
+// ========================================
+app.post('/api/check-nickname', async (req, res) => {
+    try {
+        const { nickname } = req.body;
+
+        if (!nickname) {
+            return res.status(400).json({ error: 'Nickname richiesto' });
+        }
+
+        const nicknameClean = nickname.trim();
+
+        const result = await db.query(`
+            SELECT id FROM partecipanti_fantagts 
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
+            AND attivo = true 
+            AND sessione_id = $2
+        `, [nicknameClean, sessioneCorrente]);
+
+        res.json({
+            available: result.rows.length === 0,
+            nickname: nicknameClean
+        });
+
+    } catch (error) {
+        console.error('❌ Errore controllo nickname:', error);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ========================================
+// API: Login con nickname e PIN
+// ========================================
+app.post('/api/login', async (req, res) => {
+    try {
+        const { nickname, pin } = req.body;
+
+        if (!nickname || !pin) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nickname e PIN richiesti'
+            });
+        }
+
+        const nicknameClean = nickname.trim();
+        const pinClean = pin.trim();
+
+        // Controllo nel database
+        const result = await db.query(`
+            SELECT id, nome, crediti, pin 
+            FROM partecipanti_fantagts 
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
+            AND attivo = true 
+            AND sessione_id = $2
+        `, [nicknameClean, sessioneCorrente]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Utente non trovato'
+            });
+        }
+
+        const player = result.rows[0];
+
+        // Verifica PIN
+        if (player.pin !== pinClean) {
+            return res.status(401).json({
+                success: false,
+                error: 'PIN errato'
+            });
+        }
+
+        // Login riuscito
+        console.log(`✅ Login effettuato: ${player.nome}`);
+
+        res.json({
+            success: true,
+            player: {
+                id: player.id,
+                nome: player.nome,
+                crediti: player.crediti
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Errore login:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Errore server'
+        });
+    }
+});
+
+// ========================================
+// API: Registrazione con nickname e PIN
+// ========================================
+app.post('/api/register', async (req, res) => {
+    try {
+        const { nickname, pin, crediti = 2000 } = req.body;
+
+        if (!nickname || !pin) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nickname e PIN richiesti'
+            });
+        }
+
+        const nicknameClean = nickname.trim();
+        const pinClean = pin.trim();
+
+        // Validazione PIN
+        if (!/^\d{4}$/.test(pinClean)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Il PIN deve essere di 4 cifre numeriche'
+            });
+        }
+
+        // Controllo unicità nickname
+        const duplicateCheck = await db.query(`
+            SELECT id FROM partecipanti_fantagts 
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
+            AND attivo = true 
+            AND sessione_id = $2
+        `, [nicknameClean, sessioneCorrente]);
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(409).json({
+                success: false,
+                error: 'Nickname già in uso'
+            });
+        }
+
+        // Crea ID univoco
+        const id = nicknameClean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
+        // Inserisci nel database
+        await db.query(`
+            INSERT INTO partecipanti_fantagts 
+            (id, nome, crediti, pin, sessione_id) 
+            VALUES ($1, $2, $3, $4, $5)
+        `, [id, nicknameClean, crediti, pinClean, sessioneCorrente]);
+
+        console.log(`✅ Nuovo partecipante registrato: ${nicknameClean} (ID: ${id})`);
+
+        res.json({
+            success: true,
+            player: {
+                id: id,
+                nome: nicknameClean,
+                crediti: crediti
+            },
+            message: 'Registrazione completata con successo'
+        });
+
+    } catch (error) {
+        console.error('❌ Errore registrazione:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Errore server'
+        });
+    }
+});
+
 // API per creare nuova sessione
 app.post('/api/nuova-sessione', async (req, res) => {
     try {
@@ -2125,6 +2292,7 @@ app.post('/api/check-player', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 // API debug per subscription
 app.get('/api/debug-subscriptions', async (req, res) => {
     try {
