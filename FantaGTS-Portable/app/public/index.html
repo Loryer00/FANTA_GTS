@@ -985,12 +985,21 @@
             }
 
             try {
-                socket.emit('place_bid', {
-                    playerId: playerData.id,
-                    playerName: playerData.name,
-                    slotId: window.selectedPlayer.id,
-                    amount: bidAmount
+                const currentRound = document.getElementById('currentRound').textContent.replace('Round ', '').trim();
+
+                console.log('📤 Invio puntata:', {
+                    round: currentRound,
+                    slot: window.selectedPlayer.id,
+                    importo: bidAmount
                 });
+
+                socket.emit('place_bid', {
+                    round: currentRound,              // ✅ Nome corretto
+                    slot: window.selectedPlayer.id,   // ✅ Nome corretto  
+                    importo: bidAmount                // ✅ Nome corretto
+                });
+
+                console.log('✅ Puntata inviata al server');
 
                 const confirmBtn = document.getElementById('confirmBidBtn');
                 confirmBtn.disabled = true;
