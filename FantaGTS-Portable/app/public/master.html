@@ -619,15 +619,6 @@
             </div>
         </div>
 
-
-        <!-- Risultati Ultimo Round -->
-        <div class="section">
-            <h2>🏆 Risultati Ultimo Round</h2>
-            <div id="lastRoundResults">
-                <p>Nessun round completato ancora</p>
-            </div>
-        </div>
-
         <!-- Squadre in Formazione -->
         <div class="section">
             <h2>👥 Squadre in Formazione</h2>
@@ -1096,9 +1087,6 @@
 
                 // Reset display round attivo
                 document.getElementById('currentRoundInfo').style.display = 'none';
-
-                // Reset risultati ultimo round
-                document.getElementById('lastRoundResults').innerHTML = '<p>Nessun round completato ancora</p>';
 
                 // Reset statistiche
                 document.getElementById('statRounds').textContent = '0';
@@ -2079,12 +2067,7 @@
             html += '</tbody></table>';
             content.innerHTML = html;
             modal.style.display = 'flex';
-
-            // Aggiorna anche la sezione risultati nella pagina
-            document.getElementById('lastRoundResults').innerHTML = `
-                    <h3>Round ${round} - ${risultati ? risultati.length : 0} assegnazioni</h3>
-                    ${html}
-                `;
+           
         }
 
         async function mostraClassifica() {
