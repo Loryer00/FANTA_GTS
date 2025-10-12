@@ -442,17 +442,17 @@
             font-weight: bold;
         }
 
-            .incontro-mini.completato {
-                background: rgba(72, 187, 120, 0.2);
-                color: #48bb78;
-                border: 1px solid rgba(72, 187, 120, 0.3);
-            }
+        .incontro-mini.completato {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
 
-            .incontro-mini.attesa {
-                background: rgba(237, 137, 54, 0.2);
-                color: #ed8936;
-                border: 1px solid rgba(237, 137, 54, 0.3);
-            }
+        .incontro-mini.attesa {
+            background: rgba(255, 255, 255, 0.08);
+            color: #a0aec0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
 
         /* CSS per layout compatto */
         .scontro-divider-header-compatto {
@@ -529,17 +529,17 @@
             font-weight: bold;
         }
 
-            .stato-badge-compatto.completato {
-                background: rgba(72, 187, 120, 0.2);
-                color: #48bb78;
-                border: 1px solid rgba(72, 187, 120, 0.3);
-            }
+        .stato-badge-compatto.completato {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
 
-            .stato-badge-compatto.attesa {
-                background: rgba(237, 137, 54, 0.2);
-                color: #ed8936;
-                border: 1px solid rgba(237, 137, 54, 0.3);
-            }
+        .stato-badge-compatto.attesa {
+            background: rgba(255, 255, 255, 0.08);
+            color: #a0aec0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
 
         .giocatori-line {
             display: grid;
@@ -1961,9 +1961,9 @@
             <div class="incontri-mini-grid">
                 ${gruppo.incontri.map((incontro) => {
                     // Determina il colore di sfondo in base al vincitore
-                    let sfondoColore = 'rgba(71, 85, 105, 0.2)'; // Grigio scuro simile allo sfondo
-                    let bordoColore = 'rgba(71, 85, 105, 0.4)';
-                    let testoColore = '#64748b'; // Grigio tenue per il testo
+                    let sfondoColore = 'rgba(255, 255, 255, 0.08)';
+                    let bordoColore = 'rgba(255, 255, 255, 0.15)';
+                    let testoColore = '#a0aec0';
 
                     if (incontro.completato) {
                         // Usa i campi risultato dal database
@@ -2056,10 +2056,10 @@
 
             console.log(`🔄 Resettando overview per incontro ${incontroId}`);
 
-            // Ritorna ai colori arancioni (in attesa)
-            casella.style.background = 'rgba(237, 137, 54, 0.2)';
-            casella.style.borderColor = 'rgba(237, 137, 54, 0.3)';
-            casella.style.color = '#ed8936';
+            // Ritorna ai colori grigi neutri (in attesa)
+            casella.style.background = 'rgba(255, 255, 255, 0.08)';
+            casella.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            casella.style.color = '#a0aec0';
 
             console.log(`✅ Casella resettata a colore arancione`);
 
