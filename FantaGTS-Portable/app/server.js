@@ -3047,6 +3047,19 @@ io.on('connection', (socket) => {
                         }
                     });
 
+                    // 🆕 SE C'È UN'ASTA ATTIVA, invia anche asta_started al client appena connesso
+                    if (gameState.asteAttive && gameState.roundAttivo && gameState.partecipantiInAttesa.includes(data.partecipanteId)) {
+                        console.log(`📤 Invio asta_started al client appena riconnesso: ${data.nome}`);
+                        socket.emit('asta_started', {
+                            round: gameState.roundAttivo,
+                            astaNumero: gameState.astaCorrente,
+                            slots: gameState.slotsRimasti,
+                            partecipantiInAttesa: gameState.partecipantiInAttesa,
+                            sistema: 'multi-asta',
+                            slotsDisponibili: gameState.slotsRimasti.map(s => s.id)
+                        });
+                    }
+
                     io.emit('connessi_update', Array.from(gameState.connessi.values()));
                     console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
                     console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
