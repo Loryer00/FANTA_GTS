@@ -815,6 +815,54 @@
                 showBiddingPhase(data);
             });
 
+            socket.on('asta_started', (data) => {
+                console.log('🎪 Asta started:', data);
+                console.log('📊 Dati ricevuti:', {
+                    round: data.round,
+                    astaNumero: data.astaNumero,
+                    slots: data.slots,
+                    sistema: data.sistema
+                });
+
+                // Reset interfaccia per nuova asta
+                resetBiddingInterface();
+
+                // Mostra fase di puntata
+                document.getElementById('waiting-phase').style.display = 'none';
+                document.getElementById('bidding-phase').style.display = 'block';
+
+                // Aggiorna il round corrente con numero asta
+                const roundLabel = data.astaNumero && data.astaNumero > 1
+                    ? `${data.round} - Asta ${data.astaNumero}`
+                    : data.round;
+                document.getElementById('currentRound').textContent = `Round ${roundLabel}`;
+
+                // Carica i giocatori disponibili
+                if (data.slots && data.slots.length > 0) {
+                    loadAvailablePlayers(data.slots);
+                }
+            });
+
+            socket.on('reset_bid_state', (data) => {
+                console.log('🔄 Reset stato offerta per nuova asta:', data);
+                resetBiddingInterface();
+
+                // Riabilita interfaccia
+                const bidAmount = document.getElementById('bidAmount');
+                const confirmBtn = document.getElementById('confirmBidBtn');
+
+                if (bidAmount) {
+                    bidAmount.disabled = false;
+                    bidAmount.value = '';
+                }
+
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '✅ Conferma Puntata';
+                    confirmBtn.style.background = '';
+                }
+            });
+
             socket.on('crediti_aggiornati', (data) => {
                 playerData.credits = data.crediti;
                 updateCreditsDisplay();
