@@ -715,8 +715,11 @@
         // ========================================
         async function loadPlayerTeam() {
             try {
+                console.log('🔄 Caricamento squadra per:', playerData.id);
+
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
                 if (!response.ok) {
+                    console.log('⚠️ Squadra non ancora formata');
                     resetTeamUI();
                     return;
                 }
@@ -724,24 +727,93 @@
                 const data = await response.json();
                 const squadra = data.squadra || data;
 
-                if (data.crediti) {
+                console.log('✅ Squadra ricevuta:', squadra);
+
+                // Aggiorna crediti se presenti
+                if (data.crediti !== undefined) {
                     playerData.credits = data.crediti;
                     updateCreditsDisplay();
                 }
 
+                // Reset UI prima di popolare
                 resetTeamUI();
+
+                // Popola le card con i giocatori acquistati
                 squadra.forEach(giocatore => {
-                    const [posizione] = giocatore.slot_id.split('_');
+                    const posizione = giocatore.posizione;
                     const slot = document.querySelector(`[data-position="${posizione}"]`);
+
                     if (slot) {
+                        // Ottieni il colore della squadra
+                        const coloreSquadra = getTeamColor(giocatore.colore);
+
                         slot.classList.remove('empty');
                         slot.classList.add('filled');
-                        slot.innerHTML = `<strong>${posizione}</strong><br>${giocatore.nome_giocatore}<br><small>Squadra ${giocatore.colore_squadra}</small>`;
+                        slot.style.background = `linear-gradient(135deg, ${coloreSquadra}dd, ${coloreSquadra}99)`;
+                        slot.style.border = `2px solid ${coloreSquadra}`;
+                        slot.style.color = '#ffffff';
+                        slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
+
+                        slot.innerHTML = `
+                    <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
+                        ${posizione}
+                    </div>
+                    <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
+                        ${giocatore.giocatore_attuale}
+                    </div>
+                    <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
+                        Squadra ${giocatore.colore}
+                    </div>
+                    <div style="font-size: 0.8em; font-weight: bold; color: #ffd700;">
+                        💰 ${giocatore.costo_finale}€
+                    </div>
+                `;
+
+                        console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
                 });
+
             } catch (error) {
-                console.error('Errore caricamento squadra:', error);
+                console.error('❌ Errore caricamento squadra:', error);
+                resetTeamUI();
             }
+        }
+
+        // Funzione helper per ottenere i colori delle squadre
+        function getTeamColor(nomeColore) {
+            const colori = {
+                // Colori base
+                'rosso': '#ef4444',
+                'rossa': '#ef4444',
+                'blu': '#3b82f6',
+                'verde': '#10b981',
+                'giallo': '#f59e0b',
+                'gialla': '#f59e0b',
+                'viola': '#8b5cf6',
+                'arancione': '#f97316',
+                'rosa': '#ec4899',
+                'azzurro': '#06b6d4',
+                'azzurra': '#06b6d4',
+                'marrone': '#92400e',
+                'nero': '#374151',
+                'nera': '#374151',
+                'bianco': '#f3f4f6',
+                'bianca': '#f3f4f6',
+                'grigio': '#6b7280',
+                'grigia': '#6b7280',
+                'smeraldo': '#10b981',
+                'bordeaux': '#7c2d12',
+                'lime': '#84cc16',
+                'indaco': '#6366f1',
+                'fucsia': '#d946ef',
+                'ciano': '#06b6d4',
+                'royal': '#1e40af',
+                'crema': '#fef3c7',
+                'lilla': '#c4b5fd'
+            };
+
+            const coloreLower = (nomeColore || '').toLowerCase().trim();
+            return colori[coloreLower] || '#6b7280'; // grigio come fallback
         }
 
         // ========================================
