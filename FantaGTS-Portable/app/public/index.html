@@ -1367,21 +1367,39 @@
                     return;
                 }
 
+                // Carica dettagli per ogni incontro
+                const incontriConDettagli = await Promise.all(
+                    incontri.map(async (incontro) => {
+                        try {
+                            const dettagliResponse = await fetch(`/api/dettagli-incontro/${incontro.id}`);
+                            if (dettagliResponse.ok) {
+                                incontro.dettagli = await dettagliResponse.json();
+                            } else {
+                                incontro.dettagli = [];
+                            }
+                        } catch (error) {
+                            console.error('Errore caricamento dettagli incontro:', error);
+                            incontro.dettagli = [];
+                        }
+                        return incontro;
+                    })
+                );
+
                 // Raggruppa incontri per scontro tra squadre
-                const incontriRaggruppati = raggruppaIncontri(incontri, squadre);
+                const incontriRaggruppati = raggruppaIncontriConDettagli(incontriConDettagli, squadre);
 
                 // Genera HTML
                 let html = '<div class="incontri-overview">';
 
                 Object.keys(incontriRaggruppati).forEach(chiave => {
                     const gruppo = incontriRaggruppati[chiave];
-                    html += generaHtmlScontro(gruppo);
+                    html += generaHtmlScontroDettagliato(gruppo);
                 });
 
                 html += '</div>';
                 container.innerHTML = html;
 
-                console.log('✅ Incontri caricati:', incontri.length);
+                console.log('✅ Incontri caricati con dettagli:', incontri.length);
 
             } catch (error) {
                 console.error('❌ Errore caricamento incontri:', error);
@@ -1389,7 +1407,7 @@
             }
         }
 
-        function raggruppaIncontri(incontri, squadre) {
+        function raggruppaIncontriConDettagli(incontri, squadre) {
             const raggruppati = {};
 
             incontri.forEach(incontro => {
@@ -1414,7 +1432,7 @@
             return raggruppati;
         }
 
-        function generaHtmlScontro(gruppo) {
+        function generaHtmlScontroDettagliato(gruppo) {
             const totaleIncontri = gruppo.incontri.length;
             const completati = gruppo.incontri.filter(i => i.completato).length;
             const percentuale = totaleIncontri > 0 ? Math.round((completati / totaleIncontri) * 100) : 0;
@@ -1446,28 +1464,85 @@
             </div>
     `;
 
-            // Mostra dettaglio incontri
+            // Mostra dettaglio incontri con giocatori
             if (gruppo.incontri.length > 0) {
                 html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">';
 
                 gruppo.incontri.forEach(incontro => {
-                    const status = incontro.completato ? '✅' : '⏳';
-                    const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
-
-                    html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
-                    <div style="color: ${colore1};">${incontro.posizione1}</div>
-                    <div style="color: #a0aec0;">vs</div>
-                    <div style="color: ${colore2};">${incontro.posizione2}</div>
-                    <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
-                </div>
-            `;
+                    html += generaHtmlIncontroSingolo(incontro, gruppo.squadra1, gruppo.squadra2, colore1, colore2);
                 });
 
                 html += '</div>';
             }
 
             html += '</div>';
+
+            return html;
+        }
+
+        function generaHtmlIncontroSingolo(incontro, squadra1Obj, squadra2Obj, colore1, colore2) {
+            const status = incontro.completato ? '✅' : '⏳';
+            const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
+
+            // Ottieni i nomi dei giocatori dalle squadre
+            const pos1Lower = incontro.pos1.toLowerCase();
+            const pos2Lower = incontro.pos2.toLowerCase();
+
+            const giocatoriSquadra1 = {
+                pos1: squadra1Obj[pos1Lower] || 'N/A',
+                pos2: squadra1Obj[pos2Lower] || 'N/A'
+            };
+
+            const giocatoriSquadra2 = {
+                pos1: squadra2Obj[pos1Lower] || 'N/A',
+                pos2: squadra2Obj[pos2Lower] || 'N/A'
+            };
+
+            // Determina chi ha vinto (se l'incontro è completato)
+            let squadraVincente = null;
+            if (incontro.completato && incontro.dettagli && incontro.dettagli.length > 0) {
+                let vittorieSquadra1 = 0;
+                let vittorieSquadra2 = 0;
+
+                incontro.dettagli.forEach(dettaglio => {
+                    if (dettaglio.vincitore === 1) vittorieSquadra1++;
+                    else if (dettaglio.vincitore === 2) vittorieSquadra2++;
+                });
+
+                if (vittorieSquadra1 > vittorieSquadra2) squadraVincente = 1;
+                else if (vittorieSquadra2 > vittorieSquadra1) squadraVincente = 2;
+            }
+
+            const classeVincitore = squadraVincente === 1 ? 'vincitore-squadra1' :
+                squadraVincente === 2 ? 'vincitore-squadra2' : '';
+
+            let html = `
+        <div class="incontro-dettaglio ${classeVincitore}">
+            <div class="coppia-giocatori ${squadraVincente === 1 ? 'vincitore' : ''}" style="border-left: 3px solid ${colore1}; padding-left: 8px;">
+                <div class="giocatore-nome">
+                    <span class="posizione-label">${incontro.pos1}:</span> ${giocatoriSquadra1.pos1}
+                </div>
+                <div class="giocatore-nome">
+                    <span class="posizione-label">${incontro.pos2}:</span> ${giocatoriSquadra1.pos2}
+                </div>
+            </div>
+            
+            <div class="vs-separator">vs</div>
+            
+            <div class="coppia-giocatori ${squadraVincente === 2 ? 'vincitore' : ''}" style="border-right: 3px solid ${colore2}; padding-right: 8px;">
+                <div class="giocatore-nome">
+                    <span class="posizione-label">${incontro.pos1}:</span> ${giocatoriSquadra2.pos1}
+                </div>
+                <div class="giocatore-nome">
+                    <span class="posizione-label">${incontro.pos2}:</span> ${giocatoriSquadra2.pos2}
+                </div>
+            </div>
+            
+            <div class="status-incontro" style="color: ${statusColor};">
+                ${status}
+            </div>
+        </div>
+    `;
 
             return html;
         }
