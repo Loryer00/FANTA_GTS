@@ -815,6 +815,51 @@
                 showBiddingPhase(data);
             });
 
+            socket.on('asta_started', (data) => {
+                console.log('🎪 ASTA_STARTED RICEVUTO!', data);
+                console.log('📊 Dati:', {
+                    round: data.round,
+                    astaNumero: data.astaNumero,
+                    slots: data.slots?.length || 0,
+                    sistema: data.sistema
+                });
+
+                // Reset interfaccia
+                resetBiddingInterface();
+
+                // Nascondi fase attesa
+                const waitingPhase = document.getElementById('waiting-phase');
+                if (waitingPhase) {
+                    waitingPhase.style.display = 'none';
+                    console.log('✅ Nascosta waiting-phase');
+                }
+
+                // Mostra fase asta
+                const biddingPhase = document.getElementById('bidding-phase');
+                if (biddingPhase) {
+                    biddingPhase.style.display = 'block';
+                    console.log('✅ Mostrata bidding-phase');
+                }
+
+                // Aggiorna titolo round
+                const currentRoundEl = document.getElementById('currentRound');
+                if (currentRoundEl) {
+                    const roundLabel = data.astaNumero && data.astaNumero > 1
+                        ? `${data.round} - Asta ${data.astaNumero}`
+                        : data.round;
+                    currentRoundEl.textContent = `Round ${roundLabel}`;
+                    console.log('✅ Aggiornato titolo round:', roundLabel);
+                }
+
+                // Carica giocatori disponibili
+                if (data.slots && data.slots.length > 0) {
+                    console.log('📋 Caricamento giocatori:', data.slots.length);
+                    loadAvailablePlayers(data.slots);
+                } else {
+                    console.log('❌ Nessuno slot disponibile!');
+                }
+            });
+
             socket.on('crediti_aggiornati', (data) => {
                 playerData.credits = data.crediti;
                 updateCreditsDisplay();
