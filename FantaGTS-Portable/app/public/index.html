@@ -1311,7 +1311,7 @@
 
             try {
                 console.log('📅 Caricamento turni disponibili...');
-                const response = await fetch('/api/turni-configurazione');
+                const response = await fetch('/api/turni');
 
                 if (!response.ok) {
                     throw new Error('Errore caricamento turni');
