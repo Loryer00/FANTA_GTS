@@ -237,6 +237,254 @@
             gap: 15px;
             margin-top: 15px;
         }
+
+        /* ========== BOTTOM NAVIGATION ========== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.95);
+            border-top: 2px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 5px;
+            display: flex;
+            justify-content: space-around;
+            z-index: 1000;
+        }
+
+        .bottom-nav-btn {
+            flex: 1;
+            padding: 8px 5px;
+            border: none;
+            background: transparent;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            border-radius: 10px;
+        }
+
+            .bottom-nav-btn.active {
+                background: rgba(66, 153, 225, 0.2);
+                color: #4299e1;
+            }
+
+            .bottom-nav-btn .icon {
+                font-size: 1.5em;
+            }
+
+            .bottom-nav-btn .label {
+                font-size: 0.7em;
+                font-weight: bold;
+            }
+
+        /* Container per dare spazio alla bottom nav */
+        .content-with-bottom-nav {
+            padding-bottom: 80px;
+        }
+
+        /* ========== SEZIONI CONTENUTO ========== */
+        .content-section {
+            display: none;
+        }
+
+            .content-section.active {
+                display: block;
+            }
+
+        /* Sezione Classifica */
+        .classifica-table {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .classifica-row {
+            display: grid;
+            grid-template-columns: 50px 1fr 80px;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            align-items: center;
+        }
+
+            .classifica-row:last-child {
+                border-bottom: none;
+            }
+
+        .classifica-position {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4299e1;
+            text-align: center;
+        }
+
+            .classifica-position.first {
+                color: #ffd700;
+            }
+
+            .classifica-position.second {
+                color: #c0c0c0;
+            }
+
+            .classifica-position.third {
+                color: #cd7f32;
+            }
+
+        .classifica-name {
+            font-weight: bold;
+        }
+
+        .classifica-points {
+            text-align: right;
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        /* Sezione Altri Partecipanti */
+        .partecipanti-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .partecipante-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .partecipante-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4299e1;
+        }
+
+        .partecipante-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #4299e1;
+        }
+
+        .partecipante-stats {
+            display: flex;
+            gap: 10px;
+            font-size: 0.85em;
+        }
+
+        .partecipante-team-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .partecipante-slot {
+            background: rgba(72, 187, 120, 0.15);
+            border: 1px solid #48bb78;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        .partecipante-slot-empty {
+            background: rgba(74, 85, 104, 0.2);
+            border-color: #4a5568;
+            opacity: 0.5;
+        }
+
+        /* Sezione Incontri */
+        .incontri-selector {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .turni-select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.95);
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            color: #2d3748;
+        }
+
+        .incontri-overview {
+            background: rgba(66, 153, 225, 0.1);
+            border: 2px solid rgba(66, 153, 225, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .scontro-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .scontro-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .squadra-badge {
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        .vs-text {
+            font-weight: bold;
+            color: #f56565;
+            font-size: 0.9em;
+        }
+
+        .progress-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .progress-bar-mini {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill-mini {
+            height: 100%;
+            background: #4299e1;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill-mini.completed {
+            background: #48bb78;
+        }
     </style>
 </head>
 <body>
@@ -332,7 +580,7 @@
         </div>
 
         <!-- Area di gioco -->
-        <div id="game-area" style="display: none;">
+        <div id="game-area" style="display: none;" class="content-with-bottom-nav">
             <div class="user-info">
                 <div><strong id="currentPlayer">--</strong></div>
                 <div>💰 <span id="playerCredits">2000</span> crediti</div>
@@ -344,49 +592,108 @@
                 </button>
             </div>
 
-            <!-- Fase attesa -->
-            <div id="waiting-phase" class="section">
-                <h2>⏳ In Attesa</h2>
-                <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
-            </div>
+            <!-- SEZIONE 1: LA MIA SQUADRA -->
+            <div id="section-squadra" class="content-section active">
+                <!-- Fase attesa (SOLO durante asta) -->
+                <div id="waiting-phase" class="section" style="display: none;">
+                    <h2>⏳ In Attesa</h2>
+                    <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
+                </div>
 
-            <!-- Fase asta -->
-            <div id="bidding-phase" class="section" style="display: none;">
-                <h2 id="currentRound">Round M1</h2>
-                <div id="playersGrid" class="players-grid"></div>
+                <!-- Fase asta -->
+                <div id="bidding-phase" class="section" style="display: none;">
+                    <h2 id="currentRound">Round M1</h2>
+                    <div id="playersGrid" class="players-grid"></div>
 
-                <div id="bidSection" style="display: none; margin-top: 20px;">
-                    <div id="selectedPlayerInfo" style="margin-bottom: 15px; text-align: center;">
-                        <strong>Nessun giocatore selezionato</strong>
+                    <div id="bidSection" style="display: none; margin-top: 20px;">
+                        <div id="selectedPlayerInfo" style="margin-bottom: 15px; text-align: center;">
+                            <strong>Nessun giocatore selezionato</strong>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
+                            <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+                        </div>
+
+                        <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
+
+                        <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
+                            Conferma Puntata
+                        </button>
                     </div>
+                </div>
 
-                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-                        <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+                <!-- La mia squadra -->
+                <div class="section">
+                    <h2>🏆 La Mia Squadra</h2>
+                    <div class="team-slots" id="teamSlots">
+                        <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
                     </div>
-
-                    <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
-
-                    <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
-                        Conferma Puntata
-                    </button>
                 </div>
             </div>
 
-            <!-- La mia squadra -->
-            <div class="section">
-                <h2>🏆 La Mia Squadra</h2>
-                <div class="team-slots" id="teamSlots">
-                    <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
-                    <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
-                    <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
-                    <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
-                    <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
+            <!-- SEZIONE 2: CLASSIFICA -->
+            <div id="section-classifica" class="content-section">
+                <div class="section">
+                    <h2>📊 Classifica Generale</h2>
+                    <div id="classificaContainer">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento classifica...</p>
+                    </div>
                 </div>
+            </div>
+
+            <!-- SEZIONE 3: ALTRI PARTECIPANTI -->
+            <div id="section-altri" class="content-section">
+                <div class="section">
+                    <h2>👥 Altri Partecipanti</h2>
+                    <div id="altriPartecipantiContainer">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento partecipanti...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 4: INCONTRI -->
+            <div id="section-incontri" class="content-section">
+                <div class="section">
+                    <h2>⚽ Incontri</h2>
+                    <div class="incontri-selector">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e0;">Seleziona Turno:</label>
+                        <select id="turniSelect" class="turni-select" onchange="caricaIncontriTurno()">
+                            <option value="">-- Seleziona un turno --</option>
+                        </select>
+                    </div>
+                    <div id="incontriContainer">
+                        <p style="text-align: center; opacity: 0.7;">Seleziona un turno per visualizzare gli incontri</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM NAVIGATION -->
+            <div class="bottom-nav">
+                <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
+                    <span class="icon">🏆</span>
+                    <span class="label">Squadra</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('classifica')">
+                    <span class="icon">📊</span>
+                    <span class="label">Classifica</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('altri')">
+                    <span class="icon">👥</span>
+                    <span class="label">Altri</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('incontri')">
+                    <span class="icon">⚽</span>
+                    <span class="label">Incontri</span>
+                </button>
             </div>
         </div>
     </div>
