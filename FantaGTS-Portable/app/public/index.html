@@ -485,6 +485,120 @@
         .progress-fill-mini.completed {
             background: #48bb78;
         }
+
+        /* ========== SEZIONE INCONTRI - STILE OVERVIEW COMPATTO ========== */
+        .overview-compatto-container {
+            background: rgba(66, 153, 225, 0.1);
+            border: 2px solid rgba(66, 153, 225, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .overview-box-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .scontro-overview-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .scontro-header-mini {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .squadra-mini {
+            padding: 8px 15px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        .vs-mini {
+            font-weight: bold;
+            color: #f56565;
+            font-size: 1em;
+        }
+
+        .stats-line {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4299e1;
+            transition: width 0.3s ease;
+        }
+
+            .progress-fill.completed {
+                background: #48bb78;
+            }
+
+        .progress-text {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #4299e1;
+            min-width: 35px;
+            text-align: right;
+        }
+
+            .progress-text.completed {
+                color: #48bb78;
+            }
+
+        .incontri-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+            gap: 6px;
+        }
+
+        .incontro-mini {
+            padding: 8px 4px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.7em;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .incontro-mini.completato {
+            border: 2px solid;
+        }
+
+        .incontro-mini.attesa {
+            background: rgba(237, 137, 54, 0.2);
+            color: #ed8936;
+            border: 1px solid rgba(237, 137, 54, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -751,10 +865,10 @@
                 box.style.cssText = `background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); padding: 30px; border-radius: 15px; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);`;
 
                 box.innerHTML = `
-                        <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
-                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
-                    `;
+                            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
+                        `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
@@ -1062,19 +1176,19 @@
                         slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
 
                         slot.innerHTML = `
-                    <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
-                        ${posizione}
-                    </div>
-                    <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
-                        ${giocatore.giocatore_attuale}
-                    </div>
-                    <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
-                        Squadra ${giocatore.colore}
-                    </div>
-                    <div style="font-size: 0.8em; font-weight: bold; color: #ffd700;">
-                        💰 ${giocatore.costo_finale}€
-                    </div>
-                `;
+                        <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
+                            ${posizione}
+                        </div>
+                        <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
+                            ${giocatore.giocatore_attuale}
+                        </div>
+                        <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
+                            Squadra ${giocatore.colore}
+                        </div>
+                        <div style="font-size: 0.8em; font-weight: bold; color: #ffd700;">
+                            💰 ${giocatore.costo_finale}€
+                        </div>
+                    `;
 
                         console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
@@ -1162,19 +1276,19 @@
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
                     html += `
-                <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
-                    <div class="classifica-position ${positionClass}">
-                        ${medal} ${index + 1}°
+                    <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
+                        <div class="classifica-position ${positionClass}">
+                            ${medal} ${index + 1}°
+                        </div>
+                        <div class="classifica-name">
+                            ${partecipante.nome}
+                            ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
+                        </div>
+                        <div class="classifica-points">
+                            ${partecipante.punti_totali} pt
+                        </div>
                     </div>
-                    <div class="classifica-name">
-                        ${partecipante.nome}
-                        ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
-                    </div>
-                    <div class="classifica-points">
-                        ${partecipante.punti_totali} pt
-                    </div>
-                </div>
-            `;
+                `;
                 });
 
                 html += '</div>';
@@ -1247,16 +1361,16 @@
                 const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
 
                 let html = `
-            <div class="partecipante-card">
-                <div class="partecipante-header">
-                    <div class="partecipante-name">${partecipante.nome}</div>
-                    <div class="partecipante-stats">
-                        <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
-                        <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
+                <div class="partecipante-card">
+                    <div class="partecipante-header">
+                        <div class="partecipante-name">${partecipante.nome}</div>
+                        <div class="partecipante-stats">
+                            <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
+                            <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
+                        </div>
                     </div>
-                </div>
-                <div class="partecipante-team-grid">
-        `;
+                    <div class="partecipante-team-grid">
+            `;
 
                 // Mostra tutti gli slot (M1-M7, F1-F3)
                 const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
@@ -1267,39 +1381,39 @@
                     if (giocatore) {
                         const coloreSquadra = getTeamColor(giocatore.colore);
                         html += `
-                    <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
-                        <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                        <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                        <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
-                    </div>
-                `;
+                        <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
+                            <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                            <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
+                        </div>
+                    `;
                     } else {
                         html += `
-                    <div class="partecipante-slot partecipante-slot-empty">
-                        <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
-                        <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
-                    </div>
-                `;
+                        <div class="partecipante-slot partecipante-slot-empty">
+                            <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
+                            <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
+                        </div>
+                    `;
                     }
                 });
 
                 html += `
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
                 return html;
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadra partecipante:', error);
                 return `
-            <div class="partecipante-card">
-                <div class="partecipante-header">
-                    <div class="partecipante-name">${partecipante.nome}</div>
+                <div class="partecipante-card">
+                    <div class="partecipante-header">
+                        <div class="partecipante-name">${partecipante.nome}</div>
+                    </div>
+                    <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
                 </div>
-                <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
-            </div>
-        `;
+            `;
             }
         }
 
@@ -1367,39 +1481,14 @@
                     return;
                 }
 
-                // Carica dettagli per ogni incontro
-                const incontriConDettagli = await Promise.all(
-                    incontri.map(async (incontro) => {
-                        try {
-                            const dettagliResponse = await fetch(`/api/dettagli-incontro/${incontro.id}`);
-                            if (dettagliResponse.ok) {
-                                incontro.dettagli = await dettagliResponse.json();
-                            } else {
-                                incontro.dettagli = [];
-                            }
-                        } catch (error) {
-                            console.error('Errore caricamento dettagli incontro:', error);
-                            incontro.dettagli = [];
-                        }
-                        return incontro;
-                    })
-                );
-
                 // Raggruppa incontri per scontro tra squadre
-                const incontriRaggruppati = raggruppaIncontriConDettagli(incontriConDettagli, squadre);
+                const incontriRaggruppati = raggruppaIncontri(incontri, squadre);
 
-                // Genera HTML
-                let html = '<div class="incontri-overview">';
+                // Crea overview compatto
+                const overviewHtml = creaOverviewCompattoHtml(incontriRaggruppati);
+                container.innerHTML = overviewHtml;
 
-                Object.keys(incontriRaggruppati).forEach(chiave => {
-                    const gruppo = incontriRaggruppati[chiave];
-                    html += generaHtmlScontroDettagliato(gruppo);
-                });
-
-                html += '</div>';
-                container.innerHTML = html;
-
-                console.log('✅ Incontri caricati con dettagli:', incontri.length);
+                console.log('✅ Incontri caricati con overview compatto:', incontri.length);
 
             } catch (error) {
                 console.error('❌ Errore caricamento incontri:', error);
@@ -1407,7 +1496,7 @@
             }
         }
 
-        function raggruppaIncontriConDettagli(incontri, squadre) {
+        function raggruppaIncontri(incontri, squadre) {
             const raggruppati = {};
 
             incontri.forEach(incontro => {
@@ -1432,7 +1521,96 @@
             return raggruppati;
         }
 
-        function generaHtmlScontroDettagliato(gruppo) {
+        function creaOverviewCompattoHtml(incontriRaggruppati) {
+            let html = '<div class="overview-compatto-container">';
+            html += '<div class="overview-box-container">';
+
+            Object.keys(incontriRaggruppati).forEach((chiaveGruppo) => {
+                const gruppo = incontriRaggruppati[chiaveGruppo];
+
+                // Calcola statistiche
+                const totaleIncontri = gruppo.incontri.length;
+                const completati = gruppo.incontri.filter(i => i.completato).length;
+                const percentualeCompletamento = totaleIncontri > 0 ? Math.round((completati / totaleIncontri) * 100) : 0;
+
+                // Colori squadre
+                const squadra1Color = getTeamColor(gruppo.squadra1.colore);
+                const squadra2Color = getTeamColor(gruppo.squadra2.colore);
+
+                // Crea box scontro
+                html += `
+            <div class="scontro-overview-box">
+                <div class="scontro-header-mini">
+                    <div class="squadra-mini" style="background-color: ${squadra1Color};">
+                        ${gruppo.squadra1.colore.toUpperCase()}
+                    </div>
+                    <div class="vs-mini">VS</div>
+                    <div class="squadra-mini" style="background-color: ${squadra2Color};">
+                        ${gruppo.squadra2.colore.toUpperCase()}
+                    </div>
+                </div>
+                <div class="stats-line">
+                    ${completati} incontri • ${completati} completati
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}" 
+                             style="width: ${percentualeCompletamento}%;"></div>
+                    </div>
+                    <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
+                        ${percentualeCompletamento}%
+                    </div>
+                </div>
+                <div class="incontri-mini-grid">
+        `;
+
+                // Aggiungi mini card per ogni incontro
+                gruppo.incontri.forEach(incontro => {
+                    let sfondoColore, bordoColore, testoColore;
+
+                    if (incontro.completato && incontro.squadra_vincente) {
+                        // Incontro completato - colora in base al vincitore
+                        if (incontro.squadra_vincente === gruppo.squadra1.numero) {
+                            sfondoColore = squadra1Color + '40';
+                            bordoColore = squadra1Color;
+                            testoColore = squadra1Color;
+                        } else if (incontro.squadra_vincente === gruppo.squadra2.numero) {
+                            sfondoColore = squadra2Color + '40';
+                            bordoColore = squadra2Color;
+                            testoColore = squadra2Color;
+                        } else {
+                            // Pareggio
+                            sfondoColore = 'rgba(156, 163, 175, 0.3)';
+                            bordoColore = 'rgba(156, 163, 175, 0.5)';
+                            testoColore = '#9ca3af';
+                        }
+                        html += `
+                    <div class="incontro-mini completato" 
+                         style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
+                        ${incontro.pos1}+${incontro.pos2}
+                    </div>
+                `;
+                    } else {
+                        // Incontro in attesa - arancione
+                        html += `
+                    <div class="incontro-mini attesa">
+                        ${incontro.pos1}+${incontro.pos2}
+                    </div>
+                `;
+                    }
+                });
+
+                html += `
+                </div>
+            </div>
+        `;
+            });
+
+            html += '</div></div>';
+            return html;
+        }
+
+        function generaHtmlScontro(gruppo) {
             const totaleIncontri = gruppo.incontri.length;
             const completati = gruppo.incontri.filter(i => i.completato).length;
             const percentuale = totaleIncontri > 0 ? Math.round((completati / totaleIncontri) * 100) : 0;
@@ -1441,108 +1619,51 @@
             const colore2 = getTeamColor(gruppo.squadra2.colore);
 
             let html = `
-        <div class="scontro-box">
-            <div class="scontro-header">
-                <div class="squadra-badge" style="background-color: ${colore1};">
-                    ${gruppo.squadra1.colore.toUpperCase()}
+            <div class="scontro-box">
+                <div class="scontro-header">
+                    <div class="squadra-badge" style="background-color: ${colore1};">
+                        ${gruppo.squadra1.colore.toUpperCase()}
+                    </div>
+                    <div class="vs-text">VS</div>
+                    <div class="squadra-badge" style="background-color: ${colore2};">
+                        ${gruppo.squadra2.colore.toUpperCase()}
+                    </div>
                 </div>
-                <div class="vs-text">VS</div>
-                <div class="squadra-badge" style="background-color: ${colore2};">
-                    ${gruppo.squadra2.colore.toUpperCase()}
+                <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
+                    ${completati}/${totaleIncontri} incontri completati
                 </div>
-            </div>
-            <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
-                ${completati}/${totaleIncontri} incontri completati
-            </div>
-            <div class="progress-mini">
-                <div class="progress-bar-mini">
-                    <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                <div class="progress-mini">
+                    <div class="progress-bar-mini">
+                        <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                    </div>
+                    <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
+                        ${percentuale}%
+                    </div>
                 </div>
-                <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
-                    ${percentuale}%
-                </div>
-            </div>
-    `;
+        `;
 
-            // Mostra dettaglio incontri con giocatori
+            // Mostra dettaglio incontri
             if (gruppo.incontri.length > 0) {
                 html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">';
 
                 gruppo.incontri.forEach(incontro => {
-                    html += generaHtmlIncontroSingolo(incontro, gruppo.squadra1, gruppo.squadra2, colore1, colore2);
+                    const status = incontro.completato ? '✅' : '⏳';
+                    const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
+
+                    html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
+                        <div style="color: ${colore1};">${incontro.posizione1}</div>
+                        <div style="color: #a0aec0;">vs</div>
+                        <div style="color: ${colore2};">${incontro.posizione2}</div>
+                        <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
+                    </div>
+                `;
                 });
 
                 html += '</div>';
             }
 
             html += '</div>';
-
-            return html;
-        }
-
-        function generaHtmlIncontroSingolo(incontro, squadra1Obj, squadra2Obj, colore1, colore2) {
-            const status = incontro.completato ? '✅' : '⏳';
-            const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
-
-            // Ottieni i nomi dei giocatori dalle squadre
-            const pos1Lower = incontro.pos1.toLowerCase();
-            const pos2Lower = incontro.pos2.toLowerCase();
-
-            const giocatoriSquadra1 = {
-                pos1: squadra1Obj[pos1Lower] || 'N/A',
-                pos2: squadra1Obj[pos2Lower] || 'N/A'
-            };
-
-            const giocatoriSquadra2 = {
-                pos1: squadra2Obj[pos1Lower] || 'N/A',
-                pos2: squadra2Obj[pos2Lower] || 'N/A'
-            };
-
-            // Determina chi ha vinto (se l'incontro è completato)
-            let squadraVincente = null;
-            if (incontro.completato && incontro.dettagli && incontro.dettagli.length > 0) {
-                let vittorieSquadra1 = 0;
-                let vittorieSquadra2 = 0;
-
-                incontro.dettagli.forEach(dettaglio => {
-                    if (dettaglio.vincitore === 1) vittorieSquadra1++;
-                    else if (dettaglio.vincitore === 2) vittorieSquadra2++;
-                });
-
-                if (vittorieSquadra1 > vittorieSquadra2) squadraVincente = 1;
-                else if (vittorieSquadra2 > vittorieSquadra1) squadraVincente = 2;
-            }
-
-            const classeVincitore = squadraVincente === 1 ? 'vincitore-squadra1' :
-                squadraVincente === 2 ? 'vincitore-squadra2' : '';
-
-            let html = `
-        <div class="incontro-dettaglio ${classeVincitore}">
-            <div class="coppia-giocatori ${squadraVincente === 1 ? 'vincitore' : ''}" style="border-left: 3px solid ${colore1}; padding-left: 8px;">
-                <div class="giocatore-nome">
-                    <span class="posizione-label">${incontro.pos1}:</span> ${giocatoriSquadra1.pos1}
-                </div>
-                <div class="giocatore-nome">
-                    <span class="posizione-label">${incontro.pos2}:</span> ${giocatoriSquadra1.pos2}
-                </div>
-            </div>
-            
-            <div class="vs-separator">vs</div>
-            
-            <div class="coppia-giocatori ${squadraVincente === 2 ? 'vincitore' : ''}" style="border-right: 3px solid ${colore2}; padding-right: 8px;">
-                <div class="giocatore-nome">
-                    <span class="posizione-label">${incontro.pos1}:</span> ${giocatoriSquadra2.pos1}
-                </div>
-                <div class="giocatore-nome">
-                    <span class="posizione-label">${incontro.pos2}:</span> ${giocatoriSquadra2.pos2}
-                </div>
-            </div>
-            
-            <div class="status-incontro" style="color: ${statusColor};">
-                ${status}
-            </div>
-        </div>
-    `;
 
             return html;
         }
@@ -1723,11 +1844,11 @@
                 const notification = document.createElement('div');
                 notification.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #48bb78; color: white; padding: 20px; border-radius: 15px; font-size: 1.2em; font-weight: bold; z-index: 2000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
                 notification.innerHTML = `
-                        <div>🏆 COMPLIMENTI!</div>
-                        <div style="margin: 10px 0;">Hai vinto:</div>
-                        <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
-                        <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-                    `;
+                            <div>🏆 COMPLIMENTI!</div>
+                            <div style="margin: 10px 0;">Hai vinto:</div>
+                            <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
+                            <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                        `;
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 2000);
             });
@@ -1769,9 +1890,9 @@
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.innerHTML = `
-                        <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
-                        <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
-                    `;
+                            <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
+                            <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
+                        `;
                 card.addEventListener('click', () => selectPlayer(player));
                 grid.appendChild(card);
             });
@@ -1835,7 +1956,7 @@
 
                 socket.emit('place_bid', {
                     round: currentRound,              // ✅ Nome corretto
-                    slot: window.selectedPlayer.id,   // ✅ Nome corretto  
+                    slot: window.selectedPlayer.id,   // ✅ Nome corretto
                     importo: bidAmount                // ✅ Nome corretto
                 });
 
