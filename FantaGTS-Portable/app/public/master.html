@@ -1372,24 +1372,21 @@
                 posizioni.forEach(pos => {
                     const giocatore = squadra.find(g => g.posizione === pos);
                     const slotDiv = document.createElement('div');
-
                     if (giocatore) {
                         const teamColor = getTeamColorForMaster(giocatore.colore);
                         const textColor = getTextColorForTeamMaster(giocatore.colore);
-
                         slotDiv.style.cssText = `
-                                background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
-                                border: 2px solid ${teamColor};
-                                padding: 8px;
-                                border-radius: 8px;
-                                text-align: center;
-                                font-size: 0.85em;
-                                color: ${textColor};
-                                font-weight: bold;
-                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                            `;
-
-                        slot.innerHTML = `
+                background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
+                border: 2px solid ${teamColor};
+                padding: 8px;
+                border-radius: 8px;
+                text-align: center;
+                font-size: 0.85em;
+                color: ${textColor};
+                font-weight: bold;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            `;
+                        slotDiv.innerHTML = `
                         <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
                             ${giocatore.giocatore_attuale}
                         </div>
@@ -1397,7 +1394,7 @@
                             🏆 ${giocatore.punti_totali || 0}pt
                         </div>
                         <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
-                            ${posizione}
+                            ${pos}
                         </div>
                         <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
                             Squadra ${giocatore.colore}
