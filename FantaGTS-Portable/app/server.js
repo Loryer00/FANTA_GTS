@@ -2627,6 +2627,59 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
     }
 });
 
+// ==================== API SOSTITUZIONI ====================
+
+// Route per servire la pagina sostituzioni
+app.get('/sostituzioni', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sostituzioni.html'));
+});
+
+// API per gestire le sostituzioni
+app.post('/api/sostituzioni', async (req, res) => {
+    try {
+        const { numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo } = req.body;
+
+        console.log(`🔄 Richiesta sostituzione: Squadra ${numeroSquadra}, ${posizione}: "${nomeVecchio}" → "${nomeNuovo}"`);
+
+        // Validazione input
+        if (!numeroSquadra || !posizione || !nomeVecchio || !nomeNuovo) {
+            return res.status(400).json({ error: 'Dati mancanti per la sostituzione' });
+        }
+
+        // Determina il campo da aggiornare (m1, m2, ..., f1, f2, f3)
+        const campo = posizione.toLowerCase();
+
+        // Aggiorna il nome nella tabella squadre_circolo
+        await db.query(
+            `UPDATE squadre_circolo SET ${campo} = $1 WHERE numero = $2`,
+            [nomeNuovo, numeroSquadra]
+        );
+
+        // Registra la sostituzione nella tabella sostituzioni (se esiste)
+        try {
+            await db.query(
+                `INSERT INTO sostituzioni (squadra_numero, posizione, giocatore_vecchio, giocatore_nuovo, motivo, timestamp)
+                 VALUES ($1, $2, $3, $4, $5, NOW())`,
+                [numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo || null]
+            );
+        } catch (err) {
+            // Se la tabella sostituzioni non esiste, ignora l'errore
+            console.log('ℹ️ Tabella sostituzioni non disponibile, continuo comunque');
+        }
+
+        console.log(`✅ Sostituzione completata con successo`);
+
+        res.json({
+            success: true,
+            message: `${nomeVecchio} sostituito con ${nomeNuovo}`
+        });
+
+    } catch (err) {
+        console.error('❌ Errore sostituzione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 function terminaRound() {
     console.log('🔄 terminaRound chiamato - elaborando risultati asta');
 

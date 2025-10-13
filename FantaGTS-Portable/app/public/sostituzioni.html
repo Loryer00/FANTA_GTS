@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sostituzioni - FantaGTS Master</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .header h1 {
+                font-size: 2em;
+                color: #4299e1;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+
+        .btn-back {
+            background: rgba(203, 213, 224, 0.2);
+            border: 1px solid rgba(203, 213, 224, 0.3);
+            color: #cbd5e0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+            .btn-back:hover {
+                background: rgba(203, 213, 224, 0.3);
+                transform: translateY(-2px);
+            }
+
+        /* Filtro Squadra */
+        .filter-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .filter-label {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4299e1;
+            display: block;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(66, 153, 225, 0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+            .filter-select:hover {
+                border-color: rgba(66, 153, 225, 0.6);
+                background: rgba(255,255,255,0.15);
+            }
+
+            .filter-select:focus {
+                outline: none;
+                border-color: #4299e1;
+                box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+            }
+
+            .filter-select option {
+                background: #2d3748;
+                color: #e2e8f0;
+                padding: 10px;
+            }
+
+        /* Contenitore Giocatori */
+        .players-container {
+            display: none;
+        }
+
+            .players-container.active {
+                display: block;
+            }
+
+        .no-selection {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+            font-size: 1.2em;
+        }
+
+            .no-selection .icon {
+                font-size: 4em;
+                margin-bottom: 20px;
+                opacity: 0.5;
+            }
+
+        /* Card Squadra */
+        .team-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 25px;
+            border: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .team-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(66, 153, 225, 0.3);
+        }
+
+        .team-color-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            flex-shrink: 0;
+        }
+
+        .team-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4299e1;
+        }
+
+        /* Lista Giocatori */
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .player-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+            .player-card:hover {
+                background: rgba(255,255,255,0.12);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-position {
+            font-size: 0.9em;
+            color: #4299e1;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        /* Pulsante Replace */
+        .btn-replace {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+            .btn-replace:hover {
+                background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+                transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
+
+            .btn-replace:active {
+                transform: scale(0.98);
+            }
+
+        /* Modal Sostituzione */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+            .modal.active {
+                display: flex;
+            }
+
+        .modal-content {
+            background: #2d3748;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            border: 2px solid rgba(66, 153, 225, 0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4299e1;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #cbd5e0;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            transition: all 0.3s;
+        }
+
+            .form-input:focus {
+                outline: none;
+                border-color: #4299e1;
+                background: rgba(255,255,255,0.15);
+            }
+
+            .form-input:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+        .modal-footer {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+            }
+
+        .btn-secondary {
+            background: rgba(203, 213, 224, 0.2);
+            color: #cbd5e0;
+            border: 1px solid rgba(203, 213, 224, 0.3);
+        }
+
+            .btn-secondary:hover {
+                background: rgba(203, 213, 224, 0.3);
+            }
+
+        /* Notifiche */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+            .notification.success {
+                background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+                color: white;
+            }
+
+            .notification.error {
+                background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+                color: white;
+            }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+                .header h1 {
+                    font-size: 1.5em;
+                }
+
+            .players-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span>🔄</span>
+                Gestione Sostituzioni
+            </h1>
+            <a href="/master" class="btn-back">⬅️ Torna al Master</a>
+        </div>
+
+        <!-- Filtro Squadra -->
+        <div class="filter-section">
+            <label class="filter-label">🎯 Seleziona Squadra:</label>
+            <select id="squadraFilter" class="filter-select">
+                <option value="">-- Scegli una squadra --</option>
+            </select>
+        </div>
+
+        <!-- Messaggio quando nessuna squadra è selezionata -->
+        <div id="noSelection" class="no-selection">
+            <div class="icon">🎾</div>
+            <p>Seleziona una squadra dal menu a tendina per visualizzare i giocatori</p>
+        </div>
+
+        <!-- Container Giocatori (inizialmente nascosto) -->
+        <div id="playersContainer" class="players-container">
+            <!-- I giocatori verranno inseriti qui dinamicamente -->
+        </div>
+    </div>
+
+    <!-- Modal Sostituzione -->
+    <div id="replaceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>🔄</span>
+                Sostituisci Giocatore
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Giocatore Attuale:</label>
+                    <input type="text" id="oldPlayerName" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nuovo Giocatore:</label>
+                    <input type="text" id="newPlayerName" class="form-input" placeholder="Inserisci il nome del nuovo giocatore">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motivo (opzionale):</label>
+                    <input type="text" id="replacementReason" class="form-input" placeholder="es. Infortunio, Ritiro, ecc.">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">❌ Annulla</button>
+                <button class="btn btn-primary" onclick="confermaReplace()">✅ Conferma Sostituzione</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let squadre = [];
+        let currentReplacement = null;
+
+        // Carica squadre all'avvio
+        async function caricaSquadre() {
+            try {
+                const response = await fetch('/api/squadre');
+                if (!response.ok) throw new Error('Errore caricamento squadre');
+
+                squadre = await response.json();
+                popolaFiltroSquadre();
+            } catch (error) {
+                console.error('Errore:', error);
+                showNotification('Errore nel caricamento delle squadre', 'error');
+            }
+        }
+
+        // Popola il dropdown delle squadre
+        function popolaFiltroSquadre() {
+            const select = document.getElementById('squadraFilter');
+
+            squadre.forEach(squadra => {
+                const option = document.createElement('option');
+                option.value = squadra.numero;
+                option.textContent = `Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}`;
+                select.appendChild(option);
+            });
+        }
+
+        // Gestione cambio squadra nel filtro
+        document.getElementById('squadraFilter').addEventListener('change', function () {
+            const squadraNumero = parseInt(this.value);
+
+            if (squadraNumero) {
+                mostraGiocatoriSquadra(squadraNumero);
+            } else {
+                nascondiGiocatori();
+            }
+        });
+
+        // Mostra i giocatori di una squadra specifica
+        function mostraGiocatoriSquadra(numeroSquadra) {
+            const squadra = squadre.find(s => s.numero === numeroSquadra);
+            if (!squadra) return;
+
+            // Nascondi il messaggio "nessuna selezione"
+            document.getElementById('noSelection').style.display = 'none';
+
+            // Mostra il container
+            const container = document.getElementById('playersContainer');
+            container.classList.add('active');
+
+            // Crea la card della squadra
+            let html = `
+                    <div class="team-card">
+                        <div class="team-header">
+                            <div class="team-color-badge" style="background-color: ${getTeamColor(squadra.colore)}"></div>
+                            <div class="team-name">Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</div>
+                        </div>
+                        <div class="players-grid">
+                `;
+
+            // Aggiungi giocatori maschi
+            for (let i = 1; i <= 7; i++) {
+                const nomeGiocatore = squadra[`m${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    html += creaCardGiocatore(`M${i}`, nomeGiocatore, squadra);
+                }
+            }
+
+            // Aggiungi giocatrici
+            for (let i = 1; i <= 3; i++) {
+                const nomeGiocatore = squadra[`f${i}`];
+                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                    html += creaCardGiocatore(`F${i}`, nomeGiocatore, squadra);
+                }
+            }
+
+            html += `
+                        </div>
+                    </div>
+                `;
+
+            container.innerHTML = html;
+        }
+
+        // Crea la card di un singolo giocatore
+        function creaCardGiocatore(posizione, nome, squadra) {
+            return `
+                    <div class="player-card">
+                        <div class="player-info">
+                            <div class="player-position">${posizione}</div>
+                            <div class="player-name">${nome}</div>
+                        </div>
+                        <button class="btn-replace" onclick="apriModalReplace('${posizione}', '${nome}', ${squadra.numero}, '${squadra.colore}')">
+                            Replace
+                        </button>
+                    </div>
+                `;
+        }
+
+        // Nascondi i giocatori
+        function nascondiGiocatori() {
+            document.getElementById('noSelection').style.display = 'block';
+            document.getElementById('playersContainer').classList.remove('active');
+        }
+
+        // Apri modal per sostituzione
+        function apriModalReplace(posizione, nomeAttuale, numeroSquadra, coloreSquadra) {
+            currentReplacement = {
+                posizione: posizione,
+                nomeAttuale: nomeAttuale,
+                numeroSquadra: numeroSquadra,
+                coloreSquadra: coloreSquadra
+            };
+
+            document.getElementById('oldPlayerName').value = nomeAttuale;
+            document.getElementById('newPlayerName').value = '';
+            document.getElementById('replacementReason').value = '';
+            document.getElementById('replaceModal').classList.add('active');
+
+            // Focus sul campo nuovo nome
+            setTimeout(() => {
+                document.getElementById('newPlayerName').focus();
+            }, 100);
+        }
+
+        // Chiudi modal
+        function closeModal() {
+            document.getElementById('replaceModal').classList.remove('active');
+            currentReplacement = null;
+        }
+
+        // Conferma la sostituzione
+        async function confermaReplace() {
+            if (!currentReplacement) return;
+
+            const nuovoNome = document.getElementById('newPlayerName').value.trim();
+            const motivo = document.getElementById('replacementReason').value.trim();
+
+            if (!nuovoNome) {
+                showNotification('Inserisci il nome del nuovo giocatore', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sostituzioni', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        numeroSquadra: currentReplacement.numeroSquadra,
+                        posizione: currentReplacement.posizione,
+                        nomeVecchio: currentReplacement.nomeAttuale,
+                        nomeNuovo: nuovoNome,
+                        motivo: motivo
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Errore durante la sostituzione');
+                }
+
+                showNotification(`✅ ${currentReplacement.nomeAttuale} sostituito con ${nuovoNome}`, 'success');
+                closeModal();
+
+                // Ricarica i dati
+                await caricaSquadre();
+
+                // Se c'era una squadra selezionata, ricaricala
+                const squadraSelezionata = document.getElementById('squadraFilter').value;
+                if (squadraSelezionata) {
+                    mostraGiocatoriSquadra(parseInt(squadraSelezionata));
+                }
+
+            } catch (error) {
+                console.error('Errore:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // Funzione per ottenere il colore della squadra
+        function getTeamColor(nomeColore) {
+            const colori = {
+                'rosso': '#ef4444', 'rossa': '#ef4444',
+                'blu': '#3b82f6', 'azzurro': '#3b82f6', 'azzurra': '#3b82f6',
+                'verde': '#10b981', 'giallo': '#f59e0b', 'gialla': '#f59e0b',
+                'viola': '#8b5cf6', 'arancione': '#f97316', 'rosa': '#ec4899',
+                'nero': '#1f2937', 'nera': '#1f2937',
+                'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
+                'grigio': '#6b7280', 'grigia': '#6b7280',
+                'marrone': '#92400e'
+            };
+
+            return colori[nomeColore.toLowerCase()] || '#4299e1';
+        }
+
+        // Mostra notifica
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Chiudi modal con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Conferma con ENTER nel campo nome
+        document.getElementById('newPlayerName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                confermaReplace();
+            }
+        });
+
+        // Inizializza al caricamento
+        document.addEventListener('DOMContentLoaded', caricaSquadre);
+    </script>
+</body>
+</html>
