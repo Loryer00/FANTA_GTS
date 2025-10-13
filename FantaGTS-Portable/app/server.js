@@ -2130,16 +2130,16 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             const slotIds = giocatoriVincitori.map(g => g.slotId);
 
             const partecipantiCoinvolti = await db.query(`
-                SELECT DISTINCT 
-                    p.id, 
-                    p.nome,
-                    array_agg(a.slot_id) as slots_vinti
-                FROM partecipanti_fantagts p
-                JOIN aste a ON p.id = a.partecipante_id
-                WHERE a.vincitore = true 
-                  AND a.slot_id = ANY($1)
-                GROUP BY p.id, p.nome
-            `, [slotIds]);
+        SELECT DISTINCT 
+            p.id, 
+            p.nome,
+            array_agg(a.slot_id) as slots_vinti
+        FROM partecipanti_fantagts p
+        JOIN aste a ON p.id = a.partecipante_id
+        WHERE a.vincitore = true 
+          AND a.slot_id = ANY($1)
+        GROUP BY p.id, p.nome
+    `, [slotIds]);
 
             console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
@@ -2150,20 +2150,47 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     partecipante.slots_vinti.includes(g.slotId)
                 );
 
-                let messaggioNotifica;
-                let puntiTotali = giocatoriDelPartecipante.reduce((sum, g) => sum + g.punti, 0);
+                // 🆕 Recupera i nomi reali dei giocatori e colori squadra
+                const giocatoriConDettagli = [];
+                for (const giocVincitore of giocatoriDelPartecipante) {
+                    // Parse dello slotId per ottenere posizione e colore (formato: "M1_ROSSO")
+                    const [posizione, colore] = giocVincitore.slotId.split('_');
 
-                if (giocatoriDelPartecipante.length === 2) {
-                    // Ha entrambi i giocatori della coppia
-                    const nomiGiocatori = giocatoriDelPartecipante.map(g => g.giocatore).join(' e ');
-                    messaggioNotifica = `La coppia di giocatori ${nomiGiocatori} ha vinto! +${puntiTotali} punti`;
-                } else if (giocatoriDelPartecipante.length === 1) {
-                    // Ha solo un giocatore
-                    const giocatore = giocatoriDelPartecipante[0];
-                    messaggioNotifica = `Il tuo giocatore ${giocatore.giocatore} ha vinto! +${giocatore.punti} punti`;
+                    // Trova il nome del giocatore reale dalla tabella slots
+                    const slotInfo = await db.query(
+                        'SELECT giocatore_attuale FROM slots WHERE id = $1',
+                        [giocVincitore.slotId]
+                    );
+
+                    if (slotInfo.rows.length > 0 && slotInfo.rows[0].giocatore_attuale) {
+                        giocatoriConDettagli.push({
+                            nome: slotInfo.rows[0].giocatore_attuale,
+                            colore: colore,
+                            punti: giocVincitore.punti
+                        });
+                    }
                 }
 
-                // Invia la notifica push
+                if (giocatoriConDettagli.length === 0) {
+                    console.warn(`⚠️ Nessun dettaglio giocatore trovato per ${partecipante.nome}`);
+                    continue;
+                }
+
+                let messaggioNotifica;
+                let puntiTotali = giocatoriConDettagli.reduce((sum, g) => sum + g.punti, 0);
+
+                if (giocatoriConDettagli.length === 2) {
+                    // Ha entrambi i giocatori della coppia
+                    const nomiGiocatori = giocatoriConDettagli.map(g => g.nome).join(' e ');
+                    const coloreSquadra = giocatoriConDettagli[0].colore; // Stesso colore per entrambi
+                    messaggioNotifica = `La coppia di giocatori ${nomiGiocatori} della squadra ${coloreSquadra} ha vinto! +${puntiTotali} punt${puntiTotali > 1 ? 'i' : 'o'}`;
+                } else if (giocatoriConDettagli.length === 1) {
+                    // Ha solo un giocatore
+                    const giocatore = giocatoriConDettagli[0];
+                    messaggioNotifica = `${giocatore.nome} della squadra ${giocatore.colore} ha vinto! +${giocatore.punti} punt${giocatore.punti > 1 ? 'i' : 'o'}`;
+                }
+
+                // Invia la notifica push con link alla classifica
                 await inviaNotifichePush({
                     title: '🎾 Vittoria!',
                     body: messaggioNotifica,
