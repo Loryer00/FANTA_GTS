@@ -2631,7 +2631,7 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
 
 // Route per servire la pagina sostituzioni
 app.get('/sostituzioni', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sostituzioni.html'));
+    res.sendFile(path.join(__dirname, 'public', 'sostituzioni.html'));
 });
 
 // API per gestire le sostituzioni
