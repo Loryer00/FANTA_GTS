@@ -611,7 +611,7 @@
     <div class="container">
         <div class="header">
             <h1>🎾 FantaGTS</h1>
-            <p>Fantasy Tennis del Circolo</p>
+            <p>User Panel</p>
         </div>
 
         <!-- Area Registrazione/Login -->
@@ -703,7 +703,7 @@
         <div id="game-area" style="display: none;" class="content-with-bottom-nav">
             <div class="user-info">
                 <div><strong id="currentPlayer">--</strong></div>
-                <div>💰 <span id="playerCredits">2000</span> crediti</div>
+                <div id="playerStatsDisplay">💰 <span id="playerCredits">2000</span> crediti</div>
             </div>
 
             <div style="text-align: center; margin-bottom: 15px;">
@@ -947,11 +947,34 @@
         // ========================================
         // GESTIONE UI
         // ========================================
-        function updateCreditsDisplay() {
+        async function updateCreditsDisplay() {
             const creditsElement = document.getElementById('playerCredits');
             const creditsDisplay = document.getElementById('creditsDisplay');
+            const statsDisplay = document.getElementById('playerStatsDisplay');
+
             if (creditsElement) creditsElement.textContent = playerData.credits;
             if (creditsDisplay) creditsDisplay.textContent = playerData.credits;
+
+            // Controlla se l'asta è terminata (tutti i 10 giocatori acquistati)
+            try {
+                const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const squadra = data.squadra || data || [];
+                    const giocatoriTotali = squadra.length;
+
+                    // Se ha acquistato tutti i 10 giocatori, mostra il punteggio invece dei crediti
+                    if (giocatoriTotali === 10 && statsDisplay) {
+                        const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
+                        statsDisplay.innerHTML = `🏆 <span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
+                    } else if (statsDisplay) {
+                        // Durante l'asta mostra i crediti
+                        statsDisplay.innerHTML = `💰 <span id="playerCredits">${playerData.credits}</span> crediti`;
+                    }
+                }
+            } catch (error) {
+                console.log('Errore verifica stato asta:', error);
+            }
         }
 
         function showGameArea() {
@@ -1202,6 +1225,15 @@
                         console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
                 });
+
+                // Carica anche la classifica se siamo nella sezione classifica
+                const sectionClassifica = document.getElementById('section-classifica');
+                if (sectionClassifica && sectionClassifica.classList.contains('active')) {
+                    caricaClassifica();
+                }
+
+                // AGGIUNGI QUESTA RIGA
+                await updateCreditsDisplay();
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadra:', error);
