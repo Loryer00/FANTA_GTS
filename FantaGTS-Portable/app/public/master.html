@@ -1399,16 +1399,23 @@
                                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                             `;
 
-                        slotDiv.innerHTML = `
-                <div style="color: ${textColor}; font-weight: bold; margin-bottom: 2px;">${pos}</div>
-                <div style="color: ${textColor}; font-size: 0.9em; line-height: 1.2;">${giocatore.giocatore_attuale}</div>
-                <div style="color: ${textColor}; font-size: 0.75em; opacity: 0.9; margin-top: 2px;">
-                    ${giocatore.colore} • ${giocatore.costo_finale}€
-                </div>
-                <div style="color: #48bb78; font-size: 0.75em; font-weight: bold; margin-top: 2px;">
-                    🎯 ${giocatore.punti_totali || 0}pt
-                </div>
-`;
+                        slot.innerHTML = `
+                        <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
+                            ${giocatore.giocatore_attuale}
+                        </div>
+                        <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
+                            🏆 ${giocatore.punti_totali || 0}pt
+                        </div>
+                        <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
+                            ${posizione}
+                        </div>
+                        <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
+                            Squadra ${giocatore.colore}
+                        </div>
+                        <div style="font-size: 0.8em; font-weight: bold; color: #ffd700;">
+                            💰 ${giocatore.costo_finale}€
+                        </div>
+                    `;
                     } else {
                         slotDiv.style.cssText = `
                                 background: rgba(74,85,104,0.2);

@@ -1181,12 +1181,15 @@
                         slot.style.color = '#ffffff';
                         slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
 
-                        slot.innerHTML = `
-                        <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
-                            ${posizione}
-                        </div>
+                        slot.innerHTML = `                        
                         <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
                             ${giocatore.giocatore_attuale}
+                        </div>
+                        <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
+                            🏆 ${giocatore.punti_totali || 0}pt
+                        </div>
+                        <div style="font-weight: bold; font-size: 1em; margin-bottom: 4px;">
+                        ${posizione}
                         </div>
                         <div style="font-size: 0.75em; opacity: 0.9; margin-bottom: 2px;">
                             Squadra ${giocatore.colore}
