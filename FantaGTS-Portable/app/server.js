@@ -2089,11 +2089,14 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             WHERE id = $3`,
             [risultato_coppia1, risultato_coppia2, incontroId]);
 
+        // 🆕 RACCOLTA DATI PER NOTIFICHE
+        const giocatoriVincitori = []; // Array di oggetti { posizione, giocatore, punti }
+
         // Aggiorna punti nei slots (solo per i vincitori)
         for (const risultato of risultati) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
-                // Trova il numero della squadra vincitrice
                 const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
+                const nomeGiocatoreVincitore = risultato.vincitore === 1 ? risultato.giocatore_squadra1 : risultato.giocatore_squadra2;
 
                 // Trova i dettagli della squadra vincitrice
                 const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
@@ -2107,7 +2110,68 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     // Aggiorna i punti dello slot specifico
                     await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
                         [risultato.punti_assegnati, slotId]);
+
+                    // 🆕 Salva dati per notifiche
+                    giocatoriVincitori.push({
+                        posizione: risultato.posizione,
+                        giocatore: nomeGiocatoreVincitore,
+                        punti: risultato.punti_assegnati,
+                        slotId: slotId
+                    });
                 }
+            }
+        }
+
+        // 🆕 INVIO NOTIFICHE AI PARTECIPANTI
+        if (giocatoriVincitori.length > 0) {
+            console.log('📨 Preparazione notifiche per giocatori vincitori:', giocatoriVincitori);
+
+            // Trova tutti i partecipanti che possiedono almeno uno dei giocatori vincitori
+            const slotIds = giocatoriVincitori.map(g => g.slotId);
+
+            const partecipantiCoinvolti = await db.query(`
+                SELECT DISTINCT 
+                    p.id, 
+                    p.nome,
+                    array_agg(a.slot_id) as slots_vinti
+                FROM partecipanti_fantagts p
+                JOIN aste a ON p.id = a.partecipante_id
+                WHERE a.vincitore = true 
+                  AND a.slot_id = ANY($1)
+                GROUP BY p.id, p.nome
+            `, [slotIds]);
+
+            console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
+
+            // Invia notifica a ciascun partecipante
+            for (const partecipante of partecipantiCoinvolti.rows) {
+                // Trova quali giocatori di questo partecipante hanno vinto
+                const giocatoriDelPartecipante = giocatoriVincitori.filter(g =>
+                    partecipante.slots_vinti.includes(g.slotId)
+                );
+
+                let messaggioNotifica;
+                let puntiTotali = giocatoriDelPartecipante.reduce((sum, g) => sum + g.punti, 0);
+
+                if (giocatoriDelPartecipante.length === 2) {
+                    // Ha entrambi i giocatori della coppia
+                    const nomiGiocatori = giocatoriDelPartecipante.map(g => g.giocatore).join(' e ');
+                    messaggioNotifica = `La coppia di giocatori ${nomiGiocatori} ha vinto! +${puntiTotali} punti`;
+                } else if (giocatoriDelPartecipante.length === 1) {
+                    // Ha solo un giocatore
+                    const giocatore = giocatoriDelPartecipante[0];
+                    messaggioNotifica = `Il tuo giocatore ${giocatore.giocatore} ha vinto! +${giocatore.punti} punti`;
+                }
+
+                // Invia la notifica push
+                await inviaNotifichePush({
+                    title: '🎾 Vittoria!',
+                    body: messaggioNotifica,
+                    url: '/#section-classifica',
+                    targetUsers: [partecipante.id]
+                });
+
+                console.log(`✅ Notifica inviata a ${partecipante.nome}: ${messaggioNotifica}`);
             }
         }
 
@@ -2115,7 +2179,8 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             message: 'Incontro completato con successo',
             risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
             vittorie_squadra1: vittorie_squadra1,
-            vittorie_squadra2: vittorie_squadra2
+            vittorie_squadra2: vittorie_squadra2,
+            notifiche_inviate: giocatoriVincitori.length > 0
         });
     } catch (err) {
         console.error('Errore API completa-incontro:', err);
