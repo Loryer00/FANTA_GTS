@@ -848,16 +848,6 @@
                     });
                 }
 
-                // Ripristina ultimo risultato se disponibile
-                if (parsedState.roundsCompletati.length > 0) {
-                    const ultimoRound = parsedState.roundsCompletati[parsedState.roundsCompletati.length - 1];
-                    const ultimiRisultati = parsedState.astePerRound[ultimoRound];
-
-                    if (ultimiRisultati && ultimiRisultati.length > 0) {
-                        updateLastRoundResults(ultimoRound, ultimiRisultati);
-                    }
-                }
-
                 // Aggiorna statistiche
                 updateStatsFromSavedData(parsedState);
 
@@ -910,14 +900,6 @@
 
         // NUOVA FUNZIONE: Aggiorna display ultimo round
         function updateLastRoundResults(round, risultati) {
-            const lastRoundElement = document.getElementById('lastRoundResults');
-
-            // Controllo se l'elemento esiste prima di modificarlo
-            if (!lastRoundElement) {
-                console.warn('⚠️ Elemento lastRoundResults non trovato nel DOM');
-                return;
-            }
-
             let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
             html += '<table class="results-table"><thead><tr>';
             html += '<th>Slot</th><th>Vincitore</th><th>Offerta</th><th>Costo</th>';
@@ -925,15 +907,15 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                    <td><strong>${r.slot_id || r.slot}</strong></td>
-                    <td>${r.partecipante_nome || r.nome}</td>
-                    <td>${r.offerta || r.offertaOriginale}</td>
-                    <td>${r.costo_finale}</td>
-                </tr>`;
+                                    <td><strong>${r.slot_id || r.slot}</strong></td>
+                                    <td>${r.partecipante_nome || r.nome}</td>
+                                    <td>${r.offerta || r.offertaOriginale}</td>
+                                    <td>${r.costo_finale}</td>
+                                </tr>`;
             });
 
             html += '</tbody></table>';
-            lastRoundElement.innerHTML = html;
+            document.getElementById('lastRoundResults').innerHTML = html;
         }
 
         // NUOVA FUNZIONE: Pulisci stato Master
@@ -1388,7 +1370,7 @@
                 const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
                 posizioni.forEach(pos => {
-                    const giocatore = squadra.find(g => g.slot_id && g.slot_id.startsWith(pos + '_'));
+                    const giocatore = squadra.find(g => g.posizione === pos);
                     const slotDiv = document.createElement('div');
 
                     if (giocatore) {
