@@ -910,6 +910,14 @@
 
         // NUOVA FUNZIONE: Aggiorna display ultimo round
         function updateLastRoundResults(round, risultati) {
+            const lastRoundElement = document.getElementById('lastRoundResults');
+
+            // Controllo se l'elemento esiste prima di modificarlo
+            if (!lastRoundElement) {
+                console.warn('⚠️ Elemento lastRoundResults non trovato nel DOM');
+                return;
+            }
+
             let html = `<h3>Round ${round} - ${risultati.length} assegnazioni</h3>`;
             html += '<table class="results-table"><thead><tr>';
             html += '<th>Slot</th><th>Vincitore</th><th>Offerta</th><th>Costo</th>';
@@ -917,15 +925,15 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                                    <td><strong>${r.slot_id || r.slot}</strong></td>
-                                    <td>${r.partecipante_nome || r.nome}</td>
-                                    <td>${r.offerta || r.offertaOriginale}</td>
-                                    <td>${r.costo_finale}</td>
-                                </tr>`;
+                    <td><strong>${r.slot_id || r.slot}</strong></td>
+                    <td>${r.partecipante_nome || r.nome}</td>
+                    <td>${r.offerta || r.offertaOriginale}</td>
+                    <td>${r.costo_finale}</td>
+                </tr>`;
             });
 
             html += '</tbody></table>';
-            document.getElementById('lastRoundResults').innerHTML = html;
+            lastRoundElement.innerHTML = html;
         }
 
         // NUOVA FUNZIONE: Pulisci stato Master
@@ -1399,7 +1407,7 @@
                                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                             `;
 
-                        slotDiv.innerHTML = `
+                        slot.innerHTML = `
                         <div style="font-size: 0.95em; font-weight: 600; margin-bottom: 3px;">
                             ${giocatore.giocatore_attuale}
                         </div>
