@@ -2649,10 +2649,44 @@ app.post('/api/sostituzioni', async (req, res) => {
         // Determina il campo da aggiornare (m1, m2, ..., f1, f2, f3)
         const campo = posizione.toLowerCase();
 
+        // 🆕 TROVA IL COLORE DELLA SQUADRA per identificare lo slot
+        const squadraResult = await db.query(
+            'SELECT colore FROM squadre_circolo WHERE numero = $1',
+            [numeroSquadra]
+        );
+
+        if (squadraResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Squadra non trovata' });
+        }
+
+        const coloreSquadra = squadraResult.rows[0].colore;
+        const slotId = `${posizione}_${coloreSquadra.toUpperCase()}`;
+
+        console.log(`🎯 Slot identificato: ${slotId}`);
+
+        // 🆕 TROVA TUTTI I PARTECIPANTI CHE POSSIEDONO QUESTO GIOCATORE
+        const partecipantiCoinvolti = await db.query(`
+            SELECT DISTINCT p.id, p.nome
+            FROM partecipanti_fantagts p
+            JOIN aste a ON p.id = a.partecipante_id
+            WHERE a.slot_id = $1 
+              AND a.vincitore = true
+              AND p.attivo = true
+              AND p.sessione_id = $2
+        `, [slotId, sessioneCorrente]);
+
+        console.log(`👥 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
+
         // Aggiorna il nome nella tabella squadre_circolo
         await db.query(
             `UPDATE squadre_circolo SET ${campo} = $1 WHERE numero = $2`,
             [nomeNuovo, numeroSquadra]
+        );
+
+        // 🆕 AGGIORNA ANCHE IL NOME NELLO SLOT
+        await db.query(
+            'UPDATE slots SET giocatore_attuale = $1 WHERE id = $2',
+            [nomeNuovo, slotId]
         );
 
         // Registra la sostituzione nella tabella sostituzioni (se esiste)
@@ -2663,15 +2697,35 @@ app.post('/api/sostituzioni', async (req, res) => {
                 [numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo || null]
             );
         } catch (err) {
-            // Se la tabella sostituzioni non esiste, ignora l'errore
             console.log('ℹ️ Tabella sostituzioni non disponibile, continuo comunque');
+        }
+
+        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI
+        if (partecipantiCoinvolti.rows.length > 0) {
+            const idsPartecipanti = partecipantiCoinvolti.rows.map(p => p.id);
+            
+            const messaggioNotifica = motivo 
+                ? `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}. Motivo: ${motivo}`
+                : `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}`;
+
+            await inviaNotifichePush({
+                title: '🔄 Sostituzione Giocatore',
+                body: messaggioNotifica,
+                url: '/#section-classifica',
+                targetUsers: idsPartecipanti
+            });
+
+            console.log(`✅ Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => p.nome).join(', ')}`);
+        } else {
+            console.log('ℹ️ Nessun partecipante possiede questo giocatore, nessuna notifica inviata');
         }
 
         console.log(`✅ Sostituzione completata con successo`);
 
         res.json({
             success: true,
-            message: `${nomeVecchio} sostituito con ${nomeNuovo}`
+            message: `${nomeVecchio} sostituito con ${nomeNuovo}`,
+            notifiche_inviate: partecipantiCoinvolti.rows.length
         });
 
     } catch (err) {
