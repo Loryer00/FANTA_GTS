@@ -3782,10 +3782,6 @@ app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
         const numPartecipanti = parseInt(partecipanti);
         const numSquadre = parseInt(squadre);
 
-        if (isNaN(numPartecipanti) || isNaN(numSquadre)) {
-            return res.status(400).json({ error: 'Parametri devono essere numeri' });
-        }
-
         const risultato = calcolaCondivisione(numPartecipanti, numSquadre);
 
         res.json({
