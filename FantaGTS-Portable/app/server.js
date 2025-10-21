@@ -323,19 +323,36 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 
         // 🆕 AGGIUNGI - Crea VIEW per statistiche sessioni
-        await db.query(`DROP VIEW IF EXISTS v_sessioni_stats`);
+        await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
-            SELECT 
-                s.*,
-                COUNT(DISTINCT p.id) as partecipanti_iscritti,
-                COUNT(DISTINCT sq.numero) as squadre_create,
-                COUNT(DISTINCT a.id) as aste_completate
-            FROM sessioni_fantagts s
-            LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
-            LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
-            LEFT JOIN aste a ON a.sessione_id = s.id
-            GROUP BY s.id
-        `);
+    SELECT 
+        s.id,
+        s.nome,
+        s.anno,
+        s.descrizione,
+        s.attiva,
+        s.created_at,
+        s.modalita,
+        s.numero_partecipanti_previsti,
+        s.crediti_iniziali,
+        s.numero_squadre,
+        s.condivisione_attiva,
+        s.ripetizioni_necessarie,
+        s.premium_condivisione,
+        s.stato,
+        s.last_modified,
+        COALESCE(COUNT(DISTINCT p.id), 0)::INTEGER as partecipanti_iscritti,
+        COALESCE(COUNT(DISTINCT sq.numero), 0)::INTEGER as squadre_create,
+        COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
+    FROM sessioni_fantagts s
+    LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
+    LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
+    LEFT JOIN aste a ON a.sessione_id = s.id
+    GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
+             s.modalita, s.numero_partecipanti_previsti, s.crediti_iniziali, 
+             s.numero_squadre, s.condivisione_attiva, s.ripetizioni_necessarie, 
+             s.premium_condivisione, s.stato, s.last_modified
+`);
 
         console.log('✅ Schema database aggiornato');
     } catch (error) {
