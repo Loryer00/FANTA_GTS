@@ -3766,6 +3766,41 @@ app.get('/api/sessioni', async (req, res) => {
     }
 });
 
+// ==================== UTILITY API ====================
+
+// GET: Calcola statistiche condivisione
+app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
+    try {
+        const { partecipanti, squadre } = req.query;
+
+        if (!partecipanti || !squadre) {
+            return res.status(400).json({
+                error: 'Parametri mancanti: partecipanti e squadre'
+            });
+        }
+
+        const numPartecipanti = parseInt(partecipanti);
+        const numSquadre = parseInt(squadre);
+
+        if (isNaN(numPartecipanti) || isNaN(numSquadre)) {
+            return res.status(400).json({ error: 'Parametri devono essere numeri' });
+        }
+
+        const risultato = calcolaCondivisione(numPartecipanti, numSquadre);
+
+        res.json({
+            numeroPartecipanti: numPartecipanti,
+            numeroSquadre: numSquadre,
+            giocatoriDisponibili: numSquadre * 10,
+            giocatoriNecessari: numPartecipanti * 10,
+            ...risultato
+        });
+    } catch (err) {
+        console.error('❌ Errore calcolo condivisione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET: Dettaglio sessione singola
 app.get('/api/sessioni/:id', async (req, res) => {
     try {
@@ -4090,41 +4125,6 @@ app.delete('/api/sessioni/:id', async (req, res) => {
     } catch (err) {
         await db.query('ROLLBACK');
         console.error('❌ Errore eliminazione sessione:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ==================== UTILITY API ====================
-
-// GET: Calcola statistiche condivisione
-app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
-    try {
-        const { partecipanti, squadre } = req.query;
-
-        if (!partecipanti || !squadre) {
-            return res.status(400).json({
-                error: 'Parametri mancanti: partecipanti e squadre'
-            });
-        }
-
-        const numPartecipanti = parseInt(partecipanti);
-        const numSquadre = parseInt(squadre);
-
-        if (isNaN(numPartecipanti) || isNaN(numSquadre)) {
-            return res.status(400).json({ error: 'Parametri devono essere numeri' });
-        }
-
-        const risultato = calcolaCondivisione(numPartecipanti, numSquadre);
-
-        res.json({
-            numeroPartecipanti: numPartecipanti,
-            numeroSquadre: numSquadre,
-            giocatoriDisponibili: numSquadre * 10,
-            giocatoriNecessari: numPartecipanti * 10,
-            ...risultato
-        });
-    } catch (err) {
-        console.error('❌ Errore calcolo condivisione:', err);
         res.status(500).json({ error: err.message });
     }
 });
