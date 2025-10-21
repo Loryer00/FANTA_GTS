@@ -3797,28 +3797,6 @@ app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
     }
 });
 
-// GET: Dettaglio sessione singola
-app.get('/api/sessioni/:id', async (req, res) => {
-    try {
-        const sessioneId = req.params.id;
-
-        const result = await db.query(
-            'SELECT * FROM v_sessioni_stats WHERE id = $1',
-            [sessioneId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione non trovata' });
-        }
-
-        console.log(`✅ Sessione caricata: ${sessioneId}`);
-        res.json(result.rows[0]);
-    } catch (err) {
-        console.error('❌ Errore caricamento sessione:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // GET: Sessione attiva per modalità
 app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
     try {
@@ -3841,6 +3819,28 @@ app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error('❌ Errore caricamento sessione attiva:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Dettaglio sessione singola
+app.get('/api/sessioni/:id', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        const result = await db.query(
+            'SELECT * FROM v_sessioni_stats WHERE id = $1',
+            [sessioneId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        console.log(`✅ Sessione caricata: ${sessioneId}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
