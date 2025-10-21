@@ -80,6 +80,8 @@ console.log('🔍 Connessione PostgreSQL...');
 // Inizializza database
 async function initializeDatabase() {
     try {
+        console.log('🔧 Inizializzazione database in corso...');
+
         // Crea tabelle
         await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
             id SERIAL PRIMARY KEY,
@@ -300,14 +302,20 @@ let gameState = {
     fase: 'setup',
     roundAttivo: null,
     asteAttive: false,
+
+    // 🆕 NUOVO: Tracciamento sessione attiva
+    sessioneAttiva: null, // ID della sessione attualmente in uso
+
     connessi: new Map(),
     offerteTemporanee: new Map(),
-    // 🆕 NUOVI CAMPI per multi-asta
+
+    // Campi per multi-asta
     astaCorrente: 1,
     partecipantiAssegnati: new Set(),
     slotsRimasti: [],
     partecipantiInAttesa: [],
-    // 🆕 CAMPI per controllo logging
+
+    // Campi per controllo logging
     lastMonitorLog: null,
     lastOfferteCount: 0
 };
@@ -3474,6 +3482,179 @@ function getLocalIP() {
     }
     return 'localhost';
 }
+// =============================================
+// API GESTIONE SESSIONI
+// =============================================
+
+// Genera ID univoco per sessione
+function generateSessionId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 7);
+    return `sess_${timestamp}_${random}`;
+}
+
+// Calcola se serve condivisione
+function calcolaCondivisione(numPartecipanti, numSquadre) {
+    const giocatoriNecessari = numPartecipanti * 10;
+    const giocatoriDisponibili = numSquadre * 10;
+    const ripetizioniNecessarie = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
+
+    return {
+        condivisioneAttiva: ripetizioniNecessarie > 0,
+        ripetizioniNecessarie: ripetizioniNecessarie
+    };
+}
+
+// GET: Lista tutte le sessioni
+app.get('/api/sessioni', async (req, res) => {
+    try {
+        const { stato, modalita, anno } = req.query;
+
+        let query = 'SELECT * FROM v_sessioni_stats WHERE 1=1';
+        const params = [];
+
+        if (stato) {
+            params.push(stato);
+            query += ` AND stato = $${params.length}`;
+        }
+
+        if (modalita) {
+            params.push(modalita);
+            query += ` AND modalita = $${params.length}`;
+        }
+
+        if (anno) {
+            params.push(parseInt(anno));
+            query += ` AND anno = $${params.length}`;
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const result = await db.query(query, params);
+
+        console.log(`✅ Lista sessioni caricata: ${result.rows.length} risultati`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Dettaglio sessione singola
+app.get('/api/sessioni/:id', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        const result = await db.query(
+            'SELECT * FROM v_sessioni_stats WHERE id = $1',
+            [sessioneId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        console.log(`✅ Sessione caricata: ${sessioneId}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Crea nuova sessione
+app.post('/api/sessioni', async (req, res) => {
+    try {
+        const {
+            nome,
+            anno,
+            descrizione,
+            modalita,
+            numeroPartecipanti,
+            creditiIniziali,
+            numeroSquadre
+        } = req.body;
+
+        // Validazione
+        if (!nome || !modalita || !numeroPartecipanti || !numeroSquadre) {
+            return res.status(400).json({
+                error: 'Campi obbligatori mancanti'
+            });
+        }
+
+        // Calcola condivisione
+        const condivisione = calcolaCondivisione(numeroPartecipanti, numeroSquadre);
+
+        // Genera ID univoco
+        const sessioneId = generateSessionId();
+
+        // Disattiva eventuali altre sessioni della stessa modalità
+        await db.query(
+            'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND attiva = true',
+            [modalita]
+        );
+
+        // Inserisci nuova sessione
+        const result = await db.query(`
+            INSERT INTO sessioni_fantagts (
+                id, nome, anno, descrizione, modalita,
+                numero_partecipanti_previsti, crediti_iniziali, numero_squadre,
+                condivisione_attiva, ripetizioni_necessarie, 
+                stato, attiva
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *
+        `, [
+            sessioneId,
+            nome,
+            anno || new Date().getFullYear(),
+            descrizione || '',
+            modalita,
+            numeroPartecipanti,
+            creditiIniziali || 2000,
+            numeroSquadre,
+            condivisione.condivisioneAttiva,
+            condivisione.ripetizioniNecessarie,
+            'setup',
+            true
+        ]);
+
+        console.log(`✅ Sessione creata: ${sessioneId} - ${nome}`);
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore creazione sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Calcola statistiche condivisione
+app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
+    try {
+        const { partecipanti, squadre } = req.query;
+
+        if (!partecipanti || !squadre) {
+            return res.status(400).json({
+                error: 'Parametri mancanti: partecipanti e squadre'
+            });
+        }
+
+        const numPartecipanti = parseInt(partecipanti);
+        const numSquadre = parseInt(squadre);
+
+        const risultato = calcolaCondivisione(numPartecipanti, numSquadre);
+
+        res.json({
+            numeroPartecipanti: numPartecipanti,
+            numeroSquadre: numSquadre,
+            giocatoriDisponibili: numSquadre * 10,
+            giocatoriNecessari: numPartecipanti * 10,
+            ...risultato
+        });
+    } catch (err) {
+        console.error('❌ Errore calcolo condivisione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Avvio server
 const PORT = process.env.PORT || 3000;
@@ -3526,3 +3707,431 @@ process.on('SIGTERM', () => {
     db.end();
     process.exit(0);
 });
+
+// ==================== UTILITY FUNCTIONS ====================
+
+// Genera ID univoco per sessione
+function generateSessionId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 7);
+    return `sess_${timestamp}_${random}`;
+}
+
+// Calcola se serve condivisione
+function calcolaCondivisione(numPartecipanti, numSquadre) {
+    const giocatoriNecessari = numPartecipanti * 10;
+    const giocatoriDisponibili = numSquadre * 10;
+    const ripetizioniNecessarie = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
+
+    return {
+        condivisioneAttiva: ripetizioniNecessarie > 0,
+        ripetizioniNecessarie: ripetizioniNecessarie
+    };
+}
+
+// ==================== CRUD SESSIONI ====================
+
+// GET: Lista tutte le sessioni
+app.get('/api/sessioni', async (req, res) => {
+    try {
+        const { stato, modalita, anno } = req.query;
+
+        let query = 'SELECT * FROM v_sessioni_stats WHERE 1=1';
+        const params = [];
+
+        if (stato) {
+            params.push(stato);
+            query += ` AND stato = $${params.length}`;
+        }
+
+        if (modalita) {
+            params.push(modalita);
+            query += ` AND modalita = $${params.length}`;
+        }
+
+        if (anno) {
+            params.push(parseInt(anno));
+            query += ` AND anno = $${params.length}`;
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const result = await db.query(query, params);
+
+        console.log(`✅ Lista sessioni caricata: ${result.rows.length} risultati`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Dettaglio sessione singola
+app.get('/api/sessioni/:id', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        const result = await db.query(
+            'SELECT * FROM v_sessioni_stats WHERE id = $1',
+            [sessioneId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        console.log(`✅ Sessione caricata: ${sessioneId}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Sessione attiva per modalità
+app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
+    try {
+        const modalita = req.params.modalita;
+
+        if (!['asta_competitiva', 'draft_libero'].includes(modalita)) {
+            return res.status(400).json({ error: 'Modalità non valida' });
+        }
+
+        const result = await db.query(
+            'SELECT * FROM v_sessioni_stats WHERE attiva = true AND modalita = $1',
+            [modalita]
+        );
+
+        if (result.rows.length === 0) {
+            return res.json(null);
+        }
+
+        console.log(`✅ Sessione attiva ${modalita}:`, result.rows[0].id);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione attiva:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Crea nuova sessione
+app.post('/api/sessioni', async (req, res) => {
+    try {
+        const {
+            nome,
+            anno,
+            descrizione,
+            modalita,
+            numeroPartecipanti,
+            creditiIniziali,
+            numeroSquadre
+        } = req.body;
+
+        // Validazione
+        if (!nome || !modalita || !numeroPartecipanti || !numeroSquadre) {
+            return res.status(400).json({
+                error: 'Campi obbligatori mancanti: nome, modalita, numeroPartecipanti, numeroSquadre'
+            });
+        }
+
+        if (!['asta_competitiva', 'draft_libero'].includes(modalita)) {
+            return res.status(400).json({ error: 'Modalità non valida' });
+        }
+
+        if (numeroPartecipanti < 2 || numeroPartecipanti > 100) {
+            return res.status(400).json({ error: 'Numero partecipanti deve essere tra 2 e 100' });
+        }
+
+        if (numeroSquadre < 1 || numeroSquadre > 50) {
+            return res.status(400).json({ error: 'Numero squadre deve essere tra 1 e 50' });
+        }
+
+        // Validazione crediti solo per asta competitiva
+        let crediti = 2000;
+        if (modalita === 'asta_competitiva') {
+            crediti = creditiIniziali || 2000;
+            if (crediti < 100 || crediti > 100000) {
+                return res.status(400).json({ error: 'Crediti devono essere tra 100 e 100.000' });
+            }
+            if (crediti % 100 !== 0) {
+                return res.status(400).json({ error: 'Crediti devono essere multipli di 100' });
+            }
+        }
+
+        // Calcola condivisione
+        const condivisione = calcolaCondivisione(numeroPartecipanti, numeroSquadre);
+
+        // Genera ID univoco
+        const sessioneId = generateSessionId();
+
+        // Disattiva eventuali altre sessioni della stessa modalità
+        await db.query(
+            'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND attiva = true',
+            [modalita]
+        );
+
+        // Inserisci nuova sessione
+        const result = await db.query(`
+            INSERT INTO sessioni_fantagts (
+                id, nome, anno, descrizione, modalita,
+                numero_partecipanti_previsti, crediti_iniziali, numero_squadre,
+                condivisione_attiva, ripetizioni_necessarie, 
+                stato, attiva
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *
+        `, [
+            sessioneId,
+            nome,
+            anno || new Date().getFullYear(),
+            descrizione || '',
+            modalita,
+            numeroPartecipanti,
+            crediti,
+            numeroSquadre,
+            condivisione.condivisioneAttiva,
+            condivisione.ripetizioniNecessarie,
+            'setup',
+            true
+        ]);
+
+        console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita})`);
+        console.log(`   📊 Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
+        console.log(`   🔄 Condivisione: ${condivisione.condivisioneAttiva ? 'ATTIVA' : 'NON NECESSARIA'}`);
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore creazione sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT: Aggiorna sessione
+app.put('/api/sessioni/:id', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+        const { nome, anno, descrizione, stato } = req.body;
+
+        // Controlla che la sessione esista
+        const check = await db.query('SELECT * FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        if (check.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const updates = [];
+        const params = [];
+        let paramIndex = 1;
+
+        if (nome !== undefined) {
+            params.push(nome);
+            updates.push(`nome = $${paramIndex++}`);
+        }
+
+        if (anno !== undefined) {
+            params.push(anno);
+            updates.push(`anno = $${paramIndex++}`);
+        }
+
+        if (descrizione !== undefined) {
+            params.push(descrizione);
+            updates.push(`descrizione = $${paramIndex++}`);
+        }
+
+        if (stato !== undefined) {
+            const statiValidi = ['setup', 'formazione_squadre', 'aste_in_corso', 'aste_completate', 'in_corso', 'completata', 'archiviata'];
+            if (!statiValidi.includes(stato)) {
+                return res.status(400).json({ error: 'Stato non valido' });
+            }
+            params.push(stato);
+            updates.push(`stato = $${paramIndex++}`);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'Nessun campo da aggiornare' });
+        }
+
+        params.push(sessioneId);
+        const query = `UPDATE sessioni_fantagts SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+
+        const result = await db.query(query, params);
+
+        console.log(`✅ Sessione aggiornata: ${sessioneId}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore aggiornamento sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Attiva/Disattiva sessione
+app.post('/api/sessioni/:id/toggle-attiva', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        // Carica sessione
+        const sessioneResult = await db.query(
+            'SELECT * FROM sessioni_fantagts WHERE id = $1',
+            [sessioneId]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const sessione = sessioneResult.rows[0];
+        const nuovoStato = !sessione.attiva;
+
+        if (nuovoStato) {
+            // Attivazione: disattiva altre sessioni della stessa modalità
+            await db.query(
+                'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND attiva = true AND id != $2',
+                [sessione.modalita, sessioneId]
+            );
+        }
+
+        // Aggiorna stato
+        const result = await db.query(
+            'UPDATE sessioni_fantagts SET attiva = $1 WHERE id = $2 RETURNING *',
+            [nuovoStato, sessioneId]
+        );
+
+        console.log(`✅ Sessione ${sessioneId}: attiva = ${nuovoStato}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore toggle attiva sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Archivia sessione
+app.post('/api/sessioni/:id/archivia', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        const result = await db.query(
+            `UPDATE sessioni_fantagts 
+             SET stato = 'archiviata', attiva = false 
+             WHERE id = $1 
+             RETURNING *`,
+            [sessioneId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        console.log(`📦 Sessione archiviata: ${sessioneId}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore archiviazione sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Reset sessione (mantiene config, cancella dati)
+app.post('/api/sessioni/:id/reset', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        await db.query('BEGIN');
+
+        // Verifica che la sessione esista
+        const check = await db.query('SELECT * FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        if (check.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        // Cancella dati ma mantiene configurazione
+        await db.query('DELETE FROM aste WHERE sessione_id = $1', [sessioneId]);
+        await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
+        await db.query('DELETE FROM partecipanti_fantagts WHERE sessione_id = $1', [sessioneId]);
+
+        // Reset stato sessione
+        await db.query(
+            `UPDATE sessioni_fantagts 
+             SET stato = 'setup' 
+             WHERE id = $1`,
+            [sessioneId]
+        );
+
+        await db.query('COMMIT');
+
+        console.log(`🔄 Sessione resettata: ${sessioneId}`);
+        res.json({ success: true, message: 'Sessione resettata con successo' });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('❌ Errore reset sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina sessione completamente
+app.delete('/api/sessioni/:id', async (req, res) => {
+    try {
+        const sessioneId = req.params.id;
+
+        await db.query('BEGIN');
+
+        // Elimina tutti i dati correlati (CASCADE dovrebbe farlo automaticamente)
+        const result = await db.query(
+            'DELETE FROM sessioni_fantagts WHERE id = $1 RETURNING *',
+            [sessioneId]
+        );
+
+        if (result.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        await db.query('COMMIT');
+
+        console.log(`🗑️ Sessione eliminata: ${sessioneId}`);
+        res.json({ success: true, message: 'Sessione eliminata con successo' });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('❌ Errore eliminazione sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== UTILITY API ====================
+
+// GET: Calcola statistiche condivisione
+app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
+    try {
+        const { partecipanti, squadre } = req.query;
+
+        if (!partecipanti || !squadre) {
+            return res.status(400).json({
+                error: 'Parametri mancanti: partecipanti e squadre'
+            });
+        }
+
+        const numPartecipanti = parseInt(partecipanti);
+        const numSquadre = parseInt(squadre);
+
+        if (isNaN(numPartecipanti) || isNaN(numSquadre)) {
+            return res.status(400).json({ error: 'Parametri devono essere numeri' });
+        }
+
+        const risultato = calcolaCondivisione(numPartecipanti, numSquadre);
+
+        res.json({
+            numeroPartecipanti: numPartecipanti,
+            numeroSquadre: numSquadre,
+            giocatoriDisponibili: numSquadre * 10,
+            giocatoriNecessari: numPartecipanti * 10,
+            ...risultato
+        });
+    } catch (err) {
+        console.error('❌ Errore calcolo condivisione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== ESPORTA FUNZIONI UTILI ====================
+// Queste possono essere usate in altri file se necessario
+module.exports = {
+    generateSessionId,
+    calcolaCondivisione
+};
