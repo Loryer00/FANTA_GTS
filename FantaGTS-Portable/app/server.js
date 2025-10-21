@@ -271,7 +271,7 @@ async function initializeDatabase() {
     }
 }
 
-// Funzione per aggiornare database automaticamente
+/// Funzione per aggiornare database automaticamente
 async function updateDatabaseSchema() {
     try {
         console.log('🔄 Aggiornando schema database...');
@@ -281,15 +281,61 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
-        // Crea tabella sessioni se non esiste
+        // 🆕 AGGIUNGI QUESTE RIGHE - Colonne per squadre e slots
+        await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+
+        // Crea tabella sessioni se non esiste (SCHEMA COMPLETO)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
             nome TEXT NOT NULL,
             anno INTEGER,
             descrizione TEXT,
+            
+            -- Configurazione
+            modalita TEXT NOT NULL DEFAULT 'asta_competitiva',
+            numero_partecipanti_previsti INTEGER NOT NULL DEFAULT 10,
+            crediti_iniziali INTEGER DEFAULT 2000,
+            numero_squadre INTEGER NOT NULL DEFAULT 10,
+            
+            -- Sistema condivisione
+            condivisione_attiva BOOLEAN DEFAULT false,
+            ripetizioni_necessarie INTEGER DEFAULT 0,
+            premium_condivisione REAL DEFAULT 0.10,
+            
+            -- Stato
+            stato TEXT DEFAULT 'setup',
             attiva BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        // 🆕 AGGIUNGI - Aggiorna tabella esistente con colonne mancanti
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS modalita TEXT DEFAULT 'asta_competitiva'`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_partecipanti_previsti INTEGER DEFAULT 10`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS crediti_iniziali INTEGER DEFAULT 2000`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_squadre INTEGER DEFAULT 10`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS condivisione_attiva BOOLEAN DEFAULT false`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS ripetizioni_necessarie INTEGER DEFAULT 0`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS premium_condivisione REAL DEFAULT 0.10`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS stato TEXT DEFAULT 'setup'`);
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+
+        // 🆕 AGGIUNGI - Crea VIEW per statistiche sessioni
+        await db.query(`DROP VIEW IF EXISTS v_sessioni_stats`);
+        await db.query(`CREATE VIEW v_sessioni_stats AS
+            SELECT 
+                s.*,
+                COUNT(DISTINCT p.id) as partecipanti_iscritti,
+                COUNT(DISTINCT sq.numero) as squadre_create,
+                COUNT(DISTINCT a.id) as aste_completate
+            FROM sessioni_fantagts s
+            LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
+            LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
+            LEFT JOIN aste a ON a.sessione_id = s.id
+            GROUP BY s.id
+        `);
 
         console.log('✅ Schema database aggiornato');
     } catch (error) {
