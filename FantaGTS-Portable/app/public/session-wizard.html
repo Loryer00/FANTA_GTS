@@ -864,7 +864,7 @@
             sessionData.modalita = modalita;
 
             // Aggiorna UI
-            document.querySelectorAll('.mode-card').forEach(card => {
+            document.querySelectorAll('.mode-card').forEach(card => { 
                 card.classList.remove('selected');
             });
             event.target.closest('.mode-card').classList.add('selected');
