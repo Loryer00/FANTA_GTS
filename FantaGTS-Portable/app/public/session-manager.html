@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Gestione Sessioni</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎾%3C/text%3E%3C/svg%3E">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                color: #4299e1;
+            }
+
+        .section {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .section h2 {
+                margin-bottom: 20px;
+                color: #4299e1;
+                border-bottom: 2px solid #4299e1;
+                padding-bottom: 10px;
+                font-size: 1.5em;
+            }
+
+        .filters-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .filter-group label {
+                font-weight: bold;
+                color: #cbd5e0;
+            }
+
+            .filter-group select {
+                padding: 10px 15px;
+                border: none;
+                border-radius: 8px;
+                background: rgba(255,255,255,0.95);
+                color: #2d3748;
+                font-size: 1em;
+                cursor: pointer;
+            }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: #3182ce;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .session-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+            .session-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+                border-color: #4299e1;
+            }
+
+            .session-card.attiva {
+                border-color: #48bb78;
+                background: rgba(72, 187, 120, 0.1);
+            }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .session-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .session-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-asta {
+            background: #4299e1;
+            color: white;
+        }
+
+        .badge-draft {
+            background: #9f7aea;
+            color: white;
+        }
+
+        .badge-attiva {
+            background: #48bb78;
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .session-info {
+            margin: 15px 0;
+            font-size: 0.95em;
+            color: #cbd5e0;
+        }
+
+            .session-info p {
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .session-info strong {
+                color: #e2e8f0;
+            }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4299e1;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #cbd5e0;
+            margin-top: 5px;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #cbd5e0;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #cbd5e0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #2d3748;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4299e1;
+        }
+
+        .modal-body {
+            margin: 20px 0;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sessions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎾 Gestione Sessioni FantaGTS</h1>
+            <p>Crea e gestisci le sessioni di gioco</p>
+        </div>
+
+        <!-- Barra Filtri e Azioni -->
+        <div class="section">
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Modalità:</label>
+                    <select id="filtroModalita" onchange="applicaFiltri()">
+                        <option value="">Tutte</option>
+                        <option value="asta_competitiva">Asta Competitiva</option>
+                        <option value="draft_libero">Draft Libero</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Stato:</label>
+                    <select id="filtroStato" onchange="applicaFiltri()">
+                        <option value="">Tutti</option>
+                        <option value="setup">Setup</option>
+                        <option value="formazione_squadre">Formazione Squadre</option>
+                        <option value="aste_in_corso">Aste in Corso</option>
+                        <option value="in_corso">In Corso</option>
+                        <option value="completata">Completata</option>
+                        <option value="archiviata">Archiviata</option>
+                    </select>
+                </div>
+
+                <div style="margin-left: auto;">
+                    <button class="btn btn-primary" onclick="nuovaSessione()">
+                        ➕ Nuova Sessione
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Sessioni -->
+        <div class="section">
+            <h2>📋 Sessioni Disponibili</h2>
+            <div id="sessionsList" class="loading">
+                Caricamento sessioni...
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Conferma -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="confirmTitle">Conferma Operazione</div>
+            <div class="modal-body" id="confirmMessage"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button class="btn btn-danger" id="confirmBtn">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessioni = [];
+        let sessioniFiltrate = [];
+
+        // Carica sessioni all'avvio
+        window.addEventListener('DOMContentLoaded', () => {
+            caricaSessioni();
+        });
+
+        async function caricaSessioni() {
+            try {
+                const response = await fetch('/api/sessioni');
+                if (!response.ok) throw new Error('Errore caricamento sessioni');
+
+                sessioni = await response.json();
+                sessioniFiltrate = sessioni;
+                mostraSessioni();
+            } catch (error) {
+                console.error('Errore:', error);
+                document.getElementById('sessionsList').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <h3>Errore di caricamento</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+            }
+        }
+
+        function applicaFiltri() {
+            const filtroModalita = document.getElementById('filtroModalita').value;
+            const filtroStato = document.getElementById('filtroStato').value;
+
+            sessioniFiltrate = sessioni.filter(s => {
+                if (filtroModalita && s.modalita !== filtroModalita) return false;
+                if (filtroStato && s.stato !== filtroStato) return false;
+                return true;
+            });
+
+            mostraSessioni();
+        }
+
+        function mostraSessioni() {
+            const container = document.getElementById('sessionsList');
+
+            if (sessioniFiltrate.length === 0) {
+                container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <h3>Nessuna sessione trovata</h3>
+                            <p>Crea la tua prima sessione per iniziare!</p>
+                            <button class="btn btn-primary" onclick="nuovaSessione()" style="margin-top: 20px;">
+                                ➕ Crea Sessione
+                            </button>
+                        </div>
+                    `;
+                return;
+            }
+
+            let html = '<div class="sessions-grid">';
+
+            sessioniFiltrate.forEach(sessione => {
+                const badgeModalita = sessione.modalita === 'asta_competitiva' ?
+                    '<span class="session-badge badge-asta">Asta Competitiva</span>' :
+                    '<span class="session-badge badge-draft">Draft Libero</span>';
+
+                const badgeAttiva = sessione.attiva ?
+                    '<span class="session-badge badge-attiva">✓ ATTIVA</span>' : '';
+
+                html += `
+                        <div class="session-card ${sessione.attiva ? 'attiva' : ''}">
+                            <div class="session-header">
+                                <div>
+                                    <div class="session-title">${sessione.nome}</div>
+                                    ${badgeModalita}
+                                </div>
+                                ${badgeAttiva}
+                            </div>
+
+                            <div class="session-info">
+                                <p><strong>Anno:</strong> <span>${sessione.anno || 'N/D'}</span></p>
+                                <p><strong>Stato:</strong> <span>${formatStato(sessione.stato)}</span></p>
+                                <p><strong>Partecipanti:</strong> <span>${sessione.numero_partecipanti_previsti}</span></p>
+                                <p><strong>Squadre:</strong> <span>${sessione.numero_squadre}</span></p>
+                                ${sessione.modalita === 'asta_competitiva' ?
+                        `<p><strong>Crediti:</strong> <span>${sessione.crediti_iniziali}</span></p>` : ''}
+                                ${sessione.condivisione_attiva ?
+                        `<p><strong>Condivisione:</strong> <span>✓ Attiva (${sessione.ripetizioni_necessarie} ripetizioni)</span></p>` : ''}
+                            </div>
+
+                            <div class="session-stats">
+                                <div class="stat-box">
+                                    <div class="stat-number">${sessione.partecipanti_iscritti || 0}</div>
+                                    <div class="stat-label">Iscritti</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-number">${sessione.squadre_create || 0}</div>
+                                    <div class="stat-label">Squadre</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-number">${sessione.aste_completate || 0}</div>
+                                    <div class="stat-label">Aste</div>
+                                </div>
+                            </div>
+
+                            <div class="session-actions">
+                                ${!sessione.attiva ?
+                        `<button class="btn btn-success btn-small" onclick="attivaSessione('${sessione.id}')">
+                                        ▶️ Attiva
+                                    </button>` :
+                        `<button class="btn btn-secondary btn-small" onclick="disattivaSessione('${sessione.id}')">
+                                        ⏸️ Disattiva
+                                    </button>`
+                    }
+                                <button class="btn btn-primary btn-small" onclick="caricaSessione('${sessione.id}')">
+                                    📂 Carica
+                                </button>
+                                ${sessione.stato !== 'archiviata' ?
+                        `<button class="btn btn-secondary btn-small" onclick="archiviaSessione('${sessione.id}')">
+                                        📦 Archivia
+                                    </button>` : ''
+                    }
+                                <button class="btn btn-danger btn-small" onclick="eliminaSessione('${sessione.id}', '${sessione.nome}')">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
+                        </div>
+                    `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function formatStato(stato) {
+            const stati = {
+                'setup': '🔧 Setup',
+                'formazione_squadre': '👥 Formazione Squadre',
+                'aste_in_corso': '⚡ Aste in Corso',
+                'aste_completate': '✅ Aste Completate',
+                'in_corso': '🎾 In Corso',
+                'completata': '🏆 Completata',
+                'archiviata': '📦 Archiviata'
+            };
+            return stati[stato] || stato;
+        }
+
+        function nuovaSessione() {
+            window.location.href = '/session-wizard.html';
+        }
+
+        async function attivaSessione(id) {
+            try {
+                const response = await fetch(`/api/sessioni/${id}/toggle-attiva`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Errore attivazione');
+
+                showNotification('✅ Sessione attivata con successo', 'success');
+                await caricaSessioni();
+            } catch (error) {
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        async function disattivaSessione(id) {
+            try {
+                const response = await fetch(`/api/sessioni/${id}/toggle-attiva`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Errore disattivazione');
+
+                showNotification('✅ Sessione disattivata', 'success');
+                await caricaSessioni();
+            } catch (error) {
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        function caricaSessione(id) {
+            // Redirige al master con la sessione caricata
+            window.location.href = `/master?sessione=${id}`;
+        }
+
+        async function archiviaSessione(id) {
+            const conferma = await showConfirm(
+                'Archiviare Sessione',
+                'Archiviando la sessione verrà disattivata ma i dati saranno conservati. Continuare?'
+            );
+
+            if (!conferma) return;
+
+            try {
+                const response = await fetch(`/api/sessioni/${id}/archivia`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Errore archiviazione');
+
+                showNotification('✅ Sessione archiviata', 'success');
+                await caricaSessioni();
+            } catch (error) {
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        async function eliminaSessione(id, nome) {
+            const conferma = await showConfirm(
+                'Eliminare Sessione',
+                `Sei sicuro di voler eliminare "${nome}"? Questa azione è irreversibile e cancellerà tutti i dati associati.`
+            );
+
+            if (!conferma) return;
+
+            try {
+                const response = await fetch(`/api/sessioni/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Errore eliminazione');
+
+                showNotification('✅ Sessione eliminata', 'success');
+                await caricaSessioni();
+            } catch (error) {
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        function showConfirm(title, message) {
+            return new Promise((resolve) => {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMessage').textContent = message;
+                document.getElementById('confirmModal').style.display = 'flex';
+
+                const confirmBtn = document.getElementById('confirmBtn');
+                confirmBtn.onclick = () => {
+                    closeModal();
+                    resolve(true);
+                };
+
+                // Chiudi anche cliccando fuori
+                window.onclick = (e) => {
+                    if (e.target.id === 'confirmModal') {
+                        closeModal();
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        function showNotification(message, type) {
+            // Crea notifica temporanea
+            const notif = document.createElement('div');
+            notif.textContent = message;
+            notif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease;
+                    background: ${type === 'success' ? '#48bb78' : '#f56565'};
+                `;
+
+            document.body.appendChild(notif);
+
+            setTimeout(() => {
+                notif.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+</html>
