@@ -761,6 +761,172 @@
             LAST_UPDATE: 'fantagts_last_update'
         };
 
+        // ========================================
+        // 🆕 GESTIONE SESSIONI
+        // ========================================
+
+        // Gestione Sessione
+        let sessioneCorrente = null;
+        let sessioneInfo = null;
+
+        // Carica sessione all'avvio
+        window.addEventListener('DOMContentLoaded', async () => {
+            await caricaSessioneAttiva();
+            inizializzaMaster();
+        });
+
+        async function caricaSessioneAttiva() {
+            try {
+                // Prova a leggere dall'URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessioneId = urlParams.get('sessione');
+
+                if (sessioneId) {
+                    // Carica sessione specifica
+                    const response = await fetch(`/api/sessioni/${sessioneId}`);
+                    if (response.ok) {
+                        sessioneInfo = await response.json();
+                        sessioneCorrente = sessioneId;
+                    }
+                } else {
+                    // Carica sessione attiva di default (asta_competitiva)
+                    const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data) {
+                            sessioneInfo = data;
+                            sessioneCorrente = data.id;
+                        }
+                    }
+                }
+
+                if (sessioneInfo) {
+                    console.log('✅ Sessione master caricata:', sessioneInfo);
+                    aggiornaHeaderSessioneMaster();
+                } else {
+                    mostraWarningNoSessione();
+                }
+
+            } catch (error) {
+                console.error('❌ Errore caricamento sessione master:', error);
+            }
+        }
+
+        function aggiornaHeaderSessioneMaster() {
+            if (!sessioneInfo) return;
+
+            const header = document.querySelector('.header');
+
+            // Aggiungi banner sessione
+            const sessionBanner = document.createElement('div');
+            sessionBanner.style.cssText = `
+                background: rgba(66, 153, 225, 0.2);
+                padding: 12px 20px;
+                border-radius: 10px;
+                margin-top: 15px;
+                border: 2px solid #4299e1;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+
+            sessionBanner.innerHTML = `
+                <div>
+                    <strong style="color: #4299e1; font-size: 1.05em;">📋 ${sessioneInfo.nome}</strong>
+                    <span style="margin-left: 15px; color: #cbd5e0; font-size: 0.95em;">
+                        ${sessioneInfo.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                    </span>
+                    ${sessioneInfo.anno ? `<span style="margin-left: 10px; color: #cbd5e0; font-size: 0.9em;">• ${sessioneInfo.anno}</span>` : ''}
+                    <span style="margin-left: 15px; padding: 4px 12px; background: rgba(72, 187, 120, 0.3); border-radius: 15px; font-size: 0.85em; color: #48bb78; font-weight: bold;">
+                        ✓ ATTIVA
+                    </span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="resetSessione()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9em;">
+                        🔄 Reset Sessione
+                    </button>
+                    <a href="/session-manager.html" class="btn btn-secondary" style="padding: 8px 16px; text-decoration: none; font-size: 0.9em;">
+                        ← Gestione Sessioni
+                    </a>
+                </div>
+            `;
+
+            header.appendChild(sessionBanner);
+        }
+
+        function mostraWarningNoSessione() {
+            const header = document.querySelector('.header');
+
+            const warningBanner = document.createElement('div');
+            warningBanner.style.cssText = `
+                background: rgba(237, 137, 54, 0.2);
+                padding: 15px 20px;
+                border-radius: 10px;
+                margin-top: 15px;
+                border: 2px solid #ed8936;
+                text-align: center;
+            `;
+
+            warningBanner.innerHTML = `
+                <strong style="color: #ed8936; font-size: 1.1em;">⚠️ Nessuna Sessione Attiva</strong><br>
+                <span style="color: #cbd5e0; margin-top: 10px; display: inline-block;">
+                    Crea o attiva una sessione dalla gestione sessioni per iniziare
+                </span><br>
+                <a href="/session-manager.html" class="btn btn-primary" style="margin-top: 10px; display: inline-block; text-decoration: none;">
+                    → Vai a Gestione Sessioni
+                </a>
+            `;
+
+            header.appendChild(warningBanner);
+        }
+
+        async function resetSessione() {
+            if (!sessioneCorrente) {
+                showNotification('Nessuna sessione attiva', 'error');
+                return;
+            }
+
+            const conferma = confirm(
+                `Vuoi resettare la sessione "${sessioneInfo.nome}"?\n\n` +
+                `Questa azione cancellerà:\n` +
+                `• Tutte le aste\n` +
+                `• Tutte le squadre partecipanti\n` +
+                `• Tutti i turni e incontri\n\n` +
+                `La configurazione (nome, modalità, squadre circolo) verrà mantenuta.`
+            );
+
+            if (!conferma) return;
+
+            try {
+                const response = await fetch(`/api/sessioni/${sessioneCorrente}/reset`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Errore reset sessione');
+
+                showNotification('✅ Sessione resettata con successo', 'success');
+
+                // Ricarica pagina dopo 2 secondi
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+
+            } catch (error) {
+                showNotification('❌ ' + error.message, 'error');
+            }
+        }
+
+        function inizializzaMaster() {
+            // Inizializza il master normalmente
+            initializeSocket();
+            caricaStatoIniziale();
+            setupEventListeners();
+        }
+
+        // ========================================
+        // FINE GESTIONE SESSIONI
+        // ========================================
+
         // NUOVA FUNZIONE: Salva stato completo del gioco
         async function saveMasterState() {
             try {
@@ -931,13 +1097,6 @@
                 console.error('Errore rimozione stato Master:', error);
             }
         }
-
-        // Inizializzazione
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeSocket();
-            caricaStatoIniziale();
-            setupEventListeners();
-        });
 
         // Connessione WebSocket
         function initializeSocket() {

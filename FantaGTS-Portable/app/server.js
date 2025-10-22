@@ -713,7 +713,19 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
-        const result = await db.query("SELECT * FROM squadre_circolo ORDER BY numero");
+        const sessioneId = req.query.sessione_id;
+
+        let query = "SELECT * FROM squadre_circolo WHERE attiva = true";
+        const params = [];
+
+        if (sessioneId) {
+            params.push(sessioneId);
+            query += ` AND sessione_id = $1`;
+        }
+
+        query += " ORDER BY numero";
+
+        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);
@@ -1195,14 +1207,34 @@ app.get('/api/incontri-turno/:turnoId', async (req, res) => {
 
 app.post('/api/squadre', async (req, res) => {
     try {
-        const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3 } = req.body;
+        const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id } = req.body;
 
-        await db.query(`INSERT INTO squadre_circolo 
-            (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT (numero) DO UPDATE SET
-            colore = $2, m1 = $3, m2 = $4, m3 = $5, m4 = $6, m5 = $7, m6 = $8, m7 = $9, f1 = $10, f2 = $11, f3 = $12`,
-            [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3]);
+        const sessioneIdValue = sessione_id || 'default';
+
+        // Prima controlla se esiste
+        const check = await db.query(
+            'SELECT numero FROM squadre_circolo WHERE numero = $1 AND sessione_id = $2',
+            [numero, sessioneIdValue]
+        );
+
+        if (check.rows.length > 0) {
+            // UPDATE
+            await db.query(`
+                UPDATE squadre_circolo SET
+                    colore = $1, m1 = $2, m2 = $3, m3 = $4, m4 = $5, 
+                    m5 = $6, m6 = $7, m7 = $8, f1 = $9, f2 = $10, f3 = $11
+                WHERE numero = $12 AND sessione_id = $13`,
+                [colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, numero, sessioneIdValue]
+            );
+        } else {
+            // INSERT
+            await db.query(`
+                INSERT INTO squadre_circolo 
+                (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+                [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessioneIdValue]
+            );
+        }
 
         res.json({ message: 'Squadra salvata con successo' });
     } catch (err) {

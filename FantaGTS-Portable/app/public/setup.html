@@ -444,10 +444,70 @@ F3 Brunelli E</pre>
         let squadre = [];
         let systemReady = false;
 
+        // Gestione Sessione
+        let sessioneCorrente = null;
+        let sessioneInfo = null;
+
+        // Leggi parametro sessione dall'URL
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessioneId = urlParams.get('sessione');
+
+            if (sessioneId) {
+                await caricaSessione(sessioneId);
+            }
+
+            caricaSquadre();
+        });
+
+        async function caricaSessione(sessioneId) {
+            try {
+                const response = await fetch(`/api/sessioni/${sessioneId}`);
+                if (!response.ok) throw new Error('Sessione non trovata');
+
+                sessioneInfo = await response.json();
+                sessioneCorrente = sessioneId;
+
+                console.log('✅ Sessione caricata:', sessioneInfo);
+
+                // Aggiorna UI con info sessione
+                aggiornaHeaderSessione();
+
+            } catch (error) {
+                console.error('❌ Errore caricamento sessione:', error);
+                showNotification('Errore: ' + error.message, 'error');
+            }
+        }
+
+        function aggiornaHeaderSessione() {
+            if (!sessioneInfo) return;
+
+            const header = document.querySelector('.header');
+
+            // Aggiungi banner sessione
+            const sessionBanner = document.createElement('div');
+            sessionBanner.className = 'session-banner';
+            sessionBanner.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(66, 153, 225, 0.2); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #4299e1;">
+                    <div>
+                        <strong style="color: #4299e1; font-size: 1.1em;">📋 Sessione: ${sessioneInfo.nome}</strong>
+                        <span style="margin-left: 15px; color: #cbd5e0;">
+                            ${sessioneInfo.modalita === 'asta_competitiva' ? '💰 Asta Competitiva' : '🎯 Draft Libero'}
+                        </span>
+                        ${sessioneInfo.anno ? `<span style="margin-left: 10px; color: #cbd5e0;">• Anno: ${sessioneInfo.anno}</span>` : ''}
+                    </div>
+                    <a href="/session-manager.html" class="btn btn-secondary" style="padding: 8px 16px; text-decoration: none;">
+                        ← Gestione Sessioni
+                    </a>
+                </div>
+            `;
+
+            header.appendChild(sessionBanner);
+        }
+
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', () => {
             caricaStato();
-            caricaSquadre();
         });
 
         // Gestione stato sistema
@@ -520,7 +580,13 @@ F3 Brunelli E</pre>
         async function caricaSquadre() {
             try {
                 console.log('🔍 DEBUG - Facendo richiesta a /api/squadre...');
-                const response = await fetch('/api/squadre');
+
+                // Se c'è una sessione, filtra per quella sessione
+                const url = sessioneCorrente ?
+                    `/api/squadre?sessione_id=${sessioneCorrente}` :
+                    '/api/squadre';
+
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     console.error('❌ Errore API squadre:', response.status, response.statusText);
@@ -743,20 +809,17 @@ function clearFormManualeEChiudi() {
 }
 
 // Funzione comune per salvare squadra
-async function salvaSquadra(squadra) {
-    const response = await fetch('/api/squadre', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(squadra)
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Errore salvataggio squadra');
-    }
-    
-    return response.json();
-}
+        async function salvaSquadra(squadra) {
+            // Aggiungi sessione_id se presente
+            if (sessioneCorrente) {
+                squadra.sessione_id = sessioneCorrente;
+            }
+
+            const response = await fetch('/api/squadre', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(squadra)
+            });
 
 function annullaUpload() {
     document.getElementById('fileSquadra').value = '';
