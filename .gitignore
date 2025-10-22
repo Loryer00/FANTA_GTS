@@ -12,7 +12,9 @@
 *.bak
 *.swp
 *.swo
-*.env
+
+# File di configurazione sensibili
+.env
 
 # Configurazioni e credenziali sensibili
 # Rinomina .env.example o simili
