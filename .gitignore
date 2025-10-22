@@ -1,0 +1,45 @@
+# Dipendenze
+/vendor
+/composer.lock
+/package-lock.json
+/yarn.lock
+
+# Log e dati temporanei
+/log/*
+/tmp/*
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.env
+
+# Configurazioni e credenziali sensibili
+# Rinomina .env.example o simili
+.env
+/config/secrets.yml
+*.key
+*.pem
+
+# Directory di build e output
+/dist/
+/build/
+/out/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+
+# Editor e IDE (e.g., VS Code, IntelliJ, Eclipse)
+.vscode/
+.idea/
+.settings/
+*.iml
+
+# File di sistema e cache
+.DS_Store
+Thumbs.db
+ehthumbs.db
