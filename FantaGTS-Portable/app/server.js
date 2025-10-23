@@ -401,6 +401,243 @@ function arrotondaAlPariPiuVicino(numero) {
     }
 }
 
+// =====================================================
+// 🆕 FASE 3: SISTEMA CONDIVISIONE GIOCATORI
+// =====================================================
+
+/**
+ * Calcola il numero di ripetizioni necessarie per categoria
+ * @param {string} categoria - Es: 'M1', 'M2', 'F1'
+ * @param {number} numeroPartecipanti - Totale partecipanti alla sessione
+ * @param {number} numeroSquadre - Numero di squadre del circolo
+ * @returns {number} - Numero di ripetizioni necessarie (0 se non serve condivisione)
+ */
+function calcolaRipetizioniNecessarie(categoria, numeroPartecipanti, numeroSquadre) {
+    const giocatoriNecessari = numeroPartecipanti; // Ogni partecipante ha bisogno di 1 giocatore per categoria
+    const giocatoriDisponibili = numeroSquadre; // 1 giocatore per squadra
+
+    const ripetizioni = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
+
+    console.log(`📊 Categoria ${categoria}: ${giocatoriNecessari} necessari, ${giocatoriDisponibili} disponibili → ${ripetizioni} ripetizioni`);
+
+    return ripetizioni;
+}
+
+/**
+ * Raggruppa le offerte per giocatore e calcola la somma totale
+ * @param {Array} offerte - Array di oggetti {partecipante, nome, offerta, slot}
+ * @returns {Object} - Oggetto con struttura: { nomeGiocatore: { sommaOfferte, offerte: [...] } }
+ */
+function raggruppaOffertePerGiocatore(offerte) {
+    const gruppi = {};
+
+    offerte.forEach(offerta => {
+        const nomeGiocatore = offerta.giocatore || offerta.slot; // slot contiene il nome del giocatore
+
+        if (!gruppi[nomeGiocatore]) {
+            gruppi[nomeGiocatore] = {
+                nomeGiocatore: nomeGiocatore,
+                sommaOfferte: 0,
+                offerte: []
+            };
+        }
+
+        gruppi[nomeGiocatore].sommaOfferte += offerta.offerta;
+        gruppi[nomeGiocatore].offerte.push(offerta);
+    });
+
+    return gruppi;
+}
+
+/**
+ * Seleziona i TOP N giocatori da replicare basandosi sulla somma delle offerte (Opzione D)
+ * @param {Object} gruppiGiocatori - Oggetto restituito da raggruppaOffertePerGiocatore
+ * @param {number} numeroRipetizioni - Quanti giocatori devono essere replicati
+ * @returns {Array} - Array di nomi dei giocatori da replicare
+ */
+function selezionaGiocatoriDaReplicare(gruppiGiocatori, numeroRipetizioni) {
+    // Converte l'oggetto in array e ordina per somma decrescente
+    const giocatoriOrdinati = Object.values(gruppiGiocatori)
+        .sort((a, b) => b.sommaOfferte - a.sommaOfferte);
+
+    // Prende i TOP N
+    const giocatoriReplicati = giocatoriOrdinati
+        .slice(0, numeroRipetizioni)
+        .map(g => g.nomeGiocatore);
+
+    console.log(`🎯 TOP ${numeroRipetizioni} giocatori da replicare:`);
+    giocatoriOrdinati.slice(0, numeroRipetizioni).forEach((g, idx) => {
+        console.log(`   ${idx + 1}. ${g.nomeGiocatore}: somma offerte = ${g.sommaOfferte} (${g.offerte.length} offerte)`);
+    });
+
+    return giocatoriReplicati;
+}
+
+/**
+ * Calcola i costi finali applicando il premium del 10% dal secondo posto in poi
+ * @param {Array} offerte - Array di offerte per un singolo giocatore, ordinate per importo decrescente
+ * @param {number} premiumPercentuale - Percentuale di premium (default 0.10 = 10%)
+ * @returns {Array} - Array di oggetti {partecipante, nome, offerta, costoFinale, premium, posizione}
+ */
+function calcolaCostiConPremium(offerte, premiumPercentuale = 0.10) {
+    // Ordina per offerta decrescente
+    const offerteOrdinate = [...offerte].sort((a, b) => b.offerta - a.offerta);
+
+    return offerteOrdinate.map((offerta, index) => {
+        const posizione = index + 1;
+        let costoFinale = offerta.offerta;
+        let premium = 0;
+
+        // Dal secondo posto in poi applica il premium
+        if (posizione > 1) {
+            premium = premiumPercentuale;
+            costoFinale = Math.ceil(offerta.offerta * (1 + premium));
+        }
+
+        return {
+            ...offerta,
+            costoFinale: costoFinale,
+            premium: premium,
+            posizione: posizione,
+            condiviso: true
+        };
+    });
+}
+
+/**
+ * Elabora i risultati delle aste applicando l'algoritmo di condivisione (Opzione D)
+ * @param {Array} tutteLeOfferte - Tutte le offerte del round
+ * @param {number} numeroPartecipanti - Numero totale di partecipanti
+ * @param {number} numeroSquadre - Numero di squadre del circolo
+ * @param {string} categoria - Categoria corrente (es: 'M1')
+ * @returns {Object} - { risultatiFinali: [], giocatoriReplicati: [], stats: {} }
+ */
+function elaboraCondivisioneGiocatori(tutteLeOfferte, numeroPartecipanti, numeroSquadre, categoria) {
+    console.log(`\n🔄 === ELABORAZIONE CONDIVISIONE per ${categoria} ===`);
+
+    // 1. Calcola quante ripetizioni servono
+    const ripetizioniNecessarie = calcolaRipetizioniNecessarie(categoria, numeroPartecipanti, numeroSquadre);
+
+    if (ripetizioniNecessarie === 0) {
+        console.log(`✅ Nessuna condivisione necessaria per ${categoria}`);
+        // Modalità normale: 1 vincitore per giocatore
+        const risultatiNormali = elaboraRisultatiNormali(tutteLeOfferte);
+        return {
+            risultatiFinali: risultatiNormali,
+            giocatoriReplicati: [],
+            stats: {
+                ripetizioniNecessarie: 0,
+                giocatoriReplicati: 0,
+                conCondivisione: 0,
+                senzaCondivisione: risultatiNormali.length
+            }
+        };
+    }
+
+    // 2. Raggruppa offerte per giocatore
+    const gruppiGiocatori = raggruppaOffertePerGiocatore(tutteLeOfferte);
+
+    // 3. Seleziona i TOP N giocatori da replicare
+    const giocatoriDaReplicare = selezionaGiocatoriDaReplicare(gruppiGiocatori, ripetizioniNecessarie);
+
+    // 4. Elabora i risultati
+    const risultatiFinali = [];
+    const stats = {
+        ripetizioniNecessarie: ripetizioniNecessarie,
+        giocatoriReplicati: giocatoriDaReplicare.length,
+        conCondivisione: 0,
+        senzaCondivisione: 0
+    };
+
+    Object.entries(gruppiGiocatori).forEach(([nomeGiocatore, dati]) => {
+        const deveEssereReplicato = giocatoriDaReplicare.includes(nomeGiocatore);
+
+        if (deveEssereReplicato) {
+            // Giocatore condiviso: applica premium e assegna a tutti
+            const risultatiConPremium = calcolaCostiConPremium(dati.offerte);
+            risultatiFinali.push(...risultatiConPremium);
+            stats.conCondivisione += risultatiConPremium.length;
+
+            console.log(`🔁 ${nomeGiocatore} CONDIVISO tra ${risultatiConPremium.length} partecipanti`);
+        } else {
+            // Giocatore unico: vince solo l'offerta più alta
+            const vincitore = elaboraVincitoreUnico(dati.offerte);
+            risultatiFinali.push(vincitore);
+            stats.senzaCondivisione++;
+
+            console.log(`✅ ${nomeGiocatore} assegnato UNICO a ${vincitore.nome}`);
+        }
+    });
+
+    console.log(`\n📊 STATISTICHE CONDIVISIONE:`);
+    console.log(`   Ripetizioni necessarie: ${stats.ripetizioniNecessarie}`);
+    console.log(`   Giocatori replicati: ${stats.giocatoriReplicati}`);
+    console.log(`   Assegnazioni con condivisione: ${stats.conCondivisione}`);
+    console.log(`   Assegnazioni senza condivisione: ${stats.senzaCondivisione}`);
+
+    return {
+        risultatiFinali,
+        giocatoriReplicati: giocatoriDaReplicare,
+        stats
+    };
+}
+
+/**
+ * Elabora risultati in modalità normale (senza condivisione)
+ */
+function elaboraRisultatiNormali(offerte) {
+    const offertePerSlot = {};
+
+    offerte.forEach(offerta => {
+        if (!offertePerSlot[offerta.slot]) {
+            offertePerSlot[offerta.slot] = [];
+        }
+        offertePerSlot[offerta.slot].push(offerta);
+    });
+
+    const risultati = [];
+    Object.values(offertePerSlot).forEach(offerte => {
+        const vincitore = elaboraVincitoreUnico(offerte);
+        risultati.push(vincitore);
+    });
+
+    return risultati;
+}
+
+/**
+ * Elabora il vincitore unico di un giocatore (gestisce pareggi)
+ */
+function elaboraVincitoreUnico(offerte) {
+    const offerteOrdinate = [...offerte].sort((a, b) => b.offerta - a.offerta);
+    const offertaMassima = offerteOrdinate[0].offerta;
+    const offerteVincenti = offerteOrdinate.filter(o => o.offerta === offertaMassima);
+
+    let vincitore;
+    if (offerteVincenti.length === 1) {
+        vincitore = offerteVincenti[0];
+    } else {
+        // Pareggio - sorteggio casuale
+        const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
+        vincitore = offerteVincenti[randomIndex];
+        console.log(`🎲 PAREGGIO! Estratto: ${vincitore.nome}`);
+    }
+
+    return {
+        partecipante: vincitore.partecipante,
+        nome: vincitore.nome,
+        slot: vincitore.slot,
+        offerta: vincitore.offerta,
+        costoFinale: vincitore.offerta,
+        premium: 0,
+        condiviso: false,
+        posizione: 1
+    };
+}
+
+// =====================================================
+// FINE FASE 3: SISTEMA CONDIVISIONE GIOCATORI
+// =====================================================
+
 async function generaSlots() {
     try {
         const squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
@@ -2921,37 +3158,54 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
     });
 }
 
-function elaboraRisultatiAste() {
-    console.log(`\n🔄 === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
+async function elaboraRisultatiAste() {
+    console.log(`\n📄 === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
     console.log(`📊 Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
     console.log(`👥 Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
     console.log(`🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
-    const offertePerSlot = {};
+    // Recupera info sessione per condivisione
+    let sessioneAttiva = null;
+    let condivisioneAttiva = false;
+
+    try {
+        const sessione = await db.query(
+            'SELECT * FROM sessioni_fantagts WHERE attiva = true LIMIT 1'
+        );
+
+        if (sessione.rows.length > 0) {
+            sessioneAttiva = sessione.rows[0];
+            condivisioneAttiva = sessioneAttiva.condivisione_attiva;
+            console.log(`🎮 Sessione attiva: ${sessioneAttiva.nome}`);
+            console.log(`🔄 Condivisione: ${condivisioneAttiva ? 'ATTIVA' : 'DISATTIVATA'}`);
+        }
+    } catch (error) {
+        console.error('⚠️ Errore recupero sessione:', error);
+    }
+
+    // Raccolta offerte valide
+    const tutteLeOfferte = [];
     const partecipantiCheHannoOfferto = new Set();
 
-    // Debug: mostra tutte le offerte ricevute
     console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
-        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo}) - Round: ${offerta.round}`);
+        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo})`);
     });
 
-    // 📊 Raggruppa offerte per slot
+    // Raggruppa offerte valide
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
         if (connesso && offerta.round === gameState.roundAttivo) {
-            // ✅ Solo partecipanti che devono ancora vincere qualcosa
             if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-                console.log(`📝 Offerta valida: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
+                console.log(`✅ Offerta valida: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
 
-                if (!offertePerSlot[offerta.slot]) {
-                    offertePerSlot[offerta.slot] = [];
-                }
-                offertePerSlot[offerta.slot].push({
+                tutteLeOfferte.push({
                     partecipante: connesso.partecipanteId,
                     nome: connesso.nome,
                     offerta: offerta.importo,
+                    slot: offerta.slot,
+                    giocatore: offerta.slot,
                     socketId: socketId
                 });
                 partecipantiCheHannoOfferto.add(connesso.partecipanteId);
@@ -2961,125 +3215,242 @@ function elaboraRisultatiAste() {
         }
     });
 
-    console.log('🎯 Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
-        `${slot}: ${offertePerSlot[slot].length} offerte`
-    ));
+    let risultatiAsta = [];
+    let giocatoriReplicati = [];
+    let statsCondivisione = null;
 
-    const risultatiAsta = [];
+    // Elabora con o senza condivisione
+    if (condivisioneAttiva && sessioneAttiva) {
+        console.log('\n🔄 === MODALITÀ CONDIVISIONE ATTIVA ===');
 
-    // 🏆 Elabora vincitori per ogni slot
-    Object.keys(offertePerSlot).forEach(slotId => {
-        const offerte = offertePerSlot[slotId];
+        const categoria = gameState.roundAttivo;
+        const numeroPartecipanti = sessioneAttiva.numero_partecipanti_previsti;
+        const numeroSquadre = sessioneAttiva.numero_squadre;
 
-        if (offerte.length > 0) {
-            offerte.sort((a, b) => b.offerta - a.offerta);
+        const risultatoCondivisione = elaboraCondivisioneGiocatori(
+            tutteLeOfferte,
+            numeroPartecipanti,
+            numeroSquadre,
+            categoria
+        );
 
-            const offertaMassima = offerte[0].offerta;
-            const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
+        risultatiAsta = risultatoCondivisione.risultatiFinali;
+        giocatoriReplicati = risultatoCondivisione.giocatoriReplicati;
+        statsCondivisione = risultatoCondivisione.stats;
 
-            let vincitore;
-            if (offerteVincenti.length === 1) {
-                vincitore = offerteVincenti[0];
-            } else {
-                // Pareggio - sorteggio
-                const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
-                vincitore = offerteVincenti[randomIndex];
-                console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
+        console.log(`\n✅ Elaborazione condivisione completata:`);
+        console.log(`   - Totale assegnazioni: ${risultatiAsta.length}`);
+        console.log(`   - Giocatori condivisi: ${giocatoriReplicati.length}`);
+
+    } else {
+        console.log('\n📌 === MODALITÀ NORMALE (senza condivisione) ===');
+
+        const offertePerSlot = {};
+        tutteLeOfferte.forEach(offerta => {
+            if (!offertePerSlot[offerta.slot]) {
+                offertePerSlot[offerta.slot] = [];
             }
+            offertePerSlot[offerta.slot].push(offerta);
+        });
 
-            risultatiAsta.push({
-                partecipante: vincitore.partecipante,
-                nome: vincitore.nome,
-                slot: slotId,
-                offertaOriginale: vincitore.offerta,
-                costoFinale: vincitore.offerta,
-                premium: 0,
-                condiviso: false
-            });
+        console.log('🎯 Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
+            `${slot}: ${offertePerSlot[slot].length} offerte`
+        ));
 
-            console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+        Object.keys(offertePerSlot).forEach(slotId => {
+            const offerte = offertePerSlot[slotId];
 
-            // 🔄 Aggiorna stato per prossima asta
-            gameState.partecipantiAssegnati.add(vincitore.partecipante);
-            gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(p => p !== vincitore.partecipante);
-            gameState.slotsRimasti = gameState.slotsRimasti.filter(s => s.id !== slotId);
+            if (offerte.length > 0) {
+                offerte.sort((a, b) => b.offerta - a.offerta);
 
-            // NUOVO: Disconnetti il vincitore dall'asta corrente
+                const offertaMassima = offerte[0].offerta;
+                const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
+
+                let vincitore;
+                if (offerteVincenti.length === 1) {
+                    vincitore = offerteVincenti[0];
+                } else {
+                    const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
+                    vincitore = offerteVincenti[randomIndex];
+                    console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
+                }
+
+                risultatiAsta.push({
+                    partecipante: vincitore.partecipante,
+                    nome: vincitore.nome,
+                    slot: slotId,
+                    offerta: vincitore.offerta,
+                    costoFinale: vincitore.offerta,
+                    premium: 0,
+                    condiviso: false,
+                    posizione: 1
+                });
+
+                console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+            }
+        });
+    }
+
+    console.log(`\n🎉 Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
+
+    if (risultatiAsta.length > 0) {
+        await salvaRisultatiAsta(gameState.roundAttivo, risultatiAsta, giocatoriReplicati, statsCondivisione);
+    }
+
+    // Aggiorna stato partecipanti SOLO in modalità normale
+    if (!condivisioneAttiva) {
+        risultatiAsta.forEach(risultato => {
+            gameState.partecipantiAssegnati.add(risultato.partecipante);
+            gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(
+                p => p !== risultato.partecipante
+            );
+            gameState.slotsRimasti = gameState.slotsRimasti.filter(
+                s => s.id !== risultato.slot
+            );
+
             for (let [socketId, connesso] of gameState.connessi.entries()) {
-                if (connesso.partecipanteId === vincitore.partecipante) {
+                if (connesso.partecipanteId === risultato.partecipante) {
                     io.to(socketId).emit('player_won_exit_auction', {
-                        playerName: vincitore.nome,
-                        slotWon: slotId,
-                        amount: vincitore.offerta,
-                        message: `Hai vinto ${slotId}! La tua asta è terminata.`
+                        playerName: risultato.nome,
+                        slotWon: risultato.slot,
+                        amount: risultato.costoFinale,
+                        shared: risultato.condiviso,
+                        premium: risultato.premium,
+                        message: risultato.condiviso
+                            ? `Hai vinto ${risultato.slot} (condiviso) per ${risultato.costoFinale} crediti!`
+                            : `Hai vinto ${risultato.slot}! La tua asta è terminata.`
                     });
                     break;
                 }
             }
-        }
-    });
+        });
+    } else {
+        // In modalità condivisione: aggiorna solo gli slot rimasti
+        const slotsAssegnati = new Set(risultatiAsta.map(r => r.slot));
+        gameState.slotsRimasti = gameState.slotsRimasti.filter(
+            s => !slotsAssegnati.has(s.id)
+        );
 
-    console.log(`🎉 Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
+        // Notifica tutti i vincitori
+        risultatiAsta.forEach(risultato => {
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === risultato.partecipante) {
+                    io.to(socketId).emit('player_won_shared', {
+                        playerName: risultato.nome,
+                        slotWon: risultato.slot,
+                        amount: risultato.costoFinale,
+                        originalOffer: risultato.offerta,
+                        premium: risultato.premium,
+                        position: risultato.posizione,
+                        shared: risultato.condiviso,
+                        message: risultato.condiviso && risultato.posizione > 1
+                            ? `Hai vinto ${risultato.slot} (condiviso - ${risultato.posizione}° posto) per ${risultato.costoFinale} crediti (premium +${Math.round(risultato.premium * 100)}%)`
+                            : `Hai vinto ${risultato.slot} per ${risultato.costoFinale} crediti!`
+                    });
+                }
+            }
+        });
 
-    if (risultatiAsta.length > 0) {
-        // 💾 Salva risultati nel database
-        salvaRisultatiAsta(gameState.roundAttivo, risultatiAsta);
+        console.log(`📊 Modalità condivisione: TUTTI i partecipanti continuano`);
     }
 
-    // 📊 Mostra stato aggiornato
-    console.log(`📊 STATO AGGIORNATO:`);
-    console.log(`   ✅ Assegnati: ${Array.from(gameState.partecipantiAssegnati)}`);
-    console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa}`);
+    console.log(`\n📊 STATO AGGIORNATO:`);
+    console.log(`   ✅ Assegnati: ${Array.from(gameState.partecipantiAssegnati).length}`);
+    console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa.length}`);
     console.log(`   🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
-    // 🔄 Reset offerte per prossima iterazione
     gameState.offerteTemporanee.clear();
 
-    // 🔄 Decidi se continuare con nuova asta o terminare round
     setTimeout(() => {
-        if (gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0) {
+        const deveTerminare = condivisioneAttiva
+            ? gameState.slotsRimasti.length === 0
+            : (gameState.partecipantiInAttesa.length === 0 || gameState.slotsRimasti.length === 0);
+
+        if (!deveTerminare && gameState.slotsRimasti.length > 0) {
             gameState.astaCorrente++;
             console.log(`\n➡️ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
-            console.log(`🎯 STATO ASTE: gameState.asteAttive = ${gameState.asteAttive}`);
             avviaAstaSuccessiva();
         } else {
-            console.log(`🏁 ROUND COMPLETATO - tutti assegnati o slots esauriti`);
+            console.log(`🏁 ROUND COMPLETATO`);
             terminaRoundCompleto();
         }
-    }, 3000); // Pausa di 3 secondi tra aste
+    }, 3000);
 }
 
 // 🔄 Rinomina funzione salvataggio
-async function salvaRisultatiAsta(round, risultati) {
+async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], statsCondivisione = null) {
     if (risultati.length === 0) return;
 
     try {
+        console.log(`\n💾 === SALVATAGGIO RISULTATI ASTA ===`);
+        console.log(`   Round: ${round}`);
+        console.log(`   Risultati: ${risultati.length}`);
+        console.log(`   Giocatori replicati: ${giocatoriReplicati.length}`);
+
         for (const r of risultati) {
             await db.query(`INSERT INTO aste 
-                (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso) 
-                VALUES ($1, $2, $3, $4, $5, $6, true, $7)`,
-                [round, r.partecipante, r.slot, r.offertaOriginale, r.costoFinale, r.premium, r.condiviso]);
+                (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso, sessione_id) 
+                VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8)`,
+                [
+                    round,
+                    r.partecipante,
+                    r.slot,
+                    r.offerta || r.offertaOriginale,
+                    r.costoFinale,
+                    r.premium,
+                    r.condiviso,
+                    sessioneCorrente
+                ]);
 
-            // Aggiorna crediti
             await db.query(`UPDATE partecipanti_fantagts 
                     SET crediti = crediti - $1 
-                    WHERE id = $2`, [r.costoFinale, r.partecipante]);
+                    WHERE id = $2 AND sessione_id = $3`,
+                [r.costoFinale, r.partecipante, sessioneCorrente]);
 
-            console.log(`💾 Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
+            const simbolo = r.condiviso ? '🔁' : '✅';
+            const dettaglio = r.condiviso
+                ? `(pos. ${r.posizione}, premium ${Math.round(r.premium * 100)}%)`
+                : '';
+
+            console.log(`${simbolo} ${r.nome} → ${r.slot} per ${r.costoFinale} crediti ${dettaglio}`);
         }
 
+        if (statsCondivisione) {
+            try {
+                await db.query(`
+                    UPDATE sessioni_fantagts 
+                    SET ripetizioni_necessarie = GREATEST(ripetizioni_necessarie, $1),
+                        last_modified = CURRENT_TIMESTAMP
+                    WHERE attiva = true
+                `, [statsCondivisione.ripetizioniNecessarie]);
 
-        // 📤 Invia aggiornamento parziale
+                console.log(`📊 Statistiche condivisione salvate nella sessione`);
+            } catch (err) {
+                console.error('⚠️ Errore salvataggio stats condivisione:', err);
+            }
+        }
+
         io.emit('asta_ended', {
             round: round,
             astaNumero: gameState.astaCorrente,
-            risultati: risultati,
+            risultati: risultati.map(r => ({
+                ...r,
+                shared: r.condiviso,
+                premium: r.premium,
+                position: r.posizione || 1
+            })),
+            giocatoriReplicati: giocatoriReplicati,
+            statsCondivisione: statsCondivisione,
             continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
         });
 
         aggiornaCreditiPartecipanti();
+
+        console.log(`✅ Salvataggio completato con successo`);
+
     } catch (error) {
         console.error('❌ Errore salvataggio asta:', error);
+        throw error;
     }
 }
 
