@@ -747,17 +747,29 @@
                     <p style="text-align: center; color: #a0aec0;">Caricamento sessioni...</p>
                 </div>
 
-                <!-- Form aggiungi sessione -->
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
-                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">➕ Aggiungi Nuova Sessione</h3>
+                <!-- Pulsante per mostrare form -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="mostraFormSessione()" id="btnMostraForm">
+                        âž• Aggiungi Nuova Sessione
+                    </button>
+                </div>
+
+                <!-- Form aggiungi sessione (nascosto inizialmente) -->
+                <div id="formAggiungiSessione" style="display: none; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">âž• Aggiungi Nuova Sessione</h3>
                     <div class="input-group" style="margin-bottom: 15px;">
                         <label>Codice Sessione (5 caratteri):</label>
                         <input type="text" id="sessionCode" placeholder="es: XK7M2" maxlength="5"
                                style="text-transform: uppercase; letter-spacing: 3px; font-size: 1.3em;">
                     </div>
-                    <button class="btn btn-primary" onclick="aggiungiSessione()">
-                        🔑 Entra con Codice
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="aggiungiSessione()" style="flex: 1;">
+                            ðŸ"' Entra con Codice
+                        </button>
+                        <button class="btn btn-secondary" onclick="nascondiFormSessione()" style="flex: 1;">
+                            â†© Annulla
+                        </button>
+                    </div>
                 </div>
 
                 <button class="btn btn-secondary" onclick="logout()" style="margin-top: 20px;">
@@ -1059,6 +1071,22 @@
             </p>
         `;
             }
+        }
+
+        // Mostra il form per aggiungere una nuova sessione
+        function mostraFormSessione() {
+            document.getElementById('formAggiungiSessione').style.display = 'block';
+            document.getElementById('btnMostraForm').style.display = 'none';
+            // Focus sul campo codice
+            document.getElementById('sessionCode').focus();
+        }
+
+        // Nascondi il form per aggiungere una nuova sessione
+        function nascondiFormSessione() {
+            document.getElementById('formAggiungiSessione').style.display = 'none';
+            document.getElementById('btnMostraForm').style.display = 'block';
+            // Pulisci il campo
+            document.getElementById('sessionCode').value = '';
         }
 
         async function aggiungiSessione() {
