@@ -278,92 +278,18 @@ async function updateDatabaseSchema() {
     try {
         console.log('🔄 Aggiornando schema database...');
 
-        // 🔧 Aggiorna constraint UNIQUE per supportare multi-sessione
+        // 🔧 Rimuovi constraint UNIQUE su numero (non serve più)
         try {
-            console.log('🔧 Aggiornando constraint UNIQUE per squadre_circolo...');
+            console.log('🔧 Rimuovendo constraint UNIQUE da squadre_circolo...');
 
-            // Step 1: Rimuovi tutte le foreign key che dipendono da squadre_circolo(numero)
-            await db.query(`
-                ALTER TABLE coppie_turno 
-                DROP CONSTRAINT IF EXISTS coppie_turno_squadra1_fkey CASCADE
-            `);
-            await db.query(`
-                ALTER TABLE coppie_turno 
-                DROP CONSTRAINT IF EXISTS coppie_turno_squadra2_fkey CASCADE
-            `);
-            await db.query(`
-                ALTER TABLE incontri 
-                DROP CONSTRAINT IF EXISTS incontri_squadra1_fkey CASCADE
-            `);
-            await db.query(`
-                ALTER TABLE incontri 
-                DROP CONSTRAINT IF EXISTS incontri_squadra2_fkey CASCADE
-            `);
-            await db.query(`
-                ALTER TABLE scontri_squadre 
-                DROP CONSTRAINT IF EXISTS scontri_squadre_squadra1_fkey CASCADE
-            `);
-            await db.query(`
-                ALTER TABLE scontri_squadre 
-                DROP CONSTRAINT IF EXISTS scontri_squadre_squadra2_fkey CASCADE
-            `);
-
-            // Step 2: Ora rimuovi il vecchio constraint UNIQUE
             await db.query(`
                 ALTER TABLE squadre_circolo 
                 DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key CASCADE
             `);
 
-            // Step 3: Aggiungi il nuovo constraint composto (numero + sessione_id)
-            await db.query(`
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM pg_constraint 
-                        WHERE conname = 'squadre_circolo_numero_sessione_key'
-                    ) THEN
-                        ALTER TABLE squadre_circolo 
-                        ADD CONSTRAINT squadre_circolo_numero_sessione_key 
-                        UNIQUE (numero, sessione_id);
-                    END IF;
-                END $$;
-            `);
-
-            // Step 4: Ricrea le foreign key (senza CASCADE stavolta)
-            await db.query(`
-                ALTER TABLE coppie_turno 
-                ADD CONSTRAINT coppie_turno_squadra1_fkey 
-                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
-            `);
-            await db.query(`
-                ALTER TABLE coppie_turno 
-                ADD CONSTRAINT coppie_turno_squadra2_fkey 
-                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-            `);
-            await db.query(`
-                ALTER TABLE incontri 
-                ADD CONSTRAINT incontri_squadra1_fkey 
-                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
-            `);
-            await db.query(`
-                ALTER TABLE incontri 
-                ADD CONSTRAINT incontri_squadra2_fkey 
-                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-            `);
-            await db.query(`
-                ALTER TABLE scontri_squadre 
-                ADD CONSTRAINT scontri_squadre_squadra1_fkey 
-                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
-            `);
-            await db.query(`
-                ALTER TABLE scontri_squadre 
-                ADD CONSTRAINT scontri_squadre_squadra2_fkey 
-                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-            `);
-
-            console.log('✅ Constraint aggiornato: ora numero può ripetersi tra sessioni diverse');
+            console.log('✅ Constraint rimosso: ora numero può ripetersi tra sessioni diverse');
         } catch (err) {
-            console.warn('⚠️ Errore aggiornamento constraint:', err.message);
+            console.warn('⚠️ Errore rimozione constraint:', err.message);
         }
 
         // 1️⃣ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
