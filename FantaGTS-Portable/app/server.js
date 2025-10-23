@@ -1836,35 +1836,13 @@ app.post('/api/login', async (req, res) => {
         const nicknameClean = nickname.trim();
         const pinClean = pin.trim();
 
-        // 🆕 VERIFICA CHE LA SESSIONE CORRENTE ESISTA
-        const sessioneCheck = await db.query(
-            'SELECT id, attiva FROM sessioni_fantagts WHERE id = $1',
-            [sessioneCorrente]
-        );
-
-        if (sessioneCheck.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Sessione non disponibile. Contatta l\'amministratore.'
-            });
-        }
-
-        if (!sessioneCheck.rows[0].attiva) {
-            return res.status(403).json({
-                success: false,
-                error: 'Sessione non attiva. Le aste sono terminate o in pausa.'
-            });
-        }
-
-        // Controllo nel database
+        // Controllo nel database - cerca in TUTTE le sessioni
         const result = await db.query(`
-            SELECT p.id, p.nome, p.crediti, p.pin, p.sessione_id, s.attiva as sessione_attiva
+            SELECT p.id, p.nome, p.crediti, p.pin
             FROM partecipanti_fantagts p
-            INNER JOIN sessioni_fantagts s ON p.sessione_id = s.id
             WHERE LOWER(TRIM(p.nome)) = LOWER(TRIM($1)) 
-            AND p.attivo = true 
-            AND p.sessione_id = $2
-        `, [nicknameClean, sessioneCorrente]);
+            AND p.attivo = true
+        `, [nicknameClean]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -1929,109 +1907,45 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // 🆕 VERIFICA CHE LA SESSIONE CORRENTE ESISTA E SIA ATTIVA
-        const sessioneCheck = await db.query(
-            'SELECT id, attiva, modalita FROM sessioni_fantagts WHERE id = $1',
-            [sessioneCorrente]
-        );
-
-        if (sessioneCheck.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Sessione non disponibile. Contatta l\'amministratore.'
-            });
-        }
-
-        if (!sessioneCheck.rows[0].attiva) {
-            return res.status(403).json({
-                success: false,
-                error: 'Sessione non attiva. Registrazioni chiuse.'
-            });
-        }
-
-        const modalitaSessioneCorrente = sessioneCheck.rows[0].modalita;
-
-        // 🆕 CONTROLLO LIMITE 2 SESSIONI ATTIVE (1 asta + 1 draft)
-        const sessioniPartecipante = await db.query(`
-            SELECT p.sessione_id, s.modalita 
-            FROM partecipanti_fantagts p
-            INNER JOIN sessioni_fantagts s ON p.sessione_id = s.id
-            WHERE LOWER(TRIM(p.nome)) = LOWER(TRIM($1)) 
-            AND p.attivo = true
-            AND s.attiva = true
-        `, [nicknameClean]);
-
-        // Verifica se già registrato in questa sessione
-        const giàInQuestaSessione = sessioniPartecipante.rows.find(
-            s => s.sessione_id === sessioneCorrente
-        );
-
-        if (giàInQuestaSessione) {
-            return res.status(409).json({
-                success: false,
-                error: 'Sei già registrato in questa sessione. Effettua il login.'
-            });
-        }
-
-        // Verifica limite 2 sessioni (1 per modalità)
-        const modalitàRegistrate = sessioniPartecipante.rows.map(s => s.modalita);
-
-        if (modalitàRegistrate.includes(modalitaSessioneCorrente)) {
-            return res.status(403).json({
-                success: false,
-                error: `Sei già registrato in un'altra sessione di tipo "${modalitaSessioneCorrente}". Puoi partecipare a max 1 asta competitiva e 1 draft libero.`
-            });
-        }
-
-        if (sessioniPartecipante.rows.length >= 2) {
-            return res.status(403).json({
-                success: false,
-                error: 'Hai raggiunto il limite di 2 sessioni attive (1 asta + 1 draft). Completa o abbandona una sessione per registrarti a una nuova.'
-            });
-        }
-
-        // Controllo unicità nickname NELLA SESSIONE CORRENTE
-        const duplicateCheck = await db.query(`
+        // Controlla se nickname già in uso
+        const existingCheck = await db.query(`
             SELECT id FROM partecipanti_fantagts 
             WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
-            AND attivo = true 
-            AND sessione_id = $2
-        `, [nicknameClean, sessioneCorrente]);
+            AND attivo = true
+        `, [nicknameClean]);
 
-        if (duplicateCheck.rows.length > 0) {
+        if (existingCheck.rows.length > 0) {
             return res.status(409).json({
                 success: false,
                 error: 'Nickname già in uso'
             });
         }
 
-        // Crea ID univoco
-        const id = nicknameClean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        // Inserimento nuovo partecipante SENZA sessione
+        const result = await db.query(`
+            INSERT INTO partecipanti_fantagts (nome, pin, crediti, attivo)
+            VALUES ($1, $2, $3, true)
+            RETURNING id, nome, crediti
+        `, [nicknameClean, pinClean, crediti]);
 
-        // Inserisci nel database
-        await db.query(`
-            INSERT INTO partecipanti_fantagts 
-            (id, nome, crediti, pin, sessione_id) 
-            VALUES ($1, $2, $3, $4, $5)
-        `, [id, nicknameClean, crediti, pinClean, sessioneCorrente]);
+        const player = result.rows[0];
 
-        console.log(`✅ Nuovo partecipante registrato: ${nicknameClean} (ID: ${id})`);
+        console.log(`✅ Nuovo partecipante registrato: ${player.nome} (ID: ${player.id})`);
 
-        res.json({
+        res.status(201).json({
             success: true,
             player: {
-                id: id,
-                nome: nicknameClean,
-                crediti: crediti
-            },
-            message: 'Registrazione completata con successo'
+                id: player.id,
+                nome: player.nome,
+                crediti: player.crediti
+            }
         });
 
     } catch (error) {
         console.error('❌ Errore registrazione:', error);
         res.status(500).json({
             success: false,
-            error: 'Errore server'
+            error: 'Errore server durante la registrazione'
         });
     }
 });
