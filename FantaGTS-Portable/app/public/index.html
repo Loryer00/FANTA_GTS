@@ -1086,8 +1086,9 @@
                     mostraMessaggio(`✅ ${result.message}`, 'success');
                     codiceInput.value = '';
 
-                    // Ricarica lista sessioni
-                    await caricaMieSessioni();
+                    // 🆕 ENTRA AUTOMATICAMENTE NELLA SESSIONE
+                    console.log('🚀 Entro automaticamente nella sessione:', result.sessione);
+                    await entraInSessione(result.sessione.id, result.sessione.nome);
                 } else {
                     mostraMessaggio(`❌ ${result.error}`, 'error');
                 }
