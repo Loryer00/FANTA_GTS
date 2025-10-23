@@ -327,46 +327,6 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
-        // 🆕 CORREGGI CONSTRAINT UNIQUE su squadre_circolo
-        // Il numero squadra deve essere UNIQUE solo all'interno della stessa sessione
-        try {
-            console.log('🔧 Aggiornando constraint UNIQUE per squadre_circolo...');
-
-            // Rimuovi vecchio constraint (se esiste)
-            await db.query(`
-        DO $$ 
-        BEGIN
-            IF EXISTS (
-                SELECT 1 FROM pg_constraint 
-                WHERE conname = 'squadre_circolo_numero_key'
-            ) THEN
-                ALTER TABLE squadre_circolo DROP CONSTRAINT squadre_circolo_numero_key;
-                RAISE NOTICE 'Constraint rimosso: squadre_circolo_numero_key';
-            END IF;
-        END $$;
-    `);
-
-            // Aggiungi nuovo constraint che include sessione_id
-            await db.query(`
-        DO $$ 
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_constraint 
-                WHERE conname = 'squadre_circolo_numero_sessione_key'
-            ) THEN
-                ALTER TABLE squadre_circolo 
-                ADD CONSTRAINT squadre_circolo_numero_sessione_key 
-                UNIQUE (numero, sessione_id);
-                RAISE NOTICE 'Constraint aggiunto: squadre_circolo_numero_sessione_key';
-            END IF;
-        END $$;
-    `);
-
-            console.log('✅ Constraint UNIQUE aggiornato: (numero, sessione_id)');
-        } catch (err) {
-            console.warn('⚠️ Errore aggiornamento constraint:', err.message);
-        }
-
         // 4️⃣ ORA SÌ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
         try {
             await db.query(`
@@ -1567,32 +1527,35 @@ app.post('/api/squadre', async (req, res) => {
 
         console.log(`💾 Salvando squadra ${numero} - ${colore} nella sessione: ${sessioneIdValue}`);
 
-        // Prima controlla se esiste
-        const check = await db.query(
-            'SELECT numero FROM squadre_circolo WHERE numero = $1 AND sessione_id = $2',
-            [numero, sessioneIdValue]
-        );
+        // 🆕 SOLUZIONE: Prima elimina la squadra con lo stesso numero NELLA STESSA SESSIONE
+        // Poi inserisci la nuova (questo evita il problema del constraint)
+        await db.query('BEGIN');
 
-        if (check.rows.length > 0) {
-            // UPDATE
-            await db.query(`
-                UPDATE squadre_circolo SET
-                    colore = $1, m1 = $2, m2 = $3, m3 = $4, m4 = $5, 
-                    m5 = $6, m6 = $7, m7 = $8, f1 = $9, f2 = $10, f3 = $11
-                WHERE numero = $12 AND sessione_id = $13`,
-                [colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, numero, sessioneIdValue]
+        try {
+            // Elimina squadra esistente con stesso numero nella stessa sessione
+            await db.query(
+                'DELETE FROM squadre_circolo WHERE numero = $1 AND sessione_id = $2',
+                [numero, sessioneIdValue]
             );
-        } else {
-            // INSERT
+
+            // Inserisci la nuova squadra
             await db.query(`
                 INSERT INTO squadre_circolo 
                 (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessioneIdValue]
             );
+
+            await db.query('COMMIT');
+
+            console.log(`✅ Squadra ${numero} - ${colore} salvata nella sessione ${sessioneIdValue}`);
+            res.json({ message: 'Squadra salvata con successo' });
+
+        } catch (insertErr) {
+            await db.query('ROLLBACK');
+            throw insertErr;
         }
 
-        res.json({ message: 'Squadra salvata con successo' });
     } catch (err) {
         console.error('Errore POST squadre:', err);
         res.status(500).json({ error: err.message });
