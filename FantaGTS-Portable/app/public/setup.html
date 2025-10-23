@@ -267,8 +267,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎾 FantaGTS - Configurazione Squadre</h1>
-            <p>Configura le squadre del circolo e prepara il sistema per le aste</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🎾 FantaGTS - Configurazione Squadre</h1>
+                    <p>Configura le squadre del circolo e prepara il sistema per le aste</p>
+                </div>
+                <a href="/session-manager.html" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none;">
+                    📋 Gestione Sessioni
+                </a>
+            </div>
         </div>
 
         <!-- Stato Sistema -->
@@ -292,39 +299,39 @@
         </div>
 
         <!-- Setup Squadre Circolo -->
-<div class="section">
-    <h2>🏆 Squadre del Circolo</h2>
-    <p>Configura le squadre del circolo tennis con i loro giocatori</p>
-    
-    <!-- Bottone principale per aggiungere squadra -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <button class="btn btn-primary" onclick="mostraOpzioniAggiunta()" id="btnAggiungiSquadra">
-            ➕ Aggiungi Squadra
-        </button>
-    </div>
+        <div class="section">
+            <h2>🏆 Squadre del Circolo</h2>
+            <p>Configura le squadre del circolo tennis con i loro giocatori</p>
 
-    <!-- Opzioni di aggiunta (inizialmente nascoste) -->
-    <div id="opzioniAggiunta" style="display: none; text-align: center; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-        <h3>Come vuoi aggiungere la squadra?</h3>
-        <div style="margin-top: 15px;">
-            <button class="btn btn-primary" onclick="mostraUploadFile()" style="margin: 0 10px;">
-                📁 Da File (.txt)
-            </button>
-            <button class="btn btn-primary" onclick="mostraFormManuale()" style="margin: 0 10px;">
-                ✏️ Da Interfaccia
-            </button>
-        </div>
-        <button class="btn btn-secondary" onclick="nascondiOpzioni()" style="margin-top: 10px;">
-            ❌ Annulla
-        </button>
-    </div>
+            <!-- Bottone principale per aggiungere squadra -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="mostraOpzioniAggiunta()" id="btnAggiungiSquadra">
+                    ➕ Aggiungi Squadra
+                </button>
+            </div>
 
-    <!-- Upload da file -->
-    <div id="uploadSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-        <h3>📁 Upload Squadra da File</h3>
-        <div class="info-box" style="margin-bottom: 15px;">
-            <h4>Formato file .txt richiesto (puoi selezionare più file contemporaneamente):</h4>
-            <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em;">Squadra Gialla
+            <!-- Opzioni di aggiunta (inizialmente nascoste) -->
+            <div id="opzioniAggiunta" style="display: none; text-align: center; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <h3>Come vuoi aggiungere la squadra?</h3>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="mostraUploadFile()" style="margin: 0 10px;">
+                        📁 Da File (.txt)
+                    </button>
+                    <button class="btn btn-primary" onclick="mostraFormManuale()" style="margin: 0 10px;">
+                        ✏️ Da Interfaccia
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="nascondiOpzioni()" style="margin-top: 10px;">
+                    ❌ Annulla
+                </button>
+            </div>
+
+            <!-- Upload da file -->
+            <div id="uploadSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <h3>📁 Upload Squadra da File</h3>
+                <div class="info-box" style="margin-bottom: 15px;">
+                    <h4>Formato file .txt richiesto (puoi selezionare più file contemporaneamente):</h4>
+                    <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.9em;">Squadra Gialla
 M1 Spano
 M2 Cavo A
 M3 Paqualetto
@@ -335,91 +342,91 @@ M7 Ferrari P
 F1 Tambroni B
 F2 Frojo F
 F3 Brunelli E</pre>
-            <p style="margin-top: 10px; font-size: 0.9em; color: #ffd700;">💡 <strong>Tip:</strong> Puoi selezionare tutti i 10 file delle squadre tenendo premuto Ctrl (o Cmd su Mac) mentre clicchi sui file.</p>
-        </div>
-        <input type="file" id="fileSquadra" accept=".txt" multiple style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
-        <div>
-            <button class="btn btn-primary" onclick="caricaSquadraDaFile()">
-                🚀 Carica Squadre
-            </button>
-            <button class="btn btn-secondary" onclick="annullaUpload()">
-                ❌ Annulla
-            </button>
-        </div>
-    </div>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #ffd700;">💡 <strong>Tip:</strong> Puoi selezionare tutti i 10 file delle squadre tenendo premuto Ctrl (o Cmd su Mac) mentre clicchi sui file.</p>
+                </div>
+                <input type="file" id="fileSquadra" accept=".txt" multiple style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
+                <div>
+                    <button class="btn btn-primary" onclick="caricaSquadraDaFile()">
+                        🚀 Carica Squadre
+                    </button>
+                    <button class="btn btn-secondary" onclick="annullaUpload()">
+                        ❌ Annulla
+                    </button>
+                </div>
+            </div>
 
-    <!-- Form manuale (versione semplificata) -->
-    <div id="formManualeSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-        <h3>✏️ Inserimento Manuale</h3>
-        
-        <div class="input-group" style="margin-bottom: 15px;">
-            <label>Colore Squadra:</label>
-            <input type="text" id="coloreSquadraManuale" placeholder="es: rosso, verde, azzurro, fucsia..." autocomplete="off" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); color: #333;">
-        </div>
+            <!-- Form manuale (versione semplificata) -->
+            <div id="formManualeSection" style="display: none; margin-bottom: 30px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <h3>✏️ Inserimento Manuale</h3>
 
-        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;">
-            <div class="input-group">
-                <label>M1:</label>
-                <input type="text" id="m1_manuale" placeholder="Nome giocatore M1">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Colore Squadra:</label>
+                    <input type="text" id="coloreSquadraManuale" placeholder="es: rosso, verde, azzurro, fucsia..." autocomplete="off" style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); color: #333;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label>M1:</label>
+                        <input type="text" id="m1_manuale" placeholder="Nome giocatore M1">
+                    </div>
+                    <div class="input-group">
+                        <label>M2:</label>
+                        <input type="text" id="m2_manuale" placeholder="Nome giocatore M2">
+                    </div>
+                    <div class="input-group">
+                        <label>M3:</label>
+                        <input type="text" id="m3_manuale" placeholder="Nome giocatore M3">
+                    </div>
+                    <div class="input-group">
+                        <label>M4:</label>
+                        <input type="text" id="m4_manuale" placeholder="Nome giocatore M4">
+                    </div>
+                    <div class="input-group">
+                        <label>M5:</label>
+                        <input type="text" id="m5_manuale" placeholder="Nome giocatore M5">
+                    </div>
+                    <div class="input-group">
+                        <label>M6:</label>
+                        <input type="text" id="m6_manuale" placeholder="Nome giocatore M6">
+                    </div>
+                    <div class="input-group">
+                        <label>M7:</label>
+                        <input type="text" id="m7_manuale" placeholder="Nome giocatore M7">
+                    </div>
+                    <div class="input-group">
+                        <label>F1:</label>
+                        <input type="text" id="f1_manuale" placeholder="Nome giocatrice F1">
+                    </div>
+                    <div class="input-group">
+                        <label>F2:</label>
+                        <input type="text" id="f2_manuale" placeholder="Nome giocatrice F2">
+                    </div>
+                    <div class="input-group">
+                        <label>F3:</label>
+                        <input type="text" id="f3_manuale" placeholder="Nome giocatrice F3">
+                    </div>
+                </div>
+
+                <div>
+                    <button class="btn btn-primary" onclick="aggiungiSquadraManuale()">
+                        ➕ Aggiungi Squadra
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearFormManualeEChiudi()">
+                        ❌ Annulla
+                    </button>
+                </div>
             </div>
-            <div class="input-group">
-                <label>M2:</label>
-                <input type="text" id="m2_manuale" placeholder="Nome giocatore M2">
-            </div>
-            <div class="input-group">
-                <label>M3:</label>
-                <input type="text" id="m3_manuale" placeholder="Nome giocatore M3">
-            </div>
-            <div class="input-group">
-                <label>M4:</label>
-                <input type="text" id="m4_manuale" placeholder="Nome giocatore M4">
-            </div>
-            <div class="input-group">
-                <label>M5:</label>
-                <input type="text" id="m5_manuale" placeholder="Nome giocatore M5">
-            </div>
-            <div class="input-group">
-                <label>M6:</label>
-                <input type="text" id="m6_manuale" placeholder="Nome giocatore M6">
-            </div>
-            <div class="input-group">
-                <label>M7:</label>
-                <input type="text" id="m7_manuale" placeholder="Nome giocatore M7">
-            </div>
-            <div class="input-group">
-                <label>F1:</label>
-                <input type="text" id="f1_manuale" placeholder="Nome giocatrice F1">
-            </div>
-            <div class="input-group">
-                <label>F2:</label>
-                <input type="text" id="f2_manuale" placeholder="Nome giocatrice F2">
-            </div>
-            <div class="input-group">
-                <label>F3:</label>
-                <input type="text" id="f3_manuale" placeholder="Nome giocatrice F3">
+
+            <div id="squadreList" class="squadre-grid">
+                <!-- Le squadre verranno caricate qui -->
             </div>
         </div>
-
-        <div>
-            <button class="btn btn-primary" onclick="aggiungiSquadraManuale()">
-                ➕ Aggiungi Squadra
-            </button>
-            <button class="btn btn-secondary" onclick="clearFormManualeEChiudi()">
-                ❌ Annulla
-            </button>
-        </div>
-    </div>
-
-    <div id="squadreList" class="squadre-grid">
-        <!-- Le squadre verranno caricate qui -->
-    </div>
-</div>
 
         <!-- Finalizzazione Setup -->
         <div class="section">
             <h2>🚀 Finalizzazione Setup</h2>
             <p>Completa la configurazione e prepara il sistema per le aste</p>
-            
+
             <div id="setupSummary">
                 <p>📊 <strong>Squadre configurate:</strong> <span id="countSquadre">0</span></p>
                 <p>🎯 <strong>Slots da generare:</strong> <span id="countSlots">0</span> (10 per squadra)</p>
@@ -448,6 +455,26 @@ F3 Brunelli E</pre>
         let sessioneCorrente = null;
         let sessioneInfo = null;
 
+        // Verifica se gli slot sono già stati generati
+        async function verificaSlotsEsistenti() {
+            try {
+                const url = sessioneCorrente
+                    ? `/api/slots?sessione=${sessioneCorrente}`
+                    : '/api/slots';
+
+                const response = await fetch(url);
+                if (response.ok) {
+                    const slots = await response.json();
+                    if (slots && slots.length > 0) {
+                        systemReady = true;
+                        console.log('✅ Slots già presenti nel sistema:', slots.length);
+                    }
+                }
+            } catch (error) {
+                console.error('Errore verifica slots:', error);
+            }
+        }
+
         // Leggi parametro sessione dall'URL
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -457,6 +484,7 @@ F3 Brunelli E</pre>
                 await caricaSessione(sessioneId);
             }
 
+            await verificaSlotsEsistenti(); // ✅ NUOVA RIGA
             caricaSquadre();
         });
 
@@ -513,9 +541,10 @@ F3 Brunelli E</pre>
         // Gestione stato sistema
         async function caricaStato() {
             try {
+                await verificaSlotsEsistenti(); // ✅ NUOVA RIGA
                 const response = await fetch('/api/stato');
                 const stato = await response.json();
-                
+
                 updateSystemStatus();
             } catch (error) {
                 console.error('Errore caricamento stato:', error);
