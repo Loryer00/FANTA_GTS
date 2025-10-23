@@ -970,6 +970,8 @@
         // ========================================
 
         async function mostraSchermataSessioni() {
+            console.log('🔄 mostraSchermataSessioni() chiamata');
+
             // Nascondi tutte le schermate
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('login-screen').style.display = 'none';
@@ -977,7 +979,16 @@
             document.getElementById('game-area').style.display = 'none';
 
             // Mostra schermata sessioni
-            document.getElementById('sessions-screen').style.display = 'block';
+            const sessionsScreen = document.getElementById('sessions-screen');
+            console.log('📺 sessions-screen element:', sessionsScreen);
+
+            if (sessionsScreen) {
+                sessionsScreen.style.display = 'block';
+                console.log('✅ sessions-screen mostrato');
+                console.log('📋 Contenuto HTML:', sessionsScreen.innerHTML.substring(0, 200));
+            } else {
+                console.error('❌ sessions-screen NON TROVATO!');
+            }
 
             // Carica sessioni del partecipante
             await caricaMieSessioni();
