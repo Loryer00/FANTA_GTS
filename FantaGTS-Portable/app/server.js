@@ -4261,7 +4261,8 @@ app.get('/api/sessioni', async (req, res) => {
     try {
         const { stato, modalita, anno } = req.query;
 
-        let query = 'SELECT * FROM v_sessioni_stats WHERE 1=1';
+        // ðŸ†• Escludi sempre la sessione "default" dalla lista
+        let query = "SELECT * FROM v_sessioni_stats WHERE id != 'default'";
         const params = [];
 
         if (stato) {
@@ -4283,10 +4284,10 @@ app.get('/api/sessioni', async (req, res) => {
 
         const result = await db.query(query, params);
 
-        console.log(`✅ Lista sessioni caricata: ${result.rows.length} risultati`);
+        console.log(`âœ… Lista sessioni caricata: ${result.rows.length} risultati (default esclusa)`);
         res.json(result.rows);
     } catch (err) {
-        console.error('❌ Errore caricamento sessioni:', err);
+        console.error('âŒ Errore caricamento sessioni:', err);
         res.status(500).json({ error: err.message });
     }
 });
