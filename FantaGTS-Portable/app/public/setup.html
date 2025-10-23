@@ -612,7 +612,7 @@ F3 Brunelli E</pre>
 
                 // Se c'è una sessione, filtra per quella sessione
                 const url = sessioneCorrente ?
-                    `/api/squadre?sessione_id=${sessioneCorrente}` :
+                    `/api/squadre?sessione=${sessioneCorrente}` :
                     '/api/squadre';
 
                 const response = await fetch(url);
