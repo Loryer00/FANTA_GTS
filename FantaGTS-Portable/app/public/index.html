@@ -1015,7 +1015,10 @@
                 const result = await response.json();
                 console.log('📦 Risultato sessioni:', result);
 
-                if (result.success && result.sessioni && result.sessioni.length > 0) {
+                console.log('📊 Numero sessioni trovate:', result.sessioni ? result.sessioni.length : 0);
+
+                if (result.sessioni && result.sessioni.length > 0) {
+                    console.log('✅ Mostrando', result.sessioni.length, 'sessioni');
                     sessionsList.innerHTML = result.sessioni.map(sessione => `
                 <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
                     <div class="session-name">📋 ${sessione.nome}</div>
@@ -1029,6 +1032,7 @@
             `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
+                    console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
                 <p style="text-align: center; color: #a0aec0; padding: 20px;">
                     🔭 Non sei ancora iscritto a nessuna sessione.<br>
