@@ -1139,8 +1139,21 @@
             try {
                 // Imposta la sessione corrente (lato client)
                 sessioneCorrente = sessioneId;
-                nomeSessioneCorrente = nomeSessione;  // ðŸ†• Salva anche il nome
-                saveSession();  // ðŸ†• Salva la sessione nel localStorage
+                nomeSessioneCorrente = nomeSessione;
+
+                // 🆕 CARICA I DATI CORRETTI DEL PARTECIPANTE DALLA SESSIONE
+                const partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${playerData.name}`);
+                if (partecipanteResponse.ok) {
+                    const partecipante = await partecipanteResponse.json();
+                    playerData.id = partecipante.id;
+                    playerData.credits = partecipante.crediti;
+                    console.log('✅ Dati partecipante caricati - ID:', playerData.id, 'Crediti:', playerData.credits);
+                } else {
+                    console.error('❌ Errore caricamento dati partecipante');
+                }
+
+                // Salva la sessione nel localStorage con i dati aggiornati
+                saveSession();
 
                 // Aggiorna display
                 document.getElementById('currentPlayer').textContent = playerData.name;
@@ -1252,11 +1265,14 @@
                             console.log('✅ Sessione valida, entro automaticamente');
 
                             // 🆕 RICARICA I CREDITI AGGIORNATI DALLA SESSIONE
-                            const creditiResponse = await fetch(`/api/partecipanti/${playerData.id}`);
+                            const creditiResponse = await fetch(`/api/sessioni/${sessioneCorrente}/partecipante/${playerData.name}`);
                             if (creditiResponse.ok) {
                                 const partecipanteData = await creditiResponse.json();
+                                playerData.id = partecipanteData.id; // Aggiorna anche l'ID
                                 playerData.credits = partecipanteData.crediti;
-                                console.log(`💰 Crediti ricaricati: ${playerData.credits}`);
+                                console.log(`✅ Dati partecipante ricaricati - ID: ${playerData.id}, Crediti: ${playerData.credits}`);
+                            } else {
+                                console.error('❌ Errore caricamento dati partecipante');
                             }
 
                             // Mostra direttamente la game area

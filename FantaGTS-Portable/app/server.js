@@ -2112,6 +2112,29 @@ app.get('/api/my-sessions/:partecipanteId', async (req, res) => {
     }
 });
 
+// 🆕 Ottieni partecipante di una sessione per nome
+app.get('/api/sessioni/:sessionId/partecipante/:nome', async (req, res) => {
+    try {
+        const { sessionId, nome } = req.params;
+
+        const result = await db.query(
+            `SELECT id, nome, crediti 
+             FROM partecipanti_fantagts 
+             WHERE sessione_id = $1 AND LOWER(nome) = LOWER($2)`,
+            [sessionId, nome]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Partecipante non trovato' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Errore API partecipante:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/partecipanti/:id', async (req, res) => {
     try {
         const partecipanteId = req.params.id;
