@@ -1117,6 +1117,12 @@
                     mostraMessaggio(`✅ ${result.message}`, 'success');
                     codiceInput.value = '';
 
+                    // 🆕 AGGIORNA I CREDITI CON QUELLI DELLA SESSIONE
+                    if (result.crediti) {
+                        playerData.credits = result.crediti;
+                        console.log(`💰 Crediti aggiornati a ${result.crediti}`);
+                    }
+
                     // 🆕 ENTRA AUTOMATICAMENTE NELLA SESSIONE
                     console.log('🚀 Entro automaticamente nella sessione:', result.sessione);
                     await entraInSessione(result.sessione.id, result.sessione.nome);
@@ -1212,16 +1218,17 @@
             }
         }
 
+        // 🆕 NUOVA FUNZIONE - INSERISCI TUTTO QUESTO BLOCCO QUI
         async function loadSavedSession() {
             try {
                 const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
                 if (!savedData) {
-                    console.log('â„¹ï¸ Nessuna sessione salvata trovata');
+                    console.log('ℹ️ Nessuna sessione salvata trovata');
                     return false;
                 }
 
                 const data = JSON.parse(savedData);
-                console.log('ðŸ"„ Ripristino sessione salvata:', data);
+                console.log('🔄 Ripristino sessione salvata:', data);
 
                 // Ripristina playerData
                 playerData.registered = true;
@@ -1242,7 +1249,15 @@
                         const sessioneValida = sessioni.find(s => s.id === sessioneCorrente);
 
                         if (sessioneValida) {
-                            console.log('âœ… Sessione valida, entro automaticamente');
+                            console.log('✅ Sessione valida, entro automaticamente');
+
+                            // 🆕 RICARICA I CREDITI AGGIORNATI DALLA SESSIONE
+                            const creditiResponse = await fetch(`/api/partecipanti/${playerData.id}`);
+                            if (creditiResponse.ok) {
+                                const partecipanteData = await creditiResponse.json();
+                                playerData.credits = partecipanteData.crediti;
+                                console.log(`💰 Crediti ricaricati: ${playerData.credits}`);
+                            }
 
                             // Mostra direttamente la game area
                             document.getElementById('welcome-screen').style.display = 'none';
@@ -1263,17 +1278,17 @@
 
                             registerSocketWhenReady();
 
-                            mostraMessaggio(`ðŸŽ¾ Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
-                            console.log('âš ï¸ Sessione non più valida, mostro selezione sessioni');
+                            console.log('⚠️ Sessione non più valida, mostro selezione sessioni');
                             await mostraSchermataSessioni();
                             return true;
                         }
                     }
                 } else {
                     // Ha playerData ma non sessioneCorrente, mostra selezione sessioni
-                    console.log('â„¹ï¸ Player salvato ma nessuna sessione, mostro selezione');
+                    console.log('ℹ️ Player salvato ma nessuna sessione, mostro selezione');
                     await mostraSchermataSessioni();
                     return true;
                 }
@@ -1462,7 +1477,7 @@
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname, pin, crediti: 2000 })
+                    body: JSON.stringify({ nickname, pin })
                 });
 
                 const result = await response.json();

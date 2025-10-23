@@ -2015,7 +2015,7 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         // Verifica codice sessione
         const sessioneResult = await db.query(
-            'SELECT id, nome, anno, modalita, attiva FROM sessioni_fantagts WHERE codice_accesso = $1',
+            'SELECT id, nome, anno, modalita, attiva, crediti_iniziali FROM sessioni_fantagts WHERE codice_accesso = $1',
             [codiceSessione.toUpperCase()]
         );
 
@@ -2027,12 +2027,32 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         // Verifica che partecipante esista
         const partCheck = await db.query(
-            'SELECT id, nome FROM partecipanti_fantagts WHERE id = $1',
+            'SELECT id, nome, crediti FROM partecipanti_fantagts WHERE id = $1',
             [partecipanteId]
         );
 
         if (partCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Partecipante non trovato' });
+        }
+
+        const partecipante = partCheck.rows[0];
+
+        // 🆕 AGGIORNA I CREDITI DEL PARTECIPANTE CON I CREDITI DELLA SESSIONE
+        const creditiSessione = sessione.crediti_iniziali || 2000;
+
+        // Solo se i crediti sono diversi da quelli della sessione (evita update inutili)
+        if (partecipante.crediti !== creditiSessione) {
+            await db.query(
+                'UPDATE partecipanti_fantagts SET crediti = $1, sessione_id = $2 WHERE id = $3',
+                [creditiSessione, sessione.id, partecipanteId]
+            );
+            console.log(`💰 Crediti aggiornati per ${partecipante.nome}: ${partecipante.crediti} → ${creditiSessione}`);
+        } else {
+            // Aggiorna solo la sessione
+            await db.query(
+                'UPDATE partecipanti_fantagts SET sessione_id = $1 WHERE id = $2',
+                [sessione.id, partecipanteId]
+            );
         }
 
         // Registra accesso (INSERT o UPDATE ultimo_accesso)
@@ -2043,11 +2063,13 @@ app.post('/api/join-session-with-code', async (req, res) => {
             DO UPDATE SET ultimo_accesso = CURRENT_TIMESTAMP
         `, [partecipanteId, sessione.id]);
 
-        console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome}`);
+        console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
 
+        // 🆕 Ritorna anche i crediti aggiornati
         res.json({
             success: true,
             sessione: sessione,
+            crediti: creditiSessione,  // 🆕 Aggiungi i crediti nella risposta
             message: `Accesso garantito alla sessione "${sessione.nome}"`
         });
 
