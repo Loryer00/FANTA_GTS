@@ -36,11 +36,11 @@ try {
             privateKey: process.env.VAPID_PRIVATE_KEY
         };
         webPushConfigured = true;
-        console.log('âœ… Web Push configurato con chiavi FISSE da ambiente');
+        console.log('✅ Web Push configurato con chiavi FISSE da ambiente');
     }
     // Altrimenti genera temporanee
     else {
-        console.log('ðŸ”‘ Generando chiavi VAPID temporanee...');
+        console.log('🔑 Generando chiavi VAPID temporanee...');
         currentVapidKeys = webpush.generateVAPIDKeys();
 
         webpush.setVapidDetails(
@@ -49,12 +49,12 @@ try {
             currentVapidKeys.privateKey
         );
         webPushConfigured = true;
-        console.log('âš ï¸ Web Push configurato con chiavi TEMPORANEE');
-        console.log('ðŸ“¤ PUBLIC KEY:', currentVapidKeys.publicKey);
-        console.log('ðŸ” PRIVATE KEY:', currentVapidKeys.privateKey);
+        console.log('⚠️ Web Push configurato con chiavi TEMPORANEE');
+        console.log('📤 PUBLIC KEY:', currentVapidKeys.publicKey);
+        console.log('🔐 PRIVATE KEY:', currentVapidKeys.privateKey);
     }
 } catch (error) {
-    console.error('âŒ Errore configurazione Web Push:', error);
+    console.error('❌ Errore configurazione Web Push:', error);
     webPushConfigured = false;
 }
 
@@ -62,7 +62,7 @@ try {
 app.use(express.static('public'));
 app.use(express.json());
 
-console.log('ðŸ” Directory corrente:', __dirname);
+console.log('🔍 Directory corrente:', __dirname);
 
 // Database PostgreSQL
 const connectionString = process.env.DATABASE_URL ||
@@ -75,12 +75,12 @@ const db = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log('ðŸ” Connessione PostgreSQL...');
+console.log('🔍 Connessione PostgreSQL...');
 
 // Inizializza database
 async function initializeDatabase() {
     try {
-        console.log('ðŸ”§ Inizializzazione database in corso...');
+        console.log('🔧 Inizializzazione database in corso...');
 
         // Crea tabelle
         await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
@@ -267,32 +267,32 @@ async function initializeDatabase() {
             ('backup_auto_minuti', '5', 'Frequenza backup automatici in minuti')
             ON CONFLICT (chiave) DO NOTHING`);
 
-        console.log('âœ… Database PostgreSQL inizializzato con successo');
+        console.log('✅ Database PostgreSQL inizializzato con successo');
     } catch (error) {
-        console.error('âŒ Errore inizializzazione database:', error);
+        console.error('❌ Errore inizializzazione database:', error);
     }
 }
 
 /// Funzione per aggiornare database automaticamente
 async function updateDatabaseSchema() {
     try {
-        console.log('ðŸ”„ Aggiornando schema database...');
+        console.log('🔄 Aggiornando schema database...');
 
-        // ðŸ”§ Rimuovi constraint UNIQUE su numero (non serve piÃ¹)
+        // 🔧 Rimuovi constraint UNIQUE su numero (non serve più)
         try {
-            console.log('ðŸ”§ Rimuovendo constraint UNIQUE da squadre_circolo...');
+            console.log('🔧 Rimuovendo constraint UNIQUE da squadre_circolo...');
 
             await db.query(`
                 ALTER TABLE squadre_circolo 
                 DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key CASCADE
             `);
 
-            console.log('âœ… Constraint rimosso: ora numero puÃ² ripetersi tra sessioni diverse');
+            console.log('✅ Constraint rimosso: ora numero può ripetersi tra sessioni diverse');
         } catch (err) {
-            console.warn('âš ï¸ Errore rimozione constraint:', err.message);
+            console.warn('⚠️ Errore rimozione constraint:', err.message);
         }
 
-        // 1ï¸âƒ£ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
+        // 1️⃣ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
             nome TEXT NOT NULL,
@@ -318,9 +318,9 @@ async function updateDatabaseSchema() {
             last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        console.log('âœ… Tabella sessioni creata');
+        console.log('✅ Tabella sessioni creata');
 
-        // ðŸ†• CREA SESSIONE "default" SE NON ESISTE
+        // 🆕 CREA SESSIONE "default" SE NON ESISTE
         const checkDefault = await db.query(`SELECT id FROM sessioni_fantagts WHERE id = 'default'`);
         if (checkDefault.rows.length === 0) {
             await db.query(`
@@ -350,14 +350,14 @@ async function updateDatabaseSchema() {
                     'SYS00'
                 )
             `);
-            console.log('âœ… Sessione "default" creata per compatibilitÃ ');
+            console.log('✅ Sessione "default" creata per compatibilità');
         } else {
-            console.log('â„¹ï¸ Sessione "default" giÃ  esistente');
+            console.log('ℹ️ Sessione "default" già esistente');
         }
 
-        // 2ï¸âƒ£ POI: Aggiorna tabella esistente con colonne mancanti
+        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
 
-        // 2ï¸âƒ£ POI: Aggiorna tabella esistente con colonne mancanti
+        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS modalita TEXT DEFAULT 'asta_competitiva'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_partecipanti_previsti INTEGER DEFAULT 10`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS crediti_iniziali INTEGER DEFAULT 2000`);
@@ -381,9 +381,9 @@ async function updateDatabaseSchema() {
     UNIQUE(partecipante_id, sessione_id)
 )`);
 
-        console.log('âœ… Codice accesso e tabella accessi creati');
+        console.log('✅ Codice accesso e tabella accessi creati');
 
-        // 3ï¸âƒ£ INFINE: Aggiungi colonne sessione_id alle altre tabelle
+        // 3️⃣ INFINE: Aggiungi colonne sessione_id alle altre tabelle
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
@@ -395,7 +395,7 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
-        // 4ï¸âƒ£ ORA SÃŒ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
+        // 4️⃣ ORA SÌ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
         try {
             await db.query(`
                 DO $$ 
@@ -410,12 +410,12 @@ async function updateDatabaseSchema() {
                     END IF;
                 END $$;
             `);
-            console.log('âœ… Foreign Key partecipanti -> sessioni verificata');
+            console.log('✅ Foreign Key partecipanti -> sessioni verificata');
         } catch (err) {
-            console.warn('âš ï¸ Foreign Key giÃ  esistente o errore:', err.message);
+            console.warn('⚠️ Foreign Key già esistente o errore:', err.message);
         }
 
-        // 5ï¸âƒ£ INFINE: Crea VIEW per statistiche sessioni
+        // 5️⃣ INFINE: Crea VIEW per statistiche sessioni
         await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
             SELECT 
@@ -448,9 +448,9 @@ async function updateDatabaseSchema() {
                      s.premium_condivisione, s.stato, s.last_modified
         `);
 
-        console.log('âœ… Schema database aggiornato');
+        console.log('✅ Schema database aggiornato');
     } catch (error) {
-        console.error('âŒ Errore aggiornamento schema:', error);
+        console.error('❌ Errore aggiornamento schema:', error);
     }
 }
 
@@ -460,7 +460,7 @@ let gameState = {
     roundAttivo: null,
     asteAttive: false,
 
-    // ðŸ†• NUOVO: Tracciamento sessione attiva
+    // 🆕 NUOVO: Tracciamento sessione attiva
     sessioneAttiva: null, // ID della sessione attualmente in uso
 
     connessi: new Map(),
@@ -487,7 +487,7 @@ function generaCodiceSessione() {
     return codice;
 }
 
-// Verifica unicitÃ  codice sessione
+// Verifica unicità codice sessione
 async function generaCodiceUnico() {
     let codice;
     let esistente = true;
@@ -504,7 +504,7 @@ async function generaCodiceUnico() {
     return codice;
 }
 
-// Funzioni utilitÃ 
+// Funzioni utilità
 function arrotondaAlPariPiuVicino(numero) {
     const intero = Math.floor(numero);
     const decimale = numero - intero;
@@ -523,7 +523,7 @@ function arrotondaAlPariPiuVicino(numero) {
 }
 
 // =====================================================
-// ðŸ†• FASE 3: SISTEMA CONDIVISIONE GIOCATORI
+// 🆕 FASE 3: SISTEMA CONDIVISIONE GIOCATORI
 // =====================================================
 
 /**
@@ -539,7 +539,7 @@ function calcolaRipetizioniNecessarie(categoria, numeroPartecipanti, numeroSquad
 
     const ripetizioni = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
 
-    console.log(`ðŸ“Š Categoria ${categoria}: ${giocatoriNecessari} necessari, ${giocatoriDisponibili} disponibili â†’ ${ripetizioni} ripetizioni`);
+    console.log(`📊 Categoria ${categoria}: ${giocatoriNecessari} necessari, ${giocatoriDisponibili} disponibili → ${ripetizioni} ripetizioni`);
 
     return ripetizioni;
 }
@@ -586,7 +586,7 @@ function selezionaGiocatoriDaReplicare(gruppiGiocatori, numeroRipetizioni) {
         .slice(0, numeroRipetizioni)
         .map(g => g.nomeGiocatore);
 
-    console.log(`ðŸŽ¯ TOP ${numeroRipetizioni} giocatori da replicare:`);
+    console.log(`🎯 TOP ${numeroRipetizioni} giocatori da replicare:`);
     giocatoriOrdinati.slice(0, numeroRipetizioni).forEach((g, idx) => {
         console.log(`   ${idx + 1}. ${g.nomeGiocatore}: somma offerte = ${g.sommaOfferte} (${g.offerte.length} offerte)`);
     });
@@ -634,14 +634,14 @@ function calcolaCostiConPremium(offerte, premiumPercentuale = 0.10) {
  * @returns {Object} - { risultatiFinali: [], giocatoriReplicati: [], stats: {} }
  */
 function elaboraCondivisioneGiocatori(tutteLeOfferte, numeroPartecipanti, numeroSquadre, categoria) {
-    console.log(`\nðŸ”„ === ELABORAZIONE CONDIVISIONE per ${categoria} ===`);
+    console.log(`\n🔄 === ELABORAZIONE CONDIVISIONE per ${categoria} ===`);
 
     // 1. Calcola quante ripetizioni servono
     const ripetizioniNecessarie = calcolaRipetizioniNecessarie(categoria, numeroPartecipanti, numeroSquadre);
 
     if (ripetizioniNecessarie === 0) {
-        console.log(`âœ… Nessuna condivisione necessaria per ${categoria}`);
-        // ModalitÃ  normale: 1 vincitore per giocatore
+        console.log(`✅ Nessuna condivisione necessaria per ${categoria}`);
+        // Modalità normale: 1 vincitore per giocatore
         const risultatiNormali = elaboraRisultatiNormali(tutteLeOfferte);
         return {
             risultatiFinali: risultatiNormali,
@@ -679,18 +679,18 @@ function elaboraCondivisioneGiocatori(tutteLeOfferte, numeroPartecipanti, numero
             risultatiFinali.push(...risultatiConPremium);
             stats.conCondivisione += risultatiConPremium.length;
 
-            console.log(`ðŸ” ${nomeGiocatore} CONDIVISO tra ${risultatiConPremium.length} partecipanti`);
+            console.log(`🔁 ${nomeGiocatore} CONDIVISO tra ${risultatiConPremium.length} partecipanti`);
         } else {
-            // Giocatore unico: vince solo l'offerta piÃ¹ alta
+            // Giocatore unico: vince solo l'offerta più alta
             const vincitore = elaboraVincitoreUnico(dati.offerte);
             risultatiFinali.push(vincitore);
             stats.senzaCondivisione++;
 
-            console.log(`âœ… ${nomeGiocatore} assegnato UNICO a ${vincitore.nome}`);
+            console.log(`✅ ${nomeGiocatore} assegnato UNICO a ${vincitore.nome}`);
         }
     });
 
-    console.log(`\nðŸ“Š STATISTICHE CONDIVISIONE:`);
+    console.log(`\n📊 STATISTICHE CONDIVISIONE:`);
     console.log(`   Ripetizioni necessarie: ${stats.ripetizioniNecessarie}`);
     console.log(`   Giocatori replicati: ${stats.giocatoriReplicati}`);
     console.log(`   Assegnazioni con condivisione: ${stats.conCondivisione}`);
@@ -704,7 +704,7 @@ function elaboraCondivisioneGiocatori(tutteLeOfferte, numeroPartecipanti, numero
 }
 
 /**
- * Elabora risultati in modalitÃ  normale (senza condivisione)
+ * Elabora risultati in modalità normale (senza condivisione)
  */
 function elaboraRisultatiNormali(offerte) {
     const offertePerSlot = {};
@@ -740,7 +740,7 @@ function elaboraVincitoreUnico(offerte) {
         // Pareggio - sorteggio casuale
         const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
         vincitore = offerteVincenti[randomIndex];
-        console.log(`ðŸŽ² PAREGGIO! Estratto: ${vincitore.nome}`);
+        console.log(`🎲 PAREGGIO! Estratto: ${vincitore.nome}`);
     }
 
     return {
@@ -761,24 +761,24 @@ function elaboraVincitoreUnico(offerte) {
 
 async function generaSlots(sessioneId = null) {
     try {
-        console.log('ðŸŽ¯ Inizio generazione slots...');
-        console.log('ðŸ“Œ Sessione ricevuta:', sessioneId);
+        console.log('🎯 Inizio generazione slots...');
+        console.log('📌 Sessione ricevuta:', sessioneId);
 
         // FILTRO PER SESSIONE se presente
         let squadreResult;
         if (sessioneId) {
-            console.log('ðŸ“Œ Filtro per sessione:', sessioneId);
+            console.log('📌 Filtro per sessione:', sessioneId);
             squadreResult = await db.query(
                 "SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1",
                 [sessioneId]
             );
         } else {
-            console.log('ðŸ“Œ Nessun filtro sessione');
+            console.log('📌 Nessun filtro sessione');
             squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
         }
 
         const squadre = squadreResult.rows;
-        console.log(`âœ… Trovate ${squadre.length} squadre attive`);
+        console.log(`✅ Trovate ${squadre.length} squadre attive`);
 
         // Verifica che ci siano squadre
         if (squadre.length === 0) {
@@ -788,12 +788,12 @@ async function generaSlots(sessioneId = null) {
         const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
         // CANCELLA SLOTS ESISTENTI - Prima cancella le aste collegate
-        console.log('ðŸ—‘ï¸ Cancellazione slots esistenti...');
+        console.log('🗑️ Cancellazione slots esistenti...');
 
         if (sessioneId) {
             // Step 1: Trova i numeri delle squadre di questa sessione
             const squadreNumeri = squadre.map(sq => sq.numero);
-            console.log('ðŸ“‹ Numeri squadre da cancellare:', squadreNumeri);
+            console.log('📋 Numeri squadre da cancellare:', squadreNumeri);
 
             // Step 2: Cancella le aste collegate a questi slots
             if (squadreNumeri.length > 0) {
@@ -803,7 +803,7 @@ async function generaSlots(sessioneId = null) {
                         SELECT id FROM slots WHERE squadra_numero = ANY($1)
                     )
                 `, [squadreNumeri]);
-                console.log('âœ… Aste collegate cancellate');
+                console.log('✅ Aste collegate cancellate');
             }
 
             // Step 3: Cancella gli slots
@@ -812,13 +812,13 @@ async function generaSlots(sessioneId = null) {
                     DELETE FROM slots 
                     WHERE squadra_numero = ANY($1)
                 `, [squadreNumeri]);
-                console.log('âœ… Slots esistenti cancellati');
+                console.log('✅ Slots esistenti cancellati');
             }
         } else {
             // Cancella prima tutte le aste, poi tutti gli slots
             await db.query("DELETE FROM aste");
             await db.query("DELETE FROM slots");
-            console.log('âœ… Tutti gli slots e aste cancellati');
+            console.log('✅ Tutti gli slots e aste cancellati');
         }
 
         let inserimenti = 0;
@@ -836,41 +836,41 @@ async function generaSlots(sessioneId = null) {
             }
         }
 
-        console.log(`âœ… Generati ${inserimenti} slots da ${squadre.length} squadre`);
+        console.log(`✅ Generati ${inserimenti} slots da ${squadre.length} squadre`);
         return inserimenti;
     } catch (error) {
-        console.error('âŒ ERRORE generaSlots:', error.message);
+        console.error('❌ ERRORE generaSlots:', error.message);
         console.error('Stack:', error.stack);
         throw error;
     }
 }
 
-// ðŸ†• NUOVA FUNZIONE: Avvia asta successiva nel round
+// 🆕 NUOVA FUNZIONE: Avvia asta successiva nel round
 function avviaAstaSuccessiva() {
     if (!gameState.asteAttive) return;
 
-    console.log(`\nðŸŽª === ASTA ${gameState.astaCorrente} del ROUND ${gameState.roundAttivo} ===`);
-    console.log(`ðŸ‘¥ Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
-    console.log(`ðŸŽ¯ Slots rimasti: ${gameState.slotsRimasti.length}`);
-    console.log(`ðŸ“‹ Giocatori disponibili: ${gameState.slotsRimasti.map(s => s.giocatore_attuale).join(', ')}`);
+    console.log(`\n🎪 === ASTA ${gameState.astaCorrente} del ROUND ${gameState.roundAttivo} ===`);
+    console.log(`👥 Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
+    console.log(`🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
+    console.log(`📋 Giocatori disponibili: ${gameState.slotsRimasti.map(s => s.giocatore_attuale).join(', ')}`);
 
-    // ðŸ” Controlla se il round puÃ² continuare
+    // 🔍 Controlla se il round può continuare
     if (gameState.partecipantiInAttesa.length === 0) {
-        console.log('âœ… TUTTI i partecipanti hanno ottenuto un giocatore - ROUND COMPLETATO');
+        console.log('✅ TUTTI i partecipanti hanno ottenuto un giocatore - ROUND COMPLETATO');
         terminaRoundCompleto();
         return;
     }
 
     if (gameState.slotsRimasti.length === 0) {
-        console.log('âš ï¸ NON ci sono piÃ¹ giocatori disponibili - ROUND COMPLETATO');
+        console.log('⚠️ NON ci sono più giocatori disponibili - ROUND COMPLETATO');
         terminaRoundCompleto();
         return;
     }
 
-    // ðŸ”„ Reset offerte per nuova asta
+    // 🔄 Reset offerte per nuova asta
     gameState.offerteTemporanee.clear();
 
-    // ðŸ†• NUOVO: Reset stato bid per tutti i socket connessi
+    // 🆕 NUOVO: Reset stato bid per tutti i socket connessi
     for (let [socketId, connesso] of gameState.connessi.entries()) {
         if (connesso.tipo === 'partecipante' && gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
             // Reset stato offerta per questo socket
@@ -882,7 +882,7 @@ function avviaAstaSuccessiva() {
         }
     }
 
-    // ðŸ“¤ Invia stato asta SOLO ai partecipanti in attesa
+    // 📤 Invia stato asta SOLO ai partecipanti in attesa
     gameState.partecipantiInAttesa.forEach(partecipanteId => {
         for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.partecipanteId === partecipanteId) {
@@ -912,13 +912,13 @@ function avviaAstaSuccessiva() {
         }
     }
 
-    // ðŸ” Avvia monitoraggio per questa asta
+    // 🔍 Avvia monitoraggio per questa asta
     avviaMonitoraggioOfferte();
 }
 
-// ðŸ†• NUOVA FUNZIONE: Termina round completo
+// 🆕 NUOVA FUNZIONE: Termina round completo
 function terminaRoundCompleto() {
-    console.log(`\nðŸ === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
+    console.log(`\n🏁 === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
 
     gameState.asteAttive = false;
     const roundCompletato = gameState.roundAttivo;
@@ -929,21 +929,21 @@ function terminaRoundCompleto() {
     gameState.partecipantiInAttesa = [];
     gameState.offerteTemporanee.clear();
 
-    // ðŸ“¤ Notifica fine round
+    // 📤 Notifica fine round
     io.emit('round_ended', {
         round: roundCompletato,
         completato: true,
         message: `Round ${roundCompletato} completato con tutte le aste`
     });
 
-    console.log(`âœ… Round ${roundCompletato} terminato definitivamente`);
+    console.log(`✅ Round ${roundCompletato} terminato definitivamente`);
 }
 
 // Notifiche Push
 async function inviaNotifichePush(notificationData) {
     try {
         const { title, body, url, targetUsers } = notificationData;
-        console.log('ðŸ“¨ INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
+        console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
 
         // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket) - SEMPRE FUNZIONA
         let notificheTramiteSocket = 0;
@@ -951,7 +951,7 @@ async function inviaNotifichePush(notificationData) {
             if (connesso.tipo === 'partecipante' &&
                 (!targetUsers || targetUsers.includes(connesso.partecipanteId))) {
 
-                console.log(`ðŸ“¨ Invio notifica WebSocket a: ${connesso.nome}`);
+                console.log(`📨 Invio notifica WebSocket a: ${connesso.nome}`);
                 io.to(socketId).emit('show_notification', {
                     title: title,
                     body: body,
@@ -967,7 +967,7 @@ async function inviaNotifichePush(notificationData) {
         let subscriptions = [];
 
         if (!webPushConfigured) {
-            console.log('âš ï¸ Web Push non configurato - saltando notifiche push');
+            console.log('⚠️ Web Push non configurato - saltando notifiche push');
             return {
                 success: true,
                 websocket: notificheTramiteSocket,
@@ -1001,9 +1001,9 @@ async function inviaNotifichePush(notificationData) {
 
             const result = await db.query(query, params);
             subscriptions = result.rows;
-            console.log(`ðŸ“± SUBSCRIPTION TROVATE: ${subscriptions.length}`);
+            console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
         } catch (dbError) {
-            console.error('âŒ ERRORE QUERY SUBSCRIPTIONS:', dbError);
+            console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
             return {
                 success: true,
                 websocket: notificheTramiteSocket,
@@ -1013,12 +1013,12 @@ async function inviaNotifichePush(notificationData) {
 
         // Invia notifiche push con gestione errori migliorata
         const payload = JSON.stringify({
-            title: `ðŸŽ¾ ${title}`, // AGGIUNTO: emoji per visibilitÃ 
-            body: `âš¡ ${body}`, // AGGIUNTO: emoji per urgenza
-            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3EðŸŽ¾%3C/text%3E%3C/svg%3E',
-            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3EðŸŽ¾%3C/text%3E%3C/svg%3E',
-            image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"%3E%3Crect width="200" height="100" fill="%234299e1"/%3E%3Ctext x="100" y="60" font-size="40" text-anchor="middle" fill="white"%3EðŸŽ¾ ASTA!%3C/text%3E%3C/svg%3E', // AGGIUNTO: immagine grande per lockscreen
-            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione piÃ¹ lunga e forte
+            title: `🎾 ${title}`, // AGGIUNTO: emoji per visibilità
+            body: `⚡ ${body}`, // AGGIUNTO: emoji per urgenza
+            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
+            image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"%3E%3Crect width="200" height="100" fill="%234299e1"/%3E%3Ctext x="100" y="60" font-size="40" text-anchor="middle" fill="white"%3E🎾 ASTA!%3C/text%3E%3C/svg%3E', // AGGIUNTO: immagine grande per lockscreen
+            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
             requireInteraction: true, // CAMBIATO: torna true per persistenza
             tag: 'fantagts-urgent',
             renotify: true,
@@ -1028,7 +1028,7 @@ async function inviaNotifichePush(notificationData) {
             android: {
                 channelId: 'fantagts_urgent',
                 priority: 'high',
-                category: 'alarm', // IMPORTANTE: categoria alarm per maggiore visibilitÃ 
+                category: 'alarm', // IMPORTANTE: categoria alarm per maggiore visibilità
                 visibility: 'public',
                 showWhen: true,
                 when: Date.now(),
@@ -1047,12 +1047,12 @@ async function inviaNotifichePush(notificationData) {
             actions: [
                 {
                     action: 'open',
-                    title: 'ðŸš€ Apri FantaGTS',
-                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3EðŸŽ¾%3C/text%3E%3C/svg%3E'
+                    title: '🚀 Apri FantaGTS',
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
                 },
                 {
                     action: 'remind',
-                    title: 'â° Ricorda tra 1 min'
+                    title: '⏰ Ricorda tra 1 min'
                 }
             ]
         });
@@ -1067,15 +1067,15 @@ async function inviaNotifichePush(notificationData) {
                     }
                 };
 
-                console.log(`ðŸš€ Tentativo push MIGLIORATO a: ${subscription.partecipante_id}`);
+                console.log(`🚀 Tentativo push MIGLIORATO a: ${subscription.partecipante_id}`);
 
                 await webpush.sendNotification(pushSubscription, payload, {
-                    TTL: 300, // CAMBIATO: 5 minuti (piÃ¹ urgente)
+                    TTL: 300, // CAMBIATO: 5 minuti (più urgente)
                     urgency: 'high',
                     topic: `fantagts-${Date.now()}`, // CAMBIATO: topic unico per evitare grouping
                     headers: {
                         'Apns-Push-Type': 'alert', // Per iOS
-                        'Apns-Priority': '10', // Massima prioritÃ  iOS
+                        'Apns-Priority': '10', // Massima priorità iOS
                         'FCM_OPTIONS': JSON.stringify({
                             'analytics_label': 'urgent_notification'
                         })
@@ -1083,13 +1083,13 @@ async function inviaNotifichePush(notificationData) {
                 });
 
                 pushInviate++;
-                console.log(`âœ… Push MIGLIORATA inviata a: ${subscription.partecipante_id}`);
+                console.log(`✅ Push MIGLIORATA inviata a: ${subscription.partecipante_id}`);
 
                 // Aggiorna last_seen
                 await db.query("UPDATE push_subscriptions SET last_seen = CURRENT_TIMESTAMP WHERE id = $1", [subscription.id]);
 
             } catch (pushError) {
-                console.error(`âŒ Errore push per ${subscription.partecipante_id}:`, {
+                console.error(`❌ Errore push per ${subscription.partecipante_id}:`, {
                     statusCode: pushError.statusCode,
                     message: pushError.body || pushError.message,
                     endpoint: subscription.endpoint.substring(0, 50) + '...'
@@ -1098,15 +1098,15 @@ async function inviaNotifichePush(notificationData) {
 
                 // Gestione errori specifici
                 if (pushError.statusCode === 410 || pushError.statusCode === 404) {
-                    console.log(`ðŸ—‘ï¸ Disattivando subscription scaduta per: ${subscription.partecipante_id}`);
+                    console.log(`🗑️ Disattivando subscription scaduta per: ${subscription.partecipante_id}`);
                     await db.query("UPDATE push_subscriptions SET attiva = false WHERE id = $1", [subscription.id]);
                 } else if (pushError.statusCode === 403) {
-                    console.log(`ðŸ” Errore autorizzazione push per: ${subscription.partecipante_id} - possibili chiavi VAPID non valide`);
+                    console.log(`🔐 Errore autorizzazione push per: ${subscription.partecipante_id} - possibili chiavi VAPID non valide`);
                 }
             }
         }
 
-        console.log(`âœ… NOTIFICHE COMPLETATE: ${notificheTramiteSocket} WebSocket + ${pushInviate} Push (${pushFallite} fallite)`);
+        console.log(`✅ NOTIFICHE COMPLETATE: ${notificheTramiteSocket} WebSocket + ${pushInviate} Push (${pushFallite} fallite)`);
 
         return {
             success: true,
@@ -1118,7 +1118,7 @@ async function inviaNotifichePush(notificationData) {
         };
 
     } catch (error) {
-        console.error('âŒ ERRORE GENERALE NOTIFICHE:', error);
+        console.error('❌ ERRORE GENERALE NOTIFICHE:', error);
         return { success: false, error: error.message };
     }
 }
@@ -1145,7 +1145,7 @@ app.get('/api/squadre', async (req, res) => {
 // API per ottenere squadre con giocatori strutturati per gli incontri
 app.get('/api/squadre-con-giocatori', async (req, res) => {
     try {
-        console.log('ðŸ”„ Caricamento squadre con giocatori per incontri...');
+        console.log('🔄 Caricamento squadre con giocatori per incontri...');
 
         const result = await db.query(`
             SELECT numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, attiva 
@@ -1189,12 +1189,12 @@ app.get('/api/squadre-con-giocatori', async (req, res) => {
             };
         });
 
-        console.log(`âœ… Caricate ${squadre.length} squadre con giocatori:`,
+        console.log(`✅ Caricate ${squadre.length} squadre con giocatori:`,
             squadre.map(s => `${s.colore} (${s.giocatori.length} giocatori)`));
 
         res.json(squadre);
     } catch (err) {
-        console.error('âŒ Errore API squadre-con-giocatori:', err);
+        console.error('❌ Errore API squadre-con-giocatori:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1266,10 +1266,10 @@ app.post('/api/turni', async (req, res) => {
     try {
         const { turno_numero, nome_turno, descrizione, punti_vittoria } = req.body;
 
-        // Verifica che il numero turno non esista giÃ 
+        // Verifica che il numero turno non esista già
         const existing = await db.query("SELECT id FROM turni_configurazione WHERE turno_numero = $1 AND attivo = true", [turno_numero]);
         if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Numero turno giÃ  esistente' });
+            return res.status(400).json({ error: 'Numero turno già esistente' });
         }
 
         const result = await db.query(`INSERT INTO turni_configurazione 
@@ -1432,7 +1432,7 @@ app.delete('/api/accoppiamenti-posizioni/:id', async (req, res) => {
 
 // ==================== API GENERAZIONE INCONTRI COMPLETA ====================
 
-// Genera tutti gli incontri per un turno (scontri Ã— accoppiamenti)
+// Genera tutti gli incontri per un turno (scontri × accoppiamenti)
 app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
@@ -1621,9 +1621,9 @@ app.post('/api/squadre', async (req, res) => {
         // Usa sessione_id dal body, oppure sessioneCorrente
         const sessioneIdValue = sessione_id || sessioneCorrente;
 
-        console.log(`ðŸ’¾ Salvando squadra ${numero} - ${colore} nella sessione: ${sessioneIdValue}`);
+        console.log(`💾 Salvando squadra ${numero} - ${colore} nella sessione: ${sessioneIdValue}`);
 
-        // ðŸ†• SOLUZIONE: Prima elimina la squadra con lo stesso numero NELLA STESSA SESSIONE
+        // 🆕 SOLUZIONE: Prima elimina la squadra con lo stesso numero NELLA STESSA SESSIONE
         // Poi inserisci la nuova (questo evita il problema del constraint)
         await db.query('BEGIN');
 
@@ -1644,7 +1644,7 @@ app.post('/api/squadre', async (req, res) => {
 
             await db.query('COMMIT');
 
-            console.log(`âœ… Squadra ${numero} - ${colore} salvata nella sessione ${sessioneIdValue}`);
+            console.log(`✅ Squadra ${numero} - ${colore} salvata nella sessione ${sessioneIdValue}`);
             res.json({ message: 'Squadra salvata con successo' });
 
         } catch (insertErr) {
@@ -1727,13 +1727,13 @@ app.post('/api/accoppiamenti-posizioni', async (req, res) => {
     try {
         const { turno_id, pos1, pos2 } = req.body;
 
-        // Verifica che non esista giÃ  lo stesso accoppiamento
+        // Verifica che non esista già lo stesso accoppiamento
         const existing = await db.query(`SELECT id FROM accoppiamenti_posizioni 
             WHERE turno_id = $1 AND ((pos1 = $2 AND pos2 = $3) OR (pos1 = $3 AND pos2 = $2))`,
             [turno_id, pos1, pos2]);
 
         if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Accoppiamento giÃ  esistente tra queste posizioni' });
+            return res.status(400).json({ error: 'Accoppiamento già esistente tra queste posizioni' });
         }
 
         await db.query(`INSERT INTO accoppiamenti_posizioni (turno_id, pos1, pos2) 
@@ -1781,7 +1781,7 @@ app.post('/api/partecipanti', async (req, res) => {
 
         const nomeClean = nome.trim();
 
-        // Ã°Å¸â€ â€¢ RECUPERA I CREDITI INIZIALI DALLA SESSIONE CORRENTE
+        // ðŸ†• RECUPERA I CREDITI INIZIALI DALLA SESSIONE CORRENTE
         let crediti = 2000; // fallback di default
         if (sessioneCorrente) {
             const sessioneResult = await db.query(
@@ -1790,7 +1790,7 @@ app.post('/api/partecipanti', async (req, res) => {
             );
             if (sessioneResult.rows.length > 0) {
                 crediti = sessioneResult.rows[0].crediti_iniziali || 2000;
-                console.log(`Ã°Å¸'Â° Crediti iniziali dalla sessione: ${crediti}`);
+                console.log(`ðŸ'° Crediti iniziali dalla sessione: ${crediti}`);
             }
         }
 
@@ -1804,12 +1804,12 @@ app.post('/api/partecipanti', async (req, res) => {
             const existing = duplicateCheck.rows[0];
             if (existing.sessione_id === sessioneCorrente) {
                 return res.status(409).json({
-                    error: `Il nome "${nomeClean}" ÃƒÂ¨ giÃƒ  registrato in questa sessione`,
+                    error: `Il nome "${nomeClean}" Ã¨ giÃ  registrato in questa sessione`,
                     action: 'login_required'
                 });
             } else {
                 return res.status(409).json({
-                    error: `Il nome "${nomeClean}" ÃƒÂ¨ giÃƒ  utilizzato in un'altra sessione`,
+                    error: `Il nome "${nomeClean}" Ã¨ giÃ  utilizzato in un'altra sessione`,
                     action: 'name_change_required',
                     suggestions: [`${nomeClean}2`, `${nomeClean}_2025`]
                 });
@@ -1822,7 +1822,7 @@ app.post('/api/partecipanti', async (req, res) => {
             (id, nome, crediti, sessione_id) VALUES ($1, $2, $3, $4)`,
             [id, nomeClean, crediti, sessioneCorrente]);
 
-        console.log(`âœ… Nuovo partecipante registrato: ${nomeClean} (ID: ${id})`);
+        console.log(`✅ Nuovo partecipante registrato: ${nomeClean} (ID: ${id})`);
 
         res.json({
             id: id,
@@ -1833,7 +1833,7 @@ app.post('/api/partecipanti', async (req, res) => {
     } catch (err) {
         console.error('Errore POST partecipanti:', err);
         if (err.code === '23505') { // PostgreSQL unique violation
-            res.status(409).json({ error: 'Nome giÃ  in uso, scegli un nome diverso' });
+            res.status(409).json({ error: 'Nome già in uso, scegli un nome diverso' });
         } else {
             res.status(500).json({ error: err.message });
         }
@@ -1841,7 +1841,7 @@ app.post('/api/partecipanti', async (req, res) => {
 });
 
 // ========================================
-// API: Controlla disponibilitÃ  nickname
+// API: Controlla disponibilità nickname
 // ========================================
 app.post('/api/check-nickname', async (req, res) => {
     try {
@@ -1866,7 +1866,7 @@ app.post('/api/check-nickname', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('âŒ Errore controllo nickname:', error);
+        console.error('❌ Errore controllo nickname:', error);
         res.status(500).json({ error: 'Errore server' });
     }
 });
@@ -1914,7 +1914,7 @@ app.post('/api/login', async (req, res) => {
         }
 
         // Login riuscito
-        console.log(`âœ… Login effettuato: ${player.nome}`);
+        console.log(`✅ Login effettuato: ${player.nome}`);
 
         res.json({
             success: true,
@@ -1926,7 +1926,7 @@ app.post('/api/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('âŒ Errore login:', error);
+        console.error('❌ Errore login:', error);
         res.status(500).json({
             success: false,
             error: 'Errore server'
@@ -1959,7 +1959,7 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // Controlla se nickname giÃ  in uso
+        // Controlla se nickname già in uso
         const existingCheck = await db.query(`
             SELECT id FROM partecipanti_fantagts 
             WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
@@ -1969,7 +1969,7 @@ app.post('/api/register', async (req, res) => {
         if (existingCheck.rows.length > 0) {
             return res.status(409).json({
                 success: false,
-                error: 'Nickname giÃ  in uso'
+                error: 'Nickname già in uso'
             });
         }
 
@@ -1985,7 +1985,7 @@ app.post('/api/register', async (req, res) => {
 
         const player = result.rows[0];
 
-        console.log(`âœ… Nuovo partecipante registrato: ${player.nome} (ID: ${player.id})`);
+        console.log(`✅ Nuovo partecipante registrato: ${player.nome} (ID: ${player.id})`);
 
         res.status(201).json({
             success: true,
@@ -1997,7 +1997,7 @@ app.post('/api/register', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('âŒ Errore registrazione:', error);
+        console.error('❌ Errore registrazione:', error);
         res.status(500).json({
             success: false,
             error: 'Errore server durante la registrazione'
@@ -2037,7 +2037,7 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         const partecipante = partCheck.rows[0];
 
-        // ðŸ†• AGGIORNA I CREDITI DEL PARTECIPANTE CON I CREDITI DELLA SESSIONE
+        // 🆕 AGGIORNA I CREDITI DEL PARTECIPANTE CON I CREDITI DELLA SESSIONE
         const creditiSessione = sessione.crediti_iniziali || 2000;
 
         // Solo se i crediti sono diversi da quelli della sessione (evita update inutili)
@@ -2046,7 +2046,7 @@ app.post('/api/join-session-with-code', async (req, res) => {
                 'UPDATE partecipanti_fantagts SET crediti = $1, sessione_id = $2 WHERE id = $3',
                 [creditiSessione, sessione.id, partecipanteId]
             );
-            console.log(`ðŸ’° Crediti aggiornati per ${partecipante.nome}: ${partecipante.crediti} â†’ ${creditiSessione}`);
+            console.log(`💰 Crediti aggiornati per ${partecipante.nome}: ${partecipante.crediti} → ${creditiSessione}`);
         } else {
             // Aggiorna solo la sessione
             await db.query(
@@ -2063,13 +2063,13 @@ app.post('/api/join-session-with-code', async (req, res) => {
             DO UPDATE SET ultimo_accesso = CURRENT_TIMESTAMP
         `, [partecipanteId, sessione.id]);
 
-        console.log(`âœ… Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
+        console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
 
-        // ðŸ†• Ritorna anche i crediti aggiornati
+        // 🆕 Ritorna anche i crediti aggiornati
         res.json({
             success: true,
             sessione: sessione,
-            crediti: creditiSessione,  // ðŸ†• Aggiungi i crediti nella risposta
+            crediti: creditiSessione,  // 🆕 Aggiungi i crediti nella risposta
             message: `Accesso garantito alla sessione "${sessione.nome}"`
         });
 
@@ -2112,8 +2112,7 @@ app.get('/api/my-sessions/:partecipanteId', async (req, res) => {
     }
 });
 
-
-// 🆕 Ottieni partecipante di una sessione per nome (case-insensitive)
+// 🆕 Ottieni partecipante di una sessione per nome
 app.get('/api/sessioni/:sessionId/partecipante/:nome', async (req, res) => {
     try {
         const { sessionId, nome } = req.params;
@@ -2126,11 +2125,9 @@ app.get('/api/sessioni/:sessionId/partecipante/:nome', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            console.error(`❌ Partecipante non trovato: sessione=${sessionId}, nome=${nome}`);
             return res.status(404).json({ error: 'Partecipante non trovato' });
         }
 
-        console.log(`✅ Partecipante trovato:`, result.rows[0]);
         res.json(result.rows[0]);
     } catch (err) {
         console.error('Errore API partecipante:', err);
@@ -2157,7 +2154,7 @@ app.delete('/api/partecipanti/:id', async (req, res) => {
         await db.query('COMMIT');
 
         if (result.rowCount > 0) {
-            console.log(`ðŸ—‘ï¸ Partecipante eliminato completamente: ${partecipanteId}`);
+            console.log(`🗑️ Partecipante eliminato completamente: ${partecipanteId}`);
             res.json({ message: 'Partecipante eliminato con successo', deleted: true });
         } else {
             res.status(404).json({ error: 'Partecipante non trovato' });
@@ -2176,15 +2173,15 @@ app.post('/api/genera-slots', async (req, res) => {
         // Ottieni sessione da query, body, o usa quella corrente
         const sessioneId = req.query.sessione || req.body.sessione_id || sessioneCorrente;
 
-        console.log('ðŸŽ¯ Richiesta generazione slots...');
-        console.log('ðŸ“Œ Sessione richiesta:', sessioneId);
+        console.log('🎯 Richiesta generazione slots...');
+        console.log('📌 Sessione richiesta:', sessioneId);
 
         const result = await generaSlots(sessioneId);
 
-        console.log('âœ… Slots generati con successo:', result);
+        console.log('✅ Slots generati con successo:', result);
         res.json({ message: 'Slots generati con successo', count: result });
     } catch (err) {
-        console.error('âŒ ERRORE genera-slots:', err.message);
+        console.error('❌ ERRORE genera-slots:', err.message);
         console.error('Stack completo:', err.stack);
         res.status(500).json({ error: err.message });
     }
@@ -2227,7 +2224,7 @@ app.get('/api/slots', async (req, res) => {
             [sessioneId]
         );
 
-        console.log(`âœ… Slots caricati per sessione ${sessioneId}: ${result.rows.length}`);
+        console.log(`✅ Slots caricati per sessione ${sessioneId}: ${result.rows.length}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API slots:', err);
@@ -2273,17 +2270,17 @@ app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
 
     if (gameState.asteAttive) {
-        return res.status(400).json({ error: 'Un round Ã¨ giÃ  attivo' });
+        return res.status(400).json({ error: 'Un round è già attivo' });
     }
 
     try {
-        // ðŸ” Ottieni tutti i partecipanti dal database
+        // 🔍 Ottieni tutti i partecipanti dal database
         const partecipantiResult = await db.query(`
             SELECT id, nome FROM partecipanti_fantagts 
             WHERE attivo = true AND sessione_id = $1
         `, [sessioneCorrente]);
 
-        // ðŸ” Ottieni tutti i slots disponibili per questo round
+        // 🔍 Ottieni tutti i slots disponibili per questo round
         const slotsResult = await db.query(
             "SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero",
             [round]
@@ -2292,10 +2289,10 @@ app.post('/api/avvia-round/:round', async (req, res) => {
         const tuttiPartecipanti = partecipantiResult.rows;
         const tuttiSlots = slotsResult.rows;
 
-        console.log(`ðŸŽ¯ AVVIO ROUND ${round}:`);
-        console.log(`   ðŸ‘¥ Partecipanti: ${tuttiPartecipanti.length}`);
-        console.log(`   ðŸŽª Slots disponibili: ${tuttiSlots.length}`);
-        console.log(`   ðŸ“‹ Giocatori: ${tuttiSlots.map(s => s.giocatore_attuale).join(', ')}`);
+        console.log(`🎯 AVVIO ROUND ${round}:`);
+        console.log(`   👥 Partecipanti: ${tuttiPartecipanti.length}`);
+        console.log(`   🎪 Slots disponibili: ${tuttiSlots.length}`);
+        console.log(`   📋 Giocatori: ${tuttiSlots.map(s => s.giocatore_attuale).join(', ')}`);
 
         if (tuttiSlots.length === 0) {
             return res.status(400).json({ error: `Nessuno slot disponibile per ${round}` });
@@ -2305,7 +2302,7 @@ app.post('/api/avvia-round/:round', async (req, res) => {
             return res.status(400).json({ error: 'Nessun partecipante registrato' });
         }
 
-        // ðŸ†• INIZIALIZZA STATO MULTI-ASTA
+        // 🆕 INIZIALIZZA STATO MULTI-ASTA
         gameState.roundAttivo = round;
         gameState.asteAttive = true;
         gameState.astaCorrente = 1;
@@ -2314,20 +2311,20 @@ app.post('/api/avvia-round/:round', async (req, res) => {
         gameState.partecipantiInAttesa = tuttiPartecipanti.map(p => p.id);
         gameState.offerteTemporanee.clear();
 
-        // ðŸš€ AVVIA PRIMA ASTA
+        // 🚀 AVVIA PRIMA ASTA
         avviaAstaSuccessiva();
 
-        // ðŸ“¨ NOTIFICHE A TUTTI
+        // 📨 NOTIFICHE A TUTTI
         try {
             const partecipantiIds = tuttiPartecipanti.map(p => p.id);
             await inviaNotifichePush({
                 title: `FantaGTS - Round ${round}`,
-                body: `Ãˆ iniziato il round ${round}! Fai la tua offerta!`,
+                body: `È iniziato il round ${round}! Fai la tua offerta!`,
                 url: '/',
                 targetUsers: partecipantiIds
             });
         } catch (error) {
-            console.error('âŒ ERRORE INVIO NOTIFICHE:', error);
+            console.error('❌ ERRORE INVIO NOTIFICHE:', error);
         }
 
         res.json({ message: `Round ${round} avviato con successo` });
@@ -2343,7 +2340,7 @@ app.get('/api/stato-offerte/:round', async (req, res) => {
     const round = req.params.round;
 
     try {
-        // ðŸ” Ottieni TUTTI i partecipanti dal database
+        // 🔍 Ottieni TUTTI i partecipanti dal database
         const partecipantiResult = await db.query(`
             SELECT id, nome FROM partecipanti_fantagts 
             WHERE attivo = true AND sessione_id = $1
@@ -2451,7 +2448,7 @@ app.get('/api/classifica', async (req, res) => {
             return row;
         });
 
-        console.log('âœ… Classifica caricata:', classifica.length, 'partecipanti');
+        console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
         res.json(classifica);
     } catch (err) {
         console.error('Errore classifica:', err);
@@ -2477,13 +2474,13 @@ app.post('/api/scontri-squadre', async (req, res) => {
     try {
         const { turno_id, squadra1, squadra2 } = req.body;
 
-        // Verifica che non esista giÃ  lo stesso scontro
+        // Verifica che non esista già lo stesso scontro
         const existing = await db.query(`SELECT id FROM scontri_squadre 
             WHERE turno_id = $1 AND ((squadra1 = $2 AND squadra2 = $3) OR (squadra1 = $3 AND squadra2 = $2))`,
             [turno_id, squadra1, squadra2]);
 
         if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Scontro giÃ  esistente tra queste squadre' });
+            return res.status(400).json({ error: 'Scontro già esistente tra queste squadre' });
         }
 
         await db.query(`INSERT INTO scontri_squadre (turno_id, squadra1, squadra2) 
@@ -2519,13 +2516,13 @@ app.get('/api/sessione-info', (req, res) => {
 app.get('/api/debug/subscriptions', async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM push_subscriptions");
-        console.log('ðŸ” SUBSCRIPTION NEL DB:', result.rows);
+        console.log('🔍 SUBSCRIPTION NEL DB:', result.rows);
         res.json({
             count: result.rows.length,
             subscriptions: result.rows
         });
     } catch (err) {
-        console.error('âŒ Errore query subscriptions:', err);
+        console.error('❌ Errore query subscriptions:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2546,7 +2543,7 @@ app.get('/api/debug/partecipanti', async (req, res) => {
             ORDER BY created_at DESC
         `);
 
-        console.log('ðŸ” PARTECIPANTI NEL DATABASE:', result.rows);
+        console.log('🔍 PARTECIPANTI NEL DATABASE:', result.rows);
 
         res.json({
             count: result.rows.length,
@@ -2563,7 +2560,7 @@ app.get('/api/debug/partecipanti', async (req, res) => {
             }))
         });
     } catch (err) {
-        console.error('âŒ Errore query partecipanti:', err);
+        console.error('❌ Errore query partecipanti:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2572,13 +2569,13 @@ app.get('/api/debug/slots', async (req, res) => {
     try {
         const sampleResult = await db.query("SELECT * FROM slots LIMIT 10");
         const countResult = await db.query("SELECT COUNT(*) as total FROM slots");
-        console.log('ðŸ” SLOTS NEL DB:', { count: countResult.rows[0].total, sample: sampleResult.rows });
+        console.log('🔍 SLOTS NEL DB:', { count: countResult.rows[0].total, sample: sampleResult.rows });
         res.json({
             total: parseInt(countResult.rows[0].total),
             sample: sampleResult.rows
         });
     } catch (err) {
-        console.error('âŒ Errore query slots:', err);
+        console.error('❌ Errore query slots:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2645,7 +2642,7 @@ app.get('/api/clean-subscriptions', async (req, res) => {
         // Elimina tutte le subscription esistenti
         const result = await db.query("DELETE FROM push_subscriptions");
 
-        console.log('ðŸ§¹ Tutte le subscription eliminate');
+        console.log('🧹 Tutte le subscription eliminate');
 
         res.json({
             message: 'Subscription pulite',
@@ -2653,7 +2650,7 @@ app.get('/api/clean-subscriptions', async (req, res) => {
             newPublicKey: currentVapidKeys?.publicKey || 'Non disponibile'
         });
     } catch (error) {
-        console.error('âŒ Errore pulizia subscription:', error);
+        console.error('❌ Errore pulizia subscription:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2675,7 +2672,7 @@ app.post('/api/set-vincitore', async (req, res) => {
     try {
         const { incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati } = req.body;
 
-        // Verifica se esiste giÃ  un risultato per questa posizione
+        // Verifica se esiste già un risultato per questa posizione
         const existing = await db.query("SELECT id FROM risultati_dettaglio WHERE incontro_id = $1 AND posizione = $2",
             [incontro_id, posizione]);
 
@@ -2758,7 +2755,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             WHERE id = $3`,
             [risultato_coppia1, risultato_coppia2, incontroId]);
 
-        // ðŸ†• RACCOLTA DATI PER NOTIFICHE
+        // 🆕 RACCOLTA DATI PER NOTIFICHE
         const giocatoriVincitori = []; // Array di oggetti { posizione, giocatore, punti }
 
         // Aggiorna punti nei slots (solo per i vincitori)
@@ -2780,7 +2777,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
                         [risultato.punti_assegnati, slotId]);
 
-                    // ðŸ†• Salva dati per notifiche
+                    // 🆕 Salva dati per notifiche
                     giocatoriVincitori.push({
                         posizione: risultato.posizione,
                         giocatore: nomeGiocatoreVincitore,
@@ -2791,9 +2788,9 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             }
         }
 
-        // ðŸ†• INVIO NOTIFICHE AI PARTECIPANTI
+        // 🆕 INVIO NOTIFICHE AI PARTECIPANTI
         if (giocatoriVincitori.length > 0) {
-            console.log('ðŸ“¨ Preparazione notifiche per giocatori vincitori:', giocatoriVincitori);
+            console.log('📨 Preparazione notifiche per giocatori vincitori:', giocatoriVincitori);
 
             // Trova tutti i partecipanti che possiedono almeno uno dei giocatori vincitori
             const slotIds = giocatoriVincitori.map(g => g.slotId);
@@ -2810,7 +2807,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         GROUP BY p.id, p.nome
     `, [slotIds]);
 
-            console.log(`ðŸŽ¯ Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
+            console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
             // Invia notifica a ciascun partecipante
             for (const partecipante of partecipantiCoinvolti.rows) {
@@ -2819,7 +2816,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     partecipante.slots_vinti.includes(g.slotId)
                 );
 
-                // ðŸ†• Recupera i nomi reali dei giocatori e colori squadra
+                // 🆕 Recupera i nomi reali dei giocatori e colori squadra
                 const giocatoriConDettagli = [];
                 for (const giocVincitore of giocatoriDelPartecipante) {
                     // Parse dello slotId per ottenere posizione e colore (formato: "M1_ROSSO")
@@ -2841,7 +2838,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 }
 
                 if (giocatoriConDettagli.length === 0) {
-                    console.warn(`âš ï¸ Nessun dettaglio giocatore trovato per ${partecipante.nome}`);
+                    console.warn(`⚠️ Nessun dettaglio giocatore trovato per ${partecipante.nome}`);
                     continue;
                 }
 
@@ -2861,13 +2858,13 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 
                 // Invia la notifica push con link alla classifica
                 await inviaNotifichePush({
-                    title: 'ðŸŽ¾ Vittoria!',
+                    title: '🎾 Vittoria!',
                     body: messaggioNotifica,
                     url: '/#section-classifica',
                     targetUsers: [partecipante.id]
                 });
 
-                console.log(`âœ… Notifica inviata a ${partecipante.nome}: ${messaggioNotifica}`);
+                console.log(`✅ Notifica inviata a ${partecipante.nome}: ${messaggioNotifica}`);
             }
         }
 
@@ -2889,7 +2886,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
 
-        console.log(`ðŸ”„ Reset incontro ${incontroId} - Rimuovendo punti...`);
+        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti...`);
 
         // 1. Prima di eliminare i risultati, salviamo i punti da togliere
         const risultatiDaRimuovere = await db.query(
@@ -2897,7 +2894,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
             [incontroId]
         );
 
-        console.log(`ðŸ“‹ Trovati ${risultatiDaRimuovere.rows.length} risultati da rimuovere:`, risultatiDaRimuovere.rows);
+        console.log(`📋 Trovati ${risultatiDaRimuovere.rows.length} risultati da rimuovere:`, risultatiDaRimuovere.rows);
 
         // 2. Per ogni risultato, togliamo i punti dalla tabella slots
         for (const risultato of risultatiDaRimuovere.rows) {
@@ -2927,7 +2924,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
 
-                        console.log(`âž– Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
 
                         // TOGLIE i punti (usa sottrazione invece di addizione)
                         const updateResult = await db.query(
@@ -2936,9 +2933,9 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         );
 
                         if (updateResult.rows.length > 0) {
-                            console.log(`âœ… Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
+                            console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
                         } else {
-                            console.warn(`âš ï¸ Slot ${slotId} non trovato!`);
+                            console.warn(`⚠️ Slot ${slotId} non trovato!`);
                         }
                     }
                 }
@@ -2953,7 +2950,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
             SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
             WHERE id = $1`, [incontroId]);
 
-        console.log(`âœ… Incontro ${incontroId} resettato completamente`);
+        console.log(`✅ Incontro ${incontroId} resettato completamente`);
 
         res.json({
             message: 'Incontro resettato con successo',
@@ -2961,7 +2958,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('âŒ Errore API reset-incontro:', err);
+        console.error('❌ Errore API reset-incontro:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2974,7 +2971,7 @@ app.post('/api/reset-push-subscriptions', async (req, res) => {
         // Oppure cancellale completamente
         await db.query("DELETE FROM push_subscriptions");
 
-        console.log('ðŸ—‘ï¸ Tutte le subscription push sono state resettate');
+        console.log('🗑️ Tutte le subscription push sono state resettate');
 
         res.json({
             success: true,
@@ -2982,7 +2979,7 @@ app.post('/api/reset-push-subscriptions', async (req, res) => {
             newPublicKey: currentVapidKeys?.publicKey || null
         });
     } catch (error) {
-        console.error('âŒ Errore reset subscription:', error);
+        console.error('❌ Errore reset subscription:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3013,7 +3010,7 @@ app.post('/api/check-player', async (req, res) => {
         if (currentSessionResult.rows.length > 0) {
             // Esiste nella sessione corrente
             const player = currentSessionResult.rows[0];
-            console.log(`âœ… Giocatore esistente nella sessione corrente: ${player.nome} (ID: ${player.id})`);
+            console.log(`✅ Giocatore esistente nella sessione corrente: ${player.nome} (ID: ${player.id})`);
 
             res.json({
                 exists: true,
@@ -3027,11 +3024,11 @@ app.post('/api/check-player', async (req, res) => {
             });
         } else if (allSessionsResult.rows.length > 0) {
             // Esiste in altre sessioni - nome occupato
-            console.log(`âŒ Nome giÃ  utilizzato in altra sessione: ${nome}`);
+            console.log(`❌ Nome già utilizzato in altra sessione: ${nome}`);
             res.json({
                 exists: false,
                 nameOccupied: true,
-                message: `Il nome "${nome}" Ã¨ giÃ  utilizzato in un'altra sessione. Scegli un nome diverso.`,
+                message: `Il nome "${nome}" è già utilizzato in un'altra sessione. Scegli un nome diverso.`,
                 suggestions: [
                     `${nome}2`,
                     `${nome}_2025`,
@@ -3041,7 +3038,7 @@ app.post('/api/check-player', async (req, res) => {
             });
         } else {
             // Nome disponibile
-            console.log(`âœ… Nome disponibile: ${nome}`);
+            console.log(`✅ Nome disponibile: ${nome}`);
             res.json({
                 exists: false,
                 nameAvailable: true,
@@ -3059,7 +3056,7 @@ app.get('/api/debug-subscriptions', async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM push_subscriptions ORDER BY created_at DESC");
 
-        console.log('ðŸ” SUBSCRIPTION NEL DB:', result.rows);
+        console.log('🔍 SUBSCRIPTION NEL DB:', result.rows);
 
         res.json({
             count: result.rows.length,
@@ -3075,7 +3072,7 @@ app.get('/api/debug-subscriptions', async (req, res) => {
             }))
         });
     } catch (err) {
-        console.error('âŒ Errore query subscriptions:', err);
+        console.error('❌ Errore query subscriptions:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -3096,7 +3093,7 @@ app.get('/api/slots-round/:round', async (req, res) => {
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
         const { subscription, partecipanteId } = req.body;
-        console.log('ðŸ“¨ RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
+        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
 
         if (!subscription || !partecipanteId) {
             return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
@@ -3110,7 +3107,7 @@ app.post('/api/subscribe-notifications', async (req, res) => {
             return res.status(400).json({ error: 'Chiavi subscription mancanti' });
         }
 
-        console.log('ðŸ’¾ SALVANDO NEL DB:', {
+        console.log('💾 SALVANDO NEL DB:', {
             partecipanteId,
             endpoint: endpoint.substring(0, 50) + '...',
             p256dh: keys.p256dh.substring(0, 20) + '...',
@@ -3119,7 +3116,7 @@ app.post('/api/subscribe-notifications', async (req, res) => {
 
         // NUOVO: Prima elimina tutte le subscription esistenti per questo partecipante
         await db.query('DELETE FROM push_subscriptions WHERE partecipante_id = $1', [partecipanteId]);
-        console.log(`ðŸ—‘ï¸ Rimosse subscription esistenti per: ${partecipanteId}`);
+        console.log(`🗑️ Rimosse subscription esistenti per: ${partecipanteId}`);
 
         // Poi inserisci la nuova subscription
         await db.query(`INSERT INTO push_subscriptions 
@@ -3127,11 +3124,11 @@ app.post('/api/subscribe-notifications', async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, true)`,
             [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
 
-        console.log('âœ… SUBSCRIPTION SALVATA (unica per utente)');
+        console.log('✅ SUBSCRIPTION SALVATA (unica per utente)');
 
         // Verifica salvataggio
         const savedResult = await db.query("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
-        console.log('ðŸ” VERIFICA SALVATAGGIO:', savedResult.rows[0]);
+        console.log('🔍 VERIFICA SALVATAGGIO:', savedResult.rows[0]);
 
         res.json({
             success: true,
@@ -3139,7 +3136,7 @@ app.post('/api/subscribe-notifications', async (req, res) => {
             saved: savedResult.rows[0].count
         });
     } catch (error) {
-        console.error('âŒ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
+        console.error('❌ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3153,7 +3150,7 @@ function avviaMonitoraggioOfferte() {
         }
 
         try {
-            // ðŸ” NUOVO: Ottieni TUTTI i partecipanti dal database
+            // 🔍 NUOVO: Ottieni TUTTI i partecipanti dal database
             const partecipantiResult = await db.query(`
                 SELECT id, nome FROM partecipanti_fantagts 
                 WHERE attivo = true AND sessione_id = $1
@@ -3163,11 +3160,11 @@ function avviaMonitoraggioOfferte() {
             const totalePartecipanti = tuttiPartecipanti.length;
 
             if (totalePartecipanti === 0) {
-                console.log('âš ï¸ Nessun partecipante registrato nel database');
+                console.log('⚠️ Nessun partecipante registrato nel database');
                 return;
             }
 
-            // ðŸ” Conta le offerte ricevute per questo round
+            // 🔍 Conta le offerte ricevute per questo round
             const offerteRound = Array.from(gameState.offerteTemporanee.values())
                 .filter(o => o.round === gameState.roundAttivo);
 
@@ -3185,21 +3182,21 @@ function avviaMonitoraggioOfferte() {
             const mancano = totalePartecipanti - offerteRicevute;
             const tuttiHannoOfferto = offerteRicevute >= totalePartecipanti;
 
-            // ðŸ“Š Log ridotto - solo ogni 10 secondi o quando cambia stato
+            // 📊 Log ridotto - solo ogni 10 secondi o quando cambia stato
             const currentTime = Date.now();
             const shouldLog = !gameState.lastMonitorLog ||
                 (currentTime - gameState.lastMonitorLog) > 10000 || // Ogni 10 secondi
                 gameState.lastOfferteCount !== offerteRicevute; // O quando cambiano le offerte
 
             if (shouldLog) {
-                console.log(`ðŸ“Š ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
+                console.log(`📊 ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
 
                 // Solo se mancano offerte, mostra chi aspettiamo
                 if (mancano > 0) {
                     const nonHannoOfferto = tuttiPartecipanti
                         .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                         .map(p => p.nome);
-                    console.log(`   â³ Aspettando: ${nonHannoOfferto.join(', ')}`);
+                    console.log(`   ⏳ Aspettando: ${nonHannoOfferto.join(', ')}`);
                 }
 
                 // Aggiorna stato per prossimo log
@@ -3227,10 +3224,10 @@ function avviaMonitoraggioOfferte() {
                 }))
             };
 
-            // ðŸ“¤ Invia aggiornamento a tutti i client
+            // 📤 Invia aggiornamento a tutti i client
             io.emit('offerte_update', statoOfferte);
 
-            // ðŸ CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
+            // 🏁 CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
             const partecipantiInAttesaCheHannoOfferto = new Set();
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
@@ -3244,17 +3241,17 @@ function avviaMonitoraggioOfferte() {
             const tuttiInAttesaHannoOfferto = partecipantiInAttesaCheHannoOfferto.size >= gameState.partecipantiInAttesa.length;
 
             if (tuttiInAttesaHannoOfferto && gameState.partecipantiInAttesa.length > 0) {
-                console.log(`ðŸŽ‰ TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
+                console.log(`🎉 TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
                 clearInterval(monitorInterval);
 
                 if (gameState.asteAttive) {
-                    console.log('ðŸ”„ Avviando elaborazione risultati asta...');
+                    console.log('🔄 Avviando elaborazione risultati asta...');
                     terminaRound();
                 }
             }
 
         } catch (error) {
-            console.error('âŒ Errore monitoraggio offerte:', error);
+            console.error('❌ Errore monitoraggio offerte:', error);
         }
     }, 1000); // Controlla ogni secondo
 }
@@ -3275,11 +3272,11 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
         const partecipanteId = req.params.partecipanteId;
         const { title, body } = req.body;
 
-        console.log(`ðŸ§ª TEST NOTIFICA per: ${partecipanteId}`);
+        console.log(`🧪 TEST NOTIFICA per: ${partecipanteId}`);
 
         const result = await inviaNotifichePush({
             title: title || 'Test FantaGTS',
-            body: body || 'Questa Ã¨ una notifica di test dal Master!',
+            body: body || 'Questa è una notifica di test dal Master!',
             url: '/',
             targetUsers: [partecipanteId]
         });
@@ -3291,7 +3288,7 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('âŒ Errore test notifica:', error);
+        console.error('❌ Errore test notifica:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3308,7 +3305,7 @@ app.post('/api/sostituzioni', async (req, res) => {
     try {
         const { numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo } = req.body;
 
-        console.log(`ðŸ”„ Richiesta sostituzione: Squadra ${numeroSquadra}, ${posizione}: "${nomeVecchio}" â†’ "${nomeNuovo}"`);
+        console.log(`🔄 Richiesta sostituzione: Squadra ${numeroSquadra}, ${posizione}: "${nomeVecchio}" → "${nomeNuovo}"`);
 
         // Validazione input
         if (!numeroSquadra || !posizione || !nomeVecchio || !nomeNuovo) {
@@ -3318,7 +3315,7 @@ app.post('/api/sostituzioni', async (req, res) => {
         // Determina il campo da aggiornare (m1, m2, ..., f1, f2, f3)
         const campo = posizione.toLowerCase();
 
-        // ðŸ†• TROVA IL COLORE DELLA SQUADRA per identificare lo slot
+        // 🆕 TROVA IL COLORE DELLA SQUADRA per identificare lo slot
         const squadraResult = await db.query(
             'SELECT colore FROM squadre_circolo WHERE numero = $1',
             [numeroSquadra]
@@ -3331,9 +3328,9 @@ app.post('/api/sostituzioni', async (req, res) => {
         const coloreSquadra = squadraResult.rows[0].colore;
         const slotId = `${posizione}_${coloreSquadra.toUpperCase()}`;
 
-        console.log(`ðŸŽ¯ Slot identificato: ${slotId}`);
+        console.log(`🎯 Slot identificato: ${slotId}`);
 
-        // ðŸ†• TROVA TUTTI I PARTECIPANTI CHE POSSIEDONO QUESTO GIOCATORE
+        // 🆕 TROVA TUTTI I PARTECIPANTI CHE POSSIEDONO QUESTO GIOCATORE
         const partecipantiCoinvolti = await db.query(`
             SELECT DISTINCT p.id, p.nome
             FROM partecipanti_fantagts p
@@ -3344,7 +3341,7 @@ app.post('/api/sostituzioni', async (req, res) => {
               AND p.sessione_id = $2
         `, [slotId, sessioneCorrente]);
 
-        console.log(`ðŸ‘¥ Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
+        console.log(`👥 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
         // Aggiorna il nome nella tabella squadre_circolo
         await db.query(
@@ -3352,7 +3349,7 @@ app.post('/api/sostituzioni', async (req, res) => {
             [nomeNuovo, numeroSquadra]
         );
 
-        // ðŸ†• AGGIORNA ANCHE IL NOME NELLO SLOT
+        // 🆕 AGGIORNA ANCHE IL NOME NELLO SLOT
         await db.query(
             'UPDATE slots SET giocatore_attuale = $1 WHERE id = $2',
             [nomeNuovo, slotId]
@@ -3366,30 +3363,30 @@ app.post('/api/sostituzioni', async (req, res) => {
                 [numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo || null]
             );
         } catch (err) {
-            console.log('â„¹ï¸ Tabella sostituzioni non disponibile, continuo comunque');
+            console.log('ℹ️ Tabella sostituzioni non disponibile, continuo comunque');
         }
 
-        // ðŸ†• INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI
+        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI
         if (partecipantiCoinvolti.rows.length > 0) {
             const idsPartecipanti = partecipantiCoinvolti.rows.map(p => p.id);
 
             const messaggioNotifica = motivo
-                ? `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) Ã¨ stato sostituito con ${nomeNuovo}. Motivo: ${motivo}`
-                : `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) Ã¨ stato sostituito con ${nomeNuovo}`;
+                ? `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}. Motivo: ${motivo}`
+                : `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}`;
 
             await inviaNotifichePush({
-                title: 'ðŸ”„ Sostituzione Giocatore',
+                title: '🔄 Sostituzione Giocatore',
                 body: messaggioNotifica,
                 url: '/#section-classifica',
                 targetUsers: idsPartecipanti
             });
 
-            console.log(`âœ… Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => p.nome).join(', ')}`);
+            console.log(`✅ Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => p.nome).join(', ')}`);
         } else {
-            console.log('â„¹ï¸ Nessun partecipante possiede questo giocatore, nessuna notifica inviata');
+            console.log('ℹ️ Nessun partecipante possiede questo giocatore, nessuna notifica inviata');
         }
 
-        console.log(`âœ… Sostituzione completata con successo`);
+        console.log(`✅ Sostituzione completata con successo`);
 
         res.json({
             success: true,
@@ -3398,15 +3395,15 @@ app.post('/api/sostituzioni', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('âŒ Errore sostituzione:', err);
+        console.error('❌ Errore sostituzione:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
 function terminaRound() {
-    console.log('ðŸ”„ terminaRound chiamato - elaborando risultati asta');
+    console.log('🔄 terminaRound chiamato - elaborando risultati asta');
 
-    // NON settare asteAttive = false qui, perchÃ© potrebbe continuare il round
+    // NON settare asteAttive = false qui, perché potrebbe continuare il round
     // gameState.asteAttive = false; // RIMOSSO
     gameState.gamePhase = 'results';
 
@@ -3415,14 +3412,14 @@ function terminaRound() {
 
 // NUOVO: Sistema multi-round per posizione
 async function avviaMultiRoundPerPosizione(posizione) {
-    console.log(`ðŸŽ¯ Avviando sistema multi-round per posizione: ${posizione}`);
+    console.log(`🎯 Avviando sistema multi-round per posizione: ${posizione}`);
 
     let roundNumber = 1;
     let partecipantiRimasti = await getPartecipantiAttivi();
     let giocatoriDisponibili = await getSlotsDisponibiliPerPosizione(posizione);
 
     while (partecipantiRimasti.length > 0 && giocatoriDisponibili.length > 0) {
-        console.log(`ðŸ”„ Round ${roundNumber} per ${posizione}: ${partecipantiRimasti.length} partecipanti, ${giocatoriDisponibili.length} giocatori`);
+        console.log(`🔄 Round ${roundNumber} per ${posizione}: ${partecipantiRimasti.length} partecipanti, ${giocatoriDisponibili.length} giocatori`);
 
         // Avvia round e aspetta TUTTI i partecipanti rimasti
         const risultatiRound = await eseguiRoundCompleto(posizione, roundNumber, partecipantiRimasti, giocatoriDisponibili);
@@ -3437,7 +3434,7 @@ async function avviaMultiRoundPerPosizione(posizione) {
         await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    console.log(`âœ… Posizione ${posizione} completata dopo ${roundNumber - 1} round`);
+    console.log(`✅ Posizione ${posizione} completata dopo ${roundNumber - 1} round`);
 }
 
 // Funzione per aspettare TUTTI i partecipanti
@@ -3470,7 +3467,7 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
             const offerteRicevute = Array.from(gameState.offerteTemporanee.values())
                 .filter(o => o.round === roundId).length;
 
-            console.log(`ðŸ“Š Round ${roundId}: ${offerteRicevute}/${gameState.partecipantiTarget.length} offerte`);
+            console.log(`📊 Round ${roundId}: ${offerteRicevute}/${gameState.partecipantiTarget.length} offerte`);
 
             if (offerteRicevute >= gameState.partecipantiTarget.length) {
                 clearInterval(checkCompleto);
@@ -3488,10 +3485,10 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
 }
 
 async function elaboraRisultatiAste() {
-    console.log(`\nðŸ“„ === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
-    console.log(`ðŸ“Š Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
-    console.log(`ðŸ‘¥ Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
-    console.log(`ðŸŽ¯ Slots rimasti: ${gameState.slotsRimasti.length}`);
+    console.log(`\n📄 === ELABORAZIONE ASTA ${gameState.astaCorrente} ===`);
+    console.log(`📊 Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
+    console.log(`👥 Partecipanti in attesa: ${gameState.partecipantiInAttesa.length}`);
+    console.log(`🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
     // Recupera info sessione per condivisione
     let sessioneAttiva = null;
@@ -3505,21 +3502,21 @@ async function elaboraRisultatiAste() {
         if (sessione.rows.length > 0) {
             sessioneAttiva = sessione.rows[0];
             condivisioneAttiva = sessioneAttiva.condivisione_attiva;
-            console.log(`ðŸŽ® Sessione attiva: ${sessioneAttiva.nome}`);
-            console.log(`ðŸ”„ Condivisione: ${condivisioneAttiva ? 'ATTIVA' : 'DISATTIVATA'}`);
+            console.log(`🎮 Sessione attiva: ${sessioneAttiva.nome}`);
+            console.log(`🔄 Condivisione: ${condivisioneAttiva ? 'ATTIVA' : 'DISATTIVATA'}`);
         }
     } catch (error) {
-        console.error('âš ï¸ Errore recupero sessione:', error);
+        console.error('⚠️ Errore recupero sessione:', error);
     }
 
     // Raccolta offerte valide
     const tutteLeOfferte = [];
     const partecipantiCheHannoOfferto = new Set();
 
-    console.log('ðŸ” TUTTE LE OFFERTE TEMPORANEE:');
+    console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
-        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} â†’ ${offerta.slot} (${offerta.importo})`);
+        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo})`);
     });
 
     // Raggruppa offerte valide
@@ -3527,7 +3524,7 @@ async function elaboraRisultatiAste() {
         const connesso = gameState.connessi.get(socketId);
         if (connesso && offerta.round === gameState.roundAttivo) {
             if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-                console.log(`âœ… Offerta valida: ${connesso.nome} â†’ ${offerta.slot} (${offerta.importo} crediti)`);
+                console.log(`✅ Offerta valida: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
 
                 tutteLeOfferte.push({
                     partecipante: connesso.partecipanteId,
@@ -3539,7 +3536,7 @@ async function elaboraRisultatiAste() {
                 });
                 partecipantiCheHannoOfferto.add(connesso.partecipanteId);
             } else {
-                console.log(`âš ï¸ Offerta ignorata (giÃ  assegnato): ${connesso.nome} â†’ ${offerta.slot}`);
+                console.log(`⚠️ Offerta ignorata (già assegnato): ${connesso.nome} → ${offerta.slot}`);
             }
         }
     });
@@ -3550,7 +3547,7 @@ async function elaboraRisultatiAste() {
 
     // Elabora con o senza condivisione
     if (condivisioneAttiva && sessioneAttiva) {
-        console.log('\nðŸ”„ === MODALITÃ€ CONDIVISIONE ATTIVA ===');
+        console.log('\n🔄 === MODALITÀ CONDIVISIONE ATTIVA ===');
 
         const categoria = gameState.roundAttivo;
         const numeroPartecipanti = sessioneAttiva.numero_partecipanti_previsti;
@@ -3567,12 +3564,12 @@ async function elaboraRisultatiAste() {
         giocatoriReplicati = risultatoCondivisione.giocatoriReplicati;
         statsCondivisione = risultatoCondivisione.stats;
 
-        console.log(`\nâœ… Elaborazione condivisione completata:`);
+        console.log(`\n✅ Elaborazione condivisione completata:`);
         console.log(`   - Totale assegnazioni: ${risultatiAsta.length}`);
         console.log(`   - Giocatori condivisi: ${giocatoriReplicati.length}`);
 
     } else {
-        console.log('\nðŸ“Œ === MODALITÃ€ NORMALE (senza condivisione) ===');
+        console.log('\n📌 === MODALITÀ NORMALE (senza condivisione) ===');
 
         const offertePerSlot = {};
         tutteLeOfferte.forEach(offerta => {
@@ -3582,7 +3579,7 @@ async function elaboraRisultatiAste() {
             offertePerSlot[offerta.slot].push(offerta);
         });
 
-        console.log('ðŸŽ¯ Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
+        console.log('🎯 Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
             `${slot}: ${offertePerSlot[slot].length} offerte`
         ));
 
@@ -3601,7 +3598,7 @@ async function elaboraRisultatiAste() {
                 } else {
                     const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
                     vincitore = offerteVincenti[randomIndex];
-                    console.log(`ðŸŽ² PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
+                    console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
                 }
 
                 risultatiAsta.push({
@@ -3615,18 +3612,18 @@ async function elaboraRisultatiAste() {
                     posizione: 1
                 });
 
-                console.log(`ðŸ† VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+                console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
             }
         });
     }
 
-    console.log(`\nðŸŽ‰ Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
+    console.log(`\n🎉 Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
 
     if (risultatiAsta.length > 0) {
         await salvaRisultatiAsta(gameState.roundAttivo, risultatiAsta, giocatoriReplicati, statsCondivisione);
     }
 
-    // Aggiorna stato partecipanti SOLO in modalitÃ  normale
+    // Aggiorna stato partecipanti SOLO in modalità normale
     if (!condivisioneAttiva) {
         risultatiAsta.forEach(risultato => {
             gameState.partecipantiAssegnati.add(risultato.partecipante);
@@ -3647,14 +3644,14 @@ async function elaboraRisultatiAste() {
                         premium: risultato.premium,
                         message: risultato.condiviso
                             ? `Hai vinto ${risultato.slot} (condiviso) per ${risultato.costoFinale} crediti!`
-                            : `Hai vinto ${risultato.slot}! La tua asta Ã¨ terminata.`
+                            : `Hai vinto ${risultato.slot}! La tua asta è terminata.`
                     });
                     break;
                 }
             }
         });
     } else {
-        // In modalitÃ  condivisione: aggiorna solo gli slot rimasti
+        // In modalità condivisione: aggiorna solo gli slot rimasti
         const slotsAssegnati = new Set(risultatiAsta.map(r => r.slot));
         gameState.slotsRimasti = gameState.slotsRimasti.filter(
             s => !slotsAssegnati.has(s.id)
@@ -3673,20 +3670,20 @@ async function elaboraRisultatiAste() {
                         position: risultato.posizione,
                         shared: risultato.condiviso,
                         message: risultato.condiviso && risultato.posizione > 1
-                            ? `Hai vinto ${risultato.slot} (condiviso - ${risultato.posizione}Â° posto) per ${risultato.costoFinale} crediti (premium +${Math.round(risultato.premium * 100)}%)`
+                            ? `Hai vinto ${risultato.slot} (condiviso - ${risultato.posizione}° posto) per ${risultato.costoFinale} crediti (premium +${Math.round(risultato.premium * 100)}%)`
                             : `Hai vinto ${risultato.slot} per ${risultato.costoFinale} crediti!`
                     });
                 }
             }
         });
 
-        console.log(`ðŸ“Š ModalitÃ  condivisione: TUTTI i partecipanti continuano`);
+        console.log(`📊 Modalità condivisione: TUTTI i partecipanti continuano`);
     }
 
-    console.log(`\nðŸ“Š STATO AGGIORNATO:`);
-    console.log(`   âœ… Assegnati: ${Array.from(gameState.partecipantiAssegnati).length}`);
-    console.log(`   â³ In attesa: ${gameState.partecipantiInAttesa.length}`);
-    console.log(`   ðŸŽ¯ Slots rimasti: ${gameState.slotsRimasti.length}`);
+    console.log(`\n📊 STATO AGGIORNATO:`);
+    console.log(`   ✅ Assegnati: ${Array.from(gameState.partecipantiAssegnati).length}`);
+    console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa.length}`);
+    console.log(`   🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
 
     gameState.offerteTemporanee.clear();
 
@@ -3697,21 +3694,21 @@ async function elaboraRisultatiAste() {
 
         if (!deveTerminare && gameState.slotsRimasti.length > 0) {
             gameState.astaCorrente++;
-            console.log(`\nâž¡ï¸ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
+            console.log(`\n➡️ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
             avviaAstaSuccessiva();
         } else {
-            console.log(`ðŸ ROUND COMPLETATO`);
+            console.log(`🏁 ROUND COMPLETATO`);
             terminaRoundCompleto();
         }
     }, 3000);
 }
 
-// ðŸ”„ Rinomina funzione salvataggio
+// 🔄 Rinomina funzione salvataggio
 async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], statsCondivisione = null) {
     if (risultati.length === 0) return;
 
     try {
-        console.log(`\nðŸ’¾ === SALVATAGGIO RISULTATI ASTA ===`);
+        console.log(`\n💾 === SALVATAGGIO RISULTATI ASTA ===`);
         console.log(`   Round: ${round}`);
         console.log(`   Risultati: ${risultati.length}`);
         console.log(`   Giocatori replicati: ${giocatoriReplicati.length}`);
@@ -3736,12 +3733,12 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
                     WHERE id = $2 AND sessione_id = $3`,
                 [r.costoFinale, r.partecipante, sessioneCorrente]);
 
-            const simbolo = r.condiviso ? 'ðŸ”' : 'âœ…';
+            const simbolo = r.condiviso ? '🔁' : '✅';
             const dettaglio = r.condiviso
                 ? `(pos. ${r.posizione}, premium ${Math.round(r.premium * 100)}%)`
                 : '';
 
-            console.log(`${simbolo} ${r.nome} â†’ ${r.slot} per ${r.costoFinale} crediti ${dettaglio}`);
+            console.log(`${simbolo} ${r.nome} → ${r.slot} per ${r.costoFinale} crediti ${dettaglio}`);
         }
 
         if (statsCondivisione) {
@@ -3753,9 +3750,9 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
                     WHERE attiva = true
                 `, [statsCondivisione.ripetizioniNecessarie]);
 
-                console.log(`ðŸ“Š Statistiche condivisione salvate nella sessione`);
+                console.log(`📊 Statistiche condivisione salvate nella sessione`);
             } catch (err) {
-                console.error('âš ï¸ Errore salvataggio stats condivisione:', err);
+                console.error('⚠️ Errore salvataggio stats condivisione:', err);
             }
         }
 
@@ -3775,10 +3772,10 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
 
         aggiornaCreditiPartecipanti();
 
-        console.log(`âœ… Salvataggio completato con successo`);
+        console.log(`✅ Salvataggio completato con successo`);
 
     } catch (error) {
-        console.error('âŒ Errore salvataggio asta:', error);
+        console.error('❌ Errore salvataggio asta:', error);
         throw error;
     }
 }
@@ -3801,16 +3798,16 @@ async function salvaRisultatiAste(round, risultati) {
                     SET crediti = crediti - $1 
                     WHERE id = $2`, [r.costoFinale, r.partecipante]);
 
-            console.log(`âœ… Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
+            console.log(`✅ Salvato: ${r.nome} ha vinto ${r.slot} per ${r.costoFinale} crediti`);
         }
 
-        console.log(`ðŸŽ‰ Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
+        console.log(`🎉 Round ${round} completato - ${risultati.length} assegnazioni salvate nel database`);
 
         gameState.roundAttivo = null;
         gameState.asteAttive = false;
         gameState.offerteTemporanee.clear();
 
-        console.log('ðŸ“¤ Invio risultati ai client:', risultati);
+        console.log('📤 Invio risultati ai client:', risultati);
         io.emit('round_ended', {
             round: round,
             risultati: risultati,
@@ -3820,7 +3817,7 @@ async function salvaRisultatiAste(round, risultati) {
         aggiornaCreditiPartecipanti();
 
     } catch (error) {
-        console.error('âŒ Errore salvataggio risultati:', error);
+        console.error('❌ Errore salvataggio risultati:', error);
     }
 }
 
@@ -3867,7 +3864,7 @@ app.post('/api/reset/:livello', async (req, res) => {
                 gameState.offerteTemporanee.clear();
                 gameState.fase = 'setup';
 
-                console.log('ðŸ”„ Reset aste completato - inviando notifica ai client');
+                console.log('🔄 Reset aste completato - inviando notifica ai client');
 
                 io.emit('aste_resettate', {
                     message: 'Le aste sono state resettate',
@@ -3884,11 +3881,11 @@ app.post('/api/reset/:livello', async (req, res) => {
                 break;
 
             case 'totale':
-                // âŒ ELIMINA tabelle inutili (DROP completo)
+                // ❌ ELIMINA tabelle inutili (DROP completo)
                 await db.query("DROP TABLE IF EXISTS backup_log CASCADE");
                 await db.query("DROP TABLE IF EXISTS risultati_partite CASCADE");
 
-                // âœ… SVUOTA tabelle utili nell'ORDINE CORRETTO (rispetta FOREIGN KEY)
+                // ✅ SVUOTA tabelle utili nell'ORDINE CORRETTO (rispetta FOREIGN KEY)
                 // Prima elimina i record "figli" (che hanno riferimenti), poi i "genitori"
                 await db.query("DELETE FROM risultati_dettaglio");  // Dipende da incontri
                 await db.query("DELETE FROM incontri");             // Dipende da coppie_turno e turni_configurazione
@@ -3931,11 +3928,11 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
         const partecipanteId = req.params.partecipanteId;
         const { title, body } = req.body;
 
-        console.log(`ðŸ§ª TEST NOTIFICA per: ${partecipanteId}`);
+        console.log(`🧪 TEST NOTIFICA per: ${partecipanteId}`);
 
         const result = await inviaNotifichePush({
             title: title || 'Test FantaGTS',
-            body: body || 'Questa Ã¨ una notifica di test dal Master!',
+            body: body || 'Questa è una notifica di test dal Master!',
             url: '/',
             targetUsers: [partecipanteId]
         });
@@ -3947,7 +3944,7 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('âŒ Errore test notifica:', error);
+        console.error('❌ Errore test notifica:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3994,13 +3991,13 @@ io.on('connection', (socket) => {
     console.log('Nuova connessione:', socket.id);
 
     socket.on('register', (data) => {
-        console.log(`ðŸ”Œ Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
+        console.log(`🔌 Tentativo registrazione: ${data.nome} come ${data.tipo} (Socket: ${socket.id})`);
 
         if (data.tipo === 'partecipante' && data.partecipanteId) {
             // CONTROLLO DUPLICATI: Rimuovi connessioni esistenti dello stesso partecipante
             for (let [existingSocketId, existingUser] of gameState.connessi.entries()) {
                 if (existingUser.partecipanteId === data.partecipanteId && existingSocketId !== socket.id) {
-                    console.log(`ðŸ”„ Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
+                    console.log(`🔄 Rimuovendo connessione duplicata per ${data.nome}: Socket ${existingSocketId}`);
                     gameState.connessi.delete(existingSocketId);
                     // Disconnetti il socket vecchio
                     const oldSocket = io.sockets.sockets.get(existingSocketId);
@@ -4017,7 +4014,7 @@ io.on('connection', (socket) => {
        `, [data.partecipanteId, sessioneCorrente])
                 .then(result => {
                     if (result.rows.length === 0) {
-                        console.log(`âŒ ACCESSO NEGATO: ${data.nome} non Ã¨ registrato nel database`);
+                        console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
                         socket.emit('registered', {
                             success: false,
                             error: 'Non sei registrato nel database. Effettua prima la registrazione.',
@@ -4049,9 +4046,9 @@ io.on('connection', (socket) => {
                         }
                     });
 
-                    // ðŸ†• SE C'Ãˆ UN'ASTA ATTIVA, invia anche asta_started al client appena connesso
+                    // 🆕 SE C'È UN'ASTA ATTIVA, invia anche asta_started al client appena connesso
                     if (gameState.asteAttive && gameState.roundAttivo && gameState.partecipantiInAttesa.includes(data.partecipanteId)) {
-                        console.log(`ðŸ“¤ Invio asta_started al client appena riconnesso: ${data.nome}`);
+                        console.log(`📤 Invio asta_started al client appena riconnesso: ${data.nome}`);
                         socket.emit('asta_started', {
                             round: gameState.roundAttivo,
                             astaNumero: gameState.astaCorrente,
@@ -4063,11 +4060,11 @@ io.on('connection', (socket) => {
                     }
 
                     io.emit('connessi_update', Array.from(gameState.connessi.values()));
-                    console.log(`âœ… Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
-                    console.log(`ðŸ“Š Connessi totali: ${gameState.connessi.size}`);
+                    console.log(`✅ Registrato e VERIFICATO: ${data.nome} come ${data.tipo} (DB ID: ${data.partecipanteId}) - Socket: ${socket.id}`);
+                    console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
                 })
                 .catch(err => {
-                    console.error('âŒ Errore verifica database:', err);
+                    console.error('❌ Errore verifica database:', err);
                     socket.emit('registered', {
                         success: false,
                         error: 'Errore verifica database'
@@ -4096,37 +4093,37 @@ io.on('connection', (socket) => {
             });
 
             io.emit('connessi_update', Array.from(gameState.connessi.values()));
-            console.log(`âœ… Registrato: ${data.nome} come ${data.tipo} - Socket: ${socket.id}`);
-            console.log(`ðŸ“Š Connessi totali: ${gameState.connessi.size}`);
+            console.log(`✅ Registrato: ${data.nome} come ${data.tipo} - Socket: ${socket.id}`);
+            console.log(`📊 Connessi totali: ${gameState.connessi.size}`);
         }
     });
 
     socket.on('place_bid', async (data) => {
-        console.log(`ðŸ’° Tentativo puntata da socket ${socket.id}:`, data);
-        console.log(`ðŸŽ¯ STATO ASTE AL MOMENTO: asteAttive=${gameState.asteAttive}, roundAttivo=${gameState.roundAttivo}, astaCorrente=${gameState.astaCorrente}`);
+        console.log(`💰 Tentativo puntata da socket ${socket.id}:`, data);
+        console.log(`🎯 STATO ASTE AL MOMENTO: asteAttive=${gameState.asteAttive}, roundAttivo=${gameState.roundAttivo}, astaCorrente=${gameState.astaCorrente}`);
 
         // Verifica che ci sia un round attivo
         if (!gameState.asteAttive) {
-            console.log(`âŒ Aste non attive: attivo=${gameState.asteAttive}`);
+            console.log(`❌ Aste non attive: attivo=${gameState.asteAttive}`);
             socket.emit('bid_error', { message: 'Nessuna asta attiva al momento' });
             return;
         }
 
-        // NUOVO: Controllo round piÃ¹ flessibile per sistema multi-asta
+        // NUOVO: Controllo round più flessibile per sistema multi-asta
         const roundBase = data.round.split('_')[0]; // Es: "M1_ASTA_2" -> "M1"
         const currentRoundBase = gameState.roundAttivo ? gameState.roundAttivo.split('_')[0] : null;
 
         if (currentRoundBase !== roundBase) {
-            console.log(`âŒ Round base non corrispondente: attuale=${currentRoundBase}, richiesto=${roundBase}`);
+            console.log(`❌ Round base non corrispondente: attuale=${currentRoundBase}, richiesto=${roundBase}`);
             socket.emit('bid_error', { message: 'Round non corrispondente' });
             return;
         }
 
-        console.log(`âœ… Controllo round OK: ${gameState.roundAttivo} vs ${data.round}`);
+        console.log(`✅ Controllo round OK: ${gameState.roundAttivo} vs ${data.round}`);
 
         // Verifica che il socket sia registrato
         const connesso = gameState.connessi.get(socket.id);
-        console.log(`ðŸ” Controllo connesso per socket ${socket.id}:`, {
+        console.log(`🔍 Controllo connesso per socket ${socket.id}:`, {
             connesso: !!connesso,
             tipo: connesso?.tipo,
             nome: connesso?.nome,
@@ -4135,31 +4132,31 @@ io.on('connection', (socket) => {
         });
 
         if (!connesso) {
-            console.log(`âŒ Socket ${socket.id} non trovato in gameState.connessi`);
+            console.log(`❌ Socket ${socket.id} non trovato in gameState.connessi`);
             socket.emit('bid_error', { message: 'Socket non registrato. Ricarica la pagina.' });
             return;
         }
 
         if (connesso.tipo !== 'partecipante') {
-            console.log(`âŒ Socket ${socket.id} non Ã¨ un partecipante: tipo=${connesso.tipo}`);
+            console.log(`❌ Socket ${socket.id} non è un partecipante: tipo=${connesso.tipo}`);
             socket.emit('bid_error', { message: 'Solo i partecipanti possono fare offerte' });
             return;
         }
 
         if (!connesso.verified) {
-            console.log(`âŒ Socket ${socket.id} non verificato nel database`);
+            console.log(`❌ Socket ${socket.id} non verificato nel database`);
             socket.emit('bid_error', { message: 'Utente non verificato. Ricarica la pagina.' });
             return;
         }
 
         // Verifica che il partecipante sia ancora in attesa (solo dopo la prima asta)
         if (gameState.astaCorrente > 1 && gameState.partecipantiInAttesa && !gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-            console.log(`âŒ ${connesso.nome} ha giÃ  vinto in questo round`);
-            socket.emit('bid_error', { message: 'Hai giÃ  vinto un giocatore in questo round' });
+            console.log(`❌ ${connesso.nome} ha già vinto in questo round`);
+            socket.emit('bid_error', { message: 'Hai già vinto un giocatore in questo round' });
             return;
         }
 
-        // Verifica che non abbia giÃ  fatto un'offerta in questa asta
+        // Verifica che non abbia già fatto un'offerta in questa asta
         let hasAlreadyBid = false;
         for (let [existingSocketId, offerta] of gameState.offerteTemporanee.entries()) {
             if (existingSocketId !== socket.id) {
@@ -4174,14 +4171,14 @@ io.on('connection', (socket) => {
         }
 
         if (hasAlreadyBid) {
-            console.log(`âŒ ${connesso.nome} ha giÃ  fatto un'offerta in questa asta`);
-            socket.emit('bid_error', { message: 'Hai giÃ  fatto un\'offerta in questa asta' });
+            console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
+            socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
             return;
         }
 
-        // Verifica validitÃ  dati offerta
+        // Verifica validità dati offerta
         if (!data.slot || !data.importo || data.importo <= 0) {
-            console.log(`âŒ Dati offerta non validi:`, data);
+            console.log(`❌ Dati offerta non validi:`, data);
             socket.emit('bid_error', { message: 'Dati offerta non validi' });
             return;
         }
@@ -4190,8 +4187,8 @@ io.on('connection', (socket) => {
         if (gameState.slotsRimasti && gameState.slotsRimasti.length > 0) {
             const slotDisponibile = gameState.slotsRimasti.find(s => s.id === data.slot);
             if (!slotDisponibile) {
-                console.log(`âŒ Slot ${data.slot} non piÃ¹ disponibile`);
-                socket.emit('bid_error', { message: 'Giocatore non piÃ¹ disponibile' });
+                console.log(`❌ Slot ${data.slot} non più disponibile`);
+                socket.emit('bid_error', { message: 'Giocatore non più disponibile' });
                 return;
             }
         }
@@ -4202,19 +4199,19 @@ io.on('connection', (socket) => {
                 [connesso.partecipanteId, sessioneCorrente]);
 
             if (result.rows.length === 0) {
-                console.log(`âŒ Partecipante ${connesso.partecipanteId} non trovato nel database`);
+                console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`);
                 socket.emit('bid_error', { message: 'Partecipante non trovato nel database' });
                 return;
             }
 
             const creditiDisponibili = result.rows[0].crediti;
             if (data.importo > creditiDisponibili) {
-                console.log(`âŒ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`);
+                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`);
                 socket.emit('bid_error', { message: `Crediti insufficienti. Disponibili: ${creditiDisponibili}` });
                 return;
             }
 
-            // Salva offerta temporanea (sovrascrive se esiste giÃ  per questo socket)
+            // Salva offerta temporanea (sovrascrive se esiste già per questo socket)
             gameState.offerteTemporanee.set(socket.id, {
                 round: data.round,
                 slot: data.slot,
@@ -4223,9 +4220,9 @@ io.on('connection', (socket) => {
                 timestamp: Date.now()
             });
 
-            console.log(`ðŸ’° Offerta ricevuta e salvata: ${connesso.nome} (${connesso.partecipanteId}) punta ${data.importo} su ${data.slot}`);
-            console.log(`ðŸ“Š Totale offerte ora: ${gameState.offerteTemporanee.size}`);
-            console.log(`ðŸŽ¯ Asta corrente: ${gameState.astaCorrente}, Round: ${gameState.roundAttivo}`);
+            console.log(`💰 Offerta ricevuta e salvata: ${connesso.nome} (${connesso.partecipanteId}) punta ${data.importo} su ${data.slot}`);
+            console.log(`📊 Totale offerte ora: ${gameState.offerteTemporanee.size}`);
+            console.log(`🎯 Asta corrente: ${gameState.astaCorrente}, Round: ${gameState.roundAttivo}`);
 
             // Conferma offerta al client
             socket.emit('bid_confirmed', {
@@ -4236,10 +4233,10 @@ io.on('connection', (socket) => {
                 astaNumero: gameState.astaCorrente || 1
             });
 
-            console.log(`âœ… Offerta confermata inviata a ${connesso.nome}`);
+            console.log(`✅ Offerta confermata inviata a ${connesso.nome}`);
 
         } catch (err) {
-            console.error('âŒ Errore verifica crediti:', err);
+            console.error('❌ Errore verifica crediti:', err);
             socket.emit('bid_error', { message: 'Errore del server durante verifica crediti' });
         }
     });
@@ -4259,7 +4256,7 @@ io.on('connection', (socket) => {
         });
 
         if (data.type === 'persistence_check') {
-            console.log(`ðŸ’“ Heartbeat persistenza da ${gameState.connessi.get(socket.id)?.nome || 'Sconosciuto'}`);
+            console.log(`💓 Heartbeat persistenza da ${gameState.connessi.get(socket.id)?.nome || 'Sconosciuto'}`);
         }
     });
 });
@@ -4309,7 +4306,7 @@ app.get('/api/sessioni', async (req, res) => {
     try {
         const { stato, modalita, anno } = req.query;
 
-        // Ã°Å¸â€ â€¢ Escludi sempre la sessione "default" dalla lista
+        // ðŸ†• Escludi sempre la sessione "default" dalla lista
         let query = "SELECT * FROM v_sessioni_stats WHERE id != 'default'";
         const params = [];
 
@@ -4332,10 +4329,10 @@ app.get('/api/sessioni', async (req, res) => {
 
         const result = await db.query(query, params);
 
-        console.log(`Ã¢Å“â€¦ Lista sessioni caricata: ${result.rows.length} risultati (default esclusa)`);
+        console.log(`âœ… Lista sessioni caricata: ${result.rows.length} risultati (default esclusa)`);
         res.json(result.rows);
     } catch (err) {
-        console.error('Ã¢Å’ Errore caricamento sessioni:', err);
+        console.error('âŒ Errore caricamento sessioni:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4364,17 +4361,17 @@ app.get('/api/sessioni/calcola-condivisione', async (req, res) => {
             ...risultato
         });
     } catch (err) {
-        console.error('âŒ Errore calcolo condivisione:', err);
+        console.error('❌ Errore calcolo condivisione:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// GET: Sessione attiva per modalitÃ  (PRIMA DI /:id)
+// GET: Sessione attiva per modalità (PRIMA DI /:id)
 app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
     try {
         const modalita = req.params.modalita;
         if (!['asta_competitiva', 'draft_libero'].includes(modalita)) {
-            return res.status(400).json({ error: 'ModalitÃ  non valida' });
+            return res.status(400).json({ error: 'Modalità non valida' });
         }
         const result = await db.query(
             'SELECT * FROM v_sessioni_stats WHERE attiva = true AND modalita = $1',
@@ -4383,10 +4380,10 @@ app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
         if (result.rows.length === 0) {
             return res.json(null);
         }
-        console.log(`âœ… Sessione attiva ${modalita}:`, result.rows[0].id);
+        console.log(`✅ Sessione attiva ${modalita}:`, result.rows[0].id);
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore caricamento sessione attiva:', err);
+        console.error('❌ Errore caricamento sessione attiva:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4405,10 +4402,10 @@ app.get('/api/sessioni/:id', async (req, res) => {
             return res.status(404).json({ error: 'Sessione non trovata' });
         }
 
-        console.log(`âœ… Sessione caricata: ${sessioneId}`);
+        console.log(`✅ Sessione caricata: ${sessioneId}`);
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore caricamento sessione:', err);
+        console.error('❌ Errore caricamento sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4434,7 +4431,7 @@ app.post('/api/sessioni', async (req, res) => {
         }
 
         if (!['asta_competitiva', 'draft_libero'].includes(modalita)) {
-            return res.status(400).json({ error: 'ModalitÃ  non valida' });
+            return res.status(400).json({ error: 'Modalità non valida' });
         }
 
         if (numeroPartecipanti < 2 || numeroPartecipanti > 100) {
@@ -4466,7 +4463,7 @@ app.post('/api/sessioni', async (req, res) => {
         // Genera codice accesso univoco
         const codiceAccesso = await generaCodiceUnico();
 
-        // Disattiva eventuali altre sessioni della stessa modalitÃ 
+        // Disattiva eventuali altre sessioni della stessa modalità
         await db.query(
             'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND attiva = true',
             [modalita]
@@ -4496,13 +4493,13 @@ app.post('/api/sessioni', async (req, res) => {
             true,
             codiceAccesso
         ]);
-        console.log(`âœ… Sessione creata: ${sessioneId} - ${nome} (${modalita}) - Codice: ${codiceAccesso}`);
-        console.log(`   ðŸ“Š Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
-        console.log(`   ðŸ”„ Condivisione: ${condivisione.condivisioneAttiva ? 'ATTIVA' : 'NON NECESSARIA'}`);
+        console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita}) - Codice: ${codiceAccesso}`);
+        console.log(`   📊 Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
+        console.log(`   🔄 Condivisione: ${condivisione.condivisioneAttiva ? 'ATTIVA' : 'NON NECESSARIA'}`);
 
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore creazione sessione:', err);
+        console.error('❌ Errore creazione sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4556,10 +4553,10 @@ app.put('/api/sessioni/:id', async (req, res) => {
 
         const result = await db.query(query, params);
 
-        console.log(`âœ… Sessione aggiornata: ${sessioneId}`);
+        console.log(`✅ Sessione aggiornata: ${sessioneId}`);
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore aggiornamento sessione:', err);
+        console.error('❌ Errore aggiornamento sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4579,7 +4576,7 @@ app.post('/api/sessioni/:id/toggle-attiva', async (req, res) => {
         const nuovoStato = !current.rows[0].attiva;
         const modalita = current.rows[0].modalita;
 
-        // Se la stiamo attivando, disattiva le altre della stessa modalitÃ 
+        // Se la stiamo attivando, disattiva le altre della stessa modalità
         if (nuovoStato) {
             await db.query(
                 'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND id != $2',
@@ -4593,10 +4590,10 @@ app.post('/api/sessioni/:id/toggle-attiva', async (req, res) => {
             [nuovoStato, sessioneId]
         );
 
-        console.log(`âœ… Sessione ${nuovoStato ? 'attivata' : 'disattivata'}: ${sessioneId}`);
+        console.log(`✅ Sessione ${nuovoStato ? 'attivata' : 'disattivata'}: ${sessioneId}`);
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore toggle attiva sessione:', err);
+        console.error('❌ Errore toggle attiva sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4618,10 +4615,10 @@ app.post('/api/sessioni/:id/archivia', async (req, res) => {
             return res.status(404).json({ error: 'Sessione non trovata' });
         }
 
-        console.log(`ðŸ“¦ Sessione archiviata: ${sessioneId}`);
+        console.log(`📦 Sessione archiviata: ${sessioneId}`);
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('âŒ Errore archiviazione sessione:', err);
+        console.error('❌ Errore archiviazione sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4655,11 +4652,11 @@ app.post('/api/sessioni/:id/reset', async (req, res) => {
 
         await db.query('COMMIT');
 
-        console.log(`ðŸ”„ Sessione resettata: ${sessioneId}`);
+        console.log(`🔄 Sessione resettata: ${sessioneId}`);
         res.json({ success: true, message: 'Sessione resettata con successo' });
     } catch (err) {
         await db.query('ROLLBACK');
-        console.error('âŒ Errore reset sessione:', err);
+        console.error('❌ Errore reset sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4678,28 +4675,28 @@ app.delete('/api/sessioni/:id', async (req, res) => {
             return res.status(404).json({ error: 'Sessione non trovata' });
         }
 
-        // ðŸ†• ELIMINAZIONE CASCADE MANUALE - Elimina tutti i dati correlati nell'ordine corretto
-        console.log(`ðŸ—‘ï¸ Eliminazione sessione: ${sessioneId}`);
+        // 🆕 ELIMINAZIONE CASCADE MANUALE - Elimina tutti i dati correlati nell'ordine corretto
+        console.log(`🗑️ Eliminazione sessione: ${sessioneId}`);
 
         // 1. Elimina push subscriptions
         await db.query('DELETE FROM push_subscriptions WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Push subscriptions eliminate');
+        console.log('  ✓ Push subscriptions eliminate');
 
         // 2. Elimina aste (dipende da partecipanti e slots)
         await db.query('DELETE FROM aste WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Aste eliminate');
+        console.log('  ✓ Aste eliminate');
 
         // 3. Elimina squadre draft
         await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Squadre draft eliminate');
+        console.log('  ✓ Squadre draft eliminate');
 
         // 4. Elimina slots (dipende da squadre_circolo)
         await db.query('DELETE FROM slots WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Slots eliminati');
+        console.log('  ✓ Slots eliminati');
 
         // 5. Elimina squadre circolo
         await db.query('DELETE FROM squadre_circolo WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Squadre circolo eliminate');
+        console.log('  ✓ Squadre circolo eliminate');
 
         // 6. Elimina risultati dettaglio, incontri, coppie turno, turni configurazione
         await db.query(`
@@ -4708,26 +4705,26 @@ app.delete('/api/sessioni/:id', async (req, res) => {
                 SELECT id FROM incontri WHERE sessione_id = $1
             )
         `, [sessioneId]);
-        console.log('  âœ“ Risultati dettaglio eliminati');
+        console.log('  ✓ Risultati dettaglio eliminati');
 
         await db.query('DELETE FROM incontri WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Incontri eliminati');
+        console.log('  ✓ Incontri eliminati');
 
         await db.query('DELETE FROM coppie_turno WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Coppie turno eliminate');
+        console.log('  ✓ Coppie turno eliminate');
 
         await db.query('DELETE FROM turni_configurazione WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Turni configurazione eliminati');
+        console.log('  ✓ Turni configurazione eliminati');
 
         await db.query('DELETE FROM sostituzioni WHERE sessione_id = $1', [sessioneId]);
-        console.log('  âœ“ Sostituzioni eliminate');
+        console.log('  ✓ Sostituzioni eliminate');
 
-        // 7. Elimina partecipanti (CASCADE dovrebbe giÃ  averli eliminati, ma per sicurezza)
+        // 7. Elimina partecipanti (CASCADE dovrebbe già averli eliminati, ma per sicurezza)
         const partecipantiEliminati = await db.query(
             'DELETE FROM partecipanti_fantagts WHERE sessione_id = $1 RETURNING id',
             [sessioneId]
         );
-        console.log(`  âœ“ ${partecipantiEliminati.rows.length} Partecipanti eliminati`);
+        console.log(`  ✓ ${partecipantiEliminati.rows.length} Partecipanti eliminati`);
 
         // 8. Finalmente elimina la sessione
         const result = await db.query(
@@ -4737,7 +4734,7 @@ app.delete('/api/sessioni/:id', async (req, res) => {
 
         await db.query('COMMIT');
 
-        console.log(`âœ… Sessione "${result.rows[0].nome}" eliminata completamente`);
+        console.log(`✅ Sessione "${result.rows[0].nome}" eliminata completamente`);
         res.json({
             success: true,
             message: 'Sessione eliminata con successo',
@@ -4745,7 +4742,7 @@ app.delete('/api/sessioni/:id', async (req, res) => {
         });
     } catch (err) {
         await db.query('ROLLBACK');
-        console.error('âŒ Errore eliminazione sessione:', err);
+        console.error('❌ Errore eliminazione sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4770,7 +4767,7 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
             [creditiIniziali, sessioneId]
         );
 
-        console.log(`âœ… Crediti sessione ${sessioneId} aggiornati a ${creditiIniziali}`);
+        console.log(`✅ Crediti sessione ${sessioneId} aggiornati a ${creditiIniziali}`);
 
         res.json({
             success: true,
@@ -4779,7 +4776,7 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('âŒ Errore aggiornamento crediti sessione:', err);
+        console.error('❌ Errore aggiornamento crediti sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -4795,23 +4792,23 @@ initializeDatabase().then(async () => {
     server.listen(PORT, HOST, () => {
         const localIP = getLocalIP();
 
-        console.log('\nðŸŽ¾ FantaGTS Server Avviato con PostgreSQL!');
+        console.log('\n🎾 FantaGTS Server Avviato con PostgreSQL!');
 
         if (process.env.NODE_ENV === 'production') {
-            console.log(`ðŸŒ Production URL disponibile`);
-            console.log(`ðŸŽ® Master: /master`);
-            console.log(`âš™ï¸  Setup: /setup`);
+            console.log(`🌐 Production URL disponibile`);
+            console.log(`🎮 Master: /master`);
+            console.log(`⚙️  Setup: /setup`);
         } else {
-            console.log(`ðŸ“± Client: http://localhost:${PORT}`);
-            console.log(`âš™ï¸  Setup: http://localhost:${PORT}/setup`);
-            console.log(`ðŸŽ® Master: http://localhost:${PORT}/master`);
-            console.log(`ðŸ”— Rete locale: http://${localIP}:${PORT}`);
+            console.log(`📱 Client: http://localhost:${PORT}`);
+            console.log(`⚙️  Setup: http://localhost:${PORT}/setup`);
+            console.log(`🎮 Master: http://localhost:${PORT}/master`);
+            console.log(`🔗 Rete locale: http://${localIP}:${PORT}`);
         }
 
-        console.log('\nâœ… Sistema pronto per la configurazione!');
+        console.log('\n✅ Sistema pronto per la configurazione!');
     });
 }).catch(err => {
-    console.error('âŒ Errore avvio server:', err);
+    console.error('❌ Errore avvio server:', err);
 });
 
 // Gestione errori
@@ -4825,13 +4822,13 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Chiusura pulita
 process.on('SIGINT', () => {
-    console.log('\nðŸ”„ Chiusura server in corso...');
+    console.log('\n🔄 Chiusura server in corso...');
     db.end();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\nðŸ”„ Terminazione server ricevuta...');
+    console.log('\n🔄 Terminazione server ricevuta...');
     db.end();
     process.exit(0);
 });

@@ -6,7 +6,7 @@
     <title>FantaGTS - Fantasy Tennis</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3EðŸŽ¾%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎾%3C/text%3E%3C/svg%3E">
 
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -650,7 +650,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>ðŸŽ¾ FantaGTS</h1>
+            <h1>🎾 FantaGTS</h1>
             <p>User Panel</p>
         </div>
 
@@ -658,21 +658,21 @@
         <div id="registration-area">
             <!-- Schermata iniziale -->
             <div id="welcome-screen" class="registration-form">
-                <h2>ðŸ‘‹ Benvenuto nel FantaGTS!</h2>
+                <h2>👋 Benvenuto nel FantaGTS!</h2>
                 <p style="margin-bottom: 30px;">Fantasy Tennis del Circolo</p>
 
                 <button class="btn btn-primary" onclick="mostraLogin()" style="margin-bottom: 15px;">
-                    ðŸ” ACCEDI
+                    🔐 ACCEDI
                 </button>
 
                 <button class="btn btn-secondary" onclick="mostraRegistrazione()">
-                    âœï¸ Registrati
+                    ✏️ Registrati
                 </button>
             </div>
 
             <!-- Schermata LOGIN -->
             <div id="login-screen" class="registration-form" style="display: none;">
-                <h2>ðŸ” Accedi</h2>
+                <h2>🔐 Accedi</h2>
                 <p style="margin-bottom: 25px;">Inserisci le tue credenziali</p>
 
                 <div class="input-group">
@@ -682,7 +682,7 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="text" id="loginPin" placeholder="â€¢â€¢â€¢â€¢" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
+                    <input type="text" id="loginPin" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="checkbox-group">
@@ -693,17 +693,17 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="effettuaLogin()" style="margin-bottom: 10px;">
-                    âœ… Accedi
+                    ✅ Accedi
                 </button>
 
                 <button class="btn btn-secondary" onclick="tornaWelcome()">
-                    â† Indietro
+                    ← Indietro
                 </button>
             </div>
 
             <!-- Schermata REGISTRAZIONE -->
             <div id="register-screen" class="registration-form" style="display: none;">
-                <h2>âœï¸ Registrazione</h2>
+                <h2>✏️ Registrazione</h2>
                 <p style="margin-bottom: 25px;">Crea il tuo account</p>
 
                 <div class="input-group">
@@ -714,12 +714,12 @@
 
                 <div class="input-group">
                     <label>PIN (4 cifre):</label>
-                    <input type="text" id="registerPin" placeholder="â€¢â€¢â€¢â€¢" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
+                    <input type="text" id="registerPin" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="input-group">
                     <label>Conferma PIN:</label>
-                    <input type="text" id="registerPinConfirm" placeholder="â€¢â€¢â€¢â€¢" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
+                    <input type="text" id="registerPinConfirm" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off" data-pin-field="true" style="letter-spacing: 8px; font-size: 1.5em;">
                 </div>
 
                 <div class="checkbox-group">
@@ -730,16 +730,16 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="effettuaRegistrazione()" style="margin-bottom: 10px;">
-                    ðŸš€ Registrati
+                    🚀 Registrati
                 </button>
 
                 <button class="btn btn-secondary" onclick="tornaWelcome()">
-                    â† Indietro
+                    ← Indietro
                 </button>
-            </div>  <!-- âœ… Chiude register-screen -->
+            </div>  <!-- ✅ Chiude register-screen -->
             <!-- Schermata SELEZIONE SESSIONI -->
             <div id="sessions-screen" class="registration-form" style="text-align: center; display: none;">
-                <h2>ðŸŽ¾ Le Tue Sessioni</h2>
+                <h2>🎾 Le Tue Sessioni</h2>
                 <p style="margin-bottom: 20px;">Seleziona una sessione o aggiungine una nuova</p>
 
                 <!-- Lista sessioni -->
@@ -756,7 +756,7 @@
 
                 <!-- Form aggiungi sessione (nascosto inizialmente) -->
                 <div id="formAggiungiSessione" style="display: none; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">Ã¢Å¾â€¢ Aggiungi Nuova Sessione</h3>
+                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">âž• Aggiungi Nuova Sessione</h3>
                     <div class="input-group" style="margin-bottom: 15px;">
                         <label>Codice Sessione (5 caratteri):</label>
                         <input type="text" id="sessionCode" placeholder="es: XK7M2" maxlength="5"
@@ -773,7 +773,7 @@
                 </div>
 
                 <button class="btn btn-secondary" onclick="logout()" style="margin-top: 20px;">
-                    ðŸšª Esci
+                    🚪 Esci
                 </button>
             </div>
         </div>
@@ -782,12 +782,12 @@
         <div id="game-area" style="display: none;" class="content-with-bottom-nav">
             <div class="user-info">
                 <div><strong id="currentPlayer">--</strong></div>
-                <div id="playerStatsDisplay">ðŸ’° <span id="playerCredits">2000</span> crediti</div>
+                <div id="playerStatsDisplay">💰 <span id="playerCredits">2000</span> crediti</div>
             </div>
 
             <div style="text-align: center; margin-bottom: 15px;">
                 <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
-                    ðŸšª Cambia Utente
+                    🚪 Cambia Utente
                 </button>
             </div>
 
@@ -795,8 +795,8 @@
             <div id="section-squadra" class="content-section active">
                 <!-- Fase attesa (SOLO durante asta) -->
                 <div id="waiting-phase" class="section" style="display: none;">
-                    <h2>â³ In Attesa</h2>
-                    <p>Il Master avvierÃ  il prossimo round quando tutti sono pronti.</p>
+                    <h2>⏳ In Attesa</h2>
+                    <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
                 </div>
 
                 <!-- Fase asta -->
@@ -810,7 +810,7 @@
                         </div>
 
                         <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-                            <strong>ðŸ’° Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
+                            <strong>💰 Crediti disponibili: <span id="creditsDisplay">2000</span></strong>
                         </div>
 
                         <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
@@ -823,7 +823,7 @@
 
                 <!-- La mia squadra -->
                 <div class="section">
-                    <h2>ðŸ† La Mia Squadra</h2>
+                    <h2>🏆 La Mia Squadra</h2>
                     <div class="team-slots" id="teamSlots">
                         <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
                         <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
@@ -842,7 +842,7 @@
             <!-- SEZIONE 2: CLASSIFICA -->
             <div id="section-classifica" class="content-section">
                 <div class="section">
-                    <h2>ðŸ“Š Classifica Generale</h2>
+                    <h2>📊 Classifica Generale</h2>
                     <div id="classificaContainer">
                         <p style="text-align: center; opacity: 0.7;">Caricamento classifica...</p>
                     </div>
@@ -852,7 +852,7 @@
             <!-- SEZIONE 3: ALTRI PARTECIPANTI -->
             <div id="section-altri" class="content-section">
                 <div class="section">
-                    <h2>ðŸ‘¥ Altri Partecipanti</h2>
+                    <h2>👥 Altri Partecipanti</h2>
                     <div id="altriPartecipantiContainer">
                         <p style="text-align: center; opacity: 0.7;">Caricamento partecipanti...</p>
                     </div>
@@ -862,7 +862,7 @@
             <!-- SEZIONE 4: INCONTRI -->
             <div id="section-incontri" class="content-section">
                 <div class="section">
-                    <h2>âš½ Incontri</h2>
+                    <h2>⚽ Incontri</h2>
                     <div class="incontri-selector">
                         <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e0;">Seleziona Turno:</label>
                         <select id="turniSelect" class="turni-select" onchange="caricaIncontriTurno()">
@@ -878,19 +878,19 @@
             <!-- BOTTOM NAVIGATION -->
             <div class="bottom-nav">
                 <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
-                    <span class="icon">ðŸ†</span>
+                    <span class="icon">🏆</span>
                     <span class="label">Squadra</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('classifica')">
-                    <span class="icon">ðŸ“Š</span>
+                    <span class="icon">📊</span>
                     <span class="label">Classifica</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('altri')">
-                    <span class="icon">ðŸ‘¥</span>
+                    <span class="icon">👥</span>
                     <span class="label">Altri</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('incontri')">
-                    <span class="icon">âš½</span>
+                    <span class="icon">⚽</span>
                     <span class="label">Incontri</span>
                 </button>
             </div>
@@ -927,7 +927,7 @@
         };
 
         // ========================================
-        // FUNZIONI GLOBALI DI UTILITÃ€
+        // FUNZIONI GLOBALI DI UTILITÀ
         // ========================================
         function mostraMessaggio(testo, tipo = 'info') {
             const esistente = document.querySelector('.custom-alert');
@@ -954,8 +954,8 @@
 
                 box.innerHTML = `
                                 <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">âœ… SÃ¬</button>
-                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">âŒ No</button>
+                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
                             `;
 
                 overlay.appendChild(box);
@@ -984,7 +984,7 @@
         // ========================================
 
         async function mostraSchermataSessioni() {
-            console.log('ðŸ”„ mostraSchermataSessioni() chiamata');
+            console.log('🔄 mostraSchermataSessioni() chiamata');
 
             // Nascondi tutte le schermate
             document.getElementById('welcome-screen').style.display = 'none';
@@ -994,14 +994,14 @@
 
             // Mostra schermata sessioni
             const sessionsScreen = document.getElementById('sessions-screen');
-            console.log('ðŸ“º sessions-screen element:', sessionsScreen);
+            console.log('📺 sessions-screen element:', sessionsScreen);
 
             if (sessionsScreen) {
                 sessionsScreen.style.display = 'block';
-                console.log('âœ… sessions-screen mostrato');
-                console.log('ðŸ“‹ Contenuto HTML:', sessionsScreen.innerHTML.substring(0, 200));
+                console.log('✅ sessions-screen mostrato');
+                console.log('📋 Contenuto HTML:', sessionsScreen.innerHTML.substring(0, 200));
             } else {
-                console.error('âŒ sessions-screen NON TROVATO!');
+                console.error('❌ sessions-screen NON TROVATO!');
             }
 
             // Carica sessioni del partecipante
@@ -1012,7 +1012,7 @@
             const sessionsList = document.getElementById('sessions-list');
 
             if (!sessionsList) {
-                console.error('âŒ Elemento sessions-list non trovato!');
+                console.error('❌ Elemento sessions-list non trovato!');
                 return;
             }
 
@@ -1020,17 +1020,17 @@
 
             // Verifica che playerData.id sia valido
             if (!playerData || !playerData.id) {
-                console.error('âŒ playerData.id non disponibile:', playerData);
+                console.error('❌ playerData.id non disponibile:', playerData);
                 sessionsList.innerHTML = `
                 <p style="text-align: center; color: #fc8181; padding: 20px;">
-                    âŒ Errore: dati utente non validi
+                    ❌ Errore: dati utente non validi
                 </p>
             `;
                 return;
             }
 
             try {
-                console.log('ðŸ“¡ Caricamento sessioni per:', playerData.id);
+                console.log('📡 Caricamento sessioni per:', playerData.id);
                 const response = await fetch(`/api/my-sessions/${playerData.id}`);
 
                 if (!response.ok) {
@@ -1038,38 +1038,38 @@
                 }
 
                 const result = await response.json();
-                console.log('ðŸ“¦ Risultato sessioni:', result);
+                console.log('📦 Risultato sessioni:', result);
 
-                console.log('ðŸ“Š Numero sessioni trovate:', result.sessioni ? result.sessioni.length : 0);
+                console.log('📊 Numero sessioni trovate:', result.sessioni ? result.sessioni.length : 0);
 
                 if (result.sessioni && result.sessioni.length > 0) {
-                    console.log('âœ… Mostrando', result.sessioni.length, 'sessioni');
+                    console.log('✅ Mostrando', result.sessioni.length, 'sessioni');
                     sessionsList.innerHTML = result.sessioni.map(sessione => `
                     <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-                        <div class="session-name">ðŸ“‹ ${sessione.nome}</div>
+                        <div class="session-name">📋 ${sessione.nome}</div>
                         <div class="session-info">
                             ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
-                            â€¢ ${sessione.modalita === 'asta_competitiva' ? 'ðŸ’° Asta' : 'ðŸŽ¯ Draft'}
-                            ${sessione.attiva ? '<span style="color: #48bb78;">â€¢ âœ“ Attiva</span>' : '<span style="color: #a0aec0;">â€¢ Archiviata</span>'}
+                            • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                            ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
                         </div>
                         <div class="session-code">Codice: ${sessione.codice_accesso}</div>
                     </div>
                 `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
-                    console.log('â„¹ï¸ Nessuna sessione trovata, mostrando messaggio');
+                    console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
                     <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                        ðŸ”­ Non sei ancora iscritto a nessuna sessione.<br>
+                        🔭 Non sei ancora iscritto a nessuna sessione.<br>
                         Usa il codice qui sotto per entrare!
                     </p>
                 `;
                 }
             } catch (error) {
-                console.error('âŒ Errore caricamento sessioni:', error);
+                console.error('❌ Errore caricamento sessioni:', error);
                 sessionsList.innerHTML = `
                 <p style="text-align: center; color: #fc8181; padding: 20px;">
-                    âŒ Errore caricamento sessioni<br>
+                    ❌ Errore caricamento sessioni<br>
                     <small style="opacity: 0.7;">${error.message}</small>
                 </p>
             `;
@@ -1097,7 +1097,7 @@
             const codice = codiceInput.value.trim().toUpperCase();
 
             if (!codice || codice.length !== 5) {
-                mostraMessaggio('âš ï¸ Inserisci un codice valido di 5 caratteri!', 'warning');
+                mostraMessaggio('⚠️ Inserisci un codice valido di 5 caratteri!', 'warning');
                 return;
             }
 
@@ -1114,24 +1114,24 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    mostraMessaggio(`âœ… ${result.message}`, 'success');
+                    mostraMessaggio(`✅ ${result.message}`, 'success');
                     codiceInput.value = '';
 
-                    // ðŸ†• AGGIORNA I CREDITI CON QUELLI DELLA SESSIONE
+                    // 🆕 AGGIORNA I CREDITI CON QUELLI DELLA SESSIONE
                     if (result.crediti) {
                         playerData.credits = result.crediti;
-                        console.log(`ðŸ’° Crediti aggiornati a ${result.crediti}`);
+                        console.log(`💰 Crediti aggiornati a ${result.crediti}`);
                     }
 
-                    // ðŸ†• ENTRA AUTOMATICAMENTE NELLA SESSIONE
-                    console.log('ðŸš€ Entro automaticamente nella sessione:', result.sessione);
+                    // 🆕 ENTRA AUTOMATICAMENTE NELLA SESSIONE
+                    console.log('🚀 Entro automaticamente nella sessione:', result.sessione);
                     await entraInSessione(result.sessione.id, result.sessione.nome);
                 } else {
-                    mostraMessaggio(`âŒ ${result.error}`, 'error');
+                    mostraMessaggio(`❌ ${result.error}`, 'error');
                 }
             } catch (error) {
                 console.error('Errore aggiunta sessione:', error);
-                mostraMessaggio('âŒ Errore di connessione', 'error');
+                mostraMessaggio('❌ Errore di connessione', 'error');
             }
         }
 
@@ -1155,7 +1155,6 @@
                 // Salva la sessione nel localStorage con i dati aggiornati
                 saveSession();
 
-
                 // Aggiorna display
                 document.getElementById('currentPlayer').textContent = playerData.name;
                 document.getElementById('playerCredits').textContent = playerData.credits;
@@ -1176,10 +1175,10 @@
                 // Registra socket
                 registerSocketWhenReady();
 
-                mostraMessaggio(`ðŸŽ¾ Benvenuto in "${nomeSessione}"!`, 'success');
+                mostraMessaggio(`🎾 Benvenuto in "${nomeSessione}"!`, 'success');
             } catch (error) {
                 console.error('Errore entrata sessione:', error);
-                mostraMessaggio('âŒ Errore entrando nella sessione', 'error');
+                mostraMessaggio('❌ Errore entrando nella sessione', 'error');
             }
         }
 
@@ -1211,12 +1210,12 @@
                     id: playerData.id,
                     credits: playerData.credits,
                     notificationsEnabled: playerData.notificationsEnabled,
-                    sessioneCorrente: sessioneCorrente,  // Ã°Å¸â€ â€¢ Aggiungi sessione
-                    nomeSessione: nomeSessioneCorrente    // Ã°Å¸â€ â€¢ Aggiungi nome sessione
+                    sessioneCorrente: sessioneCorrente,  // ðŸ†• Aggiungi sessione
+                    nomeSessione: nomeSessioneCorrente    // ðŸ†• Aggiungi nome sessione
                 };
                 localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
                 localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
-                console.log('Ã¢Å“â€¦ Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
+                console.log('âœ… Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
             } catch (error) {
                 console.error('Errore salvataggio sessione:', error);
             }
@@ -1226,23 +1225,23 @@
             try {
                 localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
                 localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
-                console.log('ðŸ—‘ï¸ Sessione salvata rimossa');
+                console.log('🗑️ Sessione salvata rimossa');
             } catch (error) {
                 console.error('Errore rimozione sessione:', error);
             }
         }
 
-        // ðŸ†• NUOVA FUNZIONE - INSERISCI TUTTO QUESTO BLOCCO QUI
+        // 🆕 NUOVA FUNZIONE - INSERISCI TUTTO QUESTO BLOCCO QUI
         async function loadSavedSession() {
             try {
                 const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
                 if (!savedData) {
-                    console.log('â„¹ï¸ Nessuna sessione salvata trovata');
+                    console.log('ℹ️ Nessuna sessione salvata trovata');
                     return false;
                 }
 
                 const data = JSON.parse(savedData);
-                console.log('ðŸ”„ Ripristino sessione salvata:', data);
+                console.log('🔄 Ripristino sessione salvata:', data);
 
                 // Ripristina playerData
                 playerData.registered = true;
@@ -1263,13 +1262,13 @@
                         const sessioneValida = sessioni.find(s => s.id === sessioneCorrente);
 
                         if (sessioneValida) {
-                            console.log('âœ… Sessione valida, entro automaticamente');
+                            console.log('✅ Sessione valida, entro automaticamente');
 
                             // 🆕 RICARICA I CREDITI AGGIORNATI DALLA SESSIONE
                             const creditiResponse = await fetch(`/api/sessioni/${sessioneCorrente}/partecipante/${playerData.name}`);
                             if (creditiResponse.ok) {
                                 const partecipanteData = await creditiResponse.json();
-                                playerData.id = partecipanteData.id;
+                                playerData.id = partecipanteData.id; // Aggiorna anche l'ID
                                 playerData.credits = partecipanteData.crediti;
                                 console.log(`✅ Dati partecipante ricaricati - ID: ${playerData.id}, Crediti: ${playerData.credits}`);
                             } else {
@@ -1295,17 +1294,17 @@
 
                             registerSocketWhenReady();
 
-                            mostraMessaggio(`ðŸŽ¾ Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
-                            console.log('âš ï¸ Sessione non piÃ¹ valida, mostro selezione sessioni');
+                            console.log('⚠️ Sessione non più valida, mostro selezione sessioni');
                             await mostraSchermataSessioni();
                             return true;
                         }
                     }
                 } else {
                     // Ha playerData ma non sessioneCorrente, mostra selezione sessioni
-                    console.log('â„¹ï¸ Player salvato ma nessuna sessione, mostro selezione');
+                    console.log('ℹ️ Player salvato ma nessuna sessione, mostro selezione');
                     await mostraSchermataSessioni();
                     return true;
                 }
@@ -1328,7 +1327,7 @@
             if (creditsElement) creditsElement.textContent = playerData.credits;
             if (creditsDisplay) creditsDisplay.textContent = playerData.credits;
 
-            // Controlla se l'asta Ã¨ terminata (tutti i 10 giocatori acquistati)
+            // Controlla se l'asta è terminata (tutti i 10 giocatori acquistati)
             try {
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
                 if (response.ok) {
@@ -1339,10 +1338,10 @@
                     // Se ha acquistato tutti i 10 giocatori, mostra il punteggio invece dei crediti
                     if (giocatoriTotali === 10 && statsDisplay) {
                         const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
-                        statsDisplay.innerHTML = `ðŸ† <span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
+                        statsDisplay.innerHTML = `🏆 <span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
                     } else if (statsDisplay) {
                         // Durante l'asta mostra i crediti
-                        statsDisplay.innerHTML = `ðŸ’° <span id="playerCredits">${playerData.credits}</span> crediti`;
+                        statsDisplay.innerHTML = `💰 <span id="playerCredits">${playerData.credits}</span> crediti`;
                     }
                 }
             } catch (error) {
@@ -1408,12 +1407,12 @@
             const notificationsEnabled = document.getElementById('loginNotifications').checked;
 
             if (!nickname || !pin) {
-                mostraMessaggio('âš ï¸ Inserisci nickname e PIN!', 'warning');
+                mostraMessaggio('⚠️ Inserisci nickname e PIN!', 'warning');
                 return;
             }
 
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-                mostraMessaggio('âš ï¸ Il PIN deve essere di 4 cifre numeriche!', 'warning');
+                mostraMessaggio('⚠️ Il PIN deve essere di 4 cifre numeriche!', 'warning');
                 return;
             }
 
@@ -1438,23 +1437,23 @@
                     // Mostra schermata selezione sessioni
                     await mostraSchermataSessioni();
 
-                    mostraMessaggio(`âœ… Bentornato, ${result.player.nome}!`, 'success');
+                    mostraMessaggio(`✅ Bentornato, ${result.player.nome}!`, 'success');
                 }
                 else {
                     if (result.error === 'Utente non trovato') {
-                        const vuoleRegistrarsi = await confermaPersonalizzata(`âŒ Nickname "${nickname}" non trovato.<br><br>Vuoi registrarti?`);
+                        const vuoleRegistrarsi = await confermaPersonalizzata(`❌ Nickname "${nickname}" non trovato.<br><br>Vuoi registrarti?`);
                         if (vuoleRegistrarsi) {
                             mostraRegistrazione();
                             document.getElementById('registerNickname').value = nickname;
                         }
                     } else if (result.error === 'PIN errato') {
-                        mostraMessaggio('âŒ PIN non corretto! Riprova.', 'error');
+                        mostraMessaggio('❌ PIN non corretto! Riprova.', 'error');
                     } else {
-                        mostraMessaggio('âŒ Errore: ' + result.error, 'error');
+                        mostraMessaggio('❌ Errore: ' + result.error, 'error');
                     }
                 }
             } catch (error) {
-                mostraMessaggio('âŒ Errore di connessione al server', 'error');
+                mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore login:', error);
             }
         }
@@ -1471,22 +1470,22 @@
             const notificationsEnabled = document.getElementById('registerNotifications').checked;
 
             if (!nickname || !pin || !pinConfirm) {
-                mostraMessaggio('âš ï¸ Compila tutti i campi!', 'warning');
+                mostraMessaggio('⚠️ Compila tutti i campi!', 'warning');
                 return;
             }
 
             if (nickname.length < 2) {
-                mostraMessaggio('âš ï¸ Il nickname deve essere di almeno 2 caratteri!', 'warning');
+                mostraMessaggio('⚠️ Il nickname deve essere di almeno 2 caratteri!', 'warning');
                 return;
             }
 
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-                mostraMessaggio('âš ï¸ Il PIN deve essere di 4 cifre numeriche!', 'error');
+                mostraMessaggio('⚠️ Il PIN deve essere di 4 cifre numeriche!', 'error');
                 return;
             }
 
             if (pin !== pinConfirm) {
-                mostraMessaggio('âš ï¸ I PIN non coincidono!', 'error');
+                mostraMessaggio('⚠️ I PIN non coincidono!', 'error');
                 return;
             }
 
@@ -1511,12 +1510,12 @@
                     // Mostra schermata selezione sessioni (come fa il login)
                     await mostraSchermataSessioni();
 
-                    mostraMessaggio(`âœ… Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
+                    mostraMessaggio(`✅ Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
                 } else {
-                    mostraMessaggio('âŒ Errore: ' + (result.error || 'Registrazione fallita'), 'error');
+                    mostraMessaggio('❌ Errore: ' + (result.error || 'Registrazione fallita'), 'error');
                 }
             } catch (error) {
-                mostraMessaggio('âŒ Errore di connessione al server', 'error');
+                mostraMessaggio('❌ Errore di connessione al server', 'error');
                 console.error('Errore registrazione:', error);
             }
         }
@@ -1526,11 +1525,11 @@
         // ========================================
         async function loadPlayerTeam() {
             try {
-                console.log('ðŸ”„ Caricamento squadra per:', playerData.id);
+                console.log('🔄 Caricamento squadra per:', playerData.id);
 
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
                 if (!response.ok) {
-                    console.log('âš ï¸ Squadra non ancora formata');
+                    console.log('⚠️ Squadra non ancora formata');
                     resetTeamUI();
                     return;
                 }
@@ -1538,7 +1537,7 @@
                 const data = await response.json();
                 const squadra = data.squadra || data;
 
-                console.log('âœ… Squadra ricevuta:', squadra);
+                console.log('✅ Squadra ricevuta:', squadra);
 
                 // Aggiorna crediti se presenti
                 if (data.crediti !== undefined) {
@@ -1576,14 +1575,14 @@
                                 Squadra ${giocatore.colore}
                             </div>
                             <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                                ðŸ’° ${giocatore.costo_finale}
+                                💰 ${giocatore.costo_finale}
                             </div>
                             <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                            ðŸ† ${giocatore.punti_totali || 0}
+                            🏆 ${giocatore.punti_totali || 0}
                             </div>
                         `;
 
-                        console.log(`âœ… Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
+                        console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
                 });
 
@@ -1597,7 +1596,7 @@
                 await updateCreditsDisplay();
 
             } catch (error) {
-                console.error('âŒ Errore caricamento squadra:', error);
+                console.error('❌ Errore caricamento squadra:', error);
                 resetTeamUI();
             }
         }
@@ -1612,7 +1611,7 @@
         // NAVIGAZIONE TRA SEZIONI
         // ========================================
         function switchSection(sectionName) {
-            console.log('ðŸ”„ Cambio sezione:', sectionName);
+            console.log('🔄 Cambio sezione:', sectionName);
 
             // Nascondi tutte le sezioni
             document.querySelectorAll('.content-section').forEach(section => {
@@ -1657,7 +1656,7 @@
             const container = document.getElementById('classificaContainer');
 
             try {
-                console.log('ðŸ“Š Caricamento classifica...');
+                console.log('📊 Caricamento classifica...');
                 const response = await fetch('/api/classifica');
 
                 if (!response.ok) {
@@ -1675,12 +1674,12 @@
 
                 classifica.forEach((partecipante, index) => {
                     const positionClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : '';
-                    const medal = index === 0 ? 'ðŸ¥‡' : index === 1 ? 'ðŸ¥ˆ' : index === 2 ? 'ðŸ¥‰' : '';
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
                     html += `
                         <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
                             <div class="classifica-position ${positionClass}">
-                                ${medal} ${index + 1}Â°
+                                ${medal} ${index + 1}°
                             </div>
                             <div class="classifica-name">
                                 ${partecipante.nome}
@@ -1696,10 +1695,10 @@
                 html += '</div>';
                 container.innerHTML = html;
 
-                console.log('âœ… Classifica caricata:', classifica.length, 'partecipanti');
+                console.log('✅ Classifica caricata:', classifica.length, 'partecipanti');
 
             } catch (error) {
-                console.error('âŒ Errore caricamento classifica:', error);
+                console.error('❌ Errore caricamento classifica:', error);
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Classifica non ancora disponibile</p>';
             }
         }
@@ -1711,7 +1710,7 @@
             const container = document.getElementById('altriPartecipantiContainer');
 
             try {
-                console.log('ðŸ‘¥ Caricamento altri partecipanti...');
+                console.log('👥 Caricamento altri partecipanti...');
 
                 // Carica lista partecipanti
                 const responsePartecipanti = await fetch('/api/partecipanti');
@@ -1740,10 +1739,10 @@
                 html += '</div>';
                 container.innerHTML = html;
 
-                console.log('âœ… Altri partecipanti caricati:', altriPartecipanti.length);
+                console.log('✅ Altri partecipanti caricati:', altriPartecipanti.length);
 
             } catch (error) {
-                console.error('âŒ Errore caricamento altri partecipanti:', error);
+                console.error('❌ Errore caricamento altri partecipanti:', error);
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento partecipanti</p>';
             }
         }
@@ -1767,8 +1766,8 @@
                         <div class="partecipante-header">
                             <div class="partecipante-name">${partecipante.nome}</div>
                             <div class="partecipante-stats">
-                                <span style="color: #48bb78;">âš¡ ${puntiTotali} pt</span>
-                                <span style="color: #4299e1;">ðŸ‘¤ ${giocatoriVinti}/10</span>
+                                <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
+                                <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
                             </div>
                         </div>
                         <div class="partecipante-team-grid">
@@ -1807,7 +1806,7 @@
                 return html;
 
             } catch (error) {
-                console.error('âŒ Errore caricamento squadra partecipante:', error);
+                console.error('❌ Errore caricamento squadra partecipante:', error);
                 return `
                     <div class="partecipante-card">
                         <div class="partecipante-header">
@@ -1826,7 +1825,7 @@
             const select = document.getElementById('turniSelect');
 
             try {
-                console.log('ðŸ“… Caricamento turni disponibili...');
+                console.log('📅 Caricamento turni disponibili...');
                 const response = await fetch('/api/turni');
 
                 if (!response.ok) {
@@ -1843,10 +1842,10 @@
 
                 select.innerHTML = options;
 
-                console.log('âœ… Turni caricati:', turni.length);
+                console.log('✅ Turni caricati:', turni.length);
 
             } catch (error) {
-                console.error('âŒ Errore caricamento turni:', error);
+                console.error('❌ Errore caricamento turni:', error);
                 select.innerHTML = '<option value="">Errore caricamento turni</option>';
             }
         }
@@ -1862,7 +1861,7 @@
             }
 
             try {
-                console.log('âš½ Caricamento incontri per turno:', turnoId);
+                console.log('⚽ Caricamento incontri per turno:', turnoId);
 
                 // Carica squadre con giocatori
                 const responseSquadre = await fetch('/api/squadre-con-giocatori');
@@ -1890,10 +1889,10 @@
                 const overviewHtml = creaOverviewCompattoHtml(incontriRaggruppati);
                 container.innerHTML = overviewHtml;
 
-                console.log('âœ… Incontri caricati con overview compatto:', incontri.length);
+                console.log('✅ Incontri caricati con overview compatto:', incontri.length);
 
             } catch (error) {
-                console.error('âŒ Errore caricamento incontri:', error);
+                console.error('❌ Errore caricamento incontri:', error);
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento incontri</p>';
             }
         }
@@ -1952,7 +1951,7 @@
                         </div>
                     </div>
                     <div class="stats-line">
-                        ${completati} incontri â€¢ ${completati} completati
+                        ${completati} incontri • ${completati} completati
                     </div>
                     <div class="progress-container">
                         <div class="progress-bar">
@@ -2049,7 +2048,7 @@
                 html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">';
 
                 gruppo.incontri.forEach(incontro => {
-                    const status = incontro.completato ? 'âœ…' : 'â³';
+                    const status = incontro.completato ? '✅' : '⏳';
                     const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
 
                     html += `
@@ -2112,14 +2111,14 @@
         // ========================================
         async function setupPushNotifications() {
             if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                console.log('âš ï¸ Notifiche non supportate');
+                console.log('⚠️ Notifiche non supportate');
                 return;
             }
 
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    console.log('âœ… Permesso notifiche concesso');
+                    console.log('✅ Permesso notifiche concesso');
                 }
             } catch (error) {
                 console.error('Errore setup notifiche:', error);
@@ -2132,7 +2131,7 @@
         function registerSocketWhenReady() {
             const tryRegister = () => {
                 if (socket && socket.connected) {
-                    console.log('ðŸ“Œ Registrando socket come partecipante:', playerData.name);
+                    console.log('📌 Registrando socket come partecipante:', playerData.name);
                     socket.emit('register', {
                         nome: playerData.name,
                         tipo: 'partecipante',
@@ -2148,7 +2147,7 @@
             } else if (socket) {
                 socket.off('connect');
                 socket.on('connect', () => {
-                    console.log('ðŸ”— Socket connesso, registrando...');
+                    console.log('🔗 Socket connesso, registrando...');
                     tryRegister();
                 });
             }
@@ -2171,7 +2170,7 @@
             });
 
             socket.on('round_started', (data) => {
-                console.log('ðŸŽ¯ Round started:', data);
+                console.log('🎯 Round started:', data);
                 resetBiddingInterface();
                 document.getElementById('waiting-phase').style.display = 'none';
                 document.getElementById('bidding-phase').style.display = 'block';
@@ -2179,8 +2178,8 @@
             });
 
             socket.on('asta_started', (data) => {
-                console.log('ðŸŽª ASTA_STARTED RICEVUTO!', data);
-                console.log('ðŸ“Š Dati:', {
+                console.log('🎪 ASTA_STARTED RICEVUTO!', data);
+                console.log('📊 Dati:', {
                     round: data.round,
                     astaNumero: data.astaNumero,
                     slots: data.slots?.length || 0,
@@ -2194,14 +2193,14 @@
                 const waitingPhase = document.getElementById('waiting-phase');
                 if (waitingPhase) {
                     waitingPhase.style.display = 'none';
-                    console.log('âœ… Nascosta waiting-phase');
+                    console.log('✅ Nascosta waiting-phase');
                 }
 
                 // Mostra fase asta
                 const biddingPhase = document.getElementById('bidding-phase');
                 if (biddingPhase) {
                     biddingPhase.style.display = 'block';
-                    console.log('âœ… Mostrata bidding-phase');
+                    console.log('✅ Mostrata bidding-phase');
                 }
 
                 // Aggiorna titolo round
@@ -2211,15 +2210,15 @@
                         ? `${data.round} - Asta ${data.astaNumero}`
                         : data.round;
                     currentRoundEl.textContent = `Round ${roundLabel}`;
-                    console.log('âœ… Aggiornato titolo round:', roundLabel);
+                    console.log('✅ Aggiornato titolo round:', roundLabel);
                 }
 
                 // Carica giocatori disponibili
                 if (data.slots && data.slots.length > 0) {
-                    console.log('ðŸ“‹ Caricamento giocatori:', data.slots.length);
+                    console.log('📋 Caricamento giocatori:', data.slots.length);
                     loadAvailablePlayers(data.slots);
                 } else {
-                    console.log('âŒ Nessuno slot disponibile!');
+                    console.log('❌ Nessuno slot disponibile!');
                 }
             });
 
@@ -2230,14 +2229,14 @@
             });
 
             socket.on('round_ended', (data) => {
-                console.log('ðŸ Round terminato:', data);
+                console.log('🏁 Round terminato:', data);
                 loadPlayerTeam();
                 resetBiddingInterface();
                 showWaitingPhase();
             });
 
             socket.on('player_won_exit_auction', (data) => {
-                console.log('ðŸ† Hai vinto un giocatore:', data);
+                console.log('🏆 Hai vinto un giocatore:', data);
                 document.getElementById('bidding-phase').style.display = 'none';
                 document.getElementById('waiting-phase').style.display = 'block';
                 resetBiddingInterface();
@@ -2246,7 +2245,7 @@
                 const notification = document.createElement('div');
                 notification.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #48bb78; color: white; padding: 20px; border-radius: 15px; font-size: 1.2em; font-weight: bold; z-index: 2000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
                 notification.innerHTML = `
-                                <div>ðŸ† COMPLIMENTI!</div>
+                                <div>🏆 COMPLIMENTI!</div>
                                 <div style="margin: 10px 0;">Hai vinto:</div>
                                 <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
                                 <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
@@ -2256,11 +2255,11 @@
             });
 
             socket.on('bid_confirmed', (data) => {
-                console.log('âœ… Puntata confermata:', data);
+                console.log('✅ Puntata confermata:', data);
                 const button = document.getElementById('confirmBidBtn');
                 if (button) {
                     button.disabled = true;
-                    button.textContent = 'âœ… Puntata Confermata';
+                    button.textContent = '✅ Puntata Confermata';
                     button.style.background = '#10b981';
                 }
             });
@@ -2338,35 +2337,35 @@
             const bidAmount = parseInt(document.getElementById('bidAmount').value);
 
             if (!window.selectedPlayer || !bidAmount) {
-                mostraMessaggio('âš ï¸ Seleziona un giocatore e inserisci una puntata!', 'warning');
+                mostraMessaggio('⚠️ Seleziona un giocatore e inserisci una puntata!', 'warning');
                 return;
             }
 
             if (bidAmount > playerData.credits) {
-                mostraMessaggio('âš ï¸ Crediti insufficienti!', 'error');
+                mostraMessaggio('⚠️ Crediti insufficienti!', 'error');
                 return;
             }
 
             try {
                 const currentRound = document.getElementById('currentRound').textContent.replace('Round ', '').trim();
 
-                console.log('ðŸ“¤ Invio puntata:', {
+                console.log('📤 Invio puntata:', {
                     round: currentRound,
                     slot: window.selectedPlayer.id,
                     importo: bidAmount
                 });
 
                 socket.emit('place_bid', {
-                    round: currentRound,              // âœ… Nome corretto
-                    slot: window.selectedPlayer.id,   // âœ… Nome corretto
-                    importo: bidAmount                // âœ… Nome corretto
+                    round: currentRound,              // ✅ Nome corretto
+                    slot: window.selectedPlayer.id,   // ✅ Nome corretto
+                    importo: bidAmount                // ✅ Nome corretto
                 });
 
-                console.log('âœ… Puntata inviata al server');
+                console.log('✅ Puntata inviata al server');
 
                 const confirmBtn = document.getElementById('confirmBidBtn');
                 confirmBtn.disabled = true;
-                confirmBtn.textContent = 'âœ… Puntata Inviata';
+                confirmBtn.textContent = '✅ Puntata Inviata';
                 confirmBtn.style.background = '#10b981';
 
                 document.querySelectorAll('.player-card').forEach(card => {
@@ -2374,10 +2373,10 @@
                     card.style.opacity = '0.6';
                 });
 
-                mostraMessaggio('âœ… Puntata inviata con successo!', 'success');
+                mostraMessaggio('✅ Puntata inviata con successo!', 'success');
             } catch (error) {
                 console.error('Errore invio puntata:', error);
-                mostraMessaggio('âŒ Errore invio puntata', 'error');
+                mostraMessaggio('❌ Errore invio puntata', 'error');
             }
         }
 
@@ -2388,8 +2387,8 @@
             const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
             if (conferma) {
                 clearSavedSession();
-                sessioneCorrente = null;  // ðŸ†• Aggiungi questa riga
-                nomeSessioneCorrente = '';  // ðŸ†• Aggiungi questa riga
+                sessioneCorrente = null;  // 🆕 Aggiungi questa riga
+                nomeSessioneCorrente = '';  // 🆕 Aggiungi questa riga
                 playerData = {
                     registered: false,
                     name: '',
@@ -2410,10 +2409,10 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('FantaGTS Client caricato');
 
-            // Ã°Å¸â€ â€¢ Prova a caricare la sessione salvata
+            // ðŸ†• Prova a caricare la sessione salvata
             const sessionRestored = await loadSavedSession();
             if (sessionRestored) {
-                console.log('Ã¢Å“â€¦ Sessione ripristinata automaticamente');
+                console.log('âœ… Sessione ripristinata automaticamente');
             }
 
             // Gestione PIN fields
@@ -2428,13 +2427,13 @@
                         const newChar = displayed[displayed.length - 1];
                         if (/^\d$/.test(newChar) && currentReal.length < 4) {
                             this.dataset.realPin = currentReal + newChar;
-                            this.value = 'â€¢'.repeat(this.dataset.realPin.length);
+                            this.value = '•'.repeat(this.dataset.realPin.length);
                         } else {
-                            this.value = 'â€¢'.repeat(currentReal.length);
+                            this.value = '•'.repeat(currentReal.length);
                         }
                     } else if (displayed.length < currentReal.length) {
                         this.dataset.realPin = currentReal.slice(0, -1);
-                        this.value = 'â€¢'.repeat(this.dataset.realPin.length);
+                        this.value = '•'.repeat(this.dataset.realPin.length);
                     }
                 });
 
@@ -2454,7 +2453,7 @@
                 });
             });
 
-            // Controllo disponibilitÃ  nickname
+            // Controllo disponibilità nickname
             const nicknameInput = document.getElementById('registerNickname');
             if (nicknameInput) {
                 nicknameInput.addEventListener('input', async (e) => {
@@ -2472,10 +2471,10 @@
                         });
                         const result = await response.json();
                         if (result.available) {
-                            checkElement.textContent = 'âœ… Nickname disponibile';
+                            checkElement.textContent = '✅ Nickname disponibile';
                             checkElement.style.color = '#48bb78';
                         } else {
-                            checkElement.textContent = 'âŒ Nickname giÃ  in uso';
+                            checkElement.textContent = '❌ Nickname già in uso';
                             checkElement.style.color = '#f56565';
                         }
                     } catch (error) {
@@ -2493,10 +2492,7 @@
             // Inizializza socket
             initializeSocket();
 
-            // Controlla sessione esistente
-            checkExistingSession();
-
-            console.log('âœ… FantaGTS Client inizializzato correttamente');
+            console.log('✅ FantaGTS Client inizializzato correttamente');
         });
 
         // ========================================
@@ -2543,7 +2539,7 @@
                     registerSocketWhenReady();
                     await loadPlayerTeam();
 
-                    console.log('âœ… Sessione ripristinata per:', playerData.name);
+                    console.log('✅ Sessione ripristinata per:', playerData.name);
                 } else {
                     clearSavedSession();
                 }
