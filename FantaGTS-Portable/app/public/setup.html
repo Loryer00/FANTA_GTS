@@ -621,8 +621,8 @@ F3 Brunelli E</pre>
             }
         }
 
-        function mostraOpzioniAggiunta() {
-            // Gestione opzioni aggiunta squadra
+        // Gestione opzioni aggiunta squadra
+function mostraOpzioniAggiunta() {
     document.getElementById('opzioniAggiunta').style.display = 'block';
     document.getElementById('btnAggiungiSquadra').style.display = 'none';
 }
@@ -808,7 +808,7 @@ function clearFormManualeEChiudi() {
     nascondiOpzioni();
 }
 
-// Funzione comune per salvare squadra
+        // Funzione comune per salvare squadra
         async function salvaSquadra(squadra) {
             // Aggiungi sessione_id se presente
             if (sessioneCorrente) {
@@ -821,7 +821,14 @@ function clearFormManualeEChiudi() {
                 body: JSON.stringify(squadra)
             });
 
-function annullaUpload() {
+            if (!response.ok) {
+                throw new Error('Errore salvataggio squadra');
+            }
+
+            return await response.json();
+        }
+
+        function annullaUpload() {
     document.getElementById('fileSquadra').value = '';
     nascondiOpzioni();
 }
