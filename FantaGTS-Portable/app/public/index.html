@@ -985,35 +985,65 @@
 
         async function caricaMieSessioni() {
             const sessionsList = document.getElementById('sessions-list');
+
+            if (!sessionsList) {
+                console.error('❌ Elemento sessions-list non trovato!');
+                return;
+            }
+
             sessionsList.innerHTML = '<p style="text-align: center; color: #a0aec0;">Caricamento...</p>';
 
-            try {
-                const response = await fetch(`/api/my-sessions/${playerData.id}`);
-                const result = await response.json();
+            // Verifica che playerData.id sia valido
+            if (!playerData || !playerData.id) {
+                console.error('❌ playerData.id non disponibile:', playerData);
+                sessionsList.innerHTML = `
+            <p style="text-align: center; color: #fc8181; padding: 20px;">
+                ❌ Errore: dati utente non validi
+            </p>
+        `;
+                return;
+            }
 
-                if (result.success && result.sessioni.length > 0) {
+            try {
+                console.log('📡 Caricamento sessioni per:', playerData.id);
+                const response = await fetch(`/api/my-sessions/${playerData.id}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('📦 Risultato sessioni:', result);
+
+                if (result.success && result.sessioni && result.sessioni.length > 0) {
                     sessionsList.innerHTML = result.sessioni.map(sessione => `
-                        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-                            <div class="session-name">📋 ${sessione.nome}</div>
-                            <div class="session-info">
-                                ${sessione.anno ? `Anno: ${sessione.anno}` : ''} 
-                                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
-                            </div>
-                            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
-                        </div>
-                    `).join('');
+                <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+                    <div class="session-name">📋 ${sessione.nome}</div>
+                    <div class="session-info">
+                        ${sessione.anno ? `Anno: ${sessione.anno}` : ''} 
+                        • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                        ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                    </div>
+                    <div class="session-code">Codice: ${sessione.codice_accesso}</div>
+                </div>
+            `).join('');
                 } else {
+                    // Nessuna sessione trovata - mostra messaggio
                     sessionsList.innerHTML = `
-                        <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                            📭 Non sei ancora iscritto a nessuna sessione.<br>
-                            Usa il codice qui sotto per entrare!
-                        </p>
-                    `;
+                <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                    🔭 Non sei ancora iscritto a nessuna sessione.<br>
+                    Usa il codice qui sotto per entrare!
+                </p>
+            `;
                 }
             } catch (error) {
-                console.error('Errore caricamento sessioni:', error);
-                sessionsList.innerHTML = '<p style="text-align: center; color: #fc8181;">❌ Errore caricamento sessioni</p>';
+                console.error('❌ Errore caricamento sessioni:', error);
+                sessionsList.innerHTML = `
+            <p style="text-align: center; color: #fc8181; padding: 20px;">
+                ❌ Errore caricamento sessioni<br>
+                <small style="opacity: 0.7;">${error.message}</small>
+            </p>
+        `;
             }
         }
 
