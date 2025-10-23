@@ -329,6 +329,21 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS stato TEXT DEFAULT 'setup'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 
+        // Aggiungi codice_accesso alle sessioni
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS codice_accesso VARCHAR(5) UNIQUE`);
+
+        // Crea tabella per tracciare accessi partecipanti
+        await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_sessioni_accesso (
+    id SERIAL PRIMARY KEY,
+    partecipante_id TEXT REFERENCES partecipanti_fantagts(id) ON DELETE CASCADE,
+    sessione_id TEXT REFERENCES sessioni_fantagts(id) ON DELETE CASCADE,
+    primo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultimo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(partecipante_id, sessione_id)
+)`);
+
+        console.log('✅ Codice accesso e tabella accessi creati');
+
         // 3️⃣ INFINE: Aggiungi colonne sessione_id alle altre tabelle
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
@@ -421,6 +436,33 @@ let gameState = {
     lastMonitorLog: null,
     lastOfferteCount: 0
 };
+
+// Genera codice sessione univoco (5 caratteri)
+function generaCodiceSessione() {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Esclusi 0,O,1,I per chiarezza
+    let codice = '';
+    for (let i = 0; i < 5; i++) {
+        codice += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return codice;
+}
+
+// Verifica unicità codice sessione
+async function generaCodiceUnico() {
+    let codice;
+    let esistente = true;
+
+    while (esistente) {
+        codice = generaCodiceSessione();
+        const check = await db.query(
+            'SELECT id FROM sessioni_fantagts WHERE codice_accesso = $1',
+            [codice]
+        );
+        esistente = check.rows.length > 0;
+    }
+
+    return codice;
+}
 
 // Funzioni utilità
 function arrotondaAlPariPiuVicino(numero) {
@@ -1990,6 +2032,92 @@ app.post('/api/register', async (req, res) => {
             success: false,
             error: 'Errore server'
         });
+    }
+});
+
+// Entra in sessione con codice
+app.post('/api/join-session-with-code', async (req, res) => {
+    try {
+        const { partecipanteId, codiceSessione } = req.body;
+
+        if (!partecipanteId || !codiceSessione) {
+            return res.status(400).json({ error: 'Parametri mancanti' });
+        }
+
+        // Verifica codice sessione
+        const sessioneResult = await db.query(
+            'SELECT id, nome, anno, modalita, attiva FROM sessioni_fantagts WHERE codice_accesso = $1',
+            [codiceSessione.toUpperCase()]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Codice sessione non valido' });
+        }
+
+        const sessione = sessioneResult.rows[0];
+
+        // Verifica che partecipante esista
+        const partCheck = await db.query(
+            'SELECT id, nome FROM partecipanti_fantagts WHERE id = $1',
+            [partecipanteId]
+        );
+
+        if (partCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Partecipante non trovato' });
+        }
+
+        // Registra accesso (INSERT o UPDATE ultimo_accesso)
+        await db.query(`
+            INSERT INTO partecipanti_sessioni_accesso (partecipante_id, sessione_id, ultimo_accesso)
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (partecipante_id, sessione_id) 
+            DO UPDATE SET ultimo_accesso = CURRENT_TIMESTAMP
+        `, [partecipanteId, sessione.id]);
+
+        console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome}`);
+
+        res.json({
+            success: true,
+            sessione: sessione,
+            message: `Accesso garantito alla sessione "${sessione.nome}"`
+        });
+
+    } catch (err) {
+        console.error('Errore join-session-with-code:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Ottieni sessioni a cui il partecipante ha accesso
+app.get('/api/my-sessions/:partecipanteId', async (req, res) => {
+    try {
+        const partecipanteId = req.params.partecipanteId;
+
+        const result = await db.query(`
+            SELECT 
+                s.id, 
+                s.nome, 
+                s.anno, 
+                s.codice_accesso,
+                s.modalita,
+                s.attiva,
+                s.stato,
+                psa.primo_accesso,
+                psa.ultimo_accesso
+            FROM partecipanti_sessioni_accesso psa
+            JOIN sessioni_fantagts s ON psa.sessione_id = s.id
+            WHERE psa.partecipante_id = $1
+            ORDER BY psa.ultimo_accesso DESC
+        `, [partecipanteId]);
+
+        res.json({
+            success: true,
+            sessioni: result.rows
+        });
+
+    } catch (err) {
+        console.error('Errore my-sessions:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -4317,6 +4445,9 @@ app.post('/api/sessioni', async (req, res) => {
         // Genera ID univoco
         const sessioneId = generateSessionId();
 
+        // Genera codice accesso univoco
+        const codiceAccesso = await generaCodiceUnico();
+
         // Disattiva eventuali altre sessioni della stessa modalità
         await db.query(
             'UPDATE sessioni_fantagts SET attiva = false WHERE modalita = $1 AND attiva = true',
@@ -4325,13 +4456,13 @@ app.post('/api/sessioni', async (req, res) => {
 
         // Inserisci nuova sessione
         const result = await db.query(`
-            INSERT INTO sessioni_fantagts (
-                id, nome, anno, descrizione, modalita,
-                numero_partecipanti_previsti, crediti_iniziali, numero_squadre,
-                condivisione_attiva, ripetizioni_necessarie, 
-                stato, attiva
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *
+    INSERT INTO sessioni_fantagts (
+        id, nome, anno, descrizione, modalita,
+        numero_partecipanti_previsti, crediti_iniziali, numero_squadre,
+        condivisione_attiva, ripetizioni_necessarie, 
+        stato, attiva, codice_accesso
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    RETURNING *
         `, [
             sessioneId,
             nome,
@@ -4344,10 +4475,10 @@ app.post('/api/sessioni', async (req, res) => {
             condivisione.condivisioneAttiva,
             condivisione.ripetizioniNecessarie,
             'setup',
-            true
+            true,
+            codiceAccesso
         ]);
-
-        console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita})`);
+        console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita}) - Codice: ${codiceAccesso}`);
         console.log(`   📊 Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
         console.log(`   🔄 Condivisione: ${condivisione.condivisioneAttiva ? 'ATTIVA' : 'NON NECESSARIA'}`);
 

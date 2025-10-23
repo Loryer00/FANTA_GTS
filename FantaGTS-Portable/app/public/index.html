@@ -51,6 +51,46 @@
             margin-bottom: 20px;
         }
 
+        /* Lista sessioni */
+        .session-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+            .session-item:hover {
+                background: rgba(255,255,255,0.15);
+                border-color: rgba(66, 153, 225, 0.5);
+                transform: translateX(5px);
+            }
+
+        .session-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #63b3ed;
+        }
+
+        .session-info {
+            font-size: 0.9em;
+            color: #a0aec0;
+        }
+
+        .session-code {
+            display: inline-block;
+            background: rgba(0,0,0,0.3);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
             .input-group label {
                 display: block;
                 margin-bottom: 8px;
@@ -696,6 +736,34 @@
                 <button class="btn btn-secondary" onclick="tornaWelcome()">
                     ← Indietro
                 </button>
+
+                <!-- Schermata SELEZIONE SESSIONI -->
+                <div id="sessions-screen" class="registration-form" style="display: none;">
+                    <h2>🎾 Le Tue Sessioni</h2>
+                    <p style="margin-bottom: 20px;">Seleziona una sessione o aggiungine una nuova</p>
+
+                    <!-- Lista sessioni -->
+                    <div id="sessions-list" style="margin-bottom: 25px;">
+                        <p style="text-align: center; color: #a0aec0;">Caricamento sessioni...</p>
+                    </div>
+
+                    <!-- Form aggiungi sessione -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="margin-bottom: 15px; font-size: 1.1em;">➕ Aggiungi Nuova Sessione</h3>
+                        <div class="input-group" style="margin-bottom: 15px;">
+                            <label>Codice Sessione (5 caratteri):</label>
+                            <input type="text" id="sessionCode" placeholder="es: XK7M2" maxlength="5"
+                                   style="text-transform: uppercase; letter-spacing: 3px; font-size: 1.3em;">
+                        </div>
+                        <button class="btn btn-primary" onclick="aggiungiSessione()">
+                            🔑 Entra con Codice
+                        </button>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="logout()" style="margin-top: 20px;">
+                        🚪 Esci
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -897,6 +965,126 @@
             document.getElementById('register-screen').style.display = 'block';
         }
 
+        // ========================================
+        // GESTIONE SESSIONI
+        // ========================================
+
+        async function mostraSchermataSessioni() {
+            // Nascondi tutte le schermate
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('register-screen').style.display = 'none';
+            document.getElementById('game-area').style.display = 'none';
+
+            // Mostra schermata sessioni
+            document.getElementById('sessions-screen').style.display = 'block';
+
+            // Carica sessioni del partecipante
+            await caricaMieSessioni();
+        }
+
+        async function caricaMieSessioni() {
+            const sessionsList = document.getElementById('sessions-list');
+            sessionsList.innerHTML = '<p style="text-align: center; color: #a0aec0;">Caricamento...</p>';
+
+            try {
+                const response = await fetch(`/api/my-sessions/${playerData.id}`);
+                const result = await response.json();
+
+                if (result.success && result.sessioni.length > 0) {
+                    sessionsList.innerHTML = result.sessioni.map(sessione => `
+                        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+                            <div class="session-name">📋 ${sessione.nome}</div>
+                            <div class="session-info">
+                                ${sessione.anno ? `Anno: ${sessione.anno}` : ''} 
+                                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                            </div>
+                            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    sessionsList.innerHTML = `
+                        <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                            📭 Non sei ancora iscritto a nessuna sessione.<br>
+                            Usa il codice qui sotto per entrare!
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Errore caricamento sessioni:', error);
+                sessionsList.innerHTML = '<p style="text-align: center; color: #fc8181;">❌ Errore caricamento sessioni</p>';
+            }
+        }
+
+        async function aggiungiSessione() {
+            const codiceInput = document.getElementById('sessionCode');
+            const codice = codiceInput.value.trim().toUpperCase();
+
+            if (!codice || codice.length !== 5) {
+                mostraMessaggio('⚠️ Inserisci un codice valido di 5 caratteri!', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/join-session-with-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        partecipanteId: playerData.id,
+                        codiceSessione: codice
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    mostraMessaggio(`✅ ${result.message}`, 'success');
+                    codiceInput.value = '';
+
+                    // Ricarica lista sessioni
+                    await caricaMieSessioni();
+                } else {
+                    mostraMessaggio(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Errore aggiunta sessione:', error);
+                mostraMessaggio('❌ Errore di connessione', 'error');
+            }
+        }
+
+        async function entraInSessione(sessioneId, nomeSessione) {
+            try {
+                // Imposta la sessione corrente (lato client)
+                sessioneCorrente = sessioneId;
+
+                // Aggiorna display
+                document.getElementById('currentPlayer').textContent = playerData.name;
+                document.getElementById('playerCredits').textContent = playerData.credits;
+                updateCreditsDisplay();
+
+                // Nascondi schermata sessioni e mostra game area
+                document.getElementById('sessions-screen').style.display = 'none';
+                showGameArea();
+
+                // Carica squadra del partecipante
+                await loadPlayerTeam();
+
+                // Setup notifiche se abilitate
+                if (playerData.notificationsEnabled) {
+                    await setupPushNotifications();
+                }
+
+                // Registra socket
+                registerSocketWhenReady();
+
+                mostraMessaggio(`🎾 Benvenuto in "${nomeSessione}"!`, 'success');
+            } catch (error) {
+                console.error('Errore entrata sessione:', error);
+                mostraMessaggio('❌ Errore entrando nella sessione', 'error');
+            }
+        }
+
         function tornaWelcome() {
             document.getElementById('welcome-screen').style.display = 'block';
             document.getElementById('login-screen').style.display = 'none';
@@ -1061,19 +1249,13 @@
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     saveSession();
-                    document.getElementById('currentPlayer').textContent = result.player.nome;
-                    document.getElementById('playerCredits').textContent = result.player.crediti;
-                    updateCreditsDisplay();
-                    showGameArea();
-                    await loadPlayerTeam();
 
-                    if (notificationsEnabled) {
-                        await setupPushNotifications();
-                    }
-                    registerSocketWhenReady();
+                    // Mostra schermata selezione sessioni
+                    await mostraSchermataSessioni();
 
-                    mostraMessaggio(`✅ Bentornato, ${result.player.nome}! Hai ${result.player.crediti} crediti disponibili.`, 'success');
-                } else {
+                    mostraMessaggio(`✅ Bentornato, ${result.player.nome}!`, 'success');
+                }
+                else {
                     if (result.error === 'Utente non trovato') {
                         const vuoleRegistrarsi = await confermaPersonalizzata(`❌ Nickname "${nickname}" non trovato.<br><br>Vuoi registrarti?`);
                         if (vuoleRegistrarsi) {
