@@ -4617,7 +4617,6 @@ app.post('/api/sessioni/:id/reset', async (req, res) => {
 });
 
 // DELETE: Elimina sessione completamente
-// DELETE: Elimina sessione completamente
 app.delete('/api/sessioni/:id', async (req, res) => {
     try {
         const sessioneId = req.params.id;
@@ -4699,6 +4698,40 @@ app.delete('/api/sessioni/:id', async (req, res) => {
     } catch (err) {
         await db.query('ROLLBACK');
         console.error('❌ Errore eliminazione sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint per aggiornare i crediti iniziali di una sessione
+app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
+    try {
+        const { sessioneId } = req.params;
+        const { creditiIniziali } = req.body;
+
+        if (!creditiIniziali || creditiIniziali < 100 || creditiIniziali > 100000) {
+            return res.status(400).json({ error: 'Crediti devono essere tra 100 e 100.000' });
+        }
+
+        if (creditiIniziali % 100 !== 0) {
+            return res.status(400).json({ error: 'Crediti devono essere multipli di 100' });
+        }
+
+        // Aggiorna i crediti della sessione
+        await db.query(
+            'UPDATE sessioni_fantagts SET crediti_iniziali = $1, last_modified = CURRENT_TIMESTAMP WHERE id = $2',
+            [creditiIniziali, sessioneId]
+        );
+
+        console.log(`✅ Crediti sessione ${sessioneId} aggiornati a ${creditiIniziali}`);
+
+        res.json({
+            success: true,
+            message: 'Crediti aggiornati con successo',
+            creditiIniziali: creditiIniziali
+        });
+
+    } catch (err) {
+        console.error('❌ Errore aggiornamento crediti sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });

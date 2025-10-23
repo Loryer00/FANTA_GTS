@@ -815,6 +815,22 @@
                     <span style="margin-left: 15px; padding: 4px 12px; background: rgba(0, 0, 0, 0.4); border-radius: 8px; font-size: 0.9em; color: #ffd700; font-weight: bold; font-family: monospace; letter-spacing: 3px; border: 1px solid rgba(255, 215, 0, 0.3);">
                         🔑 ${sessioneInfo.codice_accesso || 'N/A'}
                     </span>
+                    ${sessioneInfo.modalita === 'asta_competitiva' ? `
+                        <span style="margin-left: 15px; padding: 4px 12px; background: rgba(66, 153, 225, 0.2); border-radius: 8px; font-size: 0.9em; color: #4299e1; border: 1px solid rgba(66, 153, 225, 0.3); display: inline-flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.1em;">💰</span>
+                            <input 
+                                type="number" 
+                                id="creditiSessione" 
+                                value="${sessioneInfo.crediti_iniziali || 2000}" 
+                                min="100" 
+                                max="100000" 
+                                step="100"
+                                onchange="aggiornaCreditiSessione(this.value)"
+                                style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #4299e1; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-align: center;"
+                            >
+                            <span style="font-size: 0.85em; color: #cbd5e0;">crediti</span>
+                        </span>
+                    ` : ''}
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button onclick="resetSessione()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9em;">
@@ -853,6 +869,49 @@
             `;
 
             header.appendChild(warningBanner);
+        }
+
+        async function aggiornaCreditiSessione(nuoviCrediti) {
+            if (!sessioneCorrente) {
+                showNotification('Nessuna sessione attiva', 'error');
+                return;
+            }
+
+            const crediti = parseInt(nuoviCrediti);
+
+            if (crediti < 100 || crediti > 100000) {
+                showNotification('❌ I crediti devono essere tra 100 e 100.000', 'error');
+                document.getElementById('creditiSessione').value = sessioneInfo.crediti_iniziali;
+                return;
+            }
+
+            if (crediti % 100 !== 0) {
+                showNotification('❌ I crediti devono essere multipli di 100', 'error');
+                document.getElementById('creditiSessione').value = sessioneInfo.crediti_iniziali;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/sessioni/${sessioneCorrente}/crediti`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ creditiIniziali: crediti })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    sessioneInfo.crediti_iniziali = crediti;
+                    showNotification(`✅ Crediti aggiornati a ${crediti}`, 'success');
+                } else {
+                    showNotification(`❌ ${result.error}`, 'error');
+                    document.getElementById('creditiSessione').value = sessioneInfo.crediti_iniziali;
+                }
+            } catch (error) {
+                console.error('Errore aggiornamento crediti:', error);
+                showNotification('❌ Errore di connessione', 'error');
+                document.getElementById('creditiSessione').value = sessioneInfo.crediti_iniziali;
+            }
         }
 
         async function resetSessione() {
