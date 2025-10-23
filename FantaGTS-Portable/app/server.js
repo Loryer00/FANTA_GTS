@@ -327,6 +327,46 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
+        // 🆕 CORREGGI CONSTRAINT UNIQUE su squadre_circolo
+        // Il numero squadra deve essere UNIQUE solo all'interno della stessa sessione
+        try {
+            console.log('🔧 Aggiornando constraint UNIQUE per squadre_circolo...');
+
+            // Rimuovi vecchio constraint (se esiste)
+            await db.query(`
+        DO $$ 
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM pg_constraint 
+                WHERE conname = 'squadre_circolo_numero_key'
+            ) THEN
+                ALTER TABLE squadre_circolo DROP CONSTRAINT squadre_circolo_numero_key;
+                RAISE NOTICE 'Constraint rimosso: squadre_circolo_numero_key';
+            END IF;
+        END $$;
+    `);
+
+            // Aggiungi nuovo constraint che include sessione_id
+            await db.query(`
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint 
+                WHERE conname = 'squadre_circolo_numero_sessione_key'
+            ) THEN
+                ALTER TABLE squadre_circolo 
+                ADD CONSTRAINT squadre_circolo_numero_sessione_key 
+                UNIQUE (numero, sessione_id);
+                RAISE NOTICE 'Constraint aggiunto: squadre_circolo_numero_sessione_key';
+            END IF;
+        END $$;
+    `);
+
+            console.log('✅ Constraint UNIQUE aggiornato: (numero, sessione_id)');
+        } catch (err) {
+            console.warn('⚠️ Errore aggiornamento constraint:', err.message);
+        }
+
         // 4️⃣ ORA SÌ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
         try {
             await db.query(`
