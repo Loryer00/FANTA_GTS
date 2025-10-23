@@ -1322,15 +1322,9 @@
                     playerData.notificationsEnabled = notificationsEnabled;
 
                     saveSession();
-                    document.getElementById('currentPlayer').textContent = result.player.nome;
-                    document.getElementById('playerCredits').textContent = result.player.crediti;
-                    updateCreditsDisplay();
-                    showGameArea();
 
-                    if (notificationsEnabled) {
-                        await setupPushNotifications();
-                    }
-                    registerSocketWhenReady();
+                    // Mostra schermata selezione sessioni (come fa il login)
+                    await mostraSchermataSessioni();
 
                     mostraMessaggio(`✅ Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
                 } else {
