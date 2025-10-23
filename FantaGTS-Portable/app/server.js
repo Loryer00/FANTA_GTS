@@ -666,26 +666,45 @@ async function generaSlots(sessioneId = null) {
 
         const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
-        // CANCELLA SLOTS ESISTENTI con CASCADE o filtro per sessione
+        // CANCELLA SLOTS ESISTENTI - Prima cancella le aste collegate
         console.log('🗑️ Cancellazione slots esistenti...');
-        if (sessioneCorrente) {
-            // Cancella solo gli slots delle squadre di questa sessione
-            await db.query(`
-                DELETE FROM slots 
-                WHERE squadra_numero IN (
-                    SELECT numero FROM squadre_circolo WHERE sessione_id = $1
-                )
-            `, [sessioneCorrente]);
+
+        if (sessioneId) {
+            // Step 1: Trova i numeri delle squadre di questa sessione
+            const squadreNumeri = squadre.map(sq => sq.numero);
+            console.log('📋 Numeri squadre da cancellare:', squadreNumeri);
+
+            // Step 2: Cancella le aste collegate a questi slots
+            if (squadreNumeri.length > 0) {
+                await db.query(`
+                    DELETE FROM aste 
+                    WHERE slot_id IN (
+                        SELECT id FROM slots WHERE squadra_numero = ANY($1)
+                    )
+                `, [squadreNumeri]);
+                console.log('✅ Aste collegate cancellate');
+            }
+
+            // Step 3: Cancella gli slots
+            if (squadreNumeri.length > 0) {
+                await db.query(`
+                    DELETE FROM slots 
+                    WHERE squadra_numero = ANY($1)
+                `, [squadreNumeri]);
+                console.log('✅ Slots esistenti cancellati');
+            }
         } else {
-            // Cancella tutti gli slots
+            // Cancella prima tutte le aste, poi tutti gli slots
+            await db.query("DELETE FROM aste");
             await db.query("DELETE FROM slots");
+            console.log('✅ Tutti gli slots e aste cancellati');
         }
-        console.log('✅ Slots esistenti cancellati');
 
         let inserimenti = 0;
         for (const squadra of squadre) {
             for (const pos of posizioni) {
-                const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
+                // ID univoco: include il numero della squadra per evitare conflitti
+                const slotId = `${pos}_SQ${squadra.numero}_${squadra.colore.toUpperCase()}`;
                 const giocatore = squadra[pos.toLowerCase()];
 
                 await db.query(
