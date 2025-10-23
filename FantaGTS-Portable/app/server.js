@@ -4009,9 +4009,9 @@ io.on('connection', (socket) => {
 
             // Verifica nel database
             db.query(`
-           SELECT id, nome, crediti FROM partecipanti_fantagts 
-           WHERE id = $1 AND attivo = true AND sessione_id = $2
-       `, [data.partecipanteId, sessioneCorrente])
+           SELECT id, nome, crediti, sessione_id FROM partecipanti_fantagts 
+           WHERE id = $1 AND attivo = true
+       `, [data.partecipanteId])
                 .then(result => {
                     if (result.rows.length === 0) {
                         console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
