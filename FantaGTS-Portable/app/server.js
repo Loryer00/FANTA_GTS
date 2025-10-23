@@ -282,13 +282,39 @@ async function updateDatabaseSchema() {
         try {
             console.log('🔧 Aggiornando constraint UNIQUE per squadre_circolo...');
 
-            // Rimuovi il vecchio constraint (solo su numero)
+            // Step 1: Rimuovi tutte le foreign key che dipendono da squadre_circolo(numero)
             await db.query(`
-                ALTER TABLE squadre_circolo 
-                DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key
+                ALTER TABLE coppie_turno 
+                DROP CONSTRAINT IF EXISTS coppie_turno_squadra1_fkey CASCADE
+            `);
+            await db.query(`
+                ALTER TABLE coppie_turno 
+                DROP CONSTRAINT IF EXISTS coppie_turno_squadra2_fkey CASCADE
+            `);
+            await db.query(`
+                ALTER TABLE incontri 
+                DROP CONSTRAINT IF EXISTS incontri_squadra1_fkey CASCADE
+            `);
+            await db.query(`
+                ALTER TABLE incontri 
+                DROP CONSTRAINT IF EXISTS incontri_squadra2_fkey CASCADE
+            `);
+            await db.query(`
+                ALTER TABLE scontri_squadre 
+                DROP CONSTRAINT IF EXISTS scontri_squadre_squadra1_fkey CASCADE
+            `);
+            await db.query(`
+                ALTER TABLE scontri_squadre 
+                DROP CONSTRAINT IF EXISTS scontri_squadre_squadra2_fkey CASCADE
             `);
 
-            // Aggiungi il nuovo constraint composto (numero + sessione_id)
+            // Step 2: Ora rimuovi il vecchio constraint UNIQUE
+            await db.query(`
+                ALTER TABLE squadre_circolo 
+                DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key CASCADE
+            `);
+
+            // Step 3: Aggiungi il nuovo constraint composto (numero + sessione_id)
             await db.query(`
                 DO $$ 
                 BEGIN
@@ -301,6 +327,38 @@ async function updateDatabaseSchema() {
                         UNIQUE (numero, sessione_id);
                     END IF;
                 END $$;
+            `);
+
+            // Step 4: Ricrea le foreign key (senza CASCADE stavolta)
+            await db.query(`
+                ALTER TABLE coppie_turno 
+                ADD CONSTRAINT coppie_turno_squadra1_fkey 
+                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
+            `);
+            await db.query(`
+                ALTER TABLE coppie_turno 
+                ADD CONSTRAINT coppie_turno_squadra2_fkey 
+                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+            `);
+            await db.query(`
+                ALTER TABLE incontri 
+                ADD CONSTRAINT incontri_squadra1_fkey 
+                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
+            `);
+            await db.query(`
+                ALTER TABLE incontri 
+                ADD CONSTRAINT incontri_squadra2_fkey 
+                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+            `);
+            await db.query(`
+                ALTER TABLE scontri_squadre 
+                ADD CONSTRAINT scontri_squadre_squadra1_fkey 
+                FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero)
+            `);
+            await db.query(`
+                ALTER TABLE scontri_squadre 
+                ADD CONSTRAINT scontri_squadre_squadra2_fkey 
+                FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
             `);
 
             console.log('✅ Constraint aggiornato: ora numero può ripetersi tra sessioni diverse');
