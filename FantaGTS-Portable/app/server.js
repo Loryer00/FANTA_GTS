@@ -318,6 +318,45 @@ async function updateDatabaseSchema() {
             last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        console.log('✅ Tabella sessioni creata');
+
+        // 🆕 CREA SESSIONE "default" SE NON ESISTE
+        const checkDefault = await db.query(`SELECT id FROM sessioni_fantagts WHERE id = 'default'`);
+        if (checkDefault.rows.length === 0) {
+            await db.query(`
+                INSERT INTO sessioni_fantagts (
+                    id, 
+                    nome, 
+                    anno, 
+                    descrizione, 
+                    modalita, 
+                    numero_partecipanti_previsti, 
+                    crediti_iniziali, 
+                    numero_squadre, 
+                    stato, 
+                    attiva,
+                    codice_accesso
+                ) VALUES (
+                    'default',
+                    'Sessione Default',
+                    2025,
+                    'Sessione di sistema per utenti non assegnati',
+                    'asta_competitiva',
+                    10,
+                    2000,
+                    10,
+                    'setup',
+                    false,
+                    'SYS00'
+                )
+            `);
+            console.log('✅ Sessione "default" creata per compatibilità');
+        } else {
+            console.log('ℹ️ Sessione "default" già esistente');
+        }
+
+        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
+
         // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS modalita TEXT DEFAULT 'asta_competitiva'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_partecipanti_previsti INTEGER DEFAULT 10`);
