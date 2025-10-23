@@ -1032,19 +1032,13 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
-        const sessioneId = req.query.sessione_id;
+        const sessioneId = req.query.sessione || sessioneCorrente;
 
-        let query = "SELECT * FROM squadre_circolo WHERE attiva = true";
-        const params = [];
+        const result = await db.query(
+            'SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1 ORDER BY numero',
+            [sessioneId]
+        );
 
-        if (sessioneId) {
-            params.push(sessioneId);
-            query += ` AND sessione_id = $1`;
-        }
-
-        query += " ORDER BY numero";
-
-        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);
@@ -2045,7 +2039,7 @@ app.get('/api/stato', (req, res) => {
 app.get('/api/slot-info/:slotId', async (req, res) => {
     try {
         const slotId = req.params.slotId;
-        const result = await db.query("SELECT * FROM slots WHERE id = $1", [slotId]);
+        const result = await db.query("SELECT * FROM slots WHERE id = $1 AND sessione_id = $2", [slotId, sessioneCorrente]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Slot non trovato' });
@@ -2054,6 +2048,24 @@ app.get('/api/slot-info/:slotId', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error('Errore slot-info:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Ottieni tutti gli slots (con filtro sessione)
+app.get('/api/slots', async (req, res) => {
+    try {
+        const sessioneId = req.query.sessione || sessioneCorrente;
+
+        const result = await db.query(
+            'SELECT * FROM slots WHERE sessione_id = $1 ORDER BY posizione, colore',
+            [sessioneId]
+        );
+
+        console.log(`✅ Slots caricati per sessione ${sessioneId}: ${result.rows.length}`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API slots:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2073,11 +2085,13 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             s.punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
-            WHERE a.partecipante_id = $1 AND a.vincitore = true 
-            ORDER BY s.posizione`, [partecipanteId]);
+            WHERE a.partecipante_id = $1 
+            AND a.vincitore = true 
+            AND a.sessione_id = $2
+            ORDER BY s.posizione`, [partecipanteId, sessioneCorrente]);
 
         // Ottieni crediti aggiornati
-        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
+        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`, [partecipanteId, sessioneCorrente]);
 
         res.json({
             squadra: squadraResult.rows,
@@ -2258,10 +2272,11 @@ app.get('/api/classifica', async (req, res) => {
             COALESCE(SUM(s.punti_totali), 0) as punti_totali,
             COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
             FROM partecipanti_fantagts p 
-            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true
-            LEFT JOIN slots s ON a.slot_id = s.id 
+            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
+            LEFT JOIN slots s ON a.slot_id = s.id AND s.sessione_id = $1
+            WHERE p.sessione_id = $1 AND p.attivo = true
             GROUP BY p.id, p.nome, p.crediti 
-            ORDER BY punti_totali DESC, crediti_spesi ASC`);
+            ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
