@@ -640,12 +640,46 @@ function elaboraVincitoreUnico(offerte) {
 
 async function generaSlots() {
     try {
-        const squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
+        console.log('🎯 Inizio generazione slots...');
+
+        // FILTRO PER SESSIONE se presente
+        let squadreResult;
+        if (sessioneCorrente) {
+            console.log('📌 Filtro per sessione:', sessioneCorrente);
+            squadreResult = await db.query(
+                "SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1",
+                [sessioneCorrente]
+            );
+        } else {
+            console.log('📌 Nessun filtro sessione');
+            squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
+        }
+
         const squadre = squadreResult.rows;
+        console.log(`✅ Trovate ${squadre.length} squadre attive`);
+
+        // Verifica che ci siano squadre
+        if (squadre.length === 0) {
+            throw new Error('Nessuna squadra trovata per generare gli slots');
+        }
+
         const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
-        // Cancella slots esistenti
-        await db.query("DELETE FROM slots");
+        // CANCELLA SLOTS ESISTENTI con CASCADE o filtro per sessione
+        console.log('🗑️ Cancellazione slots esistenti...');
+        if (sessioneCorrente) {
+            // Cancella solo gli slots delle squadre di questa sessione
+            await db.query(`
+                DELETE FROM slots 
+                WHERE squadra_numero IN (
+                    SELECT numero FROM squadre_circolo WHERE sessione_id = $1
+                )
+            `, [sessioneCorrente]);
+        } else {
+            // Cancella tutti gli slots
+            await db.query("DELETE FROM slots");
+        }
+        console.log('✅ Slots esistenti cancellati');
 
         let inserimenti = 0;
         for (const squadra of squadre) {
@@ -661,8 +695,11 @@ async function generaSlots() {
             }
         }
 
+        console.log(`✅ Generati ${inserimenti} slots da ${squadre.length} squadre`);
         return inserimenti;
     } catch (error) {
+        console.error('❌ ERRORE generaSlots:', error.message);
+        console.error('Stack:', error.stack);
         throw error;
     }
 }
