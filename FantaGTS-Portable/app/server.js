@@ -1921,12 +1921,15 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // Inserimento nuovo partecipante SENZA sessione
+        // Genera ID dal nickname
+        const id = nicknameClean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
+        // Inserimento nuovo partecipante
         const result = await db.query(`
-            INSERT INTO partecipanti_fantagts (nome, pin, crediti, attivo)
-            VALUES ($1, $2, $3, true)
+            INSERT INTO partecipanti_fantagts (id, nome, pin, crediti, attivo)
+            VALUES ($1, $2, $3, $4, true)
             RETURNING id, nome, crediti
-        `, [nicknameClean, pinClean, crediti]);
+        `, [id, nicknameClean, pinClean, crediti]);
 
         const player = result.rows[0];
 
@@ -1949,7 +1952,6 @@ app.post('/api/register', async (req, res) => {
         });
     }
 });
-
 // Entra in sessione con codice
 app.post('/api/join-session-with-code', async (req, res) => {
     try {
