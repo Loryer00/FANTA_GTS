@@ -285,6 +285,13 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
+        // ðŸ†• AGGIUNGI sessione_id a TUTTE le tabelle per isolamento completo
+        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE coppie_turno ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+
         // Crea tabella sessioni se non esiste (SCHEMA COMPLETO)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
@@ -1869,32 +1876,6 @@ app.post('/api/register', async (req, res) => {
             success: false,
             error: 'Errore server'
         });
-    }
-});
-
-// API per creare nuova sessione
-app.post('/api/nuova-sessione', async (req, res) => {
-    try {
-        const { anno, descrizione } = req.body;
-        const nuovoId = `fantagts_${anno}`;
-
-        // Disattiva sessione corrente
-        await db.query("UPDATE sessioni_fantagts SET attiva = false WHERE attiva = true");
-
-        // Crea nuova sessione
-        await db.query(`INSERT INTO sessioni_fantagts (id, nome, anno, descrizione, attiva) 
-            VALUES ($1, $2, $3, $4, true)`, [nuovoId, `FantaGTS ${anno}`, anno, descrizione]);
-
-        // Aggiorna sessione corrente
-        sessioneCorrente = nuovoId;
-
-        res.json({
-            message: 'Nuova sessione creata',
-            sessioneId: nuovoId,
-            redirectTo: '/setup'
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
     }
 });
 

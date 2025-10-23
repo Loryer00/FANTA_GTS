@@ -655,9 +655,6 @@
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <button class="btn btn-warning" onclick="mostraNuovaSessione()">
-                    📅 Nuova Sessione Annuale
-                </button>
             </div>
         </div>
 
@@ -693,31 +690,6 @@
             <div style="margin-top: 20px; text-align: right;">
                 <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Annulla</button>
                 <button class="btn btn-primary" id="confirmBtn">Conferma</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Nuova Sessione -->
-    <div id="nuovaSessioneModal" class="modal">
-        <div class="modal-content">
-            <h3>📅 Crea Nuova Sessione Annuale</h3>
-            <p><strong>ATTENZIONE:</strong> Questa azione creerà un backup dei dati attuali e inizializzerà un nuovo FantaGTS pulito.</p>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Anno:</label>
-                <input type="number" id="nuovoAnno" placeholder="2025" min="2024" max="2030"
-                       style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-            </div>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Descrizione (opzionale):</label>
-                <input type="text" id="nuovaDescrizione" placeholder="FantaGTS 2025 - Torneo Primavera"
-                       style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-            </div>
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-secondary" onclick="closeModal('nuovaSessioneModal')">Annulla</button>
-                <button class="btn btn-warning" onclick="creaNuovaSessione()">📅 Crea Nuova Sessione</button>
             </div>
         </div>
     </div>
@@ -2376,55 +2348,7 @@
                 console.error('Errore caricamento info sessione:', error);
                 document.getElementById('currentSession').textContent = 'Errore caricamento';
             }
-        }
-
-        // Mostra modal nuova sessione
-        function mostraNuovaSessione() {
-            const currentYear = new Date().getFullYear();
-            document.getElementById('nuovoAnno').value = currentYear;
-            document.getElementById('nuovaDescrizione').value = `FantaGTS ${currentYear}`;
-            document.getElementById('nuovaSessioneModal').style.display = 'flex';
-        }
-
-        // Crea nuova sessione
-        async function creaNuovaSessione() {
-            const anno = document.getElementById('nuovoAnno').value;
-            const descrizione = document.getElementById('nuovaDescrizione').value;
-
-            if (!anno) {
-                showNotification('Inserisci un anno valido', 'error');
-                return;
-            }
-
-            const conferma = await confermaPersonalizzata(`Creare una nuova sessione per l'anno ${anno}?<br><br>I dati attuali verranno salvati come backup e il sistema verrà resettato.`);
-            if (!conferma) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/nuova-sessione', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ anno: anno, descrizione: descrizione })
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    showNotification(result.message, 'success');
-                    closeModal('nuovaSessioneModal');
-
-                    if (result.redirectTo) {
-                        setTimeout(() => window.location.href = result.redirectTo, 2000);
-                    }
-                } else {
-                    const error = await response.json();
-                    showNotification('Errore: ' + error.error, 'error');
-                }
-            } catch (error) {
-                showNotification('Errore di connessione', 'error');
-            }
-        }
-
+        }        
 
         // Utilities
         function showNotification(message, type = 'success') {
