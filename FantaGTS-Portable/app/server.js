@@ -1773,13 +1773,26 @@ app.get('/api/partecipanti', async (req, res) => {
 
 app.post('/api/partecipanti', async (req, res) => {
     try {
-        const { nome, crediti = 2000 } = req.body;
+        const { nome } = req.body;
 
         if (!nome || !nome.trim()) {
             return res.status(400).json({ error: 'Nome richiesto' });
         }
 
         const nomeClean = nome.trim();
+
+        // ðŸ†• RECUPERA I CREDITI INIZIALI DALLA SESSIONE CORRENTE
+        let crediti = 2000; // fallback di default
+        if (sessioneCorrente) {
+            const sessioneResult = await db.query(
+                'SELECT crediti_iniziali FROM sessioni_fantagts WHERE id = $1',
+                [sessioneCorrente]
+            );
+            if (sessioneResult.rows.length > 0) {
+                crediti = sessioneResult.rows[0].crediti_iniziali || 2000;
+                console.log(`ðŸ'° Crediti iniziali dalla sessione: ${crediti}`);
+            }
+        }
 
         // CONTROLLO DUPLICATI RAFFORZATO
         const duplicateCheck = await db.query(`
@@ -1791,12 +1804,12 @@ app.post('/api/partecipanti', async (req, res) => {
             const existing = duplicateCheck.rows[0];
             if (existing.sessione_id === sessioneCorrente) {
                 return res.status(409).json({
-                    error: `Il nome "${nomeClean}" è già registrato in questa sessione`,
+                    error: `Il nome "${nomeClean}" Ã¨ giÃ  registrato in questa sessione`,
                     action: 'login_required'
                 });
             } else {
                 return res.status(409).json({
-                    error: `Il nome "${nomeClean}" è già utilizzato in un'altra sessione`,
+                    error: `Il nome "${nomeClean}" Ã¨ giÃ  utilizzato in un'altra sessione`,
                     action: 'name_change_required',
                     suggestions: [`${nomeClean}2`, `${nomeClean}_2025`]
                 });
