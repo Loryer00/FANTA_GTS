@@ -910,6 +910,9 @@
             notificationsEnabled: false
         };
 
+        let sessioneCorrente = null;
+        let nomeSessioneCorrente = '';
+
         const STORAGE_KEYS = {
             PLAYER_DATA: 'fantagts_player_data',
             REGISTRATION_TIME: 'fantagts_registration_time'
@@ -1130,6 +1133,8 @@
             try {
                 // Imposta la sessione corrente (lato client)
                 sessioneCorrente = sessioneId;
+                nomeSessioneCorrente = nomeSessione;  // ðŸ†• Salva anche il nome
+                saveSession();  // ðŸ†• Salva la sessione nel localStorage
 
                 // Aggiorna display
                 document.getElementById('currentPlayer').textContent = playerData.name;
@@ -1185,11 +1190,13 @@
                     name: playerData.name,
                     id: playerData.id,
                     credits: playerData.credits,
-                    notificationsEnabled: playerData.notificationsEnabled
+                    notificationsEnabled: playerData.notificationsEnabled,
+                    sessioneCorrente: sessioneCorrente,  // ðŸ†• Aggiungi sessione
+                    nomeSessione: nomeSessioneCorrente    // ðŸ†• Aggiungi nome sessione
                 };
                 localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
                 localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
-                console.log('✅ Sessione salvata per:', playerData.name);
+                console.log('âœ… Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
             } catch (error) {
                 console.error('Errore salvataggio sessione:', error);
             }
@@ -1202,6 +1209,79 @@
                 console.log('🗑️ Sessione salvata rimossa');
             } catch (error) {
                 console.error('Errore rimozione sessione:', error);
+            }
+        }
+
+        async function loadSavedSession() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
+                if (!savedData) {
+                    console.log('â„¹ï¸ Nessuna sessione salvata trovata');
+                    return false;
+                }
+
+                const data = JSON.parse(savedData);
+                console.log('ðŸ"„ Ripristino sessione salvata:', data);
+
+                // Ripristina playerData
+                playerData.registered = true;
+                playerData.name = data.name;
+                playerData.id = data.id;
+                playerData.credits = data.credits;
+                playerData.notificationsEnabled = data.notificationsEnabled || false;
+
+                // Ripristina sessione se presente
+                if (data.sessioneCorrente) {
+                    sessioneCorrente = data.sessioneCorrente;
+                    nomeSessioneCorrente = data.nomeSessione || '';
+
+                    // Verifica che la sessione sia ancora valida
+                    const response = await fetch(`/api/sessioni`);
+                    if (response.ok) {
+                        const sessioni = await response.json();
+                        const sessioneValida = sessioni.find(s => s.id === sessioneCorrente);
+
+                        if (sessioneValida) {
+                            console.log('âœ… Sessione valida, entro automaticamente');
+
+                            // Mostra direttamente la game area
+                            document.getElementById('welcome-screen').style.display = 'none';
+                            document.getElementById('login-screen').style.display = 'none';
+                            document.getElementById('register-screen').style.display = 'none';
+                            document.getElementById('sessions-screen').style.display = 'none';
+
+                            // Aggiorna display
+                            document.getElementById('currentPlayer').textContent = playerData.name;
+                            document.getElementById('playerCredits').textContent = playerData.credits;
+
+                            showGameArea();
+                            await loadPlayerTeam();
+
+                            if (playerData.notificationsEnabled) {
+                                await setupPushNotifications();
+                            }
+
+                            registerSocketWhenReady();
+
+                            mostraMessaggio(`ðŸŽ¾ Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            return true;
+                        } else {
+                            console.log('âš ï¸ Sessione non più valida, mostro selezione sessioni');
+                            await mostraSchermataSessioni();
+                            return true;
+                        }
+                    }
+                } else {
+                    // Ha playerData ma non sessioneCorrente, mostra selezione sessioni
+                    console.log('â„¹ï¸ Player salvato ma nessuna sessione, mostro selezione');
+                    await mostraSchermataSessioni();
+                    return true;
+                }
+
+                return false;
+            } catch (error) {
+                console.error('Errore caricamento sessione salvata:', error);
+                return false;
             }
         }
 
@@ -2274,9 +2354,10 @@
         // ========================================
         async function logout() {
             const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
-
             if (conferma) {
                 clearSavedSession();
+                sessioneCorrente = null;  // 🆕 Aggiungi questa riga
+                nomeSessioneCorrente = '';  // 🆕 Aggiungi questa riga
                 playerData = {
                     registered: false,
                     name: '',
@@ -2284,11 +2365,9 @@
                     credits: 2000,
                     notificationsEnabled: false
                 };
-
                 if (socket && socket.connected) {
                     socket.disconnect();
                 }
-
                 location.reload();
             }
         }
@@ -2296,8 +2375,14 @@
         // ========================================
         // INIZIALIZZAZIONE
         // ========================================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('FantaGTS Client caricato');
+
+            // ðŸ†• Prova a caricare la sessione salvata
+            const sessionRestored = await loadSavedSession();
+            if (sessionRestored) {
+                console.log('âœ… Sessione ripristinata automaticamente');
+            }
 
             // Gestione PIN fields
             document.querySelectorAll('[data-pin-field]').forEach(input => {
