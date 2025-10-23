@@ -278,6 +278,36 @@ async function updateDatabaseSchema() {
     try {
         console.log('🔄 Aggiornando schema database...');
 
+        // 🔧 Aggiorna constraint UNIQUE per supportare multi-sessione
+        try {
+            console.log('🔧 Aggiornando constraint UNIQUE per squadre_circolo...');
+
+            // Rimuovi il vecchio constraint (solo su numero)
+            await db.query(`
+                ALTER TABLE squadre_circolo 
+                DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key
+            `);
+
+            // Aggiungi il nuovo constraint composto (numero + sessione_id)
+            await db.query(`
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'squadre_circolo_numero_sessione_key'
+                    ) THEN
+                        ALTER TABLE squadre_circolo 
+                        ADD CONSTRAINT squadre_circolo_numero_sessione_key 
+                        UNIQUE (numero, sessione_id);
+                    END IF;
+                END $$;
+            `);
+
+            console.log('✅ Constraint aggiornato: ora numero può ripetersi tra sessioni diverse');
+        } catch (err) {
+            console.warn('⚠️ Errore aggiornamento constraint:', err.message);
+        }
+
         // 1️⃣ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
