@@ -94,17 +94,19 @@ async function initializeDatabase() {
         )`);
 
         await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            email TEXT,
-            telefono TEXT,
-            crediti INTEGER DEFAULT 2000,
-            punti_totali INTEGER DEFAULT 0,
-            posizione_classifica INTEGER,
-            attivo BOOLEAN DEFAULT true,
-            sessione_id TEXT DEFAULT 'default',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    email TEXT,
+    telefono TEXT,
+    crediti INTEGER DEFAULT 2000,
+    punti_totali INTEGER DEFAULT 0,
+    posizione_classifica INTEGER,
+    attivo BOOLEAN DEFAULT true,
+    sessione_id TEXT DEFAULT 'default',
+    pin TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sessione_id) REFERENCES sessioni_fantagts(id) ON DELETE CASCADE
+)`);
 
         await db.query(`CREATE TABLE IF NOT EXISTS slots (
             id TEXT PRIMARY KEY,
@@ -276,23 +278,7 @@ async function updateDatabaseSchema() {
     try {
         console.log('🔄 Aggiornando schema database...');
 
-        // Aggiungi colonne se non esistono
-        await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-
-        // 🆕 AGGIUNGI QUESTE RIGHE - Colonne per squadre e slots
-        await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-
-        // ðŸ†• AGGIUNGI sessione_id a TUTTE le tabelle per isolamento completo
-        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE coppie_turno ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-
-        // Crea tabella sessioni se non esiste (SCHEMA COMPLETO)
+        // 1️⃣ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
             id TEXT PRIMARY KEY,
             nome TEXT NOT NULL,
@@ -318,7 +304,7 @@ async function updateDatabaseSchema() {
             last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // 🆕 AGGIUNGI - Aggiorna tabella esistente con colonne mancanti
+        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS modalita TEXT DEFAULT 'asta_competitiva'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_partecipanti_previsti INTEGER DEFAULT 10`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS crediti_iniziali INTEGER DEFAULT 2000`);
@@ -329,37 +315,69 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS stato TEXT DEFAULT 'setup'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 
-        // 🆕 AGGIUNGI - Crea VIEW per statistiche sessioni
+        // 3️⃣ INFINE: Aggiungi colonne sessione_id alle altre tabelle
+        await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE coppie_turno ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+
+        // 4️⃣ ORA SÌ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
+        try {
+            await db.query(`
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'fk_partecipanti_sessione'
+                    ) THEN
+                        ALTER TABLE partecipanti_fantagts 
+                        ADD CONSTRAINT fk_partecipanti_sessione 
+                        FOREIGN KEY (sessione_id) REFERENCES sessioni_fantagts(id) ON DELETE CASCADE;
+                    END IF;
+                END $$;
+            `);
+            console.log('✅ Foreign Key partecipanti -> sessioni verificata');
+        } catch (err) {
+            console.warn('⚠️ Foreign Key già esistente o errore:', err.message);
+        }
+
+        // 5️⃣ INFINE: Crea VIEW per statistiche sessioni
         await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
-    SELECT 
-        s.id,
-        s.nome,
-        s.anno,
-        s.descrizione,
-        s.attiva,
-        s.created_at,
-        s.modalita,
-        s.numero_partecipanti_previsti,
-        s.crediti_iniziali,
-        s.numero_squadre,
-        s.condivisione_attiva,
-        s.ripetizioni_necessarie,
-        s.premium_condivisione,
-        s.stato,
-        s.last_modified,
-        COALESCE(COUNT(DISTINCT p.id), 0)::INTEGER as partecipanti_iscritti,
-        COALESCE(COUNT(DISTINCT sq.numero), 0)::INTEGER as squadre_create,
-        COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
-    FROM sessioni_fantagts s
-    LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
-    LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
-    LEFT JOIN aste a ON a.sessione_id = s.id
-    GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
-             s.modalita, s.numero_partecipanti_previsti, s.crediti_iniziali, 
-             s.numero_squadre, s.condivisione_attiva, s.ripetizioni_necessarie, 
-             s.premium_condivisione, s.stato, s.last_modified
-`);
+            SELECT 
+                s.id,
+                s.nome,
+                s.anno,
+                s.descrizione,
+                s.attiva,
+                s.created_at,
+                s.modalita,
+                s.numero_partecipanti_previsti,
+                s.crediti_iniziali,
+                s.numero_squadre,
+                s.condivisione_attiva,
+                s.ripetizioni_necessarie,
+                s.premium_condivisione,
+                s.stato,
+                s.last_modified,
+                COALESCE(COUNT(DISTINCT p.id), 0)::INTEGER as partecipanti_iscritti,
+                COALESCE(COUNT(DISTINCT sq.numero), 0)::INTEGER as squadre_create,
+                COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
+            FROM sessioni_fantagts s
+            LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
+            LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
+            LEFT JOIN aste a ON a.sessione_id = s.id
+            GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
+                     s.modalita, s.numero_partecipanti_previsti, s.crediti_iniziali, 
+                     s.numero_squadre, s.condivisione_attiva, s.ripetizioni_necessarie, 
+                     s.premium_condivisione, s.stato, s.last_modified
+        `);
 
         console.log('✅ Schema database aggiornato');
     } catch (error) {
@@ -1761,13 +1779,34 @@ app.post('/api/login', async (req, res) => {
         const nicknameClean = nickname.trim();
         const pinClean = pin.trim();
 
+        // 🆕 VERIFICA CHE LA SESSIONE CORRENTE ESISTA
+        const sessioneCheck = await db.query(
+            'SELECT id, attiva FROM sessioni_fantagts WHERE id = $1',
+            [sessioneCorrente]
+        );
+
+        if (sessioneCheck.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Sessione non disponibile. Contatta l\'amministratore.'
+            });
+        }
+
+        if (!sessioneCheck.rows[0].attiva) {
+            return res.status(403).json({
+                success: false,
+                error: 'Sessione non attiva. Le aste sono terminate o in pausa.'
+            });
+        }
+
         // Controllo nel database
         const result = await db.query(`
-            SELECT id, nome, crediti, pin 
-            FROM partecipanti_fantagts 
-            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
-            AND attivo = true 
-            AND sessione_id = $2
+            SELECT p.id, p.nome, p.crediti, p.pin, p.sessione_id, s.attiva as sessione_attiva
+            FROM partecipanti_fantagts p
+            INNER JOIN sessioni_fantagts s ON p.sessione_id = s.id
+            WHERE LOWER(TRIM(p.nome)) = LOWER(TRIM($1)) 
+            AND p.attivo = true 
+            AND p.sessione_id = $2
         `, [nicknameClean, sessioneCorrente]);
 
         if (result.rows.length === 0) {
@@ -1833,7 +1872,68 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // Controllo unicità nickname
+        // 🆕 VERIFICA CHE LA SESSIONE CORRENTE ESISTA E SIA ATTIVA
+        const sessioneCheck = await db.query(
+            'SELECT id, attiva, modalita FROM sessioni_fantagts WHERE id = $1',
+            [sessioneCorrente]
+        );
+
+        if (sessioneCheck.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Sessione non disponibile. Contatta l\'amministratore.'
+            });
+        }
+
+        if (!sessioneCheck.rows[0].attiva) {
+            return res.status(403).json({
+                success: false,
+                error: 'Sessione non attiva. Registrazioni chiuse.'
+            });
+        }
+
+        const modalitaSessioneCorrente = sessioneCheck.rows[0].modalita;
+
+        // 🆕 CONTROLLO LIMITE 2 SESSIONI ATTIVE (1 asta + 1 draft)
+        const sessioniPartecipante = await db.query(`
+            SELECT p.sessione_id, s.modalita 
+            FROM partecipanti_fantagts p
+            INNER JOIN sessioni_fantagts s ON p.sessione_id = s.id
+            WHERE LOWER(TRIM(p.nome)) = LOWER(TRIM($1)) 
+            AND p.attivo = true
+            AND s.attiva = true
+        `, [nicknameClean]);
+
+        // Verifica se già registrato in questa sessione
+        const giàInQuestaSessione = sessioniPartecipante.rows.find(
+            s => s.sessione_id === sessioneCorrente
+        );
+
+        if (giàInQuestaSessione) {
+            return res.status(409).json({
+                success: false,
+                error: 'Sei già registrato in questa sessione. Effettua il login.'
+            });
+        }
+
+        // Verifica limite 2 sessioni (1 per modalità)
+        const modalitàRegistrate = sessioniPartecipante.rows.map(s => s.modalita);
+
+        if (modalitàRegistrate.includes(modalitaSessioneCorrente)) {
+            return res.status(403).json({
+                success: false,
+                error: `Sei già registrato in un'altra sessione di tipo "${modalitaSessioneCorrente}". Puoi partecipare a max 1 asta competitiva e 1 draft libero.`
+            });
+        }
+
+        if (sessioniPartecipante.rows.length >= 2) {
+            return res.status(403).json({
+                success: false,
+                error: 'Hai raggiunto il limite di 2 sessioni attive (1 asta + 1 draft). Completa o abbandona una sessione per registrarti a una nuova.'
+            });
+        }
+
+        // Controllo unicità nickname NELLA SESSIONE CORRENTE
         const duplicateCheck = await db.query(`
             SELECT id FROM partecipanti_fantagts 
             WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
@@ -4379,27 +4479,85 @@ app.post('/api/sessioni/:id/reset', async (req, res) => {
 });
 
 // DELETE: Elimina sessione completamente
+// DELETE: Elimina sessione completamente
 app.delete('/api/sessioni/:id', async (req, res) => {
     try {
         const sessioneId = req.params.id;
 
         await db.query('BEGIN');
 
-        // Elimina tutti i dati correlati (CASCADE dovrebbe farlo automaticamente)
+        // Verifica che la sessione esista
+        const check = await db.query('SELECT * FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        if (check.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        // 🆕 ELIMINAZIONE CASCADE MANUALE - Elimina tutti i dati correlati nell'ordine corretto
+        console.log(`🗑️ Eliminazione sessione: ${sessioneId}`);
+
+        // 1. Elimina push subscriptions
+        await db.query('DELETE FROM push_subscriptions WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Push subscriptions eliminate');
+
+        // 2. Elimina aste (dipende da partecipanti e slots)
+        await db.query('DELETE FROM aste WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Aste eliminate');
+
+        // 3. Elimina squadre draft
+        await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Squadre draft eliminate');
+
+        // 4. Elimina slots (dipende da squadre_circolo)
+        await db.query('DELETE FROM slots WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Slots eliminati');
+
+        // 5. Elimina squadre circolo
+        await db.query('DELETE FROM squadre_circolo WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Squadre circolo eliminate');
+
+        // 6. Elimina risultati dettaglio, incontri, coppie turno, turni configurazione
+        await db.query(`
+            DELETE FROM risultati_dettaglio 
+            WHERE incontro_id IN (
+                SELECT id FROM incontri WHERE sessione_id = $1
+            )
+        `, [sessioneId]);
+        console.log('  ✓ Risultati dettaglio eliminati');
+
+        await db.query('DELETE FROM incontri WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Incontri eliminati');
+
+        await db.query('DELETE FROM coppie_turno WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Coppie turno eliminate');
+
+        await db.query('DELETE FROM turni_configurazione WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Turni configurazione eliminati');
+
+        await db.query('DELETE FROM sostituzioni WHERE sessione_id = $1', [sessioneId]);
+        console.log('  ✓ Sostituzioni eliminate');
+
+        // 7. Elimina partecipanti (CASCADE dovrebbe già averli eliminati, ma per sicurezza)
+        const partecipantiEliminati = await db.query(
+            'DELETE FROM partecipanti_fantagts WHERE sessione_id = $1 RETURNING id',
+            [sessioneId]
+        );
+        console.log(`  ✓ ${partecipantiEliminati.rows.length} Partecipanti eliminati`);
+
+        // 8. Finalmente elimina la sessione
         const result = await db.query(
             'DELETE FROM sessioni_fantagts WHERE id = $1 RETURNING *',
             [sessioneId]
         );
 
-        if (result.rows.length === 0) {
-            await db.query('ROLLBACK');
-            return res.status(404).json({ error: 'Sessione non trovata' });
-        }
-
         await db.query('COMMIT');
 
-        console.log(`🗑️ Sessione eliminata: ${sessioneId}`);
-        res.json({ success: true, message: 'Sessione eliminata con successo' });
+        console.log(`✅ Sessione "${result.rows[0].nome}" eliminata completamente`);
+        res.json({
+            success: true,
+            message: 'Sessione eliminata con successo',
+            partecipantiEliminati: partecipantiEliminati.rows.length
+        });
     } catch (err) {
         await db.query('ROLLBACK');
         console.error('❌ Errore eliminazione sessione:', err);
