@@ -395,6 +395,7 @@ async function updateDatabaseSchema() {
                 s.premium_condivisione,
                 s.stato,
                 s.last_modified,
+                s.codice_accesso,
                 COALESCE(COUNT(DISTINCT p.id), 0)::INTEGER as partecipanti_iscritti,
                 COALESCE(COUNT(DISTINCT sq.numero), 0)::INTEGER as squadre_create,
                 COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
