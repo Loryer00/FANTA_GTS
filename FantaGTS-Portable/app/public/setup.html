@@ -950,16 +950,26 @@ function clearFormManualeEChiudi() {
             }
 
             try {
-                const response = await fetch('/api/genera-slots', { method: 'POST' });
+                // Passa la sessione corrente nell'URL o nel body
+                const url = sessioneCorrente
+                    ? `/api/genera-slots?sessione=${sessioneCorrente}`
+                    : '/api/genera-slots';
+
+                console.log('🎯 Generando slots per sessione:', sessioneCorrente);
+
+                const response = await fetch(url, { method: 'POST' });
+
                 if (response.ok) {
+                    const result = await response.json();
                     systemReady = true;
-                    showNotification('Slots generati con successo!', 'success');
+                    showNotification(`Slots generati con successo! (${result.count} slots)`, 'success');
                     updateSystemStatus();
                 } else {
                     const error = await response.json();
                     showNotification('Errore: ' + error.error, 'error');
                 }
             } catch (error) {
+                console.error('Errore generazione slots:', error);
                 showNotification('Errore di connessione', 'error');
             }
         }

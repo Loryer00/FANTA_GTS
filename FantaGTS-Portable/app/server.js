@@ -638,17 +638,18 @@ function elaboraVincitoreUnico(offerte) {
 // FINE FASE 3: SISTEMA CONDIVISIONE GIOCATORI
 // =====================================================
 
-async function generaSlots() {
+async function generaSlots(sessioneId = null) {
     try {
         console.log('🎯 Inizio generazione slots...');
+        console.log('📌 Sessione ricevuta:', sessioneId);
 
         // FILTRO PER SESSIONE se presente
         let squadreResult;
-        if (sessioneCorrente) {
-            console.log('📌 Filtro per sessione:', sessioneCorrente);
+        if (sessioneId) {
+            console.log('📌 Filtro per sessione:', sessioneId);
             squadreResult = await db.query(
                 "SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1",
-                [sessioneCorrente]
+                [sessioneId]
             );
         } else {
             console.log('📌 Nessun filtro sessione');
@@ -1913,10 +1914,19 @@ app.delete('/api/partecipanti/:id', async (req, res) => {
 // Generazione slots
 app.post('/api/genera-slots', async (req, res) => {
     try {
-        const result = await generaSlots();
+        // Ottieni sessione da query, body, o usa quella corrente
+        const sessioneId = req.query.sessione || req.body.sessione_id || sessioneCorrente;
+
+        console.log('🎯 Richiesta generazione slots...');
+        console.log('📌 Sessione richiesta:', sessioneId);
+
+        const result = await generaSlots(sessioneId);
+
+        console.log('✅ Slots generati con successo:', result);
         res.json({ message: 'Slots generati con successo', count: result });
     } catch (err) {
-        console.error('Errore genera-slots:', err);
+        console.error('❌ ERRORE genera-slots:', err.message);
+        console.error('Stack completo:', err.stack);
         res.status(500).json({ error: err.message });
     }
 });
