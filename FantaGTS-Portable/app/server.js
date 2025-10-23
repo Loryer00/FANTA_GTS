@@ -1522,7 +1522,10 @@ app.post('/api/squadre', async (req, res) => {
     try {
         const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id } = req.body;
 
-        const sessioneIdValue = sessione_id || 'default';
+        // Usa sessione_id dal body, oppure sessioneCorrente
+        const sessioneIdValue = sessione_id || sessioneCorrente;
+
+        console.log(`💾 Salvando squadra ${numero} - ${colore} nella sessione: ${sessioneIdValue}`);
 
         // Prima controlla se esiste
         const check = await db.query(
@@ -2250,11 +2253,13 @@ app.get('/api/aste-round/:round', async (req, res) => {
         const round = req.params.round;
 
         const result = await db.query(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
-                FROM aste a 
-                JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
-                JOIN slots s ON a.slot_id = s.id 
-                WHERE a.round = $1 AND a.vincitore = true 
-                ORDER BY a.costo_finale DESC`, [round]);
+        FROM aste a 
+        JOIN partecipanti_fantagts p ON a.partecipante_id = p.id 
+        JOIN slots s ON a.slot_id = s.id 
+        WHERE a.round = $1 
+        AND a.vincitore = true 
+        AND a.sessione_id = $2
+        ORDER BY a.costo_finale DESC`, [round, sessioneCorrente]);
 
         res.json(result.rows);
     } catch (err) {
