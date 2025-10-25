@@ -1271,6 +1271,7 @@
                                 playerData.id = partecipanteData.id; // Aggiorna anche l'ID
                                 playerData.credits = partecipanteData.crediti;
                                 console.log(`✅ Dati partecipante ricaricati - ID: ${playerData.id}, Crediti: ${playerData.credits}`);
+                                saveSession(); // 💾 Salva i crediti aggiornati nel localStorage
                             } else {
                                 console.error('❌ Errore caricamento dati partecipante');
                             }
