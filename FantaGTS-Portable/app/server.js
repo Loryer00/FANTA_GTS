@@ -2239,7 +2239,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
 
-        // Ottieni squadra
+        // Ottieni squadra 
         const squadraResult = await db.query(`SELECT 
             a.slot_id,
             a.costo_finale,
