@@ -2255,7 +2255,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             ORDER BY s.posizione`, [partecipanteId, sessioneCorrente]);
 
         // Ottieni crediti aggiornati
-        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`, [partecipanteId, sessioneCorrente]);
+        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
 
         res.json({
             squadra: squadraResult.rows,
