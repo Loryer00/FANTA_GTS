@@ -1358,8 +1358,8 @@
                     if (draftResponse.ok) {
                         const draftData = await draftResponse.json();
 
-                        if (draftData.completata) {
-                            console.log('✅ Squadra draft completa - Carico interfaccia user');
+                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
+                            console.log('✅ Squadra draft completa (10/10) - Carico interfaccia user');
 
                             // Mostra game area
                             document.getElementById('welcome-screen').style.display = 'none';
@@ -1387,8 +1387,10 @@
                             return true;
                         }
                     } else {
-                        console.log('⚠️ Nessuna squadra draft trovata - Reindirizzo a draft-selection');
-                        window.location.href = '/draft-selection.html';
+                        console.log('⚠️ Squadra draft incompleta - Mostro selezione sessioni');
+                        // NON reindirizzare automaticamente, lascia che l'utente riprenda
+                        await mostraSchermataSessioni();
+                        mostraMessaggio('⚠️ Completa la tua squadra draft per continuare', 'warning');
                         return true;
                     }
 
