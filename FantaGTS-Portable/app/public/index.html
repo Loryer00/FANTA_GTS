@@ -1383,7 +1383,13 @@
                             return true;
                         } else {
                             console.log('⚠️ Squadra draft incompleta - Reindirizzo a draft-selection');
-                            window.location.href = '/draft-selection.html';
+
+                            // 🛡️ PROTEZIONE LOOP: Non fare redirect se siamo già in draft-selection
+                            if (!window.location.pathname.includes('draft-selection')) {
+                                window.location.href = '/draft-selection.html';
+                            } else {
+                                console.log('🔒 Già in draft-selection, evito loop');
+                            }
                             return true;
                         }
                     } else {
