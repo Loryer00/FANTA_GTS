@@ -172,14 +172,14 @@ async function initializeDatabase() {
                 id SERIAL PRIMARY KEY,
                 partecipante_id TEXT NOT NULL,
                 sessione_id TEXT NOT NULL,
-                posizione TEXT NOT NULL,          -- M1, M2, F1, ecc.
-                slot_id TEXT NOT NULL,            -- riferimento allo slot
-                giocatore TEXT NOT NULL,          -- nome del giocatore
-                numero_squadra_circolo INTEGER,   -- numero squadra originale
-                colore_squadra TEXT,              -- colore squadra originale
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+                posizione TEXT NOT NULL,
+                slot_id TEXT,
+                giocatore TEXT,
+                numero_squadra_circolo INTEGER,
+                colore_squadra TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(partecipante_id, sessione_id, posizione)
+        )`);
 
 
         await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
