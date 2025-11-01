@@ -782,26 +782,25 @@
         <div id="game-area" style="display: none;" class="content-with-bottom-nav">
             <!-- Header con nickname e azioni -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <!-- Nickname grande -->
-                <div style="font-size: 2em; font-weight: bold; color: #63b3ed; margin-bottom: 15px;">
-                    <strong id="currentPlayer">--</strong>
-                </div>
+                    <!-- Pulsanti azione -->
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="cambiaSessione()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
+                            🔄 Sessioni
+                        </button>
+                        <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
+                            🚪 Esci
+                        </button>
+                    </div>
+                    <!-- Nickname grande -->
+                    <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
+                        <strong id="currentPlayer">--</strong>
+                    </div>
 
-                <!-- Crediti -->
-                <div id="playerStatsDisplay" style="font-size: 1.1em; color: #a0aec0; margin-bottom: 15px;">
-                    💰 <span id="playerCredits">--</span> crediti
-                </div>
-
-                <!-- Pulsanti azione -->
-                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <!-- Crediti -->
+                    <div id="playerStatsDisplay" style="font-size: 1.1em; color: #a0aec0; margin-bottom: 15px;">
+                        💰 <span id="playerCredits">--</span> crediti
+                    </div>                
             </div>
-            <button onclick="cambiaSessione()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
-                🔄 Sessioni
-            </button>
-            <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
-                🚪 Esci
-            </button>
-        </div>
 
                 <!-- SEZIONE 1: LA MIA SQUADRA -->
                 <div id="section-squadra" class="content-section active">
