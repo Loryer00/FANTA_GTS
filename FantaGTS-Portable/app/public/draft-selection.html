@@ -510,9 +510,17 @@
                     card.dataset.nome = giocatore.nome;
                     card.dataset.numeroSquadra = giocatore.numeroSquadra;
 
+                    // 🎨 Ottieni il colore della squadra
+                    const coloreSquadra = getTeamColor(giocatore.coloreSquadra);
+
                     // Verifica se già selezionato
                     if (appState.squadraSelezionata[posizione]?.giocatore === giocatore.nome) {
                         card.classList.add('selected');
+                    } else {
+                        // 🎨 Colora la card in base alla squadra (quando NON selezionata)
+                        card.style.borderColor = coloreSquadra + '80';
+                        card.style.borderWidth = '2px';
+                        card.style.borderStyle = 'solid';
                     }
 
                     card.innerHTML = `
@@ -528,6 +536,21 @@
                 group.appendChild(list);
                 container.appendChild(group);
             });
+        }
+
+        // 🎨 Funzione per ottenere il colore della squadra
+        function getTeamColor(colore) {
+            const colors = {
+                'azzurra': '#4299e1',
+                'verde': '#48bb78',
+                'rossa': '#f56565',
+                'gialla': '#ecc94b',
+                'arancione': '#ed8936',
+                'rosa': '#ed64a6',
+                'viola': '#9f7aea',
+                'marrone': '#a0522d'
+            };
+            return colors[colore.toLowerCase()] || '#718096'; // Grigio di default
         }
 
         // Render slot squadra
@@ -550,6 +573,15 @@
                 if (appState.squadraSelezionata[posizione]) {
                     slot.classList.add('filled');
                     giocatoreDiv.textContent = appState.squadraSelezionata[posizione].giocatore;
+
+                    // 🎨 Colora lo slot in base alla squadra
+                    const coloreSquadra = getTeamColor(appState.squadraSelezionata[posizione].coloreSquadra);
+                    slot.style.background = `linear-gradient(135deg, ${coloreSquadra}dd, ${coloreSquadra}99)`;
+                    slot.style.borderColor = coloreSquadra;
+                    slot.style.borderWidth = '2px';
+                    slot.style.borderStyle = 'solid';
+                    slot.style.color = '#ffffff';
+                    slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
 
                     const btnRemove = document.createElement('button');
                     btnRemove.className = 'btn-remove';
@@ -577,7 +609,8 @@
             appState.squadraSelezionata[posizione] = {
                 giocatore: giocatore.nome,
                 slotId: giocatore.id,
-                numeroSquadra: giocatore.numeroSquadra
+                numeroSquadra: giocatore.numeroSquadra,
+                coloreSquadra: giocatore.coloreSquadra
             };
 
             // Aggiorna interfaccia
