@@ -4879,18 +4879,21 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
 
         // Recupera le aste salvate (in Draft = selezioni) del partecipante
         const result = await db.query(`
-            SELECT 
+            
+        SELECT 
                 a.slot_id,
-                a.posizione,
+                s.posizione,  -- ✅ posizione presa da slots
                 a.giocatore,
-                s.squadra_numero as numero_squadra,
-                sc.colore as colore_squadra
+                s.squadra_numero AS numero_squadra,
+                sc.colore AS colore_squadra
             FROM aste a
             JOIN slots s ON a.slot_id = s.id
-            LEFT JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.sessione_id = sc.sessione_id
+            LEFT JOIN squadre_circolo sc 
+                ON s.squadra_numero = sc.numero 
+                AND s.sessione_id = sc.sessione_id
             WHERE a.partecipante_id = $1 AND a.sessione_id = $2
             ORDER BY 
-                CASE a.posizione
+                CASE s.posizione
                     WHEN 'M1' THEN 1
                     WHEN 'M2' THEN 2
                     WHEN 'M3' THEN 3
