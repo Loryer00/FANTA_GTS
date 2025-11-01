@@ -2477,6 +2477,43 @@ app.get('/api/classifica', async (req, res) => {
     }
 });
 
+// 🆕 Ottieni classifica DRAFT
+app.get('/api/classifica-draft', async (req, res) => {
+    try {
+        const { sessione_id } = req.query;
+
+        if (!sessione_id) {
+            return res.status(400).json({ error: 'sessione_id richiesto' });
+        }
+
+        const result = await db.query(`
+            SELECT 
+                p.id, 
+                p.nome, 
+                COUNT(sd.id) as giocatori_totali,
+                COALESCE(SUM(s.punti_totali), 0) as punti_totali
+            FROM partecipanti_fantagts p 
+            LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
+            LEFT JOIN slots s ON sd.slot_id = s.id AND s.sessione_id = $1
+            WHERE p.sessione_id = $1 AND p.attivo = true
+            GROUP BY p.id, p.nome
+            ORDER BY punti_totali DESC
+        `, [sessione_id]);
+
+        // Aggiungi posizione in classifica
+        const classifica = result.rows.map((row, index) => {
+            row.posizione = index + 1;
+            return row;
+        });
+
+        console.log('✅ Classifica DRAFT caricata:', classifica.length, 'partecipanti');
+        res.json(classifica);
+    } catch (err) {
+        console.error('Errore classifica draft:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== NUOVE API PER SCONTRI E ACCOPPIAMENTI ====================
 
 // API per scontri tra squadre

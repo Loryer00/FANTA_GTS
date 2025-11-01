@@ -642,11 +642,19 @@
                     throw new Error(data.error || 'Errore salvataggio');
                 }
 
-                showAlert('✅ Squadra salvata con successo!', 'success');
+                showAlert('✅ Squadra salvata con successo! Reindirizzamento...', 'success');
+
+                // 🆕 Assicurati che la modalità sia nel localStorage
+                const sessionData = localStorage.getItem('userSession');
+                if (sessionData) {
+                    const session = JSON.parse(sessionData);
+                    session.modalita = 'draft_libero'; // Forza modalità draft
+                    localStorage.setItem('userSession', JSON.stringify(session));
+                }
 
                 setTimeout(() => {
                     window.location.href = '/index.html';
-                }, 2000);
+                }, 1500);
 
             } catch (err) {
                 console.error('❌ Errore salvataggio:', err);

@@ -1171,6 +1171,11 @@
                     credits: playerData.credits,
                     modalita: sessioneData.modalita
                 }));
+
+                // 🆕 SALVA MODALITÀ NELLA VARIABILE GLOBALE
+                playerData.modalita = sessioneData.modalita;
+                console.log('📊 Modalità sessione:', playerData.modalita);
+
                 saveSession();
 
                 // 🎯 ROUTING PER MODALITÀ
@@ -1561,28 +1566,82 @@
             try {
                 console.log('🔄 Caricamento squadra per:', playerData.id);
 
-                const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
-                if (!response.ok) {
-                    console.log('⚠️ Squadra non ancora formata');
-                    resetTeamUI();
-                    return;
+                // 🆕 DETERMINA DA QUALE API CARICARE IN BASE ALLA MODALITÀ
+                const savedSession = localStorage.getItem('userSession');
+                let modalita = 'asta_competitiva'; // default
+                let sessioneId = null;
+
+                if (savedSession) {
+                    const session = JSON.parse(savedSession);
+                    modalita = session.modalita || 'asta_competitiva';
+                    sessioneId = session.sessioneId;
                 }
 
-                const data = await response.json();
-                const squadra = data.squadra || data;
+                console.log('🎯 Modalità rilevata:', modalita);
 
-                console.log('✅ Squadra ricevuta:', squadra);
+                let squadra = [];
 
-                // Aggiorna crediti se presenti
-                if (data.crediti !== undefined) {
-                    playerData.credits = data.crediti;
-                    updateCreditsDisplay();
+                if (modalita === 'draft_libero') {
+                    // 🆕 CARICA SQUADRA DRAFT
+                    if (!sessioneId) {
+                        console.error('❌ Nessun sessioneId trovato per il draft');
+                        resetTeamUI();
+                        return;
+                    }
+
+                    const response = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+
+                    if (!response.ok) {
+                        console.log('⚠️ Squadra Draft non ancora formata');
+                        resetTeamUI();
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    if (!data.squadra || Object.keys(data.squadra).length === 0) {
+                        console.log('⚠️ Squadra Draft vuota');
+                        resetTeamUI();
+                        return;
+                    }
+
+                    // Trasforma il formato draft in formato compatibile
+                    squadra = Object.entries(data.squadra).map(([posizione, dati]) => ({
+                        posizione: posizione,
+                        giocatore_attuale: dati.giocatore,
+                        colore: dati.coloreSquadra,
+                        costo_finale: 0, // Nel draft non c'è costo
+                        punti_totali: 0  // TODO: Implementare punti draft
+                    }));
+
+                    console.log('✅ Squadra Draft caricata:', squadra.length, 'giocatori');
+
+                } else {
+                    // ✅ CARICA SQUADRA ASTE (ESISTENTE)
+                    const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+
+                    if (!response.ok) {
+                        console.log('⚠️ Squadra Aste non ancora formata');
+                        resetTeamUI();
+                        return;
+                    }
+
+                    const data = await response.json();
+                    squadra = data.squadra || data;
+
+                    // Aggiorna crediti se presenti
+                    if (data.crediti !== undefined) {
+                        playerData.credits = data.crediti;
+                        updateCreditsDisplay();
+                    }
+
+                    console.log('✅ Squadra Aste caricata:', squadra.length, 'giocatori');
                 }
 
                 // Reset UI prima di popolare
                 resetTeamUI();
 
-                // Popola le card con i giocatori acquistati
+                // Popola le card con i giocatori
                 squadra.forEach(giocatore => {
                     const posizione = giocatore.posizione;
                     const slot = document.querySelector(`[data-position="${posizione}"]`);
@@ -1598,23 +1657,42 @@
                         slot.style.color = '#ffffff';
                         slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
 
-                        slot.innerHTML = `
-                            <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                                ${giocatore.giocatore_attuale}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;"">
+                        // 🆕 TEMPLATE DIVERSO PER DRAFT (senza costo)
+                        if (modalita === 'draft_libero') {
+                            slot.innerHTML = `
+                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                            ${giocatore.giocatore_attuale}
+                        </div>
+                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
                             ${posizione}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
-                                Squadra ${giocatore.colore}
-                            </div>
-                            <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                                💰 ${giocatore.costo_finale}
-                            </div>
-                            <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                        </div>
+                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
+                            Squadra ${giocatore.colore}
+                        </div>
+                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
                             🏆 ${giocatore.punti_totali || 0}
-                            </div>
-                        `;
+                        </div>
+                    `;
+                        } else {
+                            // Template per ASTE (con costo)
+                            slot.innerHTML = `
+                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                            ${giocatore.giocatore_attuale}
+                        </div>
+                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                            ${posizione}
+                        </div>
+                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
+                            Squadra ${giocatore.colore}
+                        </div>
+                        <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
+                            💰 ${giocatore.costo_finale}
+                        </div>
+                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                            🏆 ${giocatore.punti_totali || 0}
+                        </div>
+                    `;
+                        }
 
                         console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
@@ -1626,7 +1704,7 @@
                     caricaClassifica();
                 }
 
-                // AGGIUNGI QUESTA RIGA
+                // Aggiorna display crediti
                 await updateCreditsDisplay();
 
             } catch (error) {
@@ -1691,7 +1769,25 @@
 
             try {
                 console.log('📊 Caricamento classifica...');
-                const response = await fetch('/api/classifica');
+
+                // 🆕 DETERMINA MODALITÀ
+                const savedSession = localStorage.getItem('userSession');
+                let modalita = 'asta_competitiva';
+                let sessioneId = null;
+
+                if (savedSession) {
+                    const session = JSON.parse(savedSession);
+                    modalita = session.modalita || 'asta_competitiva';
+                    sessioneId = session.sessioneId;
+                }
+
+                // 🆕 USA API DIVERSA IN BASE ALLA MODALITÀ
+                let apiUrl = '/api/classifica';
+                if (modalita === 'draft_libero' && sessioneId) {
+                    apiUrl = `/api/classifica-draft?sessione_id=${sessioneId}`;
+                }
+
+                const response = await fetch(apiUrl);
 
                 if (!response.ok) {
                     throw new Error('Classifica non disponibile');
