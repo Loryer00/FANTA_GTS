@@ -4812,14 +4812,14 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
         // Recupera tutti gli slot delle squadre del circolo per questa sessione
         const result = await db.query(`
             SELECT 
-                s.id,
-                s.posizione,
-                s.giocatore_attuale,
-                sc.colore as colore_squadra,
-                s.numero_squadra_circolo as numero_squadra
-            FROM slots s
-            JOIN squadre_circolo sc ON s.numero_squadra_circolo = sc.numero AND s.sessione_id = sc.sessione_id
-            WHERE s.sessione_id = $1 AND s.attivo = true
+            s.id,
+            s.posizione,
+            s.giocatore_attuale,
+            sc.colore as colore_squadra,
+            s.squadra_numero as numero_squadra
+        FROM slots s
+        JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.sessione_id = sc.sessione_id
+        WHERE s.sessione_id = $1 AND s.attivo = true
             ORDER BY 
                 CASE s.posizione
                     WHEN 'M1' THEN 1
@@ -4883,10 +4883,11 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
                 a.slot_id,
                 a.posizione,
                 a.giocatore,
-                a.numero_squadra_circolo,
+                s.squadra_numero as numero_squadra,
                 sc.colore as colore_squadra
             FROM aste a
-            LEFT JOIN squadre_circolo sc ON a.numero_squadra_circolo = sc.numero AND a.sessione_id = sc.sessione_id
+            JOIN slots s ON a.slot_id = s.id
+            LEFT JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.sessione_id = sc.sessione_id
             WHERE a.partecipante_id = $1 AND a.sessione_id = $2
             ORDER BY 
                 CASE a.posizione
@@ -4909,15 +4910,15 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
                 giocatore: riga.giocatore,
                 slotId: riga.slot_id,
                 coloreSquadra: riga.colore_squadra,
-                numeroSquadra: riga.numero_squadra_circolo
+                numeroSquadra: riga.numero_squadra
             };
         });
 
-        // Verifica se la squadra Ã¨ completa (10 posizioni)
+        // Verifica se la squadra è completa (10 posizioni)
         const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
         const completata = posizioniRichieste.every(pos => squadra[pos]);
 
-        console.log(`âœ… Squadra Draft recuperata - Partecipante ${partecipanteId}: ${result.rows.length}/10 posizioni`);
+        console.log(`✅ Squadra Draft recuperata - Partecipante ${partecipanteId}: ${result.rows.length}/10 posizioni`);
 
         res.json({
             partecipante_id: partecipanteId,
@@ -4928,7 +4929,7 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('âŒ Errore recupero squadra Draft:', err);
+        console.error('❌ Errore recupero squadra Draft:', err);
         res.status(500).json({ error: err.message });
     }
 });
