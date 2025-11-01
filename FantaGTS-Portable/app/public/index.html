@@ -1272,82 +1272,143 @@
             }
         }
 
-        // 🆕 NUOVA FUNZIONE - INSERISCI TUTTO QUESTO BLOCCO QUI
+        // 🆕 NUOVA FUNZIONE - Unificata per gestire sia ASTE che DRAFT
         async function loadSavedSession() {
             try {
-                const savedSession = localStorage.getItem('userSession');
-                if (!savedSession) {
-                    console.log('ℹ️ Nessuna sessione salvata');
-                    return false;
+                // 🆕 PROVA PRIMA CON userSession (usato da draft)
+                let savedSession = localStorage.getItem('userSession');
+                let sessionData = null;
+
+                if (savedSession) {
+                    sessionData = JSON.parse(savedSession);
+                    console.log('🔍 Sessione salvata trovata (userSession):', sessionData);
+                } else {
+                    // Fallback al vecchio sistema
+                    const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
+                    if (!savedData) {
+                        console.log('ℹ️ Nessuna sessione salvata trovata');
+                        return false;
+                    }
+                    sessionData = JSON.parse(savedData);
+                    console.log('🔍 Sessione salvata trovata (PLAYER_DATA):', sessionData);
                 }
 
-                const session = JSON.parse(savedSession);
-                console.log('🔍 Sessione salvata trovata:', session);
-
                 // Verifica che la sessione esista ancora sul server
-                const sessioneResponse = await fetch(`/api/sessioni/${session.sessioneId}`);
+                if (!sessionData.sessioneId && !sessionData.sessioneCorrente) {
+                    console.log('⚠️ Nessuna sessione attiva salvata');
+                    // Ripristina solo i dati utente
+                    playerData.registered = true;
+                    playerData.name = sessionData.name;
+                    playerData.id = sessionData.id || sessionData.partecipanteId;
+                    await mostraSchermataSessioni();
+                    return true;
+                }
+
+                const sessioneId = sessionData.sessioneId || sessionData.sessioneCorrente;
+
+                // Verifica che la sessione esista ancora
+                const sessioneResponse = await fetch(`/api/sessioni/${sessioneId}`);
                 if (!sessioneResponse.ok) {
                     console.log('⚠️ Sessione non più valida');
                     localStorage.removeItem('userSession');
+                    localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
                     return false;
                 }
 
-                const sessioneData = await sessioneResponse.json();
+                const sessione = await sessioneResponse.json();
+                console.log('✅ Sessione valida:', sessione);
 
-                // Verifica che il partecipante esista ancora
-                const partecipanteResponse = await fetch(`/api/partecipanti/${session.partecipanteId}`);
+                // 🆕 CARICA DATI PARTECIPANTE DALLA SESSIONE (usando il nome, non l'ID)
+                const partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${sessionData.name}`);
+
                 if (!partecipanteResponse.ok) {
-                    console.log('⚠️ Partecipante non più valido');
+                    console.log('⚠️ Partecipante non trovato nella sessione');
                     localStorage.removeItem('userSession');
-                    return false;
+                    await mostraSchermataSessioni();
+                    return true;
                 }
 
                 const partecipante = await partecipanteResponse.json();
 
-                // ✅ Tutto OK - Ripristina la sessione
+                // ✅ RIPRISTINA DATI
                 playerData.registered = true;
-                playerData.name = session.name;
-                playerData.id = session.partecipanteId;
+                playerData.name = sessionData.name;
+                playerData.id = partecipante.id;
                 playerData.credits = partecipante.crediti;
-                playerData.modalita = sessioneData.modalita;
+                playerData.modalita = sessione.modalita;
+                playerData.notificationsEnabled = sessionData.notificationsEnabled || false;
 
-                console.log('✅ Sessione ripristinata automaticamente');
+                sessioneCorrente = sessioneId;
+                nomeSessioneCorrente = sessione.nome;
+
+                console.log('✅ Sessione ripristinata:', {
+                    nome: playerData.name,
+                    id: playerData.id,
+                    sessione: nomeSessioneCorrente,
+                    modalita: playerData.modalita
+                });
 
                 // 🎯 ROUTING PER MODALITÀ
-                if (sessioneData.modalita === 'draft_libero') {
-                    console.log('🎯 Modalità Draft - Carico squadra draft');
-                    // Rimani in index.html ma carica squadra draft
-                    document.getElementById('currentPlayer').textContent = playerData.name;
-                    document.getElementById('playerCredits').textContent = playerData.credits;
+                if (sessione.modalita === 'draft_libero') {
+                    console.log('🎯 Modalità Draft - Verifico squadra draft');
 
-                    // Nascondi crediti per draft
-                    const creditsDisplay = document.getElementById('creditsDisplay');
-                    if (creditsDisplay) {
-                        creditsDisplay.style.display = 'none';
+                    // Verifica se ha già completato la squadra draft
+                    const draftResponse = await fetch(`/api/draft/squadra/${partecipante.id}?sessione_id=${sessioneId}`);
+
+                    if (draftResponse.ok) {
+                        const draftData = await draftResponse.json();
+
+                        if (draftData.completata) {
+                            console.log('✅ Squadra draft completa - Carico interfaccia user');
+
+                            // Mostra game area
+                            document.getElementById('welcome-screen').style.display = 'none';
+                            document.getElementById('login-screen').style.display = 'none';
+                            document.getElementById('register-screen').style.display = 'none';
+                            document.getElementById('sessions-screen').style.display = 'none';
+
+                            document.getElementById('currentPlayer').textContent = playerData.name;
+                            document.getElementById('playerCredits').textContent = playerData.credits;
+
+                            // Nascondi crediti per draft
+                            const playerStatsDisplay = document.getElementById('playerStatsDisplay');
+                            if (playerStatsDisplay) {
+                                playerStatsDisplay.style.display = 'none';
+                            }
+
+                            showGameArea();
+                            await loadPlayerTeam();
+
+                            mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            return true;
+                        } else {
+                            console.log('⚠️ Squadra draft incompleta - Reindirizzo a draft-selection');
+                            window.location.href = '/draft-selection.html';
+                            return true;
+                        }
+                    } else {
+                        console.log('⚠️ Nessuna squadra draft trovata - Reindirizzo a draft-selection');
+                        window.location.href = '/draft-selection.html';
+                        return true;
                     }
 
-                    showGameArea();
-                    await loadPlayerTeam();
-
                 } else {
-                    console.log('🎾 Modalità Asta - Carico squadra aste');
+                    // ✅ MODALITÀ ASTA
+                    console.log('🎾 Modalità Asta - Carico interfaccia user');
+
+                    document.getElementById('welcome-screen').style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('register-screen').style.display = 'none';
+                    document.getElementById('sessions-screen').style.display = 'none';
+
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
-                    updateCreditsDisplay();
 
                     showGameArea();
-                    registerSocketWhenReady();
                     await loadPlayerTeam();
-                }
 
-                return true;
-
-            } catch (error) {
-                console.error('❌ Errore ripristino sessione:', error);
-                localStorage.removeItem('userSession');
-                return false;
-            }
-        }
+                    if (playerData.notificationsEnabled) {
+                        await setupPushNotifications()
 
         // ========================================
         // GESTIONE UI
