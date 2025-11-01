@@ -4878,35 +4878,36 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
         }
 
         // Recupera le aste salvate (in Draft = selezioni) del partecipante
+
         const result = await db.query(`
-            
         SELECT 
-                a.slot_id,
-                s.posizione, 
-                s.giocatore_attuale AS giocatore
-                s.squadra_numero AS numero_squadra,
-                sc.colore AS colore_squadra
-            FROM aste a
-            JOIN slots s ON a.slot_id = s.id
-            LEFT JOIN squadre_circolo sc 
-                ON s.squadra_numero = sc.numero 
-                AND s.sessione_id = sc.sessione_id
-            WHERE a.partecipante_id = $1 AND a.sessione_id = $2
-            ORDER BY 
-                CASE s.posizione
-                    WHEN 'M1' THEN 1
-                    WHEN 'M2' THEN 2
-                    WHEN 'M3' THEN 3
-                    WHEN 'M4' THEN 4
-                    WHEN 'M5' THEN 5
-                    WHEN 'M6' THEN 6
-                    WHEN 'M7' THEN 7
-                    WHEN 'F1' THEN 8
-                    WHEN 'F2' THEN 9
-                    WHEN 'F3' THEN 10
-                END
+            a.slot_id,
+            s.posizione,
+            s.giocatore_attuale AS giocatore,
+            s.squadra_numero AS numero_squadra,
+            sc.colore AS colore_squadra
+        FROM aste a
+        JOIN slots s ON a.slot_id = s.id
+        LEFT JOIN squadre_circolo sc 
+            ON s.squadra_numero = sc.numero 
+            AND s.sessione_id = sc.sessione_id
+        WHERE a.partecipante_id = $1 AND a.sessione_id = $2
+        ORDER BY CASE 
+            WHEN s.posizione = 'M1' THEN 1
+            WHEN s.posizione = 'M2' THEN 2
+            WHEN s.posizione = 'M3' THEN 3
+            WHEN s.posizione = 'M4' THEN 4
+            WHEN s.posizione = 'M5' THEN 5
+            WHEN s.posizione = 'M6' THEN 6
+            WHEN s.posizione = 'M7' THEN 7
+            WHEN s.posizione = 'F1' THEN 8
+            WHEN s.posizione = 'F2' THEN 9
+            WHEN s.posizione = 'F3' THEN 10
+            ELSE 11
+            END
         `, [partecipanteId, sessione_id]);
 
+        // ✅ Costruisci la squadra come oggetto con chiave = posizione
         const squadra = {};
         result.rows.forEach(riga => {
             squadra[riga.posizione] = {
@@ -4916,6 +4917,7 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
                 numeroSquadra: riga.numero_squadra
             };
         });
+
 
         // Verifica se la squadra è completa (10 posizioni)
         const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
