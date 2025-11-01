@@ -4783,6 +4783,262 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
     }
 });
 
+// ==================== API MODALITÃ€ DRAFT LIBERO ====================
+
+// GET: Lista completa giocatori disponibili per Draft
+app.get('/api/draft/giocatori-disponibili', async (req, res) => {
+    try {
+        const { sessione_id } = req.query;
+
+        if (!sessione_id) {
+            return res.status(400).json({ error: 'sessione_id richiesto' });
+        }
+
+        // Verifica che la sessione sia Draft
+        const sessioneResult = await db.query(
+            'SELECT * FROM sessioni_fantagts WHERE id = $1',
+            [sessione_id]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const sessione = sessioneResult.rows[0];
+        if (sessione.modalita !== 'draft_libero') {
+            return res.status(400).json({ error: 'Questa sessione non Ã¨ in modalitÃ  Draft Libero' });
+        }
+
+        // Recupera tutti gli slot delle squadre del circolo per questa sessione
+        const result = await db.query(`
+            SELECT 
+                s.id,
+                s.posizione,
+                s.giocatore_attuale,
+                sc.colore as colore_squadra,
+                sc.numero as numero_squadra
+            FROM slots s
+            JOIN squadre_circolo sc ON s.numero_squadra = sc.numero AND s.sessione_id = sc.sessione_id
+            WHERE s.sessione_id = $1 AND s.attivo = true
+            ORDER BY 
+                CASE s.posizione
+                    WHEN 'M1' THEN 1
+                    WHEN 'M2' THEN 2
+                    WHEN 'M3' THEN 3
+                    WHEN 'M4' THEN 4
+                    WHEN 'M5' THEN 5
+                    WHEN 'M6' THEN 6
+                    WHEN 'M7' THEN 7
+                    WHEN 'F1' THEN 8
+                    WHEN 'F2' THEN 9
+                    WHEN 'F3' THEN 10
+                END,
+                sc.numero
+        `, [sessione_id]);
+
+        // Raggruppa giocatori per posizione
+        const giocatoriPerPosizione = {
+            M1: [], M2: [], M3: [], M4: [], M5: [], M6: [], M7: [],
+            F1: [], F2: [], F3: []
+        };
+
+        result.rows.forEach(slot => {
+            giocatoriPerPosizione[slot.posizione].push({
+                id: slot.id,
+                nome: slot.giocatore_attuale,
+                posizione: slot.posizione,
+                coloreSquadra: slot.colore_squadra,
+                numeroSquadra: slot.numero_squadra
+            });
+        });
+
+        console.log(`âœ… Giocatori disponibili per Draft - Sessione ${sessione_id}: ${result.rows.length} totali`);
+
+        res.json({
+            sessione_id: sessione_id,
+            sessione_nome: sessione.nome,
+            giocatoriPerPosizione: giocatoriPerPosizione,
+            totale: result.rows.length
+        });
+
+    } catch (err) {
+        console.error('âŒ Errore caricamento giocatori Draft:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Recupera squadra salvata di un partecipante (Draft)
+app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
+    try {
+        const partecipanteId = req.params.partecipanteId;
+        const { sessione_id } = req.query;
+
+        if (!sessione_id) {
+            return res.status(400).json({ error: 'sessione_id richiesto' });
+        }
+
+        // Recupera le aste salvate (in Draft = selezioni) del partecipante
+        const result = await db.query(`
+            SELECT 
+                a.slot_id,
+                a.posizione,
+                a.giocatore,
+                a.numero_squadra_circolo,
+                sc.colore as colore_squadra
+            FROM aste a
+            LEFT JOIN squadre_circolo sc ON a.numero_squadra_circolo = sc.numero AND a.sessione_id = sc.sessione_id
+            WHERE a.partecipante_id = $1 AND a.sessione_id = $2
+            ORDER BY 
+                CASE a.posizione
+                    WHEN 'M1' THEN 1
+                    WHEN 'M2' THEN 2
+                    WHEN 'M3' THEN 3
+                    WHEN 'M4' THEN 4
+                    WHEN 'M5' THEN 5
+                    WHEN 'M6' THEN 6
+                    WHEN 'M7' THEN 7
+                    WHEN 'F1' THEN 8
+                    WHEN 'F2' THEN 9
+                    WHEN 'F3' THEN 10
+                END
+        `, [partecipanteId, sessione_id]);
+
+        const squadra = {};
+        result.rows.forEach(riga => {
+            squadra[riga.posizione] = {
+                giocatore: riga.giocatore,
+                slotId: riga.slot_id,
+                coloreSquadra: riga.colore_squadra,
+                numeroSquadra: riga.numero_squadra_circolo
+            };
+        });
+
+        // Verifica se la squadra Ã¨ completa (10 posizioni)
+        const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+        const completata = posizioniRichieste.every(pos => squadra[pos]);
+
+        console.log(`âœ… Squadra Draft recuperata - Partecipante ${partecipanteId}: ${result.rows.length}/10 posizioni`);
+
+        res.json({
+            partecipante_id: partecipanteId,
+            sessione_id: sessione_id,
+            squadra: squadra,
+            completata: completata,
+            posizioniCompilate: result.rows.length
+        });
+
+    } catch (err) {
+        console.error('âŒ Errore recupero squadra Draft:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Salva squadra completa Draft (finale e bloccata)
+app.post('/api/draft/squadra', async (req, res) => {
+    try {
+        const { partecipante_id, sessione_id, squadra } = req.body;
+
+        // Validazione
+        if (!partecipante_id || !sessione_id || !squadra) {
+            return res.status(400).json({
+                error: 'Campi obbligatori: partecipante_id, sessione_id, squadra'
+            });
+        }
+
+        // Verifica che la sessione sia Draft
+        const sessioneResult = await db.query(
+            'SELECT * FROM sessioni_fantagts WHERE id = $1',
+            [sessione_id]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        if (sessioneResult.rows[0].modalita !== 'draft_libero') {
+            return res.status(400).json({ error: 'Questa sessione non Ã¨ in modalitÃ  Draft Libero' });
+        }
+
+        // Verifica che tutte le 10 posizioni siano compilate
+        const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+        const posizioniPresenti = Object.keys(squadra);
+
+        if (posizioniPresenti.length !== 10) {
+            return res.status(400).json({
+                error: `Devi completare tutte le 10 posizioni. Attualmente hai ${posizioniPresenti.length}/10`
+            });
+        }
+
+        const posizioniMancanti = posizioniRichieste.filter(pos => !squadra[pos]);
+        if (posizioniMancanti.length > 0) {
+            return res.status(400).json({
+                error: `Posizioni mancanti: ${posizioniMancanti.join(', ')}`
+            });
+        }
+
+        // Salva ogni giocatore come una riga nella tabella aste
+        // (in Draft, importo = 0, round = posizione)
+        console.log(`ðŸ'¾ Salvataggio squadra Draft - Partecipante ${partecipante_id}`);
+
+        // Prima cancella eventuali scelte precedenti
+        await db.query(
+            'DELETE FROM aste WHERE partecipante_id = $1 AND sessione_id = $2',
+            [partecipante_id, sessione_id]
+        );
+
+        // Inserisci tutte le nuove scelte
+        for (const [posizione, dati] of Object.entries(squadra)) {
+            await db.query(`
+                INSERT INTO aste (
+                    partecipante_id, 
+                    sessione_id,
+                    posizione, 
+                    giocatore, 
+                    importo, 
+                    slot_id, 
+                    numero_squadra_circolo,
+                    round
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                partecipante_id,
+                sessione_id,
+                posizione,
+                dati.giocatore,
+                0, // In Draft non ci sono crediti
+                dati.slotId,
+                dati.numeroSquadra,
+                posizione // Usiamo posizione come "round" per compatibilitÃ 
+            ]);
+        }
+
+        console.log(`âœ… Squadra Draft salvata con successo - 10 giocatori registrati`);
+
+        // Invia notifica push al partecipante
+        try {
+            await inviaNotifichePush({
+                title: 'âœ… Squadra Salvata!',
+                body: `La tua squadra per ${sessioneResult.rows[0].nome} Ã¨ stata salvata con successo!`,
+                url: '/',
+                targetUsers: [partecipante_id]
+            });
+        } catch (notifError) {
+            console.warn('âš ï¸ Impossibile inviare notifica:', notifError.message);
+        }
+
+        res.json({
+            success: true,
+            message: 'Squadra salvata con successo',
+            partecipante_id: partecipante_id,
+            sessione_id: sessione_id,
+            giocatori_salvati: 10
+        });
+
+    } catch (err) {
+        console.error('âŒ Errore salvataggio squadra Draft:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Avvio server
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';

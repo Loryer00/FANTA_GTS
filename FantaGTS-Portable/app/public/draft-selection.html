@@ -1,0 +1,693 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Draft Libero</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+            .header h1 {
+                color: #667eea;
+                font-size: 1.8em;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+        .session-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: right;
+        }
+
+        .session-name {
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .participant-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Giocatori Disponibili */
+        .giocatori-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+            .giocatori-section h2 {
+                color: #667eea;
+                margin-bottom: 20px;
+                font-size: 1.5em;
+            }
+
+        .posizione-group {
+            margin-bottom: 30px;
+        }
+
+        .posizione-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .giocatori-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .giocatore-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+            .giocatore-card:hover {
+                border-color: #667eea;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+            }
+
+            .giocatore-card.selected {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border-color: #667eea;
+                color: white;
+            }
+
+                .giocatore-card.selected .squadra-info {
+                    color: #e2e8f0;
+                }
+
+        .giocatore-nome {
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .squadra-info {
+            font-size: 0.85em;
+            color: #718096;
+        }
+
+        /* Tua Squadra */
+        .tua-squadra-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+
+            .tua-squadra-section h2 {
+                color: #667eea;
+                margin-bottom: 20px;
+                font-size: 1.5em;
+            }
+
+        .squadra-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            min-height: 50px;
+        }
+
+            .slot.filled {
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+                border-color: #667eea;
+            }
+
+        .slot-posizione {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 40px;
+        }
+
+        .slot-giocatore {
+            flex: 1;
+            margin: 0 15px;
+        }
+
+            .slot-giocatore.empty {
+                color: #a0aec0;
+                font-style: italic;
+            }
+
+        .btn-remove {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+            .btn-remove:hover {
+                background: #e53e3e;
+            }
+
+        /* Bottone Salva */
+        .save-button-container {
+            margin-top: 20px;
+        }
+
+        .btn-save {
+            width: 100%;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+            .btn-save:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(72, 187, 120, 0.3);
+            }
+
+            .btn-save:disabled {
+                background: #cbd5e0;
+                cursor: not-allowed;
+            }
+
+        /* Alert/Notification */
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .alert.error {
+            background: #f56565;
+            color: white;
+        }
+
+        .alert.info {
+            background: #4299e1;
+            color: white;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .tua-squadra-section {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .giocatori-list {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                text-align: center;
+            }
+
+                .header h1 {
+                    font-size: 1.4em;
+                }
+
+            .session-info {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                🎾 Draft Libero
+            </h1>
+            <div class="session-info">
+                <div class="session-name" id="sessionName">Caricamento...</div>
+                <div class="participant-name" id="participantName">--</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;">
+                    <span id="progressText">0/10</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Giocatori Disponibili -->
+            <div class="giocatori-section">
+                <h2>📋 Seleziona i tuoi giocatori</h2>
+                <div id="giocatoriContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Caricamento giocatori disponibili...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tua Squadra -->
+            <div class="tua-squadra-section">
+                <h2>⭐ La Tua Squadra</h2>
+                <div class="squadra-slots" id="squadraSlots">
+                    <!-- Popolato dinamicamente -->
+                </div>
+                <div class="save-button-container">
+                    <button class="btn-save" id="btnSalva" disabled onclick="salvaSquadra()">
+                        💾 Salva Squadra (0/10)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert" id="alert"></div>
+
+    <script>
+        // Stato applicazione
+        const appState = {
+            sessioneId: null,
+            partecipanteId: null,
+            nomePartecipante: '',
+            giocatoriDisponibili: {},
+            squadraSelezionata: {},
+            posizioniRichieste: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3']
+        };
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🎾 Draft Selection - Inizializzazione');
+
+            // Recupera dati dalla sessione salvata
+            const savedSession = localStorage.getItem('userSession');
+            if (!savedSession) {
+                showAlert('Errore: Nessuna sessione trovata. Effettua il login.', 'error');
+                setTimeout(() => window.location.href = '/index.html', 2000);
+                return;
+            }
+
+            const session = JSON.parse(savedSession);
+            appState.sessioneId = session.sessioneId;
+            appState.partecipanteId = session.partecipanteId;
+            appState.nomePartecipante = session.nome;
+
+            document.getElementById('participantName').textContent = appState.nomePartecipante;
+
+            // Carica giocatori disponibili
+            await caricaGiocatoriDisponibili();
+
+            // Carica squadra già salvata (se esiste)
+            await caricaSquadraSalvata();
+
+            // Inizializza interfaccia
+            renderSquadraSlots();
+            renderGiocatoriDisponibili();
+            aggiornaProgress();
+        });
+
+        // Carica giocatori disponibili
+        async function caricaGiocatoriDisponibili() {
+            try {
+                const response = await fetch(`/api/draft/giocatori-disponibili?sessione_id=${appState.sessioneId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Errore caricamento giocatori');
+                }
+
+                appState.giocatoriDisponibili = data.giocatoriPerPosizione;
+                document.getElementById('sessionName').textContent = data.sessione_nome;
+
+                console.log('✅ Giocatori disponibili caricati:', data.totale);
+            } catch (err) {
+                console.error('❌ Errore:', err);
+                showAlert('Errore caricamento giocatori: ' + err.message, 'error');
+            }
+        }
+
+        // Carica squadra già salvata
+        async function caricaSquadraSalvata() {
+            try {
+                const response = await fetch(`/api/draft/squadra/${appState.partecipanteId}?sessione_id=${appState.sessioneId}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.log('Nessuna squadra precedentemente salvata');
+                    return;
+                }
+
+                if (data.completata) {
+                    showAlert('Hai già una squadra completa salvata!', 'info');
+                }
+
+                // Carica le selezioni precedenti
+                appState.squadraSelezionata = data.squadra;
+                console.log(`✅ Squadra recuperata: ${data.posizioniCompilate}/10 posizioni`);
+            } catch (err) {
+                console.error('⚠️ Errore caricamento squadra:', err);
+            }
+        }
+
+        // Render giocatori disponibili
+        function renderGiocatoriDisponibili() {
+            const container = document.getElementById('giocatoriContainer');
+            container.innerHTML = '';
+
+            appState.posizioniRichieste.forEach(posizione => {
+                const giocatori = appState.giocatoriDisponibili[posizione] || [];
+
+                const group = document.createElement('div');
+                group.className = 'posizione-group';
+
+                const header = document.createElement('div');
+                header.className = 'posizione-header';
+                header.textContent = `${posizione} (${giocatori.length} disponibili)`;
+                group.appendChild(header);
+
+                const list = document.createElement('div');
+                list.className = 'giocatori-list';
+
+                giocatori.forEach(giocatore => {
+                    const card = document.createElement('div');
+                    card.className = 'giocatore-card';
+                    card.dataset.slotId = giocatore.id;
+                    card.dataset.posizione = posizione;
+                    card.dataset.nome = giocatore.nome;
+                    card.dataset.numeroSquadra = giocatore.numeroSquadra;
+
+                    // Verifica se già selezionato
+                    if (appState.squadraSelezionata[posizione]?.giocatore === giocatore.nome) {
+                        card.classList.add('selected');
+                    }
+
+                    card.innerHTML = `
+                        <div class="giocatore-nome">${giocatore.nome}</div>
+                        <div class="squadra-info">Squadra ${giocatore.coloreSquadra.toUpperCase()}</div>
+                    `;
+
+                    card.addEventListener('click', () => selezionaGiocatore(giocatore, posizione));
+
+                    list.appendChild(card);
+                });
+
+                group.appendChild(list);
+                container.appendChild(group);
+            });
+        }
+
+        // Render slot squadra
+        function renderSquadraSlots() {
+            const container = document.getElementById('squadraSlots');
+            container.innerHTML = '';
+
+            appState.posizioniRichieste.forEach(posizione => {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.dataset.posizione = posizione;
+
+                const posizioneLabel = document.createElement('div');
+                posizioneLabel.className = 'slot-posizione';
+                posizioneLabel.textContent = posizione;
+
+                const giocatoreDiv = document.createElement('div');
+                giocatoreDiv.className = 'slot-giocatore';
+
+                if (appState.squadraSelezionata[posizione]) {
+                    slot.classList.add('filled');
+                    giocatoreDiv.textContent = appState.squadraSelezionata[posizione].giocatore;
+
+                    const btnRemove = document.createElement('button');
+                    btnRemove.className = 'btn-remove';
+                    btnRemove.textContent = '✕';
+                    btnRemove.addEventListener('click', () => rimuoviGiocatore(posizione));
+
+                    slot.appendChild(posizioneLabel);
+                    slot.appendChild(giocatoreDiv);
+                    slot.appendChild(btnRemove);
+                } else {
+                    giocatoreDiv.className += ' empty';
+                    giocatoreDiv.textContent = 'Seleziona un giocatore...';
+
+                    slot.appendChild(posizioneLabel);
+                    slot.appendChild(giocatoreDiv);
+                }
+
+                container.appendChild(slot);
+            });
+        }
+
+        // Seleziona giocatore
+        function selezionaGiocatore(giocatore, posizione) {
+            // Aggiungi alla squadra
+            appState.squadraSelezionata[posizione] = {
+                giocatore: giocatore.nome,
+                slotId: giocatore.id,
+                numeroSquadra: giocatore.numeroSquadra
+            };
+
+            // Aggiorna interfaccia
+            renderSquadraSlots();
+            renderGiocatoriDisponibili();
+            aggiornaProgress();
+
+            showAlert(`${giocatore.nome} aggiunto a ${posizione}!`, 'success');
+        }
+
+        // Rimuovi giocatore
+        function rimuoviGiocatore(posizione) {
+            delete appState.squadraSelezionata[posizione];
+
+            renderSquadraSlots();
+            renderGiocatoriDisponibili();
+            aggiornaProgress();
+
+            showAlert(`${posizione} rimosso`, 'info');
+        }
+
+        // Aggiorna progress bar
+        function aggiornaProgress() {
+            const completate = Object.keys(appState.squadraSelezionata).length;
+            const percentuale = (completate / 10) * 100;
+
+            document.getElementById('progressFill').style.width = percentuale + '%';
+            document.getElementById('progressText').textContent = `${completate}/10`;
+
+            const btnSalva = document.getElementById('btnSalva');
+            btnSalva.textContent = `💾 Salva Squadra (${completate}/10)`;
+            btnSalva.disabled = completate < 10;
+        }
+
+        // Salva squadra
+        async function salvaSquadra() {
+            const completate = Object.keys(appState.squadraSelezionata).length;
+
+            if (completate < 10) {
+                showAlert('Completa tutte le 10 posizioni prima di salvare!', 'error');
+                return;
+            }
+
+            const btnSalva = document.getElementById('btnSalva');
+            btnSalva.disabled = true;
+            btnSalva.textContent = '💾 Salvataggio...';
+
+            try {
+                const response = await fetch('/api/draft/squadra', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        partecipante_id: appState.partecipanteId,
+                        sessione_id: appState.sessioneId,
+                        squadra: appState.squadraSelezionata
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Errore salvataggio');
+                }
+
+                showAlert('✅ Squadra salvata con successo!', 'success');
+
+                setTimeout(() => {
+                    window.location.href = '/index.html';
+                }, 2000);
+
+            } catch (err) {
+                console.error('❌ Errore salvataggio:', err);
+                showAlert('Errore: ' + err.message, 'error');
+                btnSalva.disabled = false;
+                btnSalva.textContent = `💾 Salva Squadra (10/10)`;
+            }
+        }
+
+        // Show alert
+        function showAlert(message, type = 'info') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert ${type}`;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

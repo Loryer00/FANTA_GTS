@@ -1143,6 +1143,15 @@
 
                 // 🆕 CARICA I DATI CORRETTI DEL PARTECIPANTE DALLA SESSIONE
                 const partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${playerData.name}`);
+
+                // 🆕 VERIFICA LA MODALITÀ DELLA SESSIONE
+                const sessioneResponse = await fetch(`/api/sessioni/${sessioneId}`);
+                if (!sessioneResponse.ok) {
+                    throw new Error('Impossibile caricare i dati della sessione');
+                }
+                const sessioneData = await sessioneResponse.json();
+                console.log('📊 Sessione caricata:', sessioneData);
+
                 if (partecipanteResponse.ok) {
                     const partecipante = await partecipanteResponse.json();
                     playerData.id = partecipante.id;
@@ -1153,7 +1162,31 @@
                 }
 
                 // Salva la sessione nel localStorage con i dati aggiornati
+                // 🆕 Aggiungi anche sessioneId e nome partecipante per draft-selection.html
+                localStorage.setItem('userSession', JSON.stringify({
+                    name: playerData.name,
+                    partecipanteId: playerData.id,
+                    sessioneId: sessioneId,
+                    sessioneNome: nomeSessione,
+                    credits: playerData.credits,
+                    modalita: sessioneData.modalita
+                }));
                 saveSession();
+
+                // 🎯 ROUTING PER MODALITÀ
+                if (sessioneData.modalita === 'draft_libero') {
+                    // Modalità Draft Libero → Reindirizza a draft-selection.html
+                    console.log('🎯 Modalità Draft Libero rilevata - Reindirizzamento...');
+                    mostraMessaggio(`🎯 Accesso a Draft "${nomeSessione}"...`, 'success');
+
+                    setTimeout(() => {
+                        window.location.href = '/draft-selection.html';
+                    }, 800);
+                    return; // Blocca il resto dell'esecuzione
+                }
+
+                // ✅ Modalità Asta Competitiva → Comportamento normale
+                console.log('🎾 Modalità Asta Competitiva - Caricamento interfaccia aste...');
 
                 // Aggiorna display
                 document.getElementById('currentPlayer').textContent = playerData.name;
