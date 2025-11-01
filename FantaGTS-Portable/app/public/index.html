@@ -1382,14 +1382,9 @@
                             mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
-                            console.log('⚠️ Squadra draft incompleta - Reindirizzo a draft-selection');
-
-                            // 🛡️ PROTEZIONE LOOP: Non fare redirect se siamo già in draft-selection
-                            if (!window.location.pathname.includes('draft-selection')) {
-                                window.location.href = '/draft-selection.html';
-                            } else {
-                                console.log('🔒 Già in draft-selection, evito loop');
-                            }
+                            console.log('⚠️ Squadra draft incompleta - Mostro selezione sessioni');
+                            await mostraSchermataSessioni();
+                            mostraMessaggio('⚠️ Completa la tua squadra draft per continuare', 'warning');
                             return true;
                         }
                     } else {
