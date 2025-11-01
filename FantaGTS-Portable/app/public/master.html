@@ -775,10 +775,16 @@
                 if (sessioneInfo) {
                     console.log('✅ Sessione master caricata:', sessioneInfo);
                     aggiornaHeaderSessioneMaster();
+
+                    // 🎯 VERIFICA MODALITÀ E ADATTA INTERFACCIA (DOPO aver caricato sessioneInfo!)
+                    if (sessioneInfo.modalita === 'draft_libero') {
+                        adattaInterfacciaDraft(sessioneInfo);
+                    } else {
+                        adattaInterfacciaAsta();
+                    }
                 } else {
                     mostraWarningNoSessione();
                 }
-
             } catch (error) {
                 console.error('❌ Errore caricamento sessione master:', error);
             }
@@ -2498,6 +2504,133 @@
         window.addEventListener('beforeunload', () => {
             saveMasterState();
         });
+
+        function adattaInterfacciaAsta() {
+            // Mostra controlli aste
+            document.querySelector('.controllo-aste-section')?.style.setProperty('display', 'block', 'important');
+
+            // Nascondi controlli draft (se esistono)
+            document.querySelector('.controllo-draft-section')?.style.setProperty('display', 'none', 'important');
+
+            console.log('✅ Interfaccia adattata per modalità ASTA');
+        }
+
+        function adattaInterfacciaDraft(sessioneData) {
+            // Nascondi controlli aste
+            document.querySelector('.controllo-aste-section')?.style.setProperty('display', 'none', 'important');
+
+            // Mostra controlli draft
+            let draftSection = document.querySelector('.controllo-draft-section');
+            if (!draftSection) {
+                // Se non esiste, creala
+                draftSection = creaSezioneDraft(sessioneData);
+                document.querySelector('.container')?.appendChild(draftSection);
+            }
+            draftSection.style.setProperty('display', 'block', 'important');
+
+            console.log('✅ Interfaccia adattata per modalità DRAFT');
+        }
+
+        function creaSezioneDraft(sessioneData) {
+            const section = document.createElement('div');
+            section.className = 'controllo-draft-section';
+            section.style.cssText = 'background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; margin-top: 20px;';
+
+            section.innerHTML = `
+        <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">
+            🎯 Gestione Draft Libero
+        </h2>
+        
+        <div style="background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #667eea;">
+            <h3 style="margin-bottom: 10px; color: #667eea;">📋 Codice Accesso Sessione</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <code style="font-size: 2em; font-weight: bold; letter-spacing: 5px; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px;">${sessioneData.codice_accesso || 'N/A'}</code>
+                <button onclick="copiaCodiceDraft('${sessioneData.codice_accesso}')" style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    📋 Copia Codice
+                </button>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                I partecipanti devono inserire questo codice su <strong>index.html</strong> per accedere alla selezione giocatori
+            </p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h3 style="margin-bottom: 15px; color: #667eea;">👥 Partecipanti Registrati</h3>
+            <div id="draftPartecipantiList">
+                <p style="opacity: 0.7;">Caricamento...</p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 20px;">
+            <button onclick="aggiornaStatoDraft()" style="flex: 1; background: #4299e1; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                🔄 Aggiorna Stato
+            </button>
+            <button onclick="window.open('/draft-selection.html', '_blank')" style="flex: 1; background: #667eea; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                👁️ Preview Selezione
+            </button>
+        </div>
+    `;
+
+            return section;
+        }
+
+        function copiaCodiceDraft(codice) {
+            navigator.clipboard.writeText(codice).then(() => {
+                showNotification('✅ Codice copiato negli appunti!', 'success');
+            }).catch(err => {
+                showNotification('❌ Errore copia codice', 'error');
+            });
+        }
+
+        async function aggiornaStatoDraft() {
+            try {
+                const sessioneId = gameState.sessioneAttiva;
+                if (!sessioneId) return;
+
+                // Carica lista partecipanti
+                const response = await fetch(`/api/debug/partecipanti?sessione=${sessioneId}`);
+                const data = await response.json();
+
+                const container = document.getElementById('draftPartecipantiList');
+                if (data.count === 0) {
+                    container.innerHTML = '<p style="opacity: 0.7;">Nessun partecipante registrato</p>';
+                    return;
+                }
+
+                let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+
+                for (const partecipante of data.partecipanti) {
+                    // Verifica quante posizioni ha completato
+                    const squadraResponse = await fetch(`/api/draft/squadra/${partecipante.id}?sessione_id=${sessioneId}`);
+                    const squadraData = await squadraResponse.json();
+
+                    const progresso = squadraData.posizioniCompilate || 0;
+                    const completato = progresso === 10;
+                    const percentuale = (progresso / 10) * 100;
+
+                    html += `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border-left: 4px solid ${completato ? '#48bb78' : '#667eea'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="font-size: 1.1em;">${partecipante.nome}</strong>
+                        <span style="background: ${completato ? '#48bb78' : '#667eea'}; padding: 5px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold;">
+                            ${progresso}/10 ${completato ? '✅' : '⏳'}
+                        </span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: ${completato ? '#48bb78' : '#667eea'}; height: 100%; width: ${percentuale}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            `;
+                }
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error('❌ Errore aggiornamento stato draft:', err);
+                showNotification('Errore caricamento stato', 'error');
+            }
+        }
 
     </script>
 
