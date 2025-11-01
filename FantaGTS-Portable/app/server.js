@@ -4816,9 +4816,9 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
                 s.posizione,
                 s.giocatore_attuale,
                 sc.colore as colore_squadra,
-                sc.numero as numero_squadra
+                s.numero_squadra_circolo as numero_squadra
             FROM slots s
-            JOIN squadre_circolo sc ON s.numero_squadra = sc.numero AND s.sessione_id = sc.sessione_id
+            JOIN squadre_circolo sc ON s.numero_squadra_circolo = sc.numero AND s.sessione_id = sc.sessione_id
             WHERE s.sessione_id = $1 AND s.attivo = true
             ORDER BY 
                 CASE s.posizione
