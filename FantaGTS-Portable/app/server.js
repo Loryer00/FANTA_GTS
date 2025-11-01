@@ -4882,8 +4882,8 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             
         SELECT 
                 a.slot_id,
-                s.posizione,  -- ✅ posizione presa da slots
-                a.giocatore,
+                s.posizione, 
+                s.giocatore_attuale AS giocatore
                 s.squadra_numero AS numero_squadra,
                 sc.colore AS colore_squadra
             FROM aste a
