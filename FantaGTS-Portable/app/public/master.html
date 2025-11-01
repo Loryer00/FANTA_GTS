@@ -754,20 +754,38 @@
                 const sessioneId = urlParams.get('sessione');
 
                 if (sessioneId) {
-                    // Carica sessione specifica
+                    // Carica sessione specifica dall'URL
+                    console.log('📌 Caricamento sessione specifica:', sessioneId);
                     const response = await fetch(`/api/sessioni/${sessioneId}`);
                     if (response.ok) {
                         sessioneInfo = await response.json();
                         sessioneCorrente = sessioneId;
                     }
                 } else {
-                    // Carica sessione attiva di default (asta_competitiva)
-                    const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+                    // Se non c'è nell'URL, prova a caricare qualsiasi sessione attiva
+                    console.log('🔍 Nessuna sessione nell\'URL, cercando sessioni attive...');
+
+                    // Prima prova con asta_competitiva
+                    let response = await fetch('/api/sessioni/attiva/asta_competitiva');
                     if (response.ok) {
                         const data = await response.json();
                         if (data) {
                             sessioneInfo = data;
                             sessioneCorrente = data.id;
+                            console.log('✅ Trovata sessione Asta attiva:', data.nome);
+                        }
+                    }
+
+                    // Se non trova asta, prova con draft_libero
+                    if (!sessioneInfo) {
+                        response = await fetch('/api/sessioni/attiva/draft_libero');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data) {
+                                sessioneInfo = data;
+                                sessioneCorrente = data.id;
+                                console.log('✅ Trovata sessione Draft attiva:', data.nome);
+                            }
                         }
                     }
                 }
@@ -776,20 +794,23 @@
                     console.log('✅ Sessione master caricata:', sessioneInfo);
                     aggiornaHeaderSessioneMaster();
 
-                    // 🎯 VERIFICA MODALITÀ E ADATTA INTERFACCIA (DOPO aver caricato sessioneInfo!)
+                    // 🎯 VERIFICA MODALITÀ E ADATTA INTERFACCIA
                     if (sessioneInfo.modalita === 'draft_libero') {
+                        console.log('🎯 Modalità Draft rilevata!');
                         adattaInterfacciaDraft(sessioneInfo);
                     } else {
+                        console.log('🎾 Modalità Asta rilevata!');
                         adattaInterfacciaAsta();
                     }
                 } else {
+                    console.warn('⚠️ Nessuna sessione attiva trovata');
                     mostraWarningNoSessione();
                 }
             } catch (error) {
                 console.error('❌ Errore caricamento sessione master:', error);
             }
         }
-
+        
         function aggiornaHeaderSessioneMaster() {
             if (!sessioneInfo) return;
 
