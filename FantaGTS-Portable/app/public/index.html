@@ -1191,9 +1191,42 @@
 
                 // 🎯 ROUTING PER MODALITÀ
                 if (sessioneData.modalita === 'draft_libero') {
-                    // Modalità Draft Libero → Reindirizza a draft-selection.html
-                    console.log('🎯 Modalità Draft Libero rilevata - Reindirizzamento...');
-                    mostraMessaggio(`🎯 Accesso a Draft "${nomeSessione}"...`, 'success');
+                    console.log('🎯 Modalità Draft Libero - Verifico squadra...');
+
+                    // Verifica se ha già completato la squadra draft
+                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+
+                    if (draftResponse.ok) {
+                        const draftData = await draftResponse.json();
+
+                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
+                            console.log('✅ Squadra draft già completa - Carico interfaccia user');
+
+                            // Aggiorna display
+                            document.getElementById('currentPlayer').textContent = playerData.name;
+                            document.getElementById('playerCredits').textContent = playerData.credits;
+
+                            // Nascondi crediti per draft
+                            const playerStatsDisplay = document.getElementById('playerStatsDisplay');
+                            if (playerStatsDisplay) {
+                                playerStatsDisplay.style.display = 'none';
+                            }
+
+                            // Nascondi schermata sessioni e mostra game area
+                            document.getElementById('sessions-screen').style.display = 'none';
+                            showGameArea();
+
+                            // Carica squadra del partecipante
+                            await loadPlayerTeam();
+
+                            mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
+                            return;
+                        }
+                    }
+
+                    // Squadra non completa → Reindirizza a draft-selection
+                    console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
+                    mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
 
                     setTimeout(() => {
                         window.location.href = '/draft-selection.html';
