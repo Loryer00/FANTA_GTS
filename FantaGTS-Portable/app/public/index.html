@@ -785,7 +785,10 @@
                 <div id="playerStatsDisplay">💰 <span id="playerCredits">--</span> crediti</div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 15px;">
+            <div style="text-align: center; margin-bottom: 15px; display: flex; gap: 10px; justify-content: center;">
+                <button onclick="cambiaSessione()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
+                    🔄 Cambia Sessione
+                </button>
                 <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
                     🚪 Cambia Utente
                 </button>
@@ -1272,85 +1275,76 @@
         // 🆕 NUOVA FUNZIONE - INSERISCI TUTTO QUESTO BLOCCO QUI
         async function loadSavedSession() {
             try {
-                const savedData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
-                if (!savedData) {
-                    console.log('ℹ️ Nessuna sessione salvata trovata');
+                const savedSession = localStorage.getItem('userSession');
+                if (!savedSession) {
+                    console.log('ℹ️ Nessuna sessione salvata');
                     return false;
                 }
 
-                const data = JSON.parse(savedData);
-                console.log('🔄 Ripristino sessione salvata:', data);
+                const session = JSON.parse(savedSession);
+                console.log('🔍 Sessione salvata trovata:', session);
 
-                // Ripristina playerData
-                playerData.registered = true;
-                playerData.name = data.name;
-                playerData.id = data.id;
-                playerData.credits = data.credits;
-                playerData.notificationsEnabled = data.notificationsEnabled || false;
-
-                // Ripristina sessione se presente
-                if (data.sessioneCorrente) {
-                    sessioneCorrente = data.sessioneCorrente;
-                    nomeSessioneCorrente = data.nomeSessione || '';
-
-                    // Verifica che la sessione sia ancora valida
-                    const response = await fetch(`/api/sessioni`);
-                    if (response.ok) {
-                        const sessioni = await response.json();
-                        const sessioneValida = sessioni.find(s => s.id === sessioneCorrente);
-
-                        if (sessioneValida) {
-                            console.log('✅ Sessione valida, entro automaticamente');
-
-                            // 🆕 RICARICA I CREDITI AGGIORNATI DALLA SESSIONE
-                            const creditiResponse = await fetch(`/api/sessioni/${sessioneCorrente}/partecipante/${playerData.name}`);
-                            if (creditiResponse.ok) {
-                                const partecipanteData = await creditiResponse.json();
-                                playerData.id = partecipanteData.id; // Aggiorna anche l'ID
-                                playerData.credits = partecipanteData.crediti;
-                                console.log(`✅ Dati partecipante ricaricati - ID: ${playerData.id}, Crediti: ${playerData.credits}`);
-                                saveSession(); // 💾 Salva i crediti aggiornati nel localStorage
-                            } else {
-                                console.error('❌ Errore caricamento dati partecipante');
-                            }
-
-                            // Mostra direttamente la game area
-                            document.getElementById('welcome-screen').style.display = 'none';
-                            document.getElementById('login-screen').style.display = 'none';
-                            document.getElementById('register-screen').style.display = 'none';
-                            document.getElementById('sessions-screen').style.display = 'none';
-
-                            // Aggiorna display
-                            document.getElementById('currentPlayer').textContent = playerData.name;
-                            document.getElementById('playerCredits').textContent = playerData.credits;
-
-                            showGameArea();
-                            await loadPlayerTeam();
-
-                            if (playerData.notificationsEnabled) {
-                                await setupPushNotifications();
-                            }
-
-                            registerSocketWhenReady();
-
-                            mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
-                            return true;
-                        } else {
-                            console.log('⚠️ Sessione non più valida, mostro selezione sessioni');
-                            await mostraSchermataSessioni();
-                            return true;
-                        }
-                    }
-                } else {
-                    // Ha playerData ma non sessioneCorrente, mostra selezione sessioni
-                    console.log('ℹ️ Player salvato ma nessuna sessione, mostro selezione');
-                    await mostraSchermataSessioni();
-                    return true;
+                // Verifica che la sessione esista ancora sul server
+                const sessioneResponse = await fetch(`/api/sessioni/${session.sessioneId}`);
+                if (!sessioneResponse.ok) {
+                    console.log('⚠️ Sessione non più valida');
+                    localStorage.removeItem('userSession');
+                    return false;
                 }
 
-                return false;
+                const sessioneData = await sessioneResponse.json();
+
+                // Verifica che il partecipante esista ancora
+                const partecipanteResponse = await fetch(`/api/partecipanti/${session.partecipanteId}`);
+                if (!partecipanteResponse.ok) {
+                    console.log('⚠️ Partecipante non più valido');
+                    localStorage.removeItem('userSession');
+                    return false;
+                }
+
+                const partecipante = await partecipanteResponse.json();
+
+                // ✅ Tutto OK - Ripristina la sessione
+                playerData.registered = true;
+                playerData.name = session.name;
+                playerData.id = session.partecipanteId;
+                playerData.credits = partecipante.crediti;
+                playerData.modalita = sessioneData.modalita;
+
+                console.log('✅ Sessione ripristinata automaticamente');
+
+                // 🎯 ROUTING PER MODALITÀ
+                if (sessioneData.modalita === 'draft_libero') {
+                    console.log('🎯 Modalità Draft - Carico squadra draft');
+                    // Rimani in index.html ma carica squadra draft
+                    document.getElementById('currentPlayer').textContent = playerData.name;
+                    document.getElementById('playerCredits').textContent = playerData.credits;
+
+                    // Nascondi crediti per draft
+                    const creditsDisplay = document.getElementById('creditsDisplay');
+                    if (creditsDisplay) {
+                        creditsDisplay.style.display = 'none';
+                    }
+
+                    showGameArea();
+                    await loadPlayerTeam();
+
+                } else {
+                    console.log('🎾 Modalità Asta - Carico squadra aste');
+                    document.getElementById('currentPlayer').textContent = playerData.name;
+                    document.getElementById('playerCredits').textContent = playerData.credits;
+                    updateCreditsDisplay();
+
+                    showGameArea();
+                    registerSocketWhenReady();
+                    await loadPlayerTeam();
+                }
+
+                return true;
+
             } catch (error) {
-                console.error('Errore caricamento sessione salvata:', error);
+                console.error('❌ Errore ripristino sessione:', error);
+                localStorage.removeItem('userSession');
                 return false;
             }
         }
@@ -1704,8 +1698,16 @@
                     caricaClassifica();
                 }
 
-                // Aggiorna display crediti
-                await updateCreditsDisplay();
+                // 🆕 NASCONDI CREDITI SE DRAFT
+                const creditsDisplay = document.getElementById('creditsDisplay');
+                if (creditsDisplay) {
+                    if (modalita === 'draft_libero') {
+                        creditsDisplay.style.display = 'none';
+                    } else {
+                        creditsDisplay.style.display = 'block';
+                        await updateCreditsDisplay();
+                    }
+                }
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadra:', error);
@@ -2530,6 +2532,31 @@
                     socket.disconnect();
                 }
                 location.reload();
+            }
+        }
+
+        // ========================================
+        // CAMBIA SESSIONE
+        // ========================================
+        async function cambiaSessione() {
+            const conferma = await confermaPersonalizzata(
+                'Vuoi cambiare sessione?<br><br>Tornerai alla selezione delle sessioni disponibili.'
+            );
+
+            if (conferma) {
+                // Non cancellare i dati utente, solo la sessione corrente
+                if (socket && socket.connected) {
+                    socket.disconnect();
+                }
+
+                // Nascondi game area e mostra selezione sessioni
+                document.getElementById('gameArea').style.display = 'none';
+                document.getElementById('sessionSelection').style.display = 'block';
+
+                // Ricarica lista sessioni
+                await caricaSessioniDisponibili();
+
+                console.log('🔄 Cambio sessione - Lista sessioni ricaricata');
             }
         }
 
