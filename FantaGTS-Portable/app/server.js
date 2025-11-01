@@ -167,6 +167,21 @@ async function initializeDatabase() {
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+
+        await db.query(`CREATE TABLE IF NOT EXISTS squadre_draft (
+                id SERIAL PRIMARY KEY,
+                partecipante_id TEXT NOT NULL,
+                sessione_id TEXT NOT NULL,
+                posizione TEXT NOT NULL,          -- M1, M2, F1, ecc.
+                slot_id TEXT NOT NULL,            -- riferimento allo slot
+                giocatore TEXT NOT NULL,          -- nome del giocatore
+                numero_squadra_circolo INTEGER,   -- numero squadra originale
+                colore_squadra TEXT,              -- colore squadra originale
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+
         await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
             id SERIAL PRIMARY KEY,
             partecipante_id TEXT,
@@ -4868,6 +4883,7 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
 });
 
 // GET: Recupera squadra salvata di un partecipante (Draft)
+
 app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
@@ -4877,173 +4893,90 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             return res.status(400).json({ error: 'sessione_id richiesto' });
         }
 
-        // Recupera le aste salvate (in Draft = selezioni) del partecipante
-
         const result = await db.query(`
-        SELECT 
-            a.slot_id,
-            s.posizione,
-            s.giocatore_attuale AS giocatore,
-            s.squadra_numero AS numero_squadra,
-            sc.colore AS colore_squadra
-        FROM aste a
-        JOIN slots s ON a.slot_id = s.id
-        LEFT JOIN squadre_circolo sc 
-            ON s.squadra_numero = sc.numero 
-            AND s.sessione_id = sc.sessione_id
-        WHERE a.partecipante_id = $1 AND a.sessione_id = $2
-        ORDER BY CASE 
-            WHEN s.posizione = 'M1' THEN 1
-            WHEN s.posizione = 'M2' THEN 2
-            WHEN s.posizione = 'M3' THEN 3
-            WHEN s.posizione = 'M4' THEN 4
-            WHEN s.posizione = 'M5' THEN 5
-            WHEN s.posizione = 'M6' THEN 6
-            WHEN s.posizione = 'M7' THEN 7
-            WHEN s.posizione = 'F1' THEN 8
-            WHEN s.posizione = 'F2' THEN 9
-            WHEN s.posizione = 'F3' THEN 10
-            ELSE 11
+            SELECT posizione, giocatore, slot_id, numero_squadra_circolo, colore_squadra
+            FROM squadre_draft
+            WHERE partecipante_id = $1 AND sessione_id = $2
+            ORDER BY CASE
+                WHEN posizione = 'M1' THEN 1
+                WHEN posizione = 'M2' THEN 2
+                WHEN posizione = 'M3' THEN 3
+                WHEN posizione = 'M4' THEN 4
+                WHEN posizione = 'M5' THEN 5
+                WHEN posizione = 'M6' THEN 6
+                WHEN posizione = 'M7' THEN 7
+                WHEN posizione = 'F1' THEN 8
+                WHEN posizione = 'F2' THEN 9
+                WHEN posizione = 'F3' THEN 10
+                ELSE 11
             END
         `, [partecipanteId, sessione_id]);
 
-        // ✅ Costruisci la squadra come oggetto con chiave = posizione
         const squadra = {};
         result.rows.forEach(riga => {
             squadra[riga.posizione] = {
                 giocatore: riga.giocatore,
                 slotId: riga.slot_id,
                 coloreSquadra: riga.colore_squadra,
-                numeroSquadra: riga.numero_squadra
+                numeroSquadra: riga.numero_squadra_circolo
             };
         });
 
-
-        // Verifica se la squadra è completa (10 posizioni)
         const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
         const completata = posizioniRichieste.every(pos => squadra[pos]);
 
-        console.log(`✅ Squadra Draft recuperata - Partecipante ${partecipanteId}: ${result.rows.length}/10 posizioni`);
-
         res.json({
             partecipante_id: partecipanteId,
-            sessione_id: sessione_id,
-            squadra: squadra,
-            completata: completata,
+            sessione_id,
+            squadra,
+            completata,
             posizioniCompilate: result.rows.length
         });
-
     } catch (err) {
         console.error('❌ Errore recupero squadra Draft:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
+
 // POST: Salva squadra completa Draft (finale e bloccata)
+
 app.post('/api/draft/squadra', async (req, res) => {
     try {
         const { partecipante_id, sessione_id, squadra } = req.body;
 
-        // Validazione
         if (!partecipante_id || !sessione_id || !squadra) {
-            return res.status(400).json({
-                error: 'Campi obbligatori: partecipante_id, sessione_id, squadra'
-            });
+            return res.status(400).json({ error: 'Campi obbligatori: partecipante_id, sessione_id, squadra' });
         }
 
-        // Verifica che la sessione sia Draft
-        const sessioneResult = await db.query(
-            'SELECT * FROM sessioni_fantagts WHERE id = $1',
-            [sessione_id]
-        );
+        // Cancella eventuali scelte precedenti
+        await db.query('DELETE FROM squadre_draft WHERE partecipante_id = $1 AND sessione_id = $2', [partecipante_id, sessione_id]);
 
-        if (sessioneResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione non trovata' });
-        }
-
-        if (sessioneResult.rows[0].modalita !== 'draft_libero') {
-            return res.status(400).json({ error: 'Questa sessione non Ã¨ in modalitÃ  Draft Libero' });
-        }
-
-        // Verifica che tutte le 10 posizioni siano compilate
-        const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-        const posizioniPresenti = Object.keys(squadra);
-
-        if (posizioniPresenti.length !== 10) {
-            return res.status(400).json({
-                error: `Devi completare tutte le 10 posizioni. Attualmente hai ${posizioniPresenti.length}/10`
-            });
-        }
-
-        const posizioniMancanti = posizioniRichieste.filter(pos => !squadra[pos]);
-        if (posizioniMancanti.length > 0) {
-            return res.status(400).json({
-                error: `Posizioni mancanti: ${posizioniMancanti.join(', ')}`
-            });
-        }
-
-        // Salva ogni giocatore come una riga nella tabella aste
-        // (in Draft, importo = 0, round = posizione)
-        console.log(`ðŸ'¾ Salvataggio squadra Draft - Partecipante ${partecipante_id}`);
-
-        // Prima cancella eventuali scelte precedenti
-        await db.query(
-            'DELETE FROM aste WHERE partecipante_id = $1 AND sessione_id = $2',
-            [partecipante_id, sessione_id]
-        );
-
-        // Inserisci tutte le nuove scelte
+        // Inserisci le nuove scelte
         for (const [posizione, dati] of Object.entries(squadra)) {
             await db.query(`
-                INSERT INTO aste (
-                    partecipante_id, 
-                    sessione_id,
-                    posizione, 
-                    giocatore, 
-                    importo, 
-                    slot_id, 
-                    numero_squadra_circolo,
-                    round
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO squadre_draft (
+                    partecipante_id, sessione_id, posizione, slot_id, giocatore, numero_squadra_circolo, colore_squadra
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             `, [
                 partecipante_id,
                 sessione_id,
                 posizione,
-                dati.giocatore,
-                0, // In Draft non ci sono crediti
                 dati.slotId,
+                dati.giocatore,
                 dati.numeroSquadra,
-                posizione // Usiamo posizione come "round" per compatibilitÃ 
+                dati.coloreSquadra
             ]);
         }
 
-        console.log(`âœ… Squadra Draft salvata con successo - 10 giocatori registrati`);
-
-        // Invia notifica push al partecipante
-        try {
-            await inviaNotifichePush({
-                title: 'âœ… Squadra Salvata!',
-                body: `La tua squadra per ${sessioneResult.rows[0].nome} Ã¨ stata salvata con successo!`,
-                url: '/',
-                targetUsers: [partecipante_id]
-            });
-        } catch (notifError) {
-            console.warn('âš ï¸ Impossibile inviare notifica:', notifError.message);
-        }
-
-        res.json({
-            success: true,
-            message: 'Squadra salvata con successo',
-            partecipante_id: partecipante_id,
-            sessione_id: sessione_id,
-            giocatori_salvati: 10
-        });
-
+        console.log(`✅ Squadra Draft salvata per ${partecipante_id}`);
+        res.json({ success: true, message: 'Squadra salvata con successo', giocatori_salvati: Object.keys(squadra).length });
     } catch (err) {
-        console.error('âŒ Errore salvataggio squadra Draft:', err);
+        console.error('❌ Errore salvataggio squadra Draft:', err);
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // Avvio server
 const PORT = process.env.PORT || 3000;
