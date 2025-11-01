@@ -2669,6 +2669,11 @@
                     socket.disconnect();
                 }
 
+                // Reset sessione corrente
+                sessioneCorrente = null;
+                nomeSessioneCorrente = '';
+                localStorage.removeItem('userSession');
+
                 // Nascondi game area e mostra selezione sessioni
                 document.getElementById('game-area').style.display = 'none';
                 document.getElementById('sessions-screen').style.display = 'block';
