@@ -1408,7 +1408,22 @@
                     await loadPlayerTeam();
 
                     if (playerData.notificationsEnabled) {
-                        await setupPushNotifications()
+                        await setupPushNotifications();
+                    }
+
+                    registerSocketWhenReady();
+
+                    mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                    return true;
+                }
+
+            } catch (error) {
+                console.error('❌ Errore ripristino sessione:', error);
+                localStorage.removeItem('userSession');
+                localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
+                return false;
+            }
+        }
 
         // ========================================
         // GESTIONE UI
