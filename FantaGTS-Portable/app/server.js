@@ -829,8 +829,8 @@ async function generaSlots(sessioneId = null) {
                 const giocatore = squadra[pos.toLowerCase()];
 
                 await db.query(
-                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES ($1, $2, $3, $4, $5)",
-                    [slotId, squadra.numero, squadra.colore, pos, giocatore]
+                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, sessione_id) VALUES ($1, $2, $3, $4, $5, $6)",
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId]
                 );
                 inserimenti++;
             }
