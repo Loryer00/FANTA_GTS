@@ -1067,6 +1067,9 @@
 
             // Carica sessioni del partecipante
             await caricaMieSessioni();
+
+            // 🆕 SALVA nello stato che siamo nella schermata sessioni
+            localStorage.setItem('lastScreen', 'sessions');
         }
 
         async function caricaMieSessioni() {
@@ -1260,6 +1263,9 @@
 
                 saveSession();
 
+                // 🆕 SALVA che siamo dentro una sessione attiva
+                localStorage.setItem('lastScreen', 'game');
+
                 // 🎯 ROUTING PER MODALITÀ
                 if (sessioneData.modalita === 'draft_libero') {
                     console.log('🎯 Modalità Draft Libero - Verifico squadra...');
@@ -1423,6 +1429,28 @@
         // 🆕 NUOVA FUNZIONE - Unificata per gestire sia ASTE che DRAFT
         async function loadSavedSession() {
             try {
+                // 🆕 CONTROLLA dove era l'utente prima del refresh
+                const lastScreen = localStorage.getItem('lastScreen');
+
+                // Se l'utente era nella schermata sessioni, NON ripristinare automaticamente
+                if (lastScreen === 'sessions') {
+                    console.log('⚠️ Utente era nella schermata sessioni - Non ripristino automaticamente');
+
+                    // Ripristina solo i dati utente base
+                    const savedSession = localStorage.getItem('userSession') || localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
+                    if (savedSession) {
+                        const sessionData = JSON.parse(savedSession);
+                        playerData.registered = true;
+                        playerData.name = sessionData.name;
+                        playerData.id = sessionData.id || sessionData.partecipanteId;
+
+                        // Mostra la schermata sessioni
+                        await mostraSchermataSessioni();
+                        return true;
+                    }
+                    return false;
+                }
+
                 // 🆕 PROVA PRIMA CON userSession (usato da draft)
                 let savedSession = localStorage.getItem('userSession');
                 let sessionData = null;
