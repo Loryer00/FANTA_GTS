@@ -414,24 +414,23 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
-        // 4️⃣ ORA SÌ: Aggiungi Foreign Key (DOPO che entrambe le tabelle esistono!)
+        // 4️⃣ RIMUOVI Foreign Key da partecipanti_fantagts (per permettere login/registrazione generica)
         try {
+            console.log('🔧 Rimozione Foreign Key da partecipanti_fantagts...');
+
             await db.query(`
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM pg_constraint 
-                        WHERE conname = 'fk_partecipanti_sessione'
-                    ) THEN
-                        ALTER TABLE partecipanti_fantagts 
-                        ADD CONSTRAINT fk_partecipanti_sessione 
-                        FOREIGN KEY (sessione_id) REFERENCES sessioni_fantagts(id) ON DELETE CASCADE;
-                    END IF;
-                END $$;
+                ALTER TABLE partecipanti_fantagts 
+                DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione
             `);
-            console.log('✅ Foreign Key partecipanti -> sessioni verificata');
+
+            await db.query(`
+                ALTER TABLE partecipanti_fantagts 
+                DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey
+            `);
+
+            console.log('✅ Foreign Key rimossa: i partecipanti possono ora registrarsi senza sessione');
         } catch (err) {
-            console.warn('⚠️ Foreign Key già esistente o errore:', err.message);
+            console.warn('⚠️ Errore rimozione Foreign Key:', err.message);
         }
 
         // 5️⃣ INFINE: Crea VIEW per statistiche sessioni
