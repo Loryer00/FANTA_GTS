@@ -1216,29 +1216,29 @@
                 if (partecipanteResponse.ok) {
                     const partecipante = await partecipanteResponse.json();
                     playerData.credits = partecipante.crediti;
-                    console.log('✅ Dati partecipante caricati - ID originale:', playerData.id, 'Crediti sessione:', playerData.credits);
+                    console.log('✅ Dati partecipante caricati - Crediti sessione:', playerData.credits);
                 } else {
-                    // 🆕 Partecipante non trovato in questa sessione - AGGIUNGILO!
-                    console.log('⚠️ Partecipante non trovato nella sessione - Lo aggiungo automaticamente');
+                    // 🆕 Partecipante non registrato in questa sessione
+                    // Effettua automaticamente il join (come se avesse inserito il codice)
+                    console.log('⚠️ Partecipante non trovato - Effettuo join automatico alla sessione');
 
-                    const aggiungiResponse = await fetch('/api/partecipanti', {
+                    const joinResponse = await fetch('/api/join-session-with-code', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            id: playerData.id,
-                            nome: playerData.name,
-                            pin: '0000', // PIN placeholder (non serve per sessioni già create)
-                            sessione_id: sessioneId,
-                            crediti: sessioneData.crediti_iniziali || 2000
+                            partecipanteId: playerData.id,
+                            codiceSessione: sessioneData.codice_accesso
                         })
                     });
 
-                    if (aggiungiResponse.ok) {
-                        const nuovoPartecipante = await aggiungiResponse.json();
-                        playerData.credits = nuovoPartecipante.crediti || sessioneData.crediti_iniziali || 2000;
-                        console.log('✅ Partecipante aggiunto alla sessione con crediti:', playerData.credits);
+                    if (joinResponse.ok) {
+                        const joinData = await joinResponse.json();
+                        playerData.credits = joinData.crediti;
+                        console.log('✅ Join automatico completato - Crediti:', playerData.credits);
                     } else {
-                        mostraMessaggio('❌ Impossibile entrare nella sessione', 'error');
+                        const errorData = await joinResponse.json().catch(() => ({ error: 'Errore sconosciuto' }));
+                        console.error('❌ Errore join automatico:', errorData);
+                        mostraMessaggio(`❌ ${errorData.error || 'Impossibile entrare nella sessione'}`, 'error');
                         return;
                     }
                 }
