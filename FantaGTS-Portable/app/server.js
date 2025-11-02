@@ -82,31 +82,83 @@ async function initializeDatabase() {
     try {
         console.log('🔧 Inizializzazione database in corso...');
 
-        // Crea tabelle
+        // 1️⃣ PRIMA: Crea tabelle "parent" (senza dipendenze)
+
+        // Crea tabella configurazioni PRIMA di tutto
+        await db.query(`CREATE TABLE IF NOT EXISTS configurazioni (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            numero_squadre INTEGER DEFAULT 10,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella configurazioni creata/verificata');
+
+        // Crea configurazione "default" per retrocompatibilità
+        const defaultConfig = await db.query(`SELECT * FROM configurazioni WHERE id = 'default'`);
+        if (defaultConfig.rows.length === 0) {
+            await db.query(`
+                INSERT INTO configurazioni (id, nome, anno, descrizione, numero_squadre)
+                VALUES ('default', 'Configurazione Predefinita', 2025, 'Configurazione di default per compatibilità', 10)
+            `);
+            console.log('✅ Configurazione "default" creata per compatibilità');
+        } else {
+            console.log('ℹ️ Configurazione "default" già esistente');
+        }
+
+        // Crea tabella sessioni (senza foreign key ancora)
+        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            attiva BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella sessioni creata/verificata');
+
+        // Crea tabella squadre_circolo (senza foreign key ancora)
         await db.query(`CREATE TABLE IF NOT EXISTS squadre_circolo (
             id SERIAL PRIMARY KEY,
-            numero INTEGER UNIQUE NOT NULL,
+            numero INTEGER NOT NULL,
             colore TEXT NOT NULL,
             m1 TEXT, m2 TEXT, m3 TEXT, m4 TEXT, m5 TEXT, m6 TEXT, m7 TEXT,
             f1 TEXT, f2 TEXT, f3 TEXT,
             attiva BOOLEAN DEFAULT true,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella squadre_circolo creata/verificata');
+
+        // Crea tabella turni_configurazione (senza foreign key ancora)
+        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
+            id SERIAL PRIMARY KEY,
+            turno_numero INTEGER NOT NULL,
+            nome_turno TEXT NOT NULL,
+            descrizione TEXT,
+            punti_vittoria INTEGER DEFAULT 1,
+            attivo BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella turni_configurazione creata/verificata');
+
+        // 2️⃣ Crea tabelle "child" (con foreign key)
 
         await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_fantagts (
-    id TEXT PRIMARY KEY,
-    nome TEXT NOT NULL,
-    email TEXT,
-    telefono TEXT,
-    crediti INTEGER DEFAULT 2000,
-    punti_totali INTEGER DEFAULT 0,
-    posizione_classifica INTEGER,
-    attivo BOOLEAN DEFAULT true,
-    sessione_id TEXT DEFAULT 'default',
-    pin TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sessione_id) REFERENCES sessioni_fantagts(id) ON DELETE CASCADE
-)`);
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            email TEXT,
+            telefono TEXT,
+            crediti INTEGER DEFAULT 2000,
+            punti_totali INTEGER DEFAULT 0,
+            posizione_classifica INTEGER,
+            attivo BOOLEAN DEFAULT true,
+            sessione_id TEXT DEFAULT 'default',
+            pin TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella partecipanti_fantagts creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS slots (
             id TEXT PRIMARY KEY,
@@ -118,17 +170,28 @@ async function initializeDatabase() {
             attivo BOOLEAN DEFAULT true,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella slots creata/verificata');
+
+        await db.query(`CREATE TABLE IF NOT EXISTS coppie_turno (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_numero INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            squadra1 INTEGER,
+            squadra2 INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella coppie_turno creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS scontri_squadre (
             id SERIAL PRIMARY KEY,
             turno_id INTEGER NOT NULL,
             squadra1 INTEGER NOT NULL,
             squadra2 INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
-            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
-            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella scontri_squadre creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS aste (
             id SERIAL PRIMARY KEY,
@@ -143,6 +206,7 @@ async function initializeDatabase() {
             sessione_id TEXT DEFAULT 'default',
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella aste creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS sostituzioni (
             id SERIAL PRIMARY KEY,
@@ -154,6 +218,7 @@ async function initializeDatabase() {
             approvato BOOLEAN DEFAULT false,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella sostituzioni creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS risultati_partite (
             id SERIAL PRIMARY KEY,
@@ -166,25 +231,58 @@ async function initializeDatabase() {
             verificato BOOLEAN DEFAULT false,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella risultati_partite creata/verificata');
 
+        await db.query(`CREATE TABLE IF NOT EXISTS incontri (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            coppia_turno_id INTEGER NOT NULL,
+            squadra1 INTEGER NOT NULL,
+            squadra2 INTEGER NOT NULL,
+            risultato_coppia1 TEXT,
+            risultato_coppia2 TEXT,
+            completato BOOLEAN DEFAULT false,
+            inserito_da TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella incontri creata/verificata');
+
+        await db.query(`CREATE TABLE IF NOT EXISTS accoppiamenti_posizioni (
+            id SERIAL PRIMARY KEY,
+            turno_id INTEGER NOT NULL,
+            pos1 TEXT NOT NULL,
+            pos2 TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella accoppiamenti_posizioni creata/verificata');
+
+        await db.query(`CREATE TABLE IF NOT EXISTS risultati_dettaglio (
+            id SERIAL PRIMARY KEY,
+            incontro_id INTEGER NOT NULL,
+            posizione TEXT NOT NULL,
+            giocatore_squadra1 TEXT,
+            giocatore_squadra2 TEXT,
+            vincitore INTEGER,
+            punti_assegnati INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella risultati_dettaglio creata/verificata');
 
         // Elimina e ricrea tabella squadre_draft con schema corretto
         await db.query(`DROP TABLE IF EXISTS squadre_draft CASCADE`);
         await db.query(`CREATE TABLE squadre_draft (
-                id SERIAL PRIMARY KEY,
-                partecipante_id TEXT NOT NULL,
-                sessione_id TEXT NOT NULL,
-                posizione TEXT NOT NULL,
-                slot_id TEXT,
-                giocatore TEXT,
-                numero_squadra_circolo INTEGER,
-                colore_squadra TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(partecipante_id, sessione_id, posizione)
+            id SERIAL PRIMARY KEY,
+            partecipante_id TEXT NOT NULL,
+            sessione_id TEXT NOT NULL,
+            posizione TEXT NOT NULL,
+            slot_id TEXT,
+            giocatore TEXT,
+            numero_squadra_circolo INTEGER,
+            colore_squadra TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(partecipante_id, sessione_id, posizione)
         )`);
-
         console.log('✅ Tabella squadre_draft ricreata con schema corretto');
-
 
         await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
             id SERIAL PRIMARY KEY,
@@ -198,6 +296,7 @@ async function initializeDatabase() {
             last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             attiva BOOLEAN DEFAULT true
         )`);
+        console.log('✅ Tabella push_subscriptions creata/verificata');
 
         await db.query(`CREATE TABLE IF NOT EXISTS configurazione (
             chiave TEXT PRIMARY KEY,
@@ -205,77 +304,7 @@ async function initializeDatabase() {
             descrizione TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS turni_configurazione (
-            id SERIAL PRIMARY KEY,
-            turno_numero INTEGER NOT NULL,
-            nome_turno TEXT NOT NULL,
-            descrizione TEXT,
-            punti_vittoria INTEGER DEFAULT 1,
-            attivo BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS coppie_turno (
-            id SERIAL PRIMARY KEY,
-            turno_id INTEGER NOT NULL,
-            coppia_numero INTEGER NOT NULL,
-            pos1 TEXT NOT NULL,
-            pos2 TEXT NOT NULL,
-            squadra1 INTEGER,
-            squadra2 INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
-            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
-            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS incontri (
-            id SERIAL PRIMARY KEY,
-            turno_id INTEGER NOT NULL,
-            coppia_turno_id INTEGER NOT NULL,
-            squadra1 INTEGER NOT NULL,
-            squadra2 INTEGER NOT NULL,
-            risultato_coppia1 TEXT,
-            risultato_coppia2 TEXT,
-            completato BOOLEAN DEFAULT false,
-            inserito_da TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id),
-            FOREIGN KEY (coppia_turno_id) REFERENCES coppie_turno(id),
-            FOREIGN KEY (squadra1) REFERENCES squadre_circolo(numero),
-            FOREIGN KEY (squadra2) REFERENCES squadre_circolo(numero)
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS accoppiamenti_posizioni (
-            id SERIAL PRIMARY KEY,
-            turno_id INTEGER NOT NULL,
-            pos1 TEXT NOT NULL,
-            pos2 TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (turno_id) REFERENCES turni_configurazione(id)
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS risultati_dettaglio (
-            id SERIAL PRIMARY KEY,
-            incontro_id INTEGER NOT NULL,
-            posizione TEXT NOT NULL,
-            giocatore_squadra1 TEXT,
-            giocatore_squadra2 TEXT,
-            vincitore INTEGER, -- 1 per squadra1, 2 per squadra2, 0 per pareggio
-            punti_assegnati INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (incontro_id) REFERENCES incontri(id)
-        )`);
-
-        await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
-            id TEXT PRIMARY KEY,
-            nome TEXT NOT NULL,
-            anno INTEGER,
-            descrizione TEXT,
-            attiva BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
+        console.log('✅ Tabella configurazione creata/verificata');
 
         // Inserisci configurazione predefinita
         await db.query(`INSERT INTO configurazione (chiave, valore, descrizione) VALUES 
@@ -285,6 +314,7 @@ async function initializeDatabase() {
             ('max_partecipanti', '30', 'Numero massimo di partecipanti'),
             ('backup_auto_minuti', '5', 'Frequenza backup automatici in minuti')
             ON CONFLICT (chiave) DO NOTHING`);
+        console.log('✅ Configurazione predefinita inserita');
 
         console.log('✅ Database PostgreSQL inizializzato con successo');
     } catch (error) {
@@ -292,24 +322,10 @@ async function initializeDatabase() {
     }
 }
 
-/// Funzione per aggiornare database automaticamente
+// Funzione per aggiornare database automaticamente
 async function updateDatabaseSchema() {
     try {
         console.log('🔄 Aggiornando schema database...');
-
-        // 🔧 Rimuovi constraint UNIQUE su numero (non serve più)
-        try {
-            console.log('🔧 Rimuovendo constraint UNIQUE da squadre_circolo...');
-
-            await db.query(`
-                ALTER TABLE squadre_circolo 
-                DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key CASCADE
-            `);
-
-            console.log('✅ Constraint rimosso: ora numero può ripetersi tra sessioni diverse');
-        } catch (err) {
-            console.warn('⚠️ Errore rimozione constraint:', err.message);
-        }
 
         // 1️⃣ PRIMA: Crea tabella sessioni se non esiste (DEVE ESISTERE PRIMA DELLE FOREIGN KEY!)
         await db.query(`CREATE TABLE IF NOT EXISTS sessioni_fantagts (
@@ -336,37 +352,44 @@ async function updateDatabaseSchema() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        console.log('✅ Tabella sessioni creata/verificata');
 
-        console.log('✅ Tabella sessioni creata');
+        // 🆕 NUOVO: Crea tabella configurazioni (set di squadre/giocatori riutilizzabili)
+        await db.query(`CREATE TABLE IF NOT EXISTS configurazioni (
+            id TEXT PRIMARY KEY,
+            nome TEXT NOT NULL,
+            anno INTEGER,
+            descrizione TEXT,
+            numero_squadre INTEGER DEFAULT 10,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella configurazioni creata/verificata');
+
+        // 🆕 CREA CONFIGURAZIONE "default" SE NON ESISTE
+        const checkDefaultConfig = await db.query(`SELECT id FROM configurazioni WHERE id = 'default'`);
+        if (checkDefaultConfig.rows.length === 0) {
+            await db.query(`
+                INSERT INTO configurazioni (id, nome, anno, descrizione, numero_squadre)
+                VALUES ('default', 'Configurazione Predefinita', 2025, 'Configurazione di default per compatibilità', 10)
+            `);
+            console.log('✅ Configurazione "default" creata per compatibilità');
+        } else {
+            console.log('ℹ️ Configurazione "default" già esistente');
+        }
 
         // 🆕 CREA SESSIONE "default" SE NON ESISTE
-        const checkDefault = await db.query(`SELECT id FROM sessioni_fantagts WHERE id = 'default'`);
-        if (checkDefault.rows.length === 0) {
+        const checkDefaultSession = await db.query(`SELECT id FROM sessioni_fantagts WHERE id = 'default'`);
+        if (checkDefaultSession.rows.length === 0) {
             await db.query(`
                 INSERT INTO sessioni_fantagts (
-                    id, 
-                    nome, 
-                    anno, 
-                    descrizione, 
-                    modalita, 
-                    numero_partecipanti_previsti, 
-                    crediti_iniziali, 
-                    numero_squadre, 
-                    stato, 
-                    attiva,
-                    codice_accesso
+                    id, nome, anno, descrizione, modalita, 
+                    numero_partecipanti_previsti, crediti_iniziali, numero_squadre, 
+                    stato, attiva, codice_accesso
                 ) VALUES (
-                    'default',
-                    'Sessione Default',
-                    2025,
+                    'default', 'Sessione Default', 2025, 
                     'Sessione di sistema per utenti non assegnati',
-                    'asta_competitiva',
-                    10,
-                    2000,
-                    10,
-                    'setup',
-                    false,
-                    'SYS00'
+                    'asta_competitiva', 10, 2000, 10, 'setup', false, 'SYS00'
                 )
             `);
             console.log('✅ Sessione "default" creata per compatibilità');
@@ -374,9 +397,7 @@ async function updateDatabaseSchema() {
             console.log('ℹ️ Sessione "default" già esistente');
         }
 
-        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
-
-        // 2️⃣ POI: Aggiorna tabella esistente con colonne mancanti
+        // 2️⃣ Aggiorna tabella sessioni con colonne mancanti
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS modalita TEXT DEFAULT 'asta_competitiva'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS numero_partecipanti_previsti INTEGER DEFAULT 10`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS crediti_iniziali INTEGER DEFAULT 2000`);
@@ -386,54 +407,190 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS premium_condivisione REAL DEFAULT 0.10`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS stato TEXT DEFAULT 'setup'`);
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
-
-        // Aggiungi codice_accesso alle sessioni
         await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS codice_accesso VARCHAR(5) UNIQUE`);
+
+        // 🆕 Aggiungi colonna configurazione_id alle sessioni
+        await db.query(`ALTER TABLE sessioni_fantagts ADD COLUMN IF NOT EXISTS configurazione_id TEXT DEFAULT 'default'`);
+
+        // Rimuovi il constraint se esiste già (per evitare duplicati)
+        await db.query(`ALTER TABLE sessioni_fantagts DROP CONSTRAINT IF EXISTS fk_sessioni_configurazione`);
+
+        // Aggiungi il foreign key
+        await db.query(`
+            ALTER TABLE sessioni_fantagts 
+            ADD CONSTRAINT fk_sessioni_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE RESTRICT
+        `);
+        console.log('✅ Colonna configurazione_id aggiunta a sessioni_fantagts');
 
         // Crea tabella per tracciare accessi partecipanti
         await db.query(`CREATE TABLE IF NOT EXISTS partecipanti_sessioni_accesso (
-    id SERIAL PRIMARY KEY,
-    partecipante_id TEXT REFERENCES partecipanti_fantagts(id) ON DELETE CASCADE,
-    sessione_id TEXT REFERENCES sessioni_fantagts(id) ON DELETE CASCADE,
-    primo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ultimo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(partecipante_id, sessione_id)
-)`);
+            id SERIAL PRIMARY KEY,
+            partecipante_id TEXT REFERENCES partecipanti_fantagts(id) ON DELETE CASCADE,
+            sessione_id TEXT REFERENCES sessioni_fantagts(id) ON DELETE CASCADE,
+            primo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ultimo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(partecipante_id, sessione_id)
+        )`);
+        console.log('✅ Tabella accessi partecipanti creata/verificata');
 
-        console.log('✅ Codice accesso e tabella accessi creati');
-
-        // 3️⃣ INFINE: Aggiungi colonne sessione_id alle altre tabelle
+        // 3️⃣ Aggiungi colonne sessione_id alle tabelle che ancora la usano
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE coppie_turno ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
         // 4️⃣ RIMUOVI Foreign Key da partecipanti_fantagts (per permettere login/registrazione generica)
-        try {
-            console.log('🔧 Rimozione Foreign Key da partecipanti_fantagts...');
+        await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione`);
+        await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey`);
+        console.log('✅ Foreign Key rimossa da partecipanti_fantagts');
+
+        // 5️⃣ 🆕 MODIFICA SQUADRE_CIRCOLO: Ora collegate a configurazione_id
+        console.log('🔧 Aggiornando squadre_circolo per usare configurazione_id...');
+
+        // Aggiungi colonna configurazione_id se non esiste
+        await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
+
+        // Migra i dati esistenti: mappa sessione_id → configurazione_id
+        // (per ora tutte le sessioni usano la configurazione default)
+        await db.query(`
+            UPDATE squadre_circolo sq
+            SET configurazione_id = COALESCE(
+                (SELECT configurazione_id FROM sessioni_fantagts WHERE id = sq.sessione_id),
+                'default'
+            )
+            WHERE configurazione_id IS NULL
+        `);
+
+        // Rimuovi il vecchio constraint unique su numero
+        await db.query(`ALTER TABLE squadre_circolo DROP CONSTRAINT IF EXISTS squadre_circolo_numero_key CASCADE`);
+
+        // Rimuovi foreign key verso sessione se esiste
+        await db.query(`ALTER TABLE squadre_circolo DROP CONSTRAINT IF EXISTS fk_squadre_sessione CASCADE`);
+
+        // Aggiungi foreign key verso configurazioni
+        await db.query(`ALTER TABLE squadre_circolo DROP CONSTRAINT IF EXISTS fk_squadre_configurazione`);
+        await db.query(`
+            ALTER TABLE squadre_circolo 
+            ADD CONSTRAINT fk_squadre_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
+        `);
+
+        // Crea nuovo vincolo: numero unico SOLO all'interno della stessa configurazione
+        await db.query(`DROP INDEX IF EXISTS idx_squadre_numero_configurazione`);
+        await db.query(`
+            CREATE UNIQUE INDEX idx_squadre_numero_configurazione 
+            ON squadre_circolo(numero, configurazione_id)
+        `);
+
+        console.log('✅ squadre_circolo ora collegata a configurazioni');
+
+        // 6️⃣ 🆕 MODIFICA SLOTS: Ora collegati a configurazione_id
+        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
+
+        // Migra dati esistenti
+        await db.query(`
+            UPDATE slots sl
+            SET configurazione_id = COALESCE(
+                (SELECT configurazione_id FROM sessioni_fantagts WHERE id = sl.sessione_id),
+                'default'
+            )
+            WHERE configurazione_id IS NULL
+        `);
+
+        // Aggiungi foreign key
+        await db.query(`ALTER TABLE slots DROP CONSTRAINT IF EXISTS fk_slots_configurazione`);
+        await db.query(`
+            ALTER TABLE slots 
+            ADD CONSTRAINT fk_slots_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
+        `);
+        console.log('✅ slots ora collegati a configurazioni');
+
+        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Ora collegati a configurazione_id
+        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
+
+        await db.query(`
+            UPDATE turni_configurazione
+            SET configurazione_id = COALESCE(
+                (SELECT configurazione_id FROM sessioni_fantagts WHERE id = sessione_id),
+                'default'
+            )
+            WHERE configurazione_id IS NULL
+        `);
+
+        await db.query(`ALTER TABLE turni_configurazione DROP CONSTRAINT IF EXISTS fk_turni_configurazione`);
+        await db.query(`
+            ALTER TABLE turni_configurazione 
+            ADD CONSTRAINT fk_turni_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
+        `);
+        console.log('✅ turni_configurazione ora collegati a configurazioni');
+
+        // 8️⃣ 🆕 MODIFICA SCONTRI_SQUADRE: Ora collegati a configurazione_id
+        await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
+
+        await db.query(`
+            UPDATE scontri_squadre sc
+            SET configurazione_id = COALESCE(
+                (SELECT configurazione_id FROM turni_configurazione WHERE id = sc.turno_id),
+                'default'
+            )
+            WHERE configurazione_id IS NULL
+        `);
+
+        await db.query(`ALTER TABLE scontri_squadre DROP CONSTRAINT IF EXISTS fk_scontri_configurazione`);
+        await db.query(`
+            ALTER TABLE scontri_squadre 
+            ADD CONSTRAINT fk_scontri_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
+        `);
+        console.log('✅ scontri_squadre ora collegati a configurazioni');
+
+        // 9️⃣ 🆕 MODIFICA RISULTATI_PARTITE: Ora collegati a configurazione_id
+        await db.query(`ALTER TABLE risultati_partite ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
+
+        await db.query(`
+            UPDATE risultati_partite
+            SET configurazione_id = 'default'
+            WHERE configurazione_id IS NULL
+        `);
+
+        await db.query(`ALTER TABLE risultati_partite DROP CONSTRAINT IF EXISTS fk_risultati_configurazione`);
+        await db.query(`
+            ALTER TABLE risultati_partite 
+            ADD CONSTRAINT fk_risultati_configurazione 
+            FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
+        `);
+        console.log('✅ risultati_partite ora collegati a configurazioni');
+
+        // 🔟 🆕 MODIFICA INCONTRI: Ora collegati a configurazione_id (se la tabella esiste)
+        const incontriExists = await db.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'incontri'
+            )
+        `);
+
+        if (incontriExists.rows[0].exists) {
+            await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
             await db.query(`
-                ALTER TABLE partecipanti_fantagts 
-                DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione
+                UPDATE incontri
+                SET configurazione_id = 'default'
+                WHERE configurazione_id IS NULL
             `);
 
+            await db.query(`ALTER TABLE incontri DROP CONSTRAINT IF EXISTS fk_incontri_configurazione`);
             await db.query(`
-                ALTER TABLE partecipanti_fantagts 
-                DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey
+                ALTER TABLE incontri 
+                ADD CONSTRAINT fk_incontri_configurazione 
+                FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
             `);
-
-            console.log('✅ Foreign Key rimossa: i partecipanti possono ora registrarsi senza sessione');
-        } catch (err) {
-            console.warn('⚠️ Errore rimozione Foreign Key:', err.message);
+            console.log('✅ incontri ora collegati a configurazioni');
         }
 
-        // 5️⃣ INFINE: Crea VIEW per statistiche sessioni
+        // 1️⃣1️⃣ CREA VIEW per statistiche sessioni
         await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
             SELECT 
@@ -453,25 +610,30 @@ async function updateDatabaseSchema() {
                 s.stato,
                 s.last_modified,
                 s.codice_accesso,
-                COALESCE(COUNT(DISTINCT p.id), 0)::INTEGER as partecipanti_iscritti,
-                COALESCE(COUNT(DISTINCT sq.numero), 0)::INTEGER as squadre_create,
+                s.configurazione_id,
+                COALESCE(COUNT(DISTINCT psa.partecipante_id), 0)::INTEGER as partecipanti_iscritti,
+                COALESCE(
+                    (SELECT COUNT(DISTINCT numero) 
+                     FROM squadre_circolo 
+                     WHERE configurazione_id = s.configurazione_id AND attiva = true), 
+                    0
+                )::INTEGER as squadre_create,
                 COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
             FROM sessioni_fantagts s
-            LEFT JOIN partecipanti_fantagts p ON p.sessione_id = s.id AND p.attivo = true
-            LEFT JOIN squadre_circolo sq ON sq.sessione_id = s.id AND sq.attiva = true
+            LEFT JOIN partecipanti_sessioni_accesso psa ON psa.sessione_id = s.id
             LEFT JOIN aste a ON a.sessione_id = s.id
             GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
                      s.modalita, s.numero_partecipanti_previsti, s.crediti_iniziali, 
                      s.numero_squadre, s.condivisione_attiva, s.ripetizioni_necessarie, 
-                     s.premium_condivisione, s.stato, s.last_modified
+                     s.premium_condivisione, s.stato, s.last_modified, s.configurazione_id
         `);
+        console.log('✅ View v_sessioni_stats creata/aggiornata');
 
-        console.log('✅ Schema database aggiornato');
+        console.log('✅ Schema database aggiornato completamente con sistema configurazioni');
     } catch (error) {
         console.error('❌ Errore aggiornamento schema:', error);
     }
 }
-
 // Stato del gioco in memoria
 let gameState = {
     fase: 'setup',
