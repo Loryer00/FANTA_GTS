@@ -1293,6 +1293,10 @@
 
                             // Nascondi schermata sessioni e mostra game area
                             document.getElementById('sessions-screen').style.display = 'none';
+
+                            // 🆕 RESET immediato per evitare flash di colori vecchi
+                            resetTeamUI();
+
                             showGameArea();
 
                             // Carica squadra del partecipante
@@ -1335,6 +1339,10 @@
 
                 // Nascondi schermata sessioni e mostra game area
                 document.getElementById('sessions-screen').style.display = 'none';
+
+                // 🆕 RESET immediato per evitare flash di colori vecchi
+                resetTeamUI();
+
                 showGameArea();
 
                 // Carica squadra del partecipante
