@@ -1961,7 +1961,7 @@ app.post('/api/partecipanti', async (req, res) => {
 
         const nomeClean = nome.trim();
 
-        // ðŸ†• RECUPERA I CREDITI INIZIALI DALLA SESSIONE CORRENTE
+        // RECUPERA I CREDITI INIZIALI DALLA SESSIONE CORRENTE
         let crediti = 2000; // fallback di default
         if (sessioneCorrente) {
             const sessioneResult = await db.query(
@@ -3514,6 +3514,139 @@ app.post('/api/test-notification/:partecipanteId', async (req, res) => {
 
 // ==================== API SOSTITUZIONI ====================
 
+// ==================== API CONFIGURAZIONI ====================
+
+// GET: Lista tutte le configurazioni
+app.get('/api/configurazioni', async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT 
+                c.*,
+                COUNT(DISTINCT s.id) as sessioni_collegate,
+                COUNT(DISTINCT sq.numero) as squadre_count
+            FROM configurazioni c
+            LEFT JOIN sessioni_fantagts s ON s.configurazione_id = c.id
+            LEFT JOIN squadre_circolo sq ON sq.configurazione_id = c.id AND sq.attiva = true
+            GROUP BY c.id, c.nome, c.anno, c.descrizione, c.numero_squadre, c.created_at, c.last_modified
+            ORDER BY c.created_at DESC
+        `);
+        
+        res.json(result.rows);
+    } catch (err) {
+        console.error('❌ Errore caricamento configurazioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Dettagli singola configurazione
+app.get('/api/configurazioni/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const configResult = await db.query(
+            'SELECT * FROM configurazioni WHERE id = $1',
+            [id]
+        );
+        
+        if (configResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Configurazione non trovata' });
+        }
+        
+        const config = configResult.rows[0];
+        
+        // Carica anche le squadre associate
+        const squadreResult = await db.query(
+            'SELECT * FROM squadre_circolo WHERE configurazione_id = $1 AND attiva = true ORDER BY numero',
+            [id]
+        );
+        
+        config.squadre = squadreResult.rows;
+        
+        res.json(config);
+    } catch (err) {
+        console.error('❌ Errore caricamento configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Crea nuova configurazione
+app.post('/api/configurazioni', async (req, res) => {
+    try {
+        const { nome, anno, descrizione, numero_squadre } = req.body;
+
+        if (!nome) {
+            return res.status(400).json({ error: 'Nome configurazione richiesto' });
+        }
+
+        // --- RIGA MODIFICATA: Utilizzo di slice() anziché substr() ---
+        const id = `config_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+        const result = await db.query(`
+            INSERT INTO configurazioni (id, nome, anno, descrizione, numero_squadre)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+        `, [id, nome, anno || null, descrizione || '', numero_squadre || 10]);
+
+        console.log('✅ Configurazione creata:', id);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore creazione configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT: Aggiorna configurazione
+app.put('/api/configurazioni/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nome, anno, descrizione, numero_squadre } = req.body;
+        
+        const result = await db.query(`
+            UPDATE configurazioni 
+            SET nome = $1, anno = $2, descrizione = $3, numero_squadre = $4, last_modified = CURRENT_TIMESTAMP
+            WHERE id = $5
+            RETURNING *
+        `, [nome, anno, descrizione, numero_squadre, id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Configurazione non trovata' });
+        }
+        
+        console.log('✅ Configurazione aggiornata:', id);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore aggiornamento configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina configurazione (solo se non ha sessioni attive)
+app.delete('/api/configurazioni/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Verifica se ci sono sessioni attive che usano questa configurazione
+        const sessioniAttive = await db.query(
+            'SELECT COUNT(*) as count FROM sessioni_fantagts WHERE configurazione_id = $1 AND attiva = true',
+            [id]
+        );
+        
+        if (parseInt(sessioniAttive.rows[0].count) > 0) {
+            return res.status(400).json({ 
+                error: 'Impossibile eliminare: ci sono sessioni attive che usano questa configurazione' 
+            });
+        }
+        
+        await db.query('DELETE FROM configurazioni WHERE id = $1', [id]);
+        
+        console.log('✅ Configurazione eliminata:', id);
+        res.json({ message: 'Configurazione eliminata con successo' });
+    } catch (err) {
+        console.error('❌ Errore eliminazione configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Route per servire la pagina sostituzioni
 app.get('/sostituzioni', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'sostituzioni.html'));
@@ -5000,7 +5133,7 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
     }
 });
 
-// ==================== API MODALITÃ€ DRAFT LIBERO ====================
+// ==================== API MODALITA DRAFT LIBERO ====================
 
 // GET: Lista completa giocatori disponibili per Draft
 app.get('/api/draft/giocatori-disponibili', async (req, res) => {

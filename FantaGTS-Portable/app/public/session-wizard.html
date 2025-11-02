@@ -589,21 +589,54 @@
                 </div>
             </div>
 
-            <!-- STEP 4: Squadre Circolo -->
+            <!-- STEP 4: Configurazione Squadre -->
             <div class="step-content" id="step4">
-                <h2 class="step-title">🏆 Squadre del Circolo</h2>
-                <p class="step-description">Configura le squadre che parteciperanno</p>
+                <h2 class="step-title">🏆 Configurazione Squadre</h2>
+                <p class="step-description">Scegli come configurare le squadre per questa sessione</p>
 
                 <div class="form-group">
-                    <label>Numero Squadre *</label>
-                    <input type="number" id="numeroSquadre" min="2" max="20" value="10"
-                           onchange="calcolaCondivisionePreview()">
-                    <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
+                    <label>Vuoi usare una configurazione esistente?</label>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="scegliNuovaConfigurazione()" id="btnNuovaConfig">
+                            ✨ Crea Nuova Configurazione
+                        </button>
+                        <button class="btn btn-secondary" onclick="scegliConfigurazioneEsistente()" id="btnConfigEsistente">
+                            📋 Usa Configurazione Esistente
+                        </button>
+                    </div>
                 </div>
 
-                <div class="alert-box alert-info">
-                    <strong>ℹ️ Nota:</strong> Dopo la creazione della sessione, potrai configurare in dettaglio
-                    ogni squadra con i suoi giocatori utilizzando l'interfaccia di setup.
+                <!-- Sezione: Nuova Configurazione -->
+                <div id="sezNuovaConfig" style="display: none; margin-top: 25px;">
+                    <h3>✨ Nuova Configurazione</h3>
+                    <p>Crea una nuova configurazione di squadre che potrai riutilizzare in altre sessioni</p>
+
+                    <div class="form-group">
+                        <label>Nome Configurazione *</label>
+                        <input type="text" id="nomeConfigurazione" placeholder="es: Campionato 2025">
+                        <div class="form-hint">Questo nome identifica il set di squadre</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Numero Squadre *</label>
+                        <input type="number" id="numeroSquadreConfig" min="2" max="20" value="10">
+                        <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
+                    </div>
+
+                    <div class="alert-box alert-info">
+                        <strong>ℹ️ Nota:</strong> Dopo aver creato la sessione, potrai configurare nel dettaglio
+                        ogni squadra con i suoi giocatori tramite la pagina di Setup.
+                    </div>
+                </div>
+
+                <!-- Sezione: Configurazione Esistente -->
+                <div id="sezConfigEsistente" style="display: none; margin-top: 25px;">
+                    <h3>📋 Seleziona Configurazione</h3>
+                    <p>Usa una configurazione già esistente (squadre e giocatori già configurati)</p>
+
+                    <div id="listaConfigurazioni" style="margin-top: 15px;">
+                        <!-- Le configurazioni verranno caricate qui -->
+                    </div>
                 </div>
 
                 <div id="condivisionePreview" class="alert-box alert-warning" style="display: none;">
@@ -707,6 +740,10 @@
             condivisioneAttiva: false,
             ripetizioniNecessarie: 0
         };
+
+        let configurazioniDisponibili = [];
+        let configurazioneTipo = null;
+        let configurazioneSelezionataId = null;
 
         // Inizializzazione
         window.addEventListener('DOMContentLoaded', () => {
@@ -820,9 +857,28 @@
                     return true;
 
                 case 4:
-                    const numSquadre = parseInt(document.getElementById('numeroSquadre').value);
-                    if (!numSquadre || numSquadre < 2) {
-                        showError('Inserisci un numero valido di squadre (minimo 2)');
+                    if (configurazioneTipo === 'nuova') {
+                        const nomeConfig = document.getElementById('nomeConfigurazione').value.trim();
+                        const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value);
+
+                        if (!nomeConfig) {
+                            showError('Inserisci un nome per la configurazione');
+                            return false;
+                        }
+                        if (!numSquadre || numSquadre < 2) {
+                            showError('Inserisci un numero valido di squadre (minimo 2)');
+                            return false;
+                        }
+
+                        sessionData.nomeConfigurazione = nomeConfig;
+                        sessionData.numeroSquadre = numSquadre;
+                    } else if (configurazioneTipo === 'esistente') {
+                        if (!configurazioneSelezionataId) {
+                            showError('Seleziona una configurazione dalla lista');
+                            return false;
+                        }
+                    } else {
+                        showError('Scegli se creare una nuova configurazione o usarne una esistente');
                         return false;
                     }
                     return true;
@@ -1039,55 +1095,199 @@
             }
         }
 
+         // Carica configurazioni disponibili
+        async function caricaConfigurazioni() {
+            try {
+                const response = await fetch('/api/configurazioni');
+                if (!response.ok) throw new Error('Errore caricamento configurazioni');
+
+                configurazioniDisponibili = await response.json();
+                console.log('✅ Configurazioni caricate:', configurazioniDisponibili.length);
+            } catch (error) {
+                console.error('❌ Errore:', error);
+                configurazioniDisponibili = [];
+            }
+        }
+
+        // Scelta: Nuova configurazione
+        function scegliNuovaConfigurazione() {
+            configurazioneTipo = 'nuova';
+            configurazioneSelezionataId = null;
+
+            // Mostra sezione nuova config
+            document.getElementById('sezNuovaConfig').style.display = 'block';
+            document.getElementById('sezConfigEsistente').style.display = 'none';
+
+            // Evidenzia bottone selezionato
+            document.getElementById('btnNuovaConfig').classList.add('active');
+            document.getElementById('btnConfigEsistente').classList.remove('active');
+
+            // Aggiorna anteprima condivisione se modalità è asta
+            if (sessionData.modalita === 'asta_competitiva') {
+                const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value) || 10;
+                sessionData.numeroSquadre = numSquadre;
+                calcolaCondivisione();
+            }
+        }
+
+        // Scelta: Configurazione esistente
+        async function scegliConfigurazioneEsistente() {
+            configurazioneTipo = 'esistente';
+
+            // Carica le configurazioni se non ancora fatto
+            if (configurazioniDisponibili.length === 0) {
+                await caricaConfigurazioni();
+            }
+
+            // Mostra sezione config esistente
+            document.getElementById('sezNuovaConfig').style.display = 'none';
+            document.getElementById('sezConfigEsistente').style.display = 'block';
+
+            // Evidenzia bottone selezionato
+            document.getElementById('btnNuovaConfig').classList.remove('active');
+            document.getElementById('btnConfigEsistente').classList.add('active');
+
+            // Renderizza lista configurazioni
+            renderListaConfigurazioni();
+        }
+
+        // Renderizza lista configurazioni disponibili
+        function renderListaConfigurazioni() {
+            const container = document.getElementById('listaConfigurazioni');
+
+            if (configurazioniDisponibili.length === 0) {
+                container.innerHTML = `
+            <div class="alert-box alert-warning">
+                <strong>⚠️ Nessuna configurazione disponibile</strong>
+                <p>Non ci sono configurazioni salvate. Crea una nuova configurazione per questa sessione.</p>
+            </div>
+        `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+
+            configurazioniDisponibili.forEach(config => {
+                const isSelected = configurazioneSelezionataId === config.id;
+
+                html += `
+            <div class="config-card ${isSelected ? 'selected' : ''}" 
+                 onclick="selezionaConfigurazione('${config.id}')"
+                 style="
+                     border: 2px solid ${isSelected ? '#4299e1' : '#2d3748'};
+                     background: ${isSelected ? 'rgba(66, 153, 225, 0.1)' : 'rgba(45, 55, 72, 0.3)'};
+                     padding: 15px;
+                     border-radius: 10px;
+                     cursor: pointer;
+                     transition: all 0.3s ease;
+                 ">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; color: #4299e1; font-size: 1.1em;">
+                            ${isSelected ? '✅ ' : ''}${config.nome}
+                        </h4>
+                        <p style="margin: 5px 0; color: #a0aec0; font-size: 0.9em;">
+                            ${config.anno ? `📅 Anno: ${config.anno}` : ''} 
+                            ${config.descrizione ? `• ${config.descrizione}` : ''}
+                        </p>
+                        <div style="margin-top: 10px; display: flex; gap: 15px;">
+                            <span style="color: #68d391;">🏆 ${config.squadre_count} squadre</span>
+                            <span style="color: #f6ad55;">🎮 ${config.sessioni_collegate} sessioni</span>
+                        </div>
+                    </div>
+                    ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
+                </div>
+            </div>
+        `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Seleziona una configurazione
+        function selezionaConfigurazione(configId) {
+            configurazioneSelezionataId = configId;
+
+            const config = configurazioniDisponibili.find(c => c.id === configId);
+            if (config) {
+                sessionData.numeroSquadre = config.numero_squadre;
+
+                // Aggiorna anteprima condivisione se modalità è asta
+                if (sessionData.modalita === 'asta_competitiva') {
+                    calcolaCondivisione();
+                }
+            }
+
+            renderListaConfigurazioni();
+        }
+
         // Creazione sessione
         async function creaSessione() {
-            const btnCreate = document.getElementById('btnCreate');
-            btnCreate.disabled = true;
-            btnCreate.innerHTML = '<div class="spinner"></div> Creazione in corso...';
-
             try {
-                const payload = {
-                    nome: sessionData.nome,
-                    anno: sessionData.anno,
-                    descrizione: sessionData.descrizione,
-                    modalita: sessionData.modalita,
-                    numeroPartecipanti: sessionData.numeroPartecipanti,
-                    creditiIniziali: sessionData.modalita === 'asta_competitiva' ? sessionData.creditiIniziali : 2000,
-                    numeroSquadre: sessionData.numeroSquadre
-                };
+                showLoading(true);
 
-                console.log('📤 Invio dati:', payload);
+                let configurazioneId;
 
-                const response = await fetch('/api/sessioni', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
+                // 1️⃣ Gestisci configurazione
+                if (configurazioneTipo === 'nuova') {
+                    // Crea nuova configurazione
+                    const configResponse = await fetch('/api/configurazioni', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            nome: sessionData.nomeConfigurazione,
+                            anno: sessionData.anno,
+                            descrizione: `Configurazione per ${sessionData.nome}`,
+                            numero_squadre: sessionData.numeroSquadre
+                        })
+                    });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Errore durante la creazione');
+                    if (!configResponse.ok) throw new Error('Errore creazione configurazione');
+
+                    const configData = await configResponse.json();
+                    configurazioneId = configData.id;
+
+                    console.log('✅ Configurazione creata:', configurazioneId);
+                } else {
+                    // Usa configurazione esistente
+                    configurazioneId = configurazioneSelezionataId;
+                    console.log('✅ Configurazione esistente selezionata:', configurazioneId);
                 }
 
-                const result = await response.json();
-                console.log('✅ Sessione creata:', result);
+                // 2️⃣ Crea sessione collegata alla configurazione
+                const sessionResponse = await fetch('/api/sessioni', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...sessionData,
+                        configurazione_id: configurazioneId
+                    })
+                });
 
-                // Mostra successo
-                showSuccess('✅ Sessione creata con successo!');
+                if (!sessionResponse.ok) throw new Error('Errore creazione sessione');
 
-                // Reindirizza dopo 2 secondi
+                const sessioneCreata = await sessionResponse.json();
+
+                console.log('✅ Sessione creata:', sessioneCreata);
+                showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
+
+                // 3️⃣ Redirect appropriato
                 setTimeout(() => {
-                    // Reindirizza alla pagina di setup per configurare le squadre
-                    window.location.href = `/setup?sessione=${result.id}`;
-                }, 2000);
+                    if (configurazioneTipo === 'nuova') {
+                        // Se nuova config, vai a setup per configurare squadre
+                        window.location.href = `/setup.html?sessione=${sessioneCreata.id}&config=${configurazioneId}`;
+                    } else {
+                        // Se config esistente, vai direttamente al master
+                        window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
+                    }
+                }, 1500);
 
             } catch (error) {
                 console.error('❌ Errore:', error);
-                showError(error.message);
-                btnCreate.disabled = false;
-                btnCreate.innerHTML = '🚀 Crea Sessione';
+                showError('Errore durante la creazione della sessione: ' + error.message);
+            } finally {
+                showLoading(false);
             }
         }
 
