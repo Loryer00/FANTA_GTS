@@ -1329,6 +1329,15 @@
             });
         }
 
+        // Reset campi PIN quando si mostra la schermata login
+        input.addEventListener('focus', function () {
+            if (!this.dataset.pinInitialized) {
+                this.value = '';
+                this.dataset.realPin = '';
+                this.dataset.pinInitialized = 'true';
+            }
+        });
+
         // ========================================
         // GESTIONE SESSIONE
         // ========================================
@@ -1337,12 +1346,19 @@
                 const dataToSave = {
                     name: playerData.name,
                     id: playerData.id,
+                    partecipanteId: playerData.id, // 🆕 Aggiungi per compatibilità draft
                     credits: playerData.credits,
                     notificationsEnabled: playerData.notificationsEnabled,
-                    sessioneCorrente: sessioneCorrente,  // ðŸ†• Aggiungi sessione
-                    nomeSessione: nomeSessioneCorrente    // ðŸ†• Aggiungi nome sessione
+                    sessioneCorrente: sessioneCorrente,
+                    sessioneId: sessioneCorrente, // 🆕 Aggiungi per compatibilità draft
+                    sessioneNome: nomeSessioneCorrente,
+                    nomeSessione: nomeSessioneCorrente,
+                    modalita: playerData.modalita // 🆕 Salva la modalità
                 };
+
+                // 🆕 SALVA IN ENTRAMBI I FORMATI per compatibilità
                 localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
+                localStorage.setItem('userSession', JSON.stringify(dataToSave));
                 localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
                 console.log('âœ… Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
             } catch (error) {
@@ -1450,11 +1466,12 @@
                         if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
                             console.log('✅ Squadra draft completa (10/10) - Carico interfaccia user');
 
-                            // Mostra game area
+                            // Nascondi tutte le schermate di login
                             document.getElementById('welcome-screen').style.display = 'none';
                             document.getElementById('login-screen').style.display = 'none';
                             document.getElementById('register-screen').style.display = 'none';
                             document.getElementById('sessions-screen').style.display = 'none';
+                            document.getElementById('registration-area').style.display = 'block'; // 🆕 Mostra area
 
                             document.getElementById('currentPlayer').textContent = playerData.name;
                             document.getElementById('playerCredits').textContent = playerData.credits;
@@ -1471,16 +1488,15 @@
                             mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
-                            console.log('⚠️ Squadra draft incompleta - Mostro selezione sessioni');
+                            // 🆕 SQUADRA DRAFT INCOMPLETA: torna alla pagina sessioni (NON a draft-selection!)
+                            console.log('⚠️ Squadra draft incompleta - Mostro pagina sessioni');
                             await mostraSchermataSessioni();
-                            mostraMessaggio('⚠️ Completa la tua squadra draft per continuare', 'warning');
                             return true;
                         }
                     } else {
-                        console.log('⚠️ Squadra draft incompleta - Mostro selezione sessioni');
-                        // NON reindirizzare automaticamente, lascia che l'utente riprenda
+                        // 🆕 NESSUNA SQUADRA: torna alla pagina sessioni
+                        console.log('⚠️ Nessuna squadra draft - Mostro pagina sessioni');
                         await mostraSchermataSessioni();
-                        mostraMessaggio('⚠️ Completa la tua squadra draft per continuare', 'warning');
                         return true;
                     }
 
@@ -2754,6 +2770,7 @@
             // Gestione PIN fields
             document.querySelectorAll('[data-pin-field]').forEach(input => {
                 input.dataset.realPin = '';
+                input.value = '';
 
                 input.addEventListener('input', function (e) {
                     const currentReal = this.dataset.realPin || '';
