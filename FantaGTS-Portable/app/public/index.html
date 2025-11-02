@@ -1342,7 +1342,8 @@
             try {
                 localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
                 localStorage.removeItem(STORAGE_KEYS.REGISTRATION_TIME);
-                console.log('🗑️ Sessione salvata rimossa');
+                localStorage.removeItem('userSession'); // 🆕 Rimuovi anche userSession
+                console.log('🗑️ Sessione salvata rimossa completamente');
             } catch (error) {
                 console.error('Errore rimozione sessione:', error);
             }
@@ -2673,9 +2674,11 @@
         async function logout() {
             const conferma = await confermaPersonalizzata('Sei sicuro di voler uscire?<br><br>Dovrai reinserire i tuoi dati per rientrare.');
             if (conferma) {
-                clearSavedSession();
-                sessioneCorrente = null;  // 🆕 Aggiungi questa riga
-                nomeSessioneCorrente = '';  // 🆕 Aggiungi questa riga
+                // 🆕 Cancella TUTTO dal localStorage prima di ricaricare
+                localStorage.clear();
+
+                sessioneCorrente = null;
+                nomeSessioneCorrente = '';
                 playerData = {
                     registered: false,
                     name: '',
@@ -2686,7 +2689,11 @@
                 if (socket && socket.connected) {
                     socket.disconnect();
                 }
-                location.reload();
+
+                // 🆕 Aspetta un momento prima di ricaricare per assicurarsi che tutto sia cancellato
+                setTimeout(() => {
+                    location.reload();
+                }, 100);
             }
         }
 
