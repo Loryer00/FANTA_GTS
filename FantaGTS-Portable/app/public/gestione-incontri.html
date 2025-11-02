@@ -951,17 +951,35 @@
         let squadreDisponibili = [];
         let turnoSelezionato = null;
         let coppieTemporanee = [];
+        let sessioneCorrente = null;
 
         // Inizializzazione
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await caricaSessioneAttiva();
             caricaSquadre();
             caricaTurni();
         });
 
+        // Carica sessione attiva
+        async function caricaSessioneAttiva() {
+            try {
+                const response = await fetch('/api/sessione-attiva');
+                const data = await response.json();
+                if (data.sessione) {
+                    sessioneCorrente = data.sessione.id;
+                    console.log('✅ Sessione caricata:', sessioneCorrente);
+                } else {
+                    console.error('❌ Nessuna sessione attiva trovata');
+                }
+            } catch (error) {
+                console.error('Errore caricamento sessione:', error);
+            }
+        }
+
         // Carica squadre del circolo
         async function caricaSquadre() {
             try {
-                const response = await fetch('/api/squadre');
+                const response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
                 squadreDisponibili = await response.json();
 
                 // Aggiorna display squadre
@@ -1152,7 +1170,7 @@
 
         async function caricaSquadrePerScontri() {
             try {
-                const response = await fetch('/api/squadre');
+                const response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
                 const squadre = await response.json();
 
                 const select1 = document.getElementById('squadra1Select');
@@ -1824,16 +1842,16 @@
                 console.log('🔄 Caricamento squadre con giocatori...');
 
                 // Prova il nuovo endpoint specifico per giocatori
-                let response = await fetch('/api/squadre-con-giocatori');
+                let response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneCorrente}`);
                 if (!response.ok) {
                     console.log('⚠️ Endpoint squadre-con-giocatori non disponibile, provo squadre-complete');
-                    response = await fetch('/api/squadre-complete');
+                    response = await fetch(`/api/squadre-complete?sessione=${sessioneCorrente}`);
                 }
 
                 if (!response.ok) {
                     // Ultimo fallback - endpoint normale e trasformazione manuale
                     console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
-                    response = await fetch('/api/squadre');
+                    response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
 
                     if (response.ok) {
                         const squadre = await response.json();
