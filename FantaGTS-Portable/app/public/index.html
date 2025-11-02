@@ -1837,8 +1837,8 @@
                     console.log('✅ Squadra Draft caricata:', squadra.length, 'giocatori');
 
                 } else {
-                    // ✅ CARICA SQUADRA ASTE (ESISTENTE)
-                    const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+                    // ✅ CARICA SQUADRA ASTE (ESISTENTE) - Filtra per sessione!
+                    const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneId}`);
 
                     if (!response.ok) {
                         console.log('⚠️ Squadra Aste non ancora formata');

@@ -2444,6 +2444,8 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
+        // 🆕 PRENDI sessione_id dalla query string
+        const sessioneId = req.query.sessione_id || sessioneCorrente;
 
         // Ottieni squadra 
         const squadraResult = await db.query(`SELECT 
@@ -2458,7 +2460,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneCorrente]);
+            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
 
         // Ottieni crediti aggiornati
         const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
