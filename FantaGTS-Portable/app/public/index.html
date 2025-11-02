@@ -1193,74 +1193,54 @@
                 if (sessioneData.modalita === 'draft_libero') {
                     console.log('🎯 Modalità Draft Libero - Verifico squadra...');
 
-                    try {
-                        // Verifica se ha già completato la squadra draft
-                        const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+                    // Verifica se ha già completato la squadra draft
+                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
 
-                        if (draftResponse.ok) {
-                            const draftData = await draftResponse.json();
+                    if (draftResponse.ok) {
+                        const draftData = await draftResponse.json();
 
-                            if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
-                                console.log('✅ Squadra draft già completa - Carico interfaccia user');
+                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
+                            console.log('✅ Squadra draft già completa - Carico interfaccia user');
 
-                                // Aggiorna display
-                                document.getElementById('currentPlayer').textContent = playerData.name;
-                                document.getElementById('playerCredits').textContent = playerData.credits;
+                            // Aggiorna display
+                            document.getElementById('currentPlayer').textContent = playerData.name;
+                            document.getElementById('playerCredits').textContent = playerData.credits;
 
-                                // Nascondi crediti per draft
-                                const playerStatsDisplay = document.getElementById('playerStatsDisplay');
-                                if (playerStatsDisplay) {
-                                    playerStatsDisplay.style.display = 'none';
-                                }
-
-                                // Nascondi schermata sessioni e mostra game area
-                                document.getElementById('sessions-screen').style.display = 'none';
-                                showGameArea();
-
-                                // Carica squadra del partecipante
-                                await loadPlayerTeam();
-
-                                mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
-                                return;
-                            } else {
-                                // Squadra non completa → Reindirizza a draft-selection
-                                console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
-                                mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
-
-                                setTimeout(() => {
-                                    window.location.href = '/draft-selection.html';
-                                }, 800);
-                                return;
+                            // Nascondi crediti per draft
+                            const playerStatsDisplay = document.getElementById('playerStatsDisplay');
+                            if (playerStatsDisplay) {
+                                playerStatsDisplay.style.display = 'none';
                             }
+
+                            // Nascondi schermata sessioni e mostra game area
+                            document.getElementById('sessions-screen').style.display = 'none';
+                            showGameArea();
+
+                            // Carica squadra del partecipante
+                            await loadPlayerTeam();
+
+                            mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
+                            return;
                         } else {
-                            // Errore nel caricamento o squadra non esistente → Reindirizza
-                            console.log('⚠️ Nessuna squadra trovata - Reindirizzamento a draft-selection...');
-                            mostraMessaggio(`🎯 Seleziona la tua squadra per "${nomeSessione}"...`, 'info');
+                            // Squadra non completa → Reindirizza a draft-selection
+                            console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
+                            mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
 
                             setTimeout(() => {
                                 window.location.href = '/draft-selection.html';
                             }, 800);
                             return;
                         }
-                    } catch (error) {
-                        console.error('❌ Errore verifica squadra draft:', error);
-                        mostraMessaggio('⚠️ Errore verifica squadra, reindirizzamento...', 'warning');
+                    } else {
+                        // Nessuna squadra trovata → Reindirizza a draft-selection
+                        console.log('⚠️ Nessuna squadra trovata - Reindirizzamento a draft-selection...');
+                        mostraMessaggio(`🎯 Seleziona la tua squadra per "${nomeSessione}"...`, 'info');
 
                         setTimeout(() => {
                             window.location.href = '/draft-selection.html';
                         }, 800);
                         return;
                     }
-                }
-
-                    // Squadra non completa → Reindirizza a draft-selection
-                    console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
-                    mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
-
-                    setTimeout(() => {
-                        window.location.href = '/draft-selection.html';
-                    }, 800);
-                    return; // Blocca il resto dell'esecuzione
                 }
 
                 // ✅ Modalità Asta Competitiva → Comportamento normale
