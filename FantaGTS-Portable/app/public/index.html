@@ -2770,7 +2770,6 @@
             // Gestione PIN fields
             document.querySelectorAll('[data-pin-field]').forEach(input => {
                 input.dataset.realPin = '';
-                input.value = '';
 
                 input.addEventListener('input', function (e) {
                     const currentReal = this.dataset.realPin || '';
