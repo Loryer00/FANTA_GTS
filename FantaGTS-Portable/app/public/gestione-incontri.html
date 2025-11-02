@@ -963,23 +963,43 @@
         // Carica sessione attiva
         async function caricaSessioneAttiva() {
             try {
-                const response = await fetch('/api/sessione-attiva');
+                // Gli incontri usano la modalità asta_competitiva
+                const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+
+                if (!response.ok) {
+                    console.warn('⚠️ Nessuna sessione attiva trovata');
+                    sessioneCorrente = 'default';
+                    return;
+                }
+
                 const data = await response.json();
-                if (data.sessione) {
-                    sessioneCorrente = data.sessione.id;
+                if (data && data.id) {
+                    sessioneCorrente = data.id;
                     console.log('✅ Sessione caricata:', sessioneCorrente);
                 } else {
-                    console.error('❌ Nessuna sessione attiva trovata');
+                    console.warn('⚠️ Usando sessione default');
+                    sessioneCorrente = 'default';
                 }
             } catch (error) {
                 console.error('Errore caricamento sessione:', error);
+                sessioneCorrente = 'default';
             }
         }
 
         // Carica squadre del circolo
         async function caricaSquadre() {
             try {
+                // Assicurati che ci sia una sessione prima di caricare le squadre
+                if (!sessioneCorrente) {
+                    await caricaSessioneAttiva();
+                }
+
                 const response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
+
+                if (!response.ok) {
+                    throw new Error(`Errore ${response.status}: ${response.statusText}`);
+                }
+
                 squadreDisponibili = await response.json();
 
                 // Aggiorna display squadre
