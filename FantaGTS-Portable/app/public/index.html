@@ -1007,6 +1007,7 @@
                 if (!sessionRestored) {
                     console.error('❌ Nessuna sessione valida trovata, torno al login');
                     // Mostra schermata di benvenuto
+                    document.getElementById('registration-area').style.display = 'block';
                     document.getElementById('welcome-screen').style.display = 'block';
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('register-screen').style.display = 'none';
@@ -1016,6 +1017,9 @@
                     return;
                 }
             }
+
+            // 🆕 MOSTRA IL CONTENITORE REGISTRATION-AREA
+            document.getElementById('registration-area').style.display = 'block';
 
             // Nascondi tutte le schermate
             document.getElementById('welcome-screen').style.display = 'none';
