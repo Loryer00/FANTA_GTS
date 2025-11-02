@@ -269,8 +269,7 @@ async function initializeDatabase() {
         console.log('✅ Tabella risultati_dettaglio creata/verificata');
 
         // Elimina e ricrea tabella squadre_draft con schema corretto
-        await db.query(`DROP TABLE IF EXISTS squadre_draft CASCADE`);
-        await db.query(`CREATE TABLE squadre_draft (
+        await db.query(`CREATE TABLE IF NOT EXISTS squadre_draft (
             id SERIAL PRIMARY KEY,
             partecipante_id TEXT NOT NULL,
             sessione_id TEXT NOT NULL,
@@ -282,7 +281,7 @@ async function initializeDatabase() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(partecipante_id, sessione_id, posizione)
         )`);
-        console.log('✅ Tabella squadre_draft ricreata con schema corretto');
+        console.log('✅ Tabella squadre_draft creata/verificata (dati preservati)');
 
         await db.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
             id SERIAL PRIMARY KEY,
