@@ -1191,9 +1191,10 @@
 
                 if (partecipanteResponse.ok) {
                     const partecipante = await partecipanteResponse.json();
-                    playerData.id = partecipante.id;
+                    // 🆕 NON sovrascrivere playerData.id - mantieni l'ID originale del login
+                    // Salva solo i crediti specifici della sessione
                     playerData.credits = partecipante.crediti;
-                    console.log('✅ Dati partecipante caricati - ID:', playerData.id, 'Crediti:', playerData.credits);
+                    console.log('✅ Dati partecipante caricati - ID originale:', playerData.id, 'Crediti sessione:', playerData.credits);
                 } else {
                     console.error('❌ Errore caricamento dati partecipante');
                 }
@@ -1220,7 +1221,7 @@
                     console.log('🎯 Modalità Draft Libero - Verifico squadra...');
 
                     // Verifica se ha già completato la squadra draft
-                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+                    const draftResponse = await fetch(`/api/draft/squadra-by-name/${playerData.name}?sessione_id=${sessioneId}`);
 
                     if (draftResponse.ok) {
                         const draftData = await draftResponse.json();
