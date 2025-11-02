@@ -997,6 +997,15 @@
         async function mostraSchermataSessioni() {
             console.log('🔄 mostraSchermataSessioni() chiamata');
 
+            // 🆕 RESET campi login prima di mostrare
+            const loginNickname = document.getElementById('loginNickname');
+            const loginPin = document.getElementById('loginPin');
+            if (loginNickname) loginNickname.value = '';
+            if (loginPin) {
+                loginPin.value = '';
+                loginPin.dataset.realPin = '';
+            }
+
             // 🆕 VERIFICA SE L'UTENTE È LOGGATO
             if (!playerData || !playerData.id || !playerData.name) {
                 console.warn('⚠️ Utente non loggato, provo a recuperare dalla sessione salvata');
@@ -1327,16 +1336,7 @@
                     field.dataset.realPin = '';
                 }
             });
-        }
-
-        // Reset campi PIN quando si mostra la schermata login
-        input.addEventListener('focus', function () {
-            if (!this.dataset.pinInitialized) {
-                this.value = '';
-                this.dataset.realPin = '';
-                this.dataset.pinInitialized = 'true';
-            }
-        });
+        }       
 
         // ========================================
         // GESTIONE SESSIONE
@@ -2770,6 +2770,7 @@
             // Gestione PIN fields
             document.querySelectorAll('[data-pin-field]').forEach(input => {
                 input.dataset.realPin = '';
+                input.value = '';
 
                 input.addEventListener('input', function (e) {
                     const currentReal = this.dataset.realPin || '';
