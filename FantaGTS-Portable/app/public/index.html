@@ -1010,8 +1010,23 @@
             if (!playerData || !playerData.id || !playerData.name) {
                 console.warn('⚠️ Utente non loggato, provo a recuperare dalla sessione salvata');
 
-                // Prova a caricare la sessione salvata
+                // 🆕 EVITA LOOP: controlla se stiamo già in un tentativo di caricamento
+                if (window.loadingSession) {
+                    console.error('❌ Loop rilevato - Torno al login');
+                    window.loadingSession = false;
+                    document.getElementById('registration-area').style.display = 'block';
+                    document.getElementById('welcome-screen').style.display = 'block';
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('register-screen').style.display = 'none';
+                    document.getElementById('game-area').style.display = 'none';
+                    document.getElementById('sessions-screen').style.display = 'none';
+                    mostraMessaggio('⚠️ Sessione scaduta, effettua nuovamente il login', 'warning');
+                    return;
+                }
+
+                window.loadingSession = true;
                 const sessionRestored = await loadSavedSession();
+                window.loadingSession = false;
 
                 if (!sessionRestored) {
                     console.error('❌ Nessuna sessione valida trovata, torno al login');
@@ -1423,12 +1438,28 @@
                 const sessione = await sessioneResponse.json();
                 console.log('✅ Sessione valida:', sessione);
 
-                // 🆕 CARICA DATI PARTECIPANTE DALLA SESSIONE (usando il nome, non l'ID)
-                const partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${sessionData.name}`);
+                // 🆕 CARICA DATI PARTECIPANTE - Usa l'ID se disponibile, altrimenti il nome
+                const partecipanteId = sessionData.id || sessionData.partecipanteId;
+                let partecipanteResponse;
+
+                if (partecipanteId) {
+                    // Prova prima con l'ID
+                    partecipanteResponse = await fetch(`/api/partecipanti/${partecipanteId}`);
+
+                    // Se non trova con l'ID, prova con il nome nella sessione specifica
+                    if (!partecipanteResponse.ok) {
+                        console.log('⚠️ Tentativo con nome nella sessione specifica');
+                        partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${sessionData.name}`);
+                    }
+                } else {
+                    // Fallback: usa il nome
+                    partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${sessionData.name}`);
+                }
 
                 if (!partecipanteResponse.ok) {
-                    console.log('⚠️ Partecipante non trovato nella sessione');
+                    console.log('⚠️ Partecipante non trovato - Resetto sessione');
                     localStorage.removeItem('userSession');
+                    localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
                     await mostraSchermataSessioni();
                     return true;
                 }
