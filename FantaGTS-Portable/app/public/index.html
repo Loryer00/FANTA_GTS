@@ -1626,6 +1626,12 @@
                     slot.classList.remove('filled');
                     slot.classList.add('empty');
                     slot.innerHTML = `<strong>${pos}</strong><br>-`;
+
+                    // 🆕 RESET COMPLETO DEGLI STILI
+                    slot.style.background = '';
+                    slot.style.border = '';
+                    slot.style.color = '';
+                    slot.style.boxShadow = '';
                 }
             });
         }
