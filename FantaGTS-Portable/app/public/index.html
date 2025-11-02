@@ -10,7 +10,18 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <style>
+        /* 🆕 Nascondi tutto finché JS non carica per evitare flash */
+        body.loading #registration-area {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+
+        body.loaded #registration-area {
+            opacity: 1;
+        }
+
         * {
+            margin: 0;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -647,7 +658,7 @@
             }
     </style>
 </head>
-<body>
+<body class="loading">
     <div class="container">
         <div class="header">
             <h1>🎾 FantaGTS</h1>
@@ -782,7 +793,7 @@
         <div id="game-area" style="display: none;" class="content-with-bottom-nav">
             <!-- Header con nickname e azioni -->
             <div style="text-align: center; margin-bottom: 20px;">
-                    <!-- Pulsanti azione -->
+                <!-- Pulsanti azione -->
                 <div style="display: flex; gap: 10px; justify-content: center;">
                     <button onclick="mostraSchermataSessioni()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
                         🔄 Sessioni
@@ -791,122 +802,122 @@
                         🚪 Esci
                     </button>
                 </div>
-                    <!-- Nickname grande -->
-                    <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
-                        <strong id="currentPlayer">--</strong>
-                    </div>
+                <!-- Nickname grande -->
+                <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
+                    <strong id="currentPlayer">--</strong>
+                </div>
 
-                    <!-- Crediti -->
-                    <div id="playerStatsDisplay" style="font-size: 1.1em; color: #a0aec0; margin-bottom: 15px;">
-                        💰 <span id="playerCredits">--</span> crediti
-                    </div>                
+                <!-- Crediti -->
+                <div id="playerStatsDisplay" style="font-size: 1.1em; color: #a0aec0; margin-bottom: 15px;">
+                    💰 <span id="playerCredits">--</span> crediti
+                </div>
             </div>
 
-                <!-- SEZIONE 1: LA MIA SQUADRA -->
-                <div id="section-squadra" class="content-section active">
-                    <!-- Fase attesa (SOLO durante asta) -->
-                    <div id="waiting-phase" class="section" style="display: none;">
-                        <h2>⏳ In Attesa</h2>
-                        <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
-                    </div>
+            <!-- SEZIONE 1: LA MIA SQUADRA -->
+            <div id="section-squadra" class="content-section active">
+                <!-- Fase attesa (SOLO durante asta) -->
+                <div id="waiting-phase" class="section" style="display: none;">
+                    <h2>⏳ In Attesa</h2>
+                    <p>Il Master avvierà il prossimo round quando tutti sono pronti.</p>
+                </div>
 
-                    <!-- Fase asta -->
-                    <div id="bidding-phase" class="section" style="display: none;">
-                        <h2 id="currentRound">Round M1</h2>
-                        <div id="playersGrid" class="players-grid"></div>
+                <!-- Fase asta -->
+                <div id="bidding-phase" class="section" style="display: none;">
+                    <h2 id="currentRound">Round M1</h2>
+                    <div id="playersGrid" class="players-grid"></div>
 
-                        <div id="bidSection" style="display: none; margin-top: 20px;">
-                            <div id="selectedPlayerInfo" style="margin-bottom: 15px; text-align: center;">
-                                <strong>Nessun giocatore selezionato</strong>
-                            </div>
-
-                            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-                                <strong>💰 Crediti disponibili: <span id="creditsDisplay">--</span></strong>
-                            </div>
-
-                            <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
-
-                            <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
-                                Conferma Puntata
-                            </button>
+                    <div id="bidSection" style="display: none; margin-top: 20px;">
+                        <div id="selectedPlayerInfo" style="margin-bottom: 15px; text-align: center;">
+                            <strong>Nessun giocatore selezionato</strong>
                         </div>
-                    </div>
 
-                    <!-- La mia squadra -->
-                    <div class="section">
-                        <h2>🏆 La Mia Squadra</h2>
-                        <div class="team-slots" id="teamSlots">
-                            <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
-                            <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
-                            <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
-                            <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
-                            <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
+                        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
+                            <strong>💰 Crediti disponibili: <span id="creditsDisplay">--</span></strong>
                         </div>
+
+                        <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
+
+                        <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
+                            Conferma Puntata
+                        </button>
                     </div>
                 </div>
 
-                <!-- SEZIONE 2: CLASSIFICA -->
-                <div id="section-classifica" class="content-section">
-                    <div class="section">
-                        <h2>📊 Classifica Generale</h2>
-                        <div id="classificaContainer">
-                            <p style="text-align: center; opacity: 0.7;">Caricamento classifica...</p>
-                        </div>
+                <!-- La mia squadra -->
+                <div class="section">
+                    <h2>🏆 La Mia Squadra</h2>
+                    <div class="team-slots" id="teamSlots">
+                        <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
+                        <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
+                        <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
                     </div>
                 </div>
+            </div>
 
-                <!-- SEZIONE 3: ALTRI PARTECIPANTI -->
-                <div id="section-altri" class="content-section">
-                    <div class="section">
-                        <h2>👥 Altri Partecipanti</h2>
-                        <div id="altriPartecipantiContainer">
-                            <p style="text-align: center; opacity: 0.7;">Caricamento partecipanti...</p>
-                        </div>
+            <!-- SEZIONE 2: CLASSIFICA -->
+            <div id="section-classifica" class="content-section">
+                <div class="section">
+                    <h2>📊 Classifica Generale</h2>
+                    <div id="classificaContainer">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento classifica...</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- SEZIONE 4: INCONTRI -->
-                <div id="section-incontri" class="content-section">
-                    <div class="section">
-                        <h2>⚽ Incontri</h2>
-                        <div class="incontri-selector">
-                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e0;">Seleziona Turno:</label>
-                            <select id="turniSelect" class="turni-select" onchange="caricaIncontriTurno()">
-                                <option value="">-- Seleziona un turno --</option>
-                            </select>
-                        </div>
-                        <div id="incontriContainer">
-                            <p style="text-align: center; opacity: 0.7;">Seleziona un turno per visualizzare gli incontri</p>
-                        </div>
+            <!-- SEZIONE 3: ALTRI PARTECIPANTI -->
+            <div id="section-altri" class="content-section">
+                <div class="section">
+                    <h2>👥 Altri Partecipanti</h2>
+                    <div id="altriPartecipantiContainer">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento partecipanti...</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- BOTTOM NAVIGATION -->
-                <div class="bottom-nav">
-                    <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
-                        <span class="icon">🏆</span>
-                        <span class="label">Squadra</span>
-                    </button>
-                    <button class="bottom-nav-btn" onclick="switchSection('classifica')">
-                        <span class="icon">📊</span>
-                        <span class="label">Classifica</span>
-                    </button>
-                    <button class="bottom-nav-btn" onclick="switchSection('altri')">
-                        <span class="icon">👥</span>
-                        <span class="label">Altri</span>
-                    </button>
-                    <button class="bottom-nav-btn" onclick="switchSection('incontri')">
-                        <span class="icon">⚽</span>
-                        <span class="label">Incontri</span>
-                    </button>
+            <!-- SEZIONE 4: INCONTRI -->
+            <div id="section-incontri" class="content-section">
+                <div class="section">
+                    <h2>⚽ Incontri</h2>
+                    <div class="incontri-selector">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e0;">Seleziona Turno:</label>
+                        <select id="turniSelect" class="turni-select" onchange="caricaIncontriTurno()">
+                            <option value="">-- Seleziona un turno --</option>
+                        </select>
+                    </div>
+                    <div id="incontriContainer">
+                        <p style="text-align: center; opacity: 0.7;">Seleziona un turno per visualizzare gli incontri</p>
+                    </div>
                 </div>
+            </div>
+
+            <!-- BOTTOM NAVIGATION -->
+            <div class="bottom-nav">
+                <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
+                    <span class="icon">🏆</span>
+                    <span class="label">Squadra</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('classifica')">
+                    <span class="icon">📊</span>
+                    <span class="label">Classifica</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('altri')">
+                    <span class="icon">👥</span>
+                    <span class="label">Altri</span>
+                </button>
+                <button class="bottom-nav-btn" onclick="switchSection('incontri')">
+                    <span class="icon">⚽</span>
+                    <span class="label">Incontri</span>
+                </button>
             </div>
         </div>
+    </div>
 
     <script>
         // ========================================
@@ -964,10 +975,10 @@
                 box.style.cssText = `background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); padding: 30px; border-radius: 15px; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);`;
 
                 box.innerHTML = `
-                                <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
-                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
-                            `;
+                                    <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
+                                `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
@@ -1086,10 +1097,10 @@
             if (!playerData || !playerData.id) {
                 console.error('❌ playerData.id non disponibile:', playerData);
                 sessionsList.innerHTML = `
-                <p style="text-align: center; color: #fc8181; padding: 20px;">
-                    ❌ Errore: dati utente non validi
-                </p>
-            `;
+                    <p style="text-align: center; color: #fc8181; padding: 20px;">
+                        ❌ Errore: dati utente non validi
+                    </p>
+                `;
                 return;
             }
 
@@ -1109,34 +1120,34 @@
                 if (result.sessioni && result.sessioni.length > 0) {
                     console.log('✅ Mostrando', result.sessioni.length, 'sessioni');
                     sessionsList.innerHTML = result.sessioni.map(sessione => `
-                    <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-                        <div class="session-name">📋 ${sessione.nome}</div>
-                        <div class="session-info">
-                            ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
-                            • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                            ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+                            <div class="session-name">📋 ${sessione.nome}</div>
+                            <div class="session-info">
+                                ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
+                                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                            </div>
+                            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
                         </div>
-                        <div class="session-code">Codice: ${sessione.codice_accesso}</div>
-                    </div>
-                `).join('');
+                    `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
                     console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
-                    <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                        🔭 Non sei ancora iscritto a nessuna sessione.<br>
-                        Usa il codice qui sotto per entrare!
-                    </p>
-                `;
+                        <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                            🔭 Non sei ancora iscritto a nessuna sessione.<br>
+                            Usa il codice qui sotto per entrare!
+                        </p>
+                    `;
                 }
             } catch (error) {
                 console.error('❌ Errore caricamento sessioni:', error);
                 sessionsList.innerHTML = `
-                <p style="text-align: center; color: #fc8181; padding: 20px;">
-                    ❌ Errore caricamento sessioni<br>
-                    <small style="opacity: 0.7;">${error.message}</small>
-                </p>
-            `;
+                    <p style="text-align: center; color: #fc8181; padding: 20px;">
+                        ❌ Errore caricamento sessioni<br>
+                        <small style="opacity: 0.7;">${error.message}</small>
+                    </p>
+                `;
             }
         }
 
@@ -1385,7 +1396,7 @@
                     field.dataset.realPin = '';
                 }
             });
-        }       
+        }
 
         // ========================================
         // GESTIONE SESSIONE
@@ -1922,38 +1933,38 @@
                         // 🆕 TEMPLATE DIVERSO PER DRAFT (senza costo)
                         if (modalita === 'draft_libero') {
                             slot.innerHTML = `
-                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                            ${giocatore.giocatore_attuale}
-                        </div>
-                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                            ${posizione}
-                        </div>
-                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
-                            Squadra ${giocatore.colore}
-                        </div>
-                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                            🏆 ${giocatore.punti_totali || 0}
-                        </div>
-                    `;
+                            <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                ${giocatore.giocatore_attuale}
+                            </div>
+                            <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                ${posizione}
+                            </div>
+                            <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
+                                Squadra ${giocatore.colore}
+                            </div>
+                            <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                🏆 ${giocatore.punti_totali || 0}
+                            </div>
+                        `;
                         } else {
                             // Template per ASTE (con costo)
                             slot.innerHTML = `
-                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                            ${giocatore.giocatore_attuale}
-                        </div>
-                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                            ${posizione}
-                        </div>
-                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
-                            Squadra ${giocatore.colore}
-                        </div>
-                        <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                            💰 ${giocatore.costo_finale}
-                        </div>
-                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                            🏆 ${giocatore.punti_totali || 0}
-                        </div>
-                    `;
+                            <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                ${giocatore.giocatore_attuale}
+                            </div>
+                            <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                ${posizione}
+                            </div>
+                            <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
+                                Squadra ${giocatore.colore}
+                            </div>
+                            <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
+                                💰 ${giocatore.costo_finale}
+                            </div>
+                            <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                🏆 ${giocatore.punti_totali || 0}
+                            </div>
+                        `;
                         }
 
                         console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
@@ -2077,19 +2088,19 @@
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
                     html += `
-                        <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
-                            <div class="classifica-position ${positionClass}">
-                                ${medal} ${index + 1}°
+                            <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
+                                <div class="classifica-position ${positionClass}">
+                                    ${medal} ${index + 1}°
+                                </div>
+                                <div class="classifica-name">
+                                    ${partecipante.nome}
+                                    ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
+                                </div>
+                                <div class="classifica-points">
+                                    ${partecipante.punti_totali} pt
+                                </div>
                             </div>
-                            <div class="classifica-name">
-                                ${partecipante.nome}
-                                ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
-                            </div>
-                            <div class="classifica-points">
-                                ${partecipante.punti_totali} pt
-                            </div>
-                        </div>
-                    `;
+                        `;
                 });
 
                 html += '</div>';
@@ -2162,16 +2173,16 @@
                 const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
 
                 let html = `
-                    <div class="partecipante-card">
-                        <div class="partecipante-header">
-                            <div class="partecipante-name">${partecipante.nome}</div>
-                            <div class="partecipante-stats">
-                                <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
-                                <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
+                        <div class="partecipante-card">
+                            <div class="partecipante-header">
+                                <div class="partecipante-name">${partecipante.nome}</div>
+                                <div class="partecipante-stats">
+                                    <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
+                                    <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="partecipante-team-grid">
-                `;
+                            <div class="partecipante-team-grid">
+                    `;
 
                 // Mostra tutti gli slot (M1-M7, F1-F3)
                 const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
@@ -2182,39 +2193,39 @@
                     if (giocatore) {
                         const coloreSquadra = getTeamColor(giocatore.colore);
                         html += `
-                            <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
-                                <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
-                            </div>
-                        `;
+                                <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
+                                    <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                                    <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                                    <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
+                                </div>
+                            `;
                     } else {
                         html += `
-                            <div class="partecipante-slot partecipante-slot-empty">
-                                <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
-                                <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
-                            </div>
-                        `;
+                                <div class="partecipante-slot partecipante-slot-empty">
+                                    <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
+                                    <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
+                                </div>
+                            `;
                     }
                 });
 
                 html += `
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
 
                 return html;
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadra partecipante:', error);
                 return `
-                    <div class="partecipante-card">
-                        <div class="partecipante-header">
-                            <div class="partecipante-name">${partecipante.nome}</div>
+                        <div class="partecipante-card">
+                            <div class="partecipante-header">
+                                <div class="partecipante-name">${partecipante.nome}</div>
+                            </div>
+                            <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
                         </div>
-                        <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
-                    </div>
-                `;
+                    `;
             }
         }
 
@@ -2340,30 +2351,30 @@
 
                 // Crea box scontro
                 html += `
-                <div class="scontro-overview-box">
-                    <div class="scontro-header-mini">
-                        <div class="squadra-mini" style="background-color: ${squadra1Color};">
-                            ${gruppo.squadra1.colore.toUpperCase()}
+                    <div class="scontro-overview-box">
+                        <div class="scontro-header-mini">
+                            <div class="squadra-mini" style="background-color: ${squadra1Color};">
+                                ${gruppo.squadra1.colore.toUpperCase()}
+                            </div>
+                            <div class="vs-mini">VS</div>
+                            <div class="squadra-mini" style="background-color: ${squadra2Color};">
+                                ${gruppo.squadra2.colore.toUpperCase()}
+                            </div>
                         </div>
-                        <div class="vs-mini">VS</div>
-                        <div class="squadra-mini" style="background-color: ${squadra2Color};">
-                            ${gruppo.squadra2.colore.toUpperCase()}
+                        <div class="stats-line">
+                            ${completati} incontri • ${completati} completati
                         </div>
-                    </div>
-                    <div class="stats-line">
-                        ${completati} incontri • ${completati} completati
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
-                                 style="width: ${percentualeCompletamento}%;"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
+                                     style="width: ${percentualeCompletamento}%;"></div>
+                            </div>
+                            <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
+                                ${percentualeCompletamento}%
+                            </div>
                         </div>
-                        <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
-                            ${percentualeCompletamento}%
-                        </div>
-                    </div>
-                    <div class="incontri-mini-grid">
-            `;
+                        <div class="incontri-mini-grid">
+                `;
 
                 // Aggiungi mini card per ogni incontro
                 gruppo.incontri.forEach(incontro => {
@@ -2386,25 +2397,25 @@
                             testoColore = '#9ca3af';
                         }
                         html += `
-                        <div class="incontro-mini completato"
-                             style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
-                            ${incontro.pos1}+${incontro.pos2}
-                        </div>
-                    `;
+                            <div class="incontro-mini completato"
+                                 style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
+                                ${incontro.pos1}+${incontro.pos2}
+                            </div>
+                        `;
                     } else {
                         // Incontro in attesa - arancione
                         html += `
-                        <div class="incontro-mini attesa">
-                            ${incontro.pos1}+${incontro.pos2}
-                        </div>
-                    `;
+                            <div class="incontro-mini attesa">
+                                ${incontro.pos1}+${incontro.pos2}
+                            </div>
+                        `;
                     }
                 });
 
                 html += `
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
             });
 
             html += '</div></div>';
@@ -2420,28 +2431,28 @@
             const colore2 = getTeamColor(gruppo.squadra2.colore);
 
             let html = `
-                <div class="scontro-box">
-                    <div class="scontro-header">
-                        <div class="squadra-badge" style="background-color: ${colore1};">
-                            ${gruppo.squadra1.colore.toUpperCase()}
+                    <div class="scontro-box">
+                        <div class="scontro-header">
+                            <div class="squadra-badge" style="background-color: ${colore1};">
+                                ${gruppo.squadra1.colore.toUpperCase()}
+                            </div>
+                            <div class="vs-text">VS</div>
+                            <div class="squadra-badge" style="background-color: ${colore2};">
+                                ${gruppo.squadra2.colore.toUpperCase()}
+                            </div>
                         </div>
-                        <div class="vs-text">VS</div>
-                        <div class="squadra-badge" style="background-color: ${colore2};">
-                            ${gruppo.squadra2.colore.toUpperCase()}
+                        <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
+                            ${completati}/${totaleIncontri} incontri completati
                         </div>
-                    </div>
-                    <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
-                        ${completati}/${totaleIncontri} incontri completati
-                    </div>
-                    <div class="progress-mini">
-                        <div class="progress-bar-mini">
-                            <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                        <div class="progress-mini">
+                            <div class="progress-bar-mini">
+                                <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                            </div>
+                            <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
+                                ${percentuale}%
+                            </div>
                         </div>
-                        <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
-                            ${percentuale}%
-                        </div>
-                    </div>
-            `;
+                `;
 
             // Mostra dettaglio incontri
             if (gruppo.incontri.length > 0) {
@@ -2452,13 +2463,13 @@
                     const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
 
                     html += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
-                            <div style="color: ${colore1};">${incontro.posizione1}</div>
-                            <div style="color: #a0aec0;">vs</div>
-                            <div style="color: ${colore2};">${incontro.posizione2}</div>
-                            <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
-                        </div>
-                    `;
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
+                                <div style="color: ${colore1};">${incontro.posizione1}</div>
+                                <div style="color: #a0aec0;">vs</div>
+                                <div style="color: ${colore2};">${incontro.posizione2}</div>
+                                <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
+                            </div>
+                        `;
                 });
 
                 html += '</div>';
@@ -2645,11 +2656,11 @@
                 const notification = document.createElement('div');
                 notification.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #48bb78; color: white; padding: 20px; border-radius: 15px; font-size: 1.2em; font-weight: bold; z-index: 2000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
                 notification.innerHTML = `
-                                <div>🏆 COMPLIMENTI!</div>
-                                <div style="margin: 10px 0;">Hai vinto:</div>
-                                <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
-                                <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-                            `;
+                                    <div>🏆 COMPLIMENTI!</div>
+                                    <div style="margin: 10px 0;">Hai vinto:</div>
+                                    <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
+                                    <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                                `;
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 2000);
             });
@@ -2691,9 +2702,9 @@
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.innerHTML = `
-                                <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
-                                <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
-                            `;
+                                    <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
+                                    <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
+                                `;
                 card.addEventListener('click', () => selectPlayer(player));
                 grid.appendChild(card);
             });
@@ -2930,6 +2941,10 @@
             initializeSocket();
 
             console.log('✅ FantaGTS Client inizializzato correttamente');
+
+            // 🆕 Rimuovi classe loading per mostrare l'interfaccia
+            document.body.classList.remove('loading');
+            document.body.classList.add('loaded');
         });
 
         // ========================================
