@@ -991,9 +991,12 @@
         // NUOVA FUNZIONE: Salva stato completo del gioco
         async function saveMasterState() {
             try {
+                // Assicurati che sessioneCorrente sia definita
+                const sessione = sessioneCorrente || 'default';
+
                 // Raccogli tutti i dati necessari dal server
                 const [squadre, partecipanti, risultatiPartite, classifica] = await Promise.all([
-                    fetch('/api/squadre').then(r => r.json()).catch(() => []),
+                    fetch(`/api/squadre?sessione=${sessione}`).then(r => r.json()).catch(() => []),
                     fetch('/api/partecipanti').then(r => r.json()).catch(() => []),
                     fetch('/api/risultati-partite').then(r => r.json()).catch(() => []),
                     fetch('/api/classifica').then(r => r.json()).catch(() => [])
