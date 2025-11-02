@@ -1219,15 +1219,23 @@
                 // 🎯 ROUTING PER MODALITÀ
                 if (sessioneData.modalita === 'draft_libero') {
                     console.log('🎯 Modalità Draft Libero - Verifico squadra...');
+                    console.log('🔍 playerData.id:', playerData.id);
+                    console.log('🔍 sessioneId:', sessioneId);
 
                     // Verifica se ha già completato la squadra draft
-                    const draftResponse = await fetch(`/api/draft/squadra-by-name/${playerData.name}?sessione_id=${sessioneId}`);
+                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+
+                    console.log('📡 Draft response status:', draftResponse.status);
+                    console.log('📡 Draft response OK:', draftResponse.ok);
 
                     if (draftResponse.ok) {
                         const draftData = await draftResponse.json();
+                        console.log('📦 Draft data ricevuta:', draftData);
+                        console.log('📊 Completata:', draftData.completata);
+                        console.log('📊 Numero giocatori:', Object.keys(draftData.squadra || {}).length);
 
                         if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
-                            console.log('✅ Squadra draft già completa - Carico interfaccia user');
+                            console.log('✅ Squadra draft già completa (10/10) - Carico interfaccia user');
 
                             // Aggiorna display
                             document.getElementById('currentPlayer').textContent = playerData.name;
@@ -1250,7 +1258,10 @@
                             return;
                         } else {
                             // Squadra non completa → Reindirizza a draft-selection
-                            console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
+                            console.log('⚠️ Squadra draft incompleta o non trovata');
+                            console.log('   - Completata:', draftData.completata);
+                            console.log('   - Giocatori:', Object.keys(draftData.squadra || {}).length, '/ 10');
+
                             mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
 
                             setTimeout(() => {
@@ -1260,7 +1271,7 @@
                         }
                     } else {
                         // Nessuna squadra trovata → Reindirizza a draft-selection
-                        console.log('⚠️ Nessuna squadra trovata - Reindirizzamento a draft-selection...');
+                        console.log('⚠️ Nessuna risposta valida dal server - Reindirizzamento a draft-selection...');
                         mostraMessaggio(`🎯 Seleziona la tua squadra per "${nomeSessione}"...`, 'info');
 
                         setTimeout(() => {
