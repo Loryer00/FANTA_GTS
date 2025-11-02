@@ -909,8 +909,11 @@
                     break;
 
                 case 4:
-                    sessionData.numeroSquadre = parseInt(document.getElementById('numeroSquadre').value);
-                    calcolaCondivisione();
+                    // RIMOZIONE DELLA RIGA ERRATA.
+                    // Il dato sessionData.numeroSquadre e calcolaCondivisione() sono gestiti in:
+                    // - validateCurrentStep() (per la Nuova Configurazione)
+                    // - selezionaConfigurazione() (per la Configurazione Esistente)
+                    // - scegliNuovaConfigurazione() / scegliConfigurazioneEsistente()
                     break;
             }
         }
