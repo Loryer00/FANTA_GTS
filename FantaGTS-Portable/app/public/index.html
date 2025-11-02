@@ -997,6 +997,26 @@
         async function mostraSchermataSessioni() {
             console.log('🔄 mostraSchermataSessioni() chiamata');
 
+            // 🆕 VERIFICA SE L'UTENTE È LOGGATO
+            if (!playerData || !playerData.id || !playerData.name) {
+                console.warn('⚠️ Utente non loggato, provo a recuperare dalla sessione salvata');
+
+                // Prova a caricare la sessione salvata
+                const sessionRestored = await loadSavedSession();
+
+                if (!sessionRestored) {
+                    console.error('❌ Nessuna sessione valida trovata, torno al login');
+                    // Mostra schermata di benvenuto
+                    document.getElementById('welcome-screen').style.display = 'block';
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('register-screen').style.display = 'none';
+                    document.getElementById('game-area').style.display = 'none';
+                    document.getElementById('sessions-screen').style.display = 'none';
+                    mostraMessaggio('⚠️ Sessione scaduta, effettua nuovamente il login', 'warning');
+                    return;
+                }
+            }
+
             // Nascondi tutte le schermate
             document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('login-screen').style.display = 'none';
