@@ -1028,9 +1028,11 @@
             console.log('📺 sessions-screen element:', sessionsScreen);
 
             if (sessionsScreen) {
-                sessionsScreen.style.display = 'block';
-                console.log('✅ sessions-screen mostrato');
+                // 🆕 Usa setProperty con !important per forzare la visualizzazione
+                sessionsScreen.style.setProperty('display', 'block', 'important');
+                console.log('✅ sessions-screen mostrato con !important');
                 console.log('📋 Contenuto HTML:', sessionsScreen.innerHTML.substring(0, 200));
+                console.log('🔍 Display attuale dopo set:', sessionsScreen.style.display);
             } else {
                 console.error('❌ sessions-screen NON TROVATO!');
             }
