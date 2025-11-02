@@ -783,14 +783,14 @@
             <!-- Header con nickname e azioni -->
             <div style="text-align: center; margin-bottom: 20px;">
                     <!-- Pulsanti azione -->
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="cambiaSessione()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
-                            🔄 Sessioni
-                        </button>
-                        <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
-                            🚪 Esci
-                        </button>
-                    </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="mostraSchermataSessioni()" style="background: rgba(66, 153, 225, 0.2); border: 1px solid rgba(66, 153, 225, 0.4); color: #4299e1; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer; font-weight: bold;">
+                        🔄 Sessioni
+                    </button>
+                    <button onclick="logout()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #e2e8f0; padding: 8px 15px; border-radius: 6px; font-size: 0.9em; cursor: pointer;">
+                        🚪 Esci
+                    </button>
+                </div>
                     <!-- Nickname grande -->
                     <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
                         <strong id="currentPlayer">--</strong>
@@ -1193,36 +1193,65 @@
                 if (sessioneData.modalita === 'draft_libero') {
                     console.log('🎯 Modalità Draft Libero - Verifico squadra...');
 
-                    // Verifica se ha già completato la squadra draft
-                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+                    try {
+                        // Verifica se ha già completato la squadra draft
+                        const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
 
-                    if (draftResponse.ok) {
-                        const draftData = await draftResponse.json();
+                        if (draftResponse.ok) {
+                            const draftData = await draftResponse.json();
 
-                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
-                            console.log('✅ Squadra draft già completa - Carico interfaccia user');
+                            if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
+                                console.log('✅ Squadra draft già completa - Carico interfaccia user');
 
-                            // Aggiorna display
-                            document.getElementById('currentPlayer').textContent = playerData.name;
-                            document.getElementById('playerCredits').textContent = playerData.credits;
+                                // Aggiorna display
+                                document.getElementById('currentPlayer').textContent = playerData.name;
+                                document.getElementById('playerCredits').textContent = playerData.credits;
 
-                            // Nascondi crediti per draft
-                            const playerStatsDisplay = document.getElementById('playerStatsDisplay');
-                            if (playerStatsDisplay) {
-                                playerStatsDisplay.style.display = 'none';
+                                // Nascondi crediti per draft
+                                const playerStatsDisplay = document.getElementById('playerStatsDisplay');
+                                if (playerStatsDisplay) {
+                                    playerStatsDisplay.style.display = 'none';
+                                }
+
+                                // Nascondi schermata sessioni e mostra game area
+                                document.getElementById('sessions-screen').style.display = 'none';
+                                showGameArea();
+
+                                // Carica squadra del partecipante
+                                await loadPlayerTeam();
+
+                                mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
+                                return;
+                            } else {
+                                // Squadra non completa → Reindirizza a draft-selection
+                                console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
+                                mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
+
+                                setTimeout(() => {
+                                    window.location.href = '/draft-selection.html';
+                                }, 800);
+                                return;
                             }
+                        } else {
+                            // Errore nel caricamento o squadra non esistente → Reindirizza
+                            console.log('⚠️ Nessuna squadra trovata - Reindirizzamento a draft-selection...');
+                            mostraMessaggio(`🎯 Seleziona la tua squadra per "${nomeSessione}"...`, 'info');
 
-                            // Nascondi schermata sessioni e mostra game area
-                            document.getElementById('sessions-screen').style.display = 'none';
-                            showGameArea();
-
-                            // Carica squadra del partecipante
-                            await loadPlayerTeam();
-
-                            mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
+                            setTimeout(() => {
+                                window.location.href = '/draft-selection.html';
+                            }, 800);
                             return;
                         }
+                    } catch (error) {
+                        console.error('❌ Errore verifica squadra draft:', error);
+                        mostraMessaggio('⚠️ Errore verifica squadra, reindirizzamento...', 'warning');
+
+                        setTimeout(() => {
+                            window.location.href = '/draft-selection.html';
+                        }, 800);
+                        return;
                     }
+                }
 
                     // Squadra non completa → Reindirizza a draft-selection
                     console.log('⚠️ Squadra draft incompleta - Reindirizzamento...');
