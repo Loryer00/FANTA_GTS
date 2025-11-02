@@ -1215,12 +1215,32 @@
 
                 if (partecipanteResponse.ok) {
                     const partecipante = await partecipanteResponse.json();
-                    // 🆕 NON sovrascrivere playerData.id - mantieni l'ID originale del login
-                    // Salva solo i crediti specifici della sessione
                     playerData.credits = partecipante.crediti;
                     console.log('✅ Dati partecipante caricati - ID originale:', playerData.id, 'Crediti sessione:', playerData.credits);
                 } else {
-                    console.error('❌ Errore caricamento dati partecipante');
+                    // 🆕 Partecipante non trovato in questa sessione - AGGIUNGILO!
+                    console.log('⚠️ Partecipante non trovato nella sessione - Lo aggiungo automaticamente');
+
+                    const aggiungiResponse = await fetch('/api/partecipanti', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: playerData.id,
+                            nome: playerData.name,
+                            pin: '0000', // PIN placeholder (non serve per sessioni già create)
+                            sessione_id: sessioneId,
+                            crediti: sessioneData.crediti_iniziali || 2000
+                        })
+                    });
+
+                    if (aggiungiResponse.ok) {
+                        const nuovoPartecipante = await aggiungiResponse.json();
+                        playerData.credits = nuovoPartecipante.crediti || sessioneData.crediti_iniziali || 2000;
+                        console.log('✅ Partecipante aggiunto alla sessione con crediti:', playerData.credits);
+                    } else {
+                        mostraMessaggio('❌ Impossibile entrare nella sessione', 'error');
+                        return;
+                    }
                 }
 
                 // Salva la sessione nel localStorage con i dati aggiornati
