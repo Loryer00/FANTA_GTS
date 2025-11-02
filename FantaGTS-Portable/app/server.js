@@ -1310,9 +1310,22 @@ app.get('/api/squadre', async (req, res) => {
     try {
         const sessioneId = req.query.sessione || sessioneCorrente;
 
-        const result = await db.query(
-            'SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1 ORDER BY numero',
+        // Ottieni configurazione_id dalla sessione
+        const sessioneResult = await db.query(
+            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
             [sessioneId]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const configurazioneId = sessioneResult.rows[0].configurazione_id;
+
+        // Carica squadre dalla configurazione
+        const result = await db.query(
+            'SELECT * FROM squadre_circolo WHERE attiva = true AND configurazione_id = $1 ORDER BY numero',
+            [configurazioneId]
         );
 
         res.json(result.rows);
@@ -1327,12 +1340,24 @@ app.get('/api/squadre-con-giocatori', async (req, res) => {
     try {
         console.log('🔄 Caricamento squadre con giocatori per incontri...');
 
+        // Ottieni configurazione_id dalla sessione corrente
+        const sessioneResult = await db.query(
+            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+            [sessioneCorrente]
+        );
+
+        if (sessioneResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione corrente non trovata' });
+        }
+
+        const configurazioneId = sessioneResult.rows[0].configurazione_id;
+
         const result = await db.query(`
             SELECT numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, attiva 
             FROM squadre_circolo 
-            WHERE attiva = true 
+            WHERE attiva = true AND configurazione_id = $1
             ORDER BY numero
-        `);
+        `, [configurazioneId]);
 
         // Trasforma i dati dal formato DB al formato necessario per gli incontri
         const squadre = result.rows.map(squadra => {
@@ -2456,13 +2481,17 @@ app.post('/api/avvia-round/:round', async (req, res) => {
     }
 
     try {
-        // 🔍 Ottieni tutti i partecipanti dal database
+        // Ottieni tutti i partecipanti dal database
         const partecipantiResult = await db.query(`
-            SELECT id, nome FROM partecipanti_fantagts 
-            WHERE attivo = true AND sessione_id = $1
+            SELECT DISTINCT p.id, p.nome 
+            FROM partecipanti_fantagts p
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE p.attivo = true 
+            AND psa.sessione_id = $1
+            AND p.sessione_id = $1
         `, [sessioneCorrente]);
 
-        // 🔍 Ottieni tutti i slots disponibili per questo round
+        // Ottieni tutti i slots disponibili per questo round
         const slotsResult = await db.query(
             "SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero",
             [round]
@@ -2522,10 +2551,14 @@ app.get('/api/stato-offerte/:round', async (req, res) => {
     const round = req.params.round;
 
     try {
-        // 🔍 Ottieni TUTTI i partecipanti dal database
+        // Ottieni TUTTI i partecipanti dal database
         const partecipantiResult = await db.query(`
-            SELECT id, nome FROM partecipanti_fantagts 
-            WHERE attivo = true AND sessione_id = $1
+            SELECT DISTINCT p.id, p.nome 
+            FROM partecipanti_fantagts p
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE p.attivo = true 
+            AND psa.sessione_id = $1
+            AND p.sessione_id = $1
         `, [sessioneCorrente]);
 
         const tuttiPartecipanti = partecipantiResult.rows;
@@ -3369,10 +3402,14 @@ function avviaMonitoraggioOfferte() {
         }
 
         try {
-            // 🔍 NUOVO: Ottieni TUTTI i partecipanti dal database
+            // NUOVO: Ottieni TUTTI i partecipanti dal database
             const partecipantiResult = await db.query(`
-                SELECT id, nome FROM partecipanti_fantagts 
-                WHERE attivo = true AND sessione_id = $1
+                SELECT DISTINCT p.id, p.nome 
+                FROM partecipanti_fantagts p
+                INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+                WHERE p.attivo = true 
+                AND psa.sessione_id = $1
+                AND p.sessione_id = $1
             `, [sessioneCorrente]);
 
             const tuttiPartecipanti = partecipantiResult.rows;
