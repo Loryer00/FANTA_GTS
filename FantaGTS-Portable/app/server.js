@@ -2444,8 +2444,10 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
-        // 🆕 PRENDI sessione_id dalla query string
+        // 🆕 USA sessione_id dalla query string se presente, altrimenti usa sessioneCorrente
         const sessioneId = req.query.sessione_id || sessioneCorrente;
+
+        console.log(`📊 Caricamento squadra per partecipante ${partecipanteId}, sessione: ${sessioneId}`);
 
         // Ottieni squadra 
         const squadraResult = await db.query(`SELECT 
