@@ -4591,17 +4591,15 @@ io.on('connection', (socket) => {
         // Verifica crediti disponibili nel database
         try {
             const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1",
-                [partecipanteId]);
-
+                [connesso.partecipanteId]); // ✅ CORRETTO
             if (result.rows.length === 0) {
-                console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`);
+                console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`); // ✅ PARENTESI
                 socket.emit('bid_error', { message: 'Partecipante non trovato nel database' });
                 return;
             }
-
             const creditiDisponibili = result.rows[0].crediti;
             if (data.importo > creditiDisponibili) {
-                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`);
+                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`); // ✅ PARENTESI
                 socket.emit('bid_error', { message: `Crediti insufficienti. Disponibili: ${creditiDisponibili}` });
                 return;
             }
