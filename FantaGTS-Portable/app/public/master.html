@@ -1540,7 +1540,15 @@
             try {
                 console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
 
-                const response = await fetch(`/api/squadra-partecipante/${partecipante.id}`);
+                // 🆕 PASSA LA SESSIONE CORRENTE
+                const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
+                const url = sessioneId
+                    ? `/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneId}`
+                    : `/api/squadra-partecipante/${partecipante.id}`;
+
+                console.log(`📡 URL richiesta: ${url}`);
+
+                const response = await fetch(url);
                 let squadra = [];
 
                 if (response.ok) {

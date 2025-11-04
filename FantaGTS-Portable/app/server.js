@@ -2464,6 +2464,8 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             AND a.sessione_id = $2
             ORDER BY s.posizione`, [partecipanteId, sessioneId]);
 
+        console.log(`✅ Squadra trovata: ${squadraResult.rows.length} giocatori`);
+
         // Ottieni crediti aggiornati
         const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
 
