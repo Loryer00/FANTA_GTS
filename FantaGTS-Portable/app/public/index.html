@@ -1588,15 +1588,19 @@
                         await mostraSchermataSessioni();
                         return true;
                     }
+
                 } else {
                     // ✅ MODALITÀ ASTA
                     console.log('🎾 Modalità Asta - Carico interfaccia user');
+
                     document.getElementById('welcome-screen').style.display = 'none';
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('register-screen').style.display = 'none';
                     document.getElementById('sessions-screen').style.display = 'none';
+
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
+
                     showGameArea();
                     await loadPlayerTeam();
 
@@ -1607,6 +1611,14 @@
                     mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                     return true;
                 }
+
+            } catch (error) {
+                console.error('❌ Errore ripristino sessione:', error);
+                localStorage.removeItem('userSession');
+                localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
+                return false;
+            }
+        }
 
         // ========================================
         // GESTIONE UI
