@@ -2478,11 +2478,16 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
 // Controllo aste
 app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
+    const { sessioneId } = req.body; // 🆕 LEGGI sessioneId dal body
+
+    // 🆕 USA sessioneId se fornito, altrimenti fallback a sessioneCorrente
+    const sessione = sessioneId || sessioneCorrente;
+
+    console.log(`🎯 Avvio round ${round} per sessione:`, sessione);
 
     if (gameState.asteAttive) {
         return res.status(400).json({ error: 'Un round è già attivo' });
     }
-
     try {
         // Ottieni tutti i partecipanti dal database
         const partecipantiResult = await db.query(`
@@ -2492,7 +2497,7 @@ app.post('/api/avvia-round/:round', async (req, res) => {
             WHERE p.attivo = true 
             AND psa.sessione_id = $1
             AND p.sessione_id = $1
-        `, [sessioneCorrente]);
+        `, [sessione]); // 🆕 CAMBIATO da sessioneCorrente a sessione
 
         // Ottieni tutti i slots disponibili per questo round
         const slotsResult = await db.query(

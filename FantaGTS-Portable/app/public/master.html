@@ -1972,7 +1972,13 @@
 
             try {
                 const response = await fetch(`/api/avvia-round/${round}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessioneId: sessioneCorrente  // 🆕 INVIA sessioneId
+                    })
                 });
 
                 if (response.ok) {
