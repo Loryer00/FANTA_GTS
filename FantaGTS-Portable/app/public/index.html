@@ -1588,47 +1588,17 @@
                         await mostraSchermataSessioni();
                         return true;
                     }
-
                 } else {
                     // ✅ MODALITÀ ASTA
                     console.log('🎾 Modalità Asta - Carico interfaccia user');
-
                     document.getElementById('welcome-screen').style.display = 'none';
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('register-screen').style.display = 'none';
                     document.getElementById('sessions-screen').style.display = 'none';
-
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
-
                     showGameArea();
                     await loadPlayerTeam();
-
-                    if (playerData.notificationsEnabled) {
-                        await setupPushNotifications();
-                    }
-
-                    // 🆕 REGISTRAZIONE SOCKET CON CONTROLLO ESPLICITO
-                    if (socket && socket.connected) {
-                        console.log('✅ Socket già connesso, registro subito');
-                        socket.emit('register', {
-                            nome: playerData.name,
-                            tipo: 'partecipante',
-                            partecipanteId: playerData.id
-                        });
-                    } else if (socket) {
-                        console.log('⏳ Socket esiste ma non è connesso, attendo...');
-                        socket.once('connect', () => {
-                            console.log('✅ Socket connesso, registro ora');
-                            socket.emit('register', {
-                                nome: playerData.name,
-                                tipo: 'partecipante',
-                                partecipanteId: playerData.id
-                            });
-                        });
-                    } else {
-                        console.log('⚠️ Socket non ancora inizializzato');
-                    }
 
                     if (playerData.notificationsEnabled) {
                         await setupPushNotifications();
@@ -1637,14 +1607,6 @@
                     mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                     return true;
                 }
-
-            } catch (error) {
-                console.error('❌ Errore ripristino sessione:', error);
-                localStorage.removeItem('userSession');
-                localStorage.removeItem(STORAGE_KEYS.PLAYER_DATA);
-                return false;
-            }
-        }
 
         // ========================================
         // GESTIONE UI
@@ -2598,6 +2560,16 @@
 
             socket.on('connect', () => {
                 console.log('Connesso al server via WebSocket');
+
+                // 🆕 SE L'UTENTE È GIÀ REGISTRATO, registra automaticamente il socket
+                if (playerData.registered && playerData.id) {
+                    console.log('🔌 Registrando socket automaticamente:', playerData.name);
+                    socket.emit('register', {
+                        nome: playerData.name,
+                        tipo: 'partecipante',
+                        partecipanteId: playerData.id
+                    });
+                }
             });
 
             socket.on('disconnect', () => {
