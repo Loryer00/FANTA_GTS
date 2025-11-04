@@ -4985,6 +4985,12 @@ app.post('/api/sessioni/:id/toggle-attiva', async (req, res) => {
             [nuovoStato, sessioneId]
         );
 
+        // 🆕 AGGIORNA sessioneCorrente quando si attiva una sessione
+        if (nuovoStato) {
+            sessioneCorrente = sessioneId;
+            console.log(`✅ Sessione attivata e impostata come corrente: ${sessioneId}`);
+        }
+
         console.log(`✅ Sessione ${nuovoStato ? 'attivata' : 'disattivata'}: ${sessioneId}`);
         res.json(result.rows[0]);
     } catch (err) {
@@ -5365,6 +5371,24 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 // Inizializza database prima di avviare il server
 initializeDatabase().then(async () => {
     await updateDatabaseSchema();
+
+    // 🆕 CARICA SESSIONE ATTIVA ALL'AVVIO
+    try {
+        const result = await db.query(`
+            SELECT id, nome FROM sessioni_fantagts 
+            WHERE attiva = true AND modalita = 'asta_competitiva'
+            LIMIT 1
+        `);
+
+        if (result.rows.length > 0) {
+            sessioneCorrente = result.rows[0].id;
+            console.log(`✅ Sessione corrente caricata: ${result.rows[0].nome} (${sessioneCorrente})`);
+        } else {
+            console.log(`⚠️ Nessuna sessione attiva trovata, uso default: ${sessioneCorrente}`);
+        }
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione attiva:', err);
+    }
 
     server.listen(PORT, HOST, () => {
         const localIP = getLocalIP();
