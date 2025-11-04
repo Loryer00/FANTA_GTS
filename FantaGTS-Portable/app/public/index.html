@@ -1601,11 +1601,34 @@
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
 
-                    // 🆕 REGISTRA IL SOCKET PRIMA DI TUTTO
-                    registerSocketWhenReady();
-
                     showGameArea();
                     await loadPlayerTeam();
+
+                    if (playerData.notificationsEnabled) {
+                        await setupPushNotifications();
+                    }
+
+                    // 🆕 REGISTRAZIONE SOCKET CON CONTROLLO ESPLICITO
+                    if (socket && socket.connected) {
+                        console.log('✅ Socket già connesso, registro subito');
+                        socket.emit('register', {
+                            nome: playerData.name,
+                            tipo: 'partecipante',
+                            partecipanteId: playerData.id
+                        });
+                    } else if (socket) {
+                        console.log('⏳ Socket esiste ma non è connesso, attendo...');
+                        socket.once('connect', () => {
+                            console.log('✅ Socket connesso, registro ora');
+                            socket.emit('register', {
+                                nome: playerData.name,
+                                tipo: 'partecipante',
+                                partecipanteId: playerData.id
+                            });
+                        });
+                    } else {
+                        console.log('⚠️ Socket non ancora inizializzato');
+                    }
 
                     if (playerData.notificationsEnabled) {
                         await setupPushNotifications();
