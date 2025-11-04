@@ -1496,11 +1496,25 @@
         async function caricaSquadreInFormazione() {
             try {
                 console.log('🔄 Caricando squadre in formazione...');
-                const partecipanti = await fetch('/api/partecipanti').then(r => r.json());
+
+                // 🆕 PASSA LA SESSIONE CORRENTE
+                const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
+                const url = sessioneId
+                    ? `/api/partecipanti?sessione_id=${sessioneId}`
+                    : `/api/partecipanti`;
+
+                console.log(`📡 Master - Caricamento partecipanti da: ${url}`);
+                console.log(`📋 Sessione corrente Master: ${sessioneId}`);
+
+                const response = await fetch(url);
+                const partecipanti = await response.json();
+
+                console.log(`📊 Risposta API partecipanti:`, partecipanti);
+
                 const container = document.getElementById('squadreInFormazione');
                 container.innerHTML = '';
                 if (partecipanti.length === 0) {
-                    container.innerHTML = '<p>Nessun partecipante registrato</p>';
+                    container.innerHTML = '<p>Nessun partecipante registrato in questa sessione</p>';
                     return;
                 }
                 console.log(`📊 Trovati ${partecipanti.length} partecipanti:`, partecipanti);
@@ -1540,7 +1554,7 @@
             try {
                 console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
 
-                // 🆕 PASSA LA SESSIONE CORRENTE
+                // PASSA LA SESSIONE CORRENTE
                 const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
                 const url = sessioneId
                     ? `/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneId}`

@@ -1963,11 +1963,18 @@ app.delete('/api/accoppiamenti-posizioni/:accoppiamentoId', async (req, res) => 
 // Setup partecipanti
 app.get('/api/partecipanti', async (req, res) => {
     try {
+        // 🆕 USA sessione_id dalla query string se presente
+        const sessioneId = req.query.sessione_id || sessioneCorrente;
+
+        console.log(`📊 Caricamento partecipanti per sessione: ${sessioneId}`);
+
         const result = await db.query(`
             SELECT * FROM partecipanti_fantagts 
             WHERE attivo = true AND sessione_id = $1 
             ORDER BY nome
-        `, [sessioneCorrente]);
+        `, [sessioneId]);
+
+        console.log(`✅ Trovati ${result.rows.length} partecipanti`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API partecipanti:', err);
