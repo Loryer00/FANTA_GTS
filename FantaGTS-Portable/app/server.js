@@ -2560,13 +2560,12 @@ app.get('/api/stato-offerte/:round', async (req, res) => {
     try {
         // Ottieni TUTTI i partecipanti dal database
         const partecipantiResult = await db.query(`
-            SELECT DISTINCT p.id, p.nome 
-            FROM partecipanti_fantagts p
-            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-            WHERE p.attivo = true 
-            AND psa.sessione_id = $1
-            AND p.sessione_id = $1
-        `, [sessioneCorrente]);
+        SELECT DISTINCT p.id, p.nome 
+        FROM partecipanti_fantagts p
+        INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+        WHERE p.attivo = true 
+        AND psa.sessione_id = $1
+    `, [sessioneCorrente]);
 
         const tuttiPartecipanti = partecipantiResult.rows;
         const totalePartecipanti = tuttiPartecipanti.length;
@@ -3411,13 +3410,12 @@ function avviaMonitoraggioOfferte() {
         try {
             // NUOVO: Ottieni TUTTI i partecipanti dal database
             const partecipantiResult = await db.query(`
-                SELECT DISTINCT p.id, p.nome 
-                FROM partecipanti_fantagts p
-                INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-                WHERE p.attivo = true 
-                AND psa.sessione_id = $1
-                AND p.sessione_id = $1
-            `, [sessioneCorrente]);
+            SELECT DISTINCT p.id, p.nome 
+            FROM partecipanti_fantagts p
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE p.attivo = true 
+            AND psa.sessione_id = $1
+        `, [sessioneCorrente]);
 
             const tuttiPartecipanti = partecipantiResult.rows;
             const totalePartecipanti = tuttiPartecipanti.length;
@@ -4405,9 +4403,9 @@ io.on('connection', (socket) => {
 
             // Verifica nel database
             db.query(`
-           SELECT id, nome, crediti, sessione_id FROM partecipanti_fantagts 
-           WHERE id = $1 AND attivo = true
-       `, [data.partecipanteId])
+                SELECT id, nome, crediti FROM partecipanti_fantagts 
+                WHERE id = $1 AND attivo = true
+            `, [data.partecipanteId])
                 .then(result => {
                     if (result.rows.length === 0) {
                         console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
@@ -4591,8 +4589,8 @@ io.on('connection', (socket) => {
 
         // Verifica crediti disponibili nel database
         try {
-            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2",
-                [connesso.partecipanteId, sessioneCorrente]);
+            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1",
+                [partecipanteId]);
 
             if (result.rows.length === 0) {
                 console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`);
@@ -5036,7 +5034,9 @@ app.post('/api/sessioni/:id/reset', async (req, res) => {
         // Cancella dati ma mantiene configurazione
         await db.query('DELETE FROM aste WHERE sessione_id = $1', [sessioneId]);
         await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
-        await db.query('DELETE FROM partecipanti_fantagts WHERE sessione_id = $1', [sessioneId]);
+        // Elimina prima i record dalla tabella di accesso
+        await db.query('DELETE FROM partecipanti_sessioni_accesso WHERE sessione_id = $1', [sessioneId]);
+        // Non eliminare i partecipanti dalla tabella principale, sono condivisi tra sessioni
 
         // Reset stato sessione
         await db.query(
@@ -5117,7 +5117,7 @@ app.delete('/api/sessioni/:id', async (req, res) => {
 
         // 7. Elimina partecipanti (CASCADE dovrebbe già averli eliminati, ma per sicurezza)
         const partecipantiEliminati = await db.query(
-            'DELETE FROM partecipanti_fantagts WHERE sessione_id = $1 RETURNING id',
+            'DELETE FROM partecipanti_sessioni_accesso WHERE sessione_id = $1 RETURNING partecipante_id',
             [sessioneId]
         );
         console.log(`  ✓ ${partecipantiEliminati.rows.length} Partecipanti eliminati`);
