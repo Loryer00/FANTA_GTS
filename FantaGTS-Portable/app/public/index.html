@@ -1601,14 +1601,15 @@
                     document.getElementById('currentPlayer').textContent = playerData.name;
                     document.getElementById('playerCredits').textContent = playerData.credits;
 
+                    // 🆕 REGISTRA IL SOCKET PRIMA DI TUTTO
+                    registerSocketWhenReady();
+
                     showGameArea();
                     await loadPlayerTeam();
 
                     if (playerData.notificationsEnabled) {
                         await setupPushNotifications();
                     }
-
-                    registerSocketWhenReady();
 
                     mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                     return true;
