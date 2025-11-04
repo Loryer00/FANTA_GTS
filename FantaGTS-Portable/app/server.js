@@ -2479,12 +2479,10 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
 app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
     const { sessioneId } = req.body; // 🆕 LEGGI sessioneId dal body
-
     // 🆕 USA sessioneId se fornito, altrimenti fallback a sessioneCorrente
     const sessione = sessioneId || sessioneCorrente;
-
-    console.log(`🎯 Avvio round ${round} per sessione:`, sessione);
-
+    gameState.sessioneCorrente = sessione;
+    console.log(`🎯 Avvio round ${round} per sessione:`, sessione);  // 🔧 PARENTESI TONDE
     if (gameState.asteAttive) {
         return res.status(400).json({ error: 'Un round è già attivo' });
     }
@@ -3408,14 +3406,17 @@ function avviaMonitoraggioOfferte() {
         }
 
         try {
+            // 🆕 USA la sessione dal gameState se disponibile
+            const sessione = gameState.sessioneCorrente || sessioneCorrente;
+
             // NUOVO: Ottieni TUTTI i partecipanti dal database
             const partecipantiResult = await db.query(`
-            SELECT DISTINCT p.id, p.nome 
-            FROM partecipanti_fantagts p
-            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-            WHERE p.attivo = true 
-            AND psa.sessione_id = $1
-        `, [sessioneCorrente]);
+                SELECT DISTINCT p.id, p.nome 
+                FROM partecipanti_fantagts p
+                INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+                WHERE p.attivo = true 
+                AND psa.sessione_id = $1
+            `, [sessione]);  // 🔧 USA sessione invece di sessioneCorrente
 
             const tuttiPartecipanti = partecipantiResult.rows;
             const totalePartecipanti = tuttiPartecipanti.length;
