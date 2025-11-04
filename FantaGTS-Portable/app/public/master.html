@@ -2179,8 +2179,14 @@
                 const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
                 const completati = [];
 
+                // 🆕 USA LA SESSIONE CORRENTE
+                const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
+
                 for (const round of rounds) {
-                    const response = await fetch(`/api/aste-round/${round}`);
+                    const url = sessioneId
+                        ? `/api/aste-round/${round}?sessione_id=${sessioneId}`
+                        : `/api/aste-round/${round}`;
+                    const response = await fetch(url);
                     if (response.ok) {
                         const aste = await response.json();
                         if (aste.length > 0) {

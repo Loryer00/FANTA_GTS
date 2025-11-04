@@ -1628,12 +1628,24 @@
             const creditsDisplay = document.getElementById('creditsDisplay');
             const statsDisplay = document.getElementById('playerStatsDisplay');
 
+            // 🆕 RICARICA I CREDITI DAL SERVER PRIMA DI MOSTRARE
+            try {
+                const partecipanteResponse = await fetch(`/api/sessioni/${sessioneCorrente}/partecipante/${playerData.name}`);
+                if (partecipanteResponse.ok) {
+                    const partecipante = await partecipanteResponse.json();
+                    playerData.credits = partecipante.crediti;
+                    console.log(`💰 Crediti aggiornati dal server: ${playerData.credits}`);
+                }
+            } catch (error) {
+                console.warn('⚠️ Impossibile aggiornare crediti dal server:', error);
+            }
+
             if (creditsElement) creditsElement.textContent = playerData.credits;
             if (creditsDisplay) creditsDisplay.textContent = playerData.credits;
 
             // Controlla se l'asta è terminata (tutti i 10 giocatori acquistati)
             try {
-                const response = await fetch(`/api/squadra-partecipante/${playerData.id}`);
+                const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneCorrente}`);
                 if (response.ok) {
                     const data = await response.json();
                     const squadra = data.squadra || data || [];

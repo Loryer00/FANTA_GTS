@@ -2631,6 +2631,10 @@ app.get('/api/risultati-partite', async (req, res) => {
 app.get('/api/aste-round/:round', async (req, res) => {
     try {
         const round = req.params.round;
+        // 🆕 USA sessione_id dalla query string se presente, altrimenti usa sessioneCorrente
+        const sessioneId = req.query.sessione_id || sessioneCorrente;
+
+        console.log(`📊 Caricamento aste round ${round}, sessione: ${sessioneId}`);
 
         const result = await db.query(`SELECT a.*, p.nome as partecipante_nome, s.giocatore_attuale, s.colore 
         FROM aste a 
@@ -2639,7 +2643,7 @@ app.get('/api/aste-round/:round', async (req, res) => {
         WHERE a.round = $1 
         AND a.vincitore = true 
         AND a.sessione_id = $2
-        ORDER BY a.costo_finale DESC`, [round, sessioneCorrente]);
+        ORDER BY a.costo_finale DESC`, [round, sessioneId]);
 
         res.json(result.rows);
     } catch (err) {
