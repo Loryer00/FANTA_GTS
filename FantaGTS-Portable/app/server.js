@@ -2491,13 +2491,12 @@ app.post('/api/avvia-round/:round', async (req, res) => {
     try {
         // Ottieni tutti i partecipanti dal database
         const partecipantiResult = await db.query(`
-            SELECT DISTINCT p.id, p.nome 
-            FROM partecipanti_fantagts p
-            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-            WHERE p.attivo = true 
-            AND psa.sessione_id = $1
-            AND p.sessione_id = $1
-        `, [sessione]); // 🆕 CAMBIATO da sessioneCorrente a sessione
+        SELECT DISTINCT p.id, p.nome 
+        FROM partecipanti_fantagts p
+        INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+        WHERE p.attivo = true 
+        AND psa.sessione_id = $1
+    `, [sessione]);
 
         // Ottieni tutti i slots disponibili per questo round
         const slotsResult = await db.query(
