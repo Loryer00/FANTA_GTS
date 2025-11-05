@@ -5364,21 +5364,16 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
         const partecipanteId = req.params.partecipanteId;
         const { sessione_id } = req.query;
 
+        console.log(`🔍 Richiesta squadra draft - Partecipante: ${partecipanteId}, Sessione: ${sessione_id}`);
+
         if (!sessione_id) {
             return res.status(400).json({ error: 'sessione_id richiesto' });
         }
 
         const result = await db.query(`
-            SELECT 
-                sd.posizione, 
-                sd.giocatore, 
-                sd.slot_id, 
-                sd.numero_squadra_circolo, 
-                sd.colore_squadra,
-                COALESCE(s.punti_totali, 0) as punti_totali
-            FROM squadre_draft sd
-            LEFT JOIN slots s ON sd.slot_id = s.id AND sd.sessione_id = s.sessione_id
-            WHERE sd.partecipante_id = $1 AND sd.sessione_id = $2
+            SELECT posizione, giocatore, slot_id, numero_squadra_circolo, colore_squadra
+            FROM squadre_draft
+            WHERE partecipante_id = $1 AND sessione_id = $2
             ORDER BY CASE
                 WHEN posizione = 'M1' THEN 1
                 WHEN posizione = 'M2' THEN 2
@@ -5394,14 +5389,19 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             END
         `, [partecipanteId, sessione_id]);
 
+        console.log(`📊 Trovati ${result.rows.length} giocatori per ${partecipanteId} in sessione ${sessione_id}`);
+
+        if (result.rows.length > 0) {
+            console.log('🎨 Colori trovati:', result.rows.map(r => `${r.posizione}: ${r.colore_squadra}`).join(', '));
+        }
+
         const squadra = {};
         result.rows.forEach(riga => {
             squadra[riga.posizione] = {
                 giocatore: riga.giocatore,
                 slotId: riga.slot_id,
                 coloreSquadra: riga.colore_squadra,
-                numeroSquadra: riga.numero_squadra_circolo,
-                puntiTotali: riga.punti_totali
+                numeroSquadra: riga.numero_squadra_circolo
             };
         });
 
