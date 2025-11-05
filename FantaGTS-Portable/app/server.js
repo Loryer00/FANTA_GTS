@@ -5223,12 +5223,33 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
             [creditiIniziali, sessioneId]
         );
 
+        // 🆕 AGGIORNA I CREDITI DI TUTTI I PARTECIPANTI DELLA SESSIONE
+        const updateResult = await db.query(
+            'UPDATE partecipanti_fantagts SET crediti = $1 WHERE sessione_id = $2 RETURNING id, nome',
+            [creditiIniziali, sessioneId]
+        );
+
         console.log(`✅ Crediti sessione ${sessioneId} aggiornati a ${creditiIniziali}`);
+        console.log(`✅ Aggiornati ${updateResult.rows.length} partecipanti`);
+
+        // 🆕 NOTIFICA TUTTI I CLIENT CONNESSI VIA WEBSOCKET
+        updateResult.rows.forEach(part => {
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
+                if (connesso.partecipanteId === part.id) {
+                    io.to(socketId).emit('crediti_aggiornati', {
+                        crediti: creditiIniziali
+                    });
+                    console.log(`📤 Crediti aggiornati inviati a ${part.nome}`);
+                    break;
+                }
+            }
+        });
 
         res.json({
             success: true,
             message: 'Crediti aggiornati con successo',
-            creditiIniziali: creditiIniziali
+            creditiIniziali: creditiIniziali,
+            partecipantiAggiornati: updateResult.rows.length
         });
 
     } catch (err) {
