@@ -2675,7 +2675,7 @@
 
                 // Estrai il nome del giocatore e il colore della squadra dallo slotWon (formato: "M1_ROSSO")
                 const [posizione, coloreSquadra] = data.slotWon.split('_');
-                const coloreSfondo = getTeamColor(coloreSquadra);
+                const coloreSfondo = getTeamColor(data.teamColor);
 
                 const notification = document.createElement('div');
                 notification.style.cssText = `
@@ -2698,7 +2698,7 @@
                 notification.innerHTML = `
                     <div>🏆 COMPLIMENTI!</div>
                     <div style="margin: 10px 0;">Hai vinto:</div>
-                    <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80;">${data.playerName}</div>
+                    <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
                     <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
                 `;
                 document.body.appendChild(notification);

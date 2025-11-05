@@ -4063,7 +4063,7 @@ async function elaboraRisultatiAste() {
 
     // Aggiorna stato partecipanti SOLO in modalità normale
     if (!condivisioneAttiva) {
-        risultatiAsta.forEach(risultato => {
+        for (const risultato of risultatiAsta) {
             gameState.partecipantiAssegnati.add(risultato.partecipante);
             gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(
                 p => p !== risultato.partecipante
@@ -4074,20 +4074,31 @@ async function elaboraRisultatiAste() {
 
             for (let [socketId, connesso] of gameState.connessi.entries()) {
                 if (connesso.partecipanteId === risultato.partecipante) {
+                    // Recupera il nome reale del giocatore e il colore della squadra
+                    const slotInfo = await db.query(
+                        'SELECT giocatore_attuale, colore FROM slots WHERE id = $1',
+                        [risultato.slot]
+                    );
+
+                    const nomeGiocatoreReale = slotInfo.rows.length > 0 ? slotInfo.rows[0].giocatore_attuale : risultato.slot;
+                    const coloreSquadra = slotInfo.rows.length > 0 ? slotInfo.rows[0].colore : '';
+
                     io.to(socketId).emit('player_won_exit_auction', {
                         playerName: risultato.nome,
+                        realPlayerName: nomeGiocatoreReale,
+                        teamColor: coloreSquadra,
                         slotWon: risultato.slot,
                         amount: risultato.costoFinale,
                         shared: risultato.condiviso,
                         premium: risultato.premium,
                         message: risultato.condiviso
-                            ? `Hai vinto ${risultato.slot} (condiviso) per ${risultato.costoFinale} crediti!`
-                            : `Hai vinto ${risultato.slot}! La tua asta è terminata.`
+                            ? `Hai vinto ${nomeGiocatoreReale} (condiviso) per ${risultato.costoFinale} crediti!`
+                            : `Hai vinto ${nomeGiocatoreReale}! La tua asta è terminata.`
                     });
                     break;
                 }
             }
-        });
+        }
     } else {
         // In modalità condivisione: aggiorna solo gli slot rimasti
         const slotsAssegnati = new Set(risultatiAsta.map(r => r.slot));
