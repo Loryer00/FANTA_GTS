@@ -1621,8 +1621,8 @@
                     const giocatore = squadra.find(g => g.posizione === pos);
                     const slotDiv = document.createElement('div');
                     if (giocatore) {
-                        const teamColor = getTeamColorForMaster(giocatore.colore);
-                        const textColor = getTextColorForTeamMaster(giocatore.colore);
+                        const teamColor = getTeamColorForMaster(giocatore.colore_squadra);
+                        const textColor = getTextColorForTeamMaster(giocatore.colore_squadra);
                         slotDiv.style.cssText = `
                 background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
                 border: 2px solid ${teamColor};
@@ -1643,7 +1643,7 @@
                             ${pos}
                         </div>
                         <div style="font-weight: 600; font-size: 0.9em; opacity: 0.9; margin-bottom: 2px;">
-                            Squadra ${giocatore.colore}
+                            Squadra ${giocatore.colore_squadra}
                         </div>
                         <div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
                             💰 ${giocatore.costo_finale}
