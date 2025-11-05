@@ -2495,7 +2495,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
                 s.posizione,
                 s.giocatore_attuale,
                 s.colore,
-                s.numero_squadra as numero_squadra_circolo,
+                s.squadra_numero as numero_squadra_circolo,
                 s.punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
@@ -2507,7 +2507,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
         console.log(`📊 Trovati ${squadraResult.rows.length} giocatori nella squadra`);
         if (squadraResult.rows.length > 0) {
             console.log('🎨 Colori:', squadraResult.rows.map(r => `${r.posizione}: ${r.colore}`).join(', '));
-            console.log('🏆 Punti dalla tabella slots:', squadraResult.rows.map(r => `${r.giocatore_attuale}: ${r.punti_totali}pt`).join(', '));
+            console.log('🏆 Punti:', squadraResult.rows.map(r => `${r.giocatore_attuale}: ${r.punti_totali}pt`).join(', '));
         }
 
         // Ottieni crediti aggiornati
