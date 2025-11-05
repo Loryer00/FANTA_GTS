@@ -1298,9 +1298,18 @@
                         if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
                             console.log('✅ Squadra draft già completa (10/10) - Carico interfaccia user');
 
-                            // Aggiorna display
-                            document.getElementById('currentPlayer').textContent = playerData.name;
-                            document.getElementById('playerCredits').textContent = playerData.credits;
+                            // Nascondi schermata sessioni
+                            document.getElementById('sessions-screen').style.display = 'none';
+
+                            // Mostra game area
+                            showGameArea();
+
+                            // Aggiorna display (ora gli elementi esistono)
+                            const currentPlayerEl = document.getElementById('currentPlayer');
+                            const playerCreditsEl = document.getElementById('playerCredits');
+
+                            if (currentPlayerEl) currentPlayerEl.textContent = playerData.name;
+                            if (playerCreditsEl) playerCreditsEl.textContent = playerData.credits;
 
                             // Nascondi crediti per draft
                             const playerStatsDisplay = document.getElementById('playerStatsDisplay');
@@ -1345,17 +1354,23 @@
                         return;
                     }
                 }
-
                 // ✅ Modalità Asta Competitiva → Comportamento normale
                 console.log('🎾 Modalità Asta Competitiva - Caricamento interfaccia aste...');
 
-                // Aggiorna display
-                document.getElementById('currentPlayer').textContent = playerData.name;
-                document.getElementById('playerCredits').textContent = playerData.credits;
-                updateCreditsDisplay();
-
-                // Nascondi schermata sessioni e mostra game area
+                // Nascondi schermata sessioni e mostra game area PRIMA
                 document.getElementById('sessions-screen').style.display = 'none';
+
+                // Reset e mostra game area
+                resetTeamUI();
+                showGameArea();
+
+                // Aggiorna display (ora gli elementi esistono)
+                const currentPlayerEl = document.getElementById('currentPlayer');
+                const playerCreditsEl = document.getElementById('playerCredits');
+
+                if (currentPlayerEl) currentPlayerEl.textContent = playerData.name;
+                if (playerCreditsEl) playerCreditsEl.textContent = playerData.credits;
+                updateCreditsDisplay();
 
                 // 🆕 RESET immediato per evitare flash di colori vecchi
                 resetTeamUI();
