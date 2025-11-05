@@ -2480,42 +2480,40 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
-        // 🆕 USA sessione_id dalla query string se presente, altrimenti usa sessioneCorrente
-        const sessioneId = req.query.sessione_id || sessioneCorrente;
+        const { sessione_id } = req.query;
 
-        console.log(`📊 Caricamento squadra per partecipante ${partecipanteId}, sessione: ${sessioneId}`);
+        console.log(`📊 Caricamento squadra per partecipante ${partecipanteId}, sessione: ${sessione_id}`);
 
-        // Ottieni squadra 
-        const squadraResult = await db.query(`SELECT 
-            a.slot_id,
-            a.costo_finale,
-            s.posizione,
-            s.giocatore_attuale,
-            s.colore,
-            s.punti_totali
-            FROM aste a 
-            JOIN slots s ON a.slot_id = s.id 
+        if (!sessione_id) {
+            return res.status(400).json({ error: 'sessione_id richiesto' });
+        }
+
+        const result = await db.query(`
+            SELECT 
+                a.round as posizione,
+                a.slot_id,
+                a.offerta,
+                a.costo_finale,
+                s.giocatore,
+                s.colore as colore_squadra,
+                s.numero as numero_squadra,
+                0 as punti_totali
+            FROM aste a
+            JOIN slots s ON a.slot_id = s.id
             WHERE a.partecipante_id = $1 
-            AND a.vincitore = true 
-            AND a.sessione_id = $2
+            AND a.vincitore = true
             AND s.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
+            ORDER BY a.round
+        `, [partecipanteId, sessione_id]);
 
-        console.log(`✅ Squadra trovata: ${squadraResult.rows.length} giocatori`);
+        console.log(`✅ Squadra trovata: ${result.rows.length} giocatori`);
 
-        // Ottieni crediti aggiornati
-        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
-
-        res.json({
-            squadra: squadraResult.rows,
-            crediti: creditiResult.rows[0]?.crediti || 2000
-        });
+        res.json({ squadra: result.rows });
     } catch (err) {
-        console.error('Errore squadra-partecipante:', err);
+        console.error('❌ Errore caricamento squadra:', err);
         res.status(500).json({ error: err.message });
     }
 });
-
 // Controllo aste
 app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
