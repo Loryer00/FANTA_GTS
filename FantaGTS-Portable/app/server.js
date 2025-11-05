@@ -1097,11 +1097,11 @@ function avviaAstaSuccessiva() {
 
 // NUOVA FUNZIONE: Termina round completo
 async function terminaRoundCompleto() {
-    console.log(`\n === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
+    console.log(`\n🏁 === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
 
     const roundCompletato = gameState.roundAttivo;
 
-    // RECUPERA I RISULTATI DAL DATABASE
+    // 🆕 RECUPERA I RISULTATI DAL DATABASE
     let risultati = [];
     try {
         const result = await db.query(`
@@ -1116,13 +1116,13 @@ async function terminaRoundCompleto() {
             FROM aste a
             JOIN partecipanti_fantagts p ON p.id = a.partecipante_id
             WHERE a.round = $1 AND a.sessione_id = $2
-            ORDER BY a.created_at
+            ORDER BY a.timestamp
         `, [roundCompletato, sessioneCorrente]);
 
         risultati = result.rows;
-        console.log(`ðŸ"Š Risultati recuperati per ${roundCompletato}:`, risultati.length);
+        console.log(`📊 Risultati recuperati per ${roundCompletato}:`, risultati.length);
     } catch (error) {
-        console.error('âŒ Errore recupero risultati:', error);
+        console.error('❌ Errore recupero risultati:', error);
     }
 
     gameState.asteAttive = false;
@@ -1133,15 +1133,15 @@ async function terminaRoundCompleto() {
     gameState.partecipantiInAttesa = [];
     gameState.offerteTemporanee.clear();
 
-    // ðŸ"¤ Notifica fine round CON RISULTATI
+    // 📤 Notifica fine round CON RISULTATI
     io.emit('round_ended', {
         round: roundCompletato,
         completato: true,
-        risultati: risultati,  // ðŸ†• AGGIUNGI RISULTATI
+        risultati: risultati,  // 🆕 AGGIUNGI RISULTATI
         message: `Round ${roundCompletato} completato con tutte le aste`
     });
 
-    console.log(`âœ… Round ${roundCompletato} terminato definitivamente`);
+    console.log(`✅ Round ${roundCompletato} terminato definitivamente`);
 }
 
 // Notifiche Push
