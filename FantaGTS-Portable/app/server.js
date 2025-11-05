@@ -2502,9 +2502,9 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             JOIN slots s ON a.slot_id = s.id
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true
-            AND s.sessione_id = $2
+
             ORDER BY a.round
-        `, [partecipanteId, sessione_id]);
+        `, [partecipanteId);
 
         console.log(`✅ Squadra trovata: ${result.rows.length} giocatori`);
 
