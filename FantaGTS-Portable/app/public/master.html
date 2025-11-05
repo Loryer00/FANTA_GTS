@@ -2307,7 +2307,7 @@
             if (risultati && Array.isArray(risultati)) {
                 risultati.forEach(r => {
                     html += `<tr>
-                            <td><strong>${r.slot.replace('_', ' ')}</strong></td>
+                            <td><strong>${r.giocatore || r.slot.replace('_', ' ')}</strong></td>
                             <td>${r.nome}</td>
                             <td>${r.offertaOriginale}</td>
                             <td>${r.costoFinale}</td>

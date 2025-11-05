@@ -1101,12 +1101,13 @@ async function terminaRoundCompleto() {
 
     const roundCompletato = gameState.roundAttivo;
 
-    // 🆕 RECUPERA I RISULTATI DAL DATABASE
+    // 🆕 RECUPERA I RISULTATI DAL DATABASE CON NOME GIOCATORE
     let risultati = [];
     try {
         const result = await db.query(`
             SELECT 
                 a.slot_id as slot,
+                s.giocatore_attuale as giocatore,
                 p.nome,
                 a.partecipante_id as partecipante,
                 a.offerta as "offertaOriginale",
@@ -1115,6 +1116,7 @@ async function terminaRoundCompleto() {
                 a.premium
             FROM aste a
             JOIN partecipanti_fantagts p ON p.id = a.partecipante_id
+            LEFT JOIN slots s ON s.id = a.slot_id
             WHERE a.round = $1 AND a.sessione_id = $2
             ORDER BY a.timestamp
         `, [roundCompletato, sessioneCorrente]);
@@ -1137,7 +1139,7 @@ async function terminaRoundCompleto() {
     io.emit('round_ended', {
         round: roundCompletato,
         completato: true,
-        risultati: risultati,  // 🆕 AGGIUNGI RISULTATI
+        risultati: risultati,
         message: `Round ${roundCompletato} completato con tutte le aste`
     });
 
