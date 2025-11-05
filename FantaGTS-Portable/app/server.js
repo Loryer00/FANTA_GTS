@@ -436,6 +436,7 @@ async function updateDatabaseSchema() {
         // 3️⃣ Aggiungi colonne sessione_id alle tabelle che ancora la usano
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
@@ -5367,9 +5368,16 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
         }
 
         const result = await db.query(`
-            SELECT posizione, giocatore, slot_id, numero_squadra_circolo, colore_squadra
-            FROM squadre_draft
-            WHERE partecipante_id = $1 AND sessione_id = $2
+            SELECT 
+                sd.posizione, 
+                sd.giocatore, 
+                sd.slot_id, 
+                sd.numero_squadra_circolo, 
+                sd.colore_squadra,
+                COALESCE(s.punti_totali, 0) as punti_totali
+            FROM squadre_draft sd
+            LEFT JOIN slots s ON sd.slot_id = s.id AND sd.sessione_id = s.sessione_id
+            WHERE sd.partecipante_id = $1 AND sd.sessione_id = $2
             ORDER BY CASE
                 WHEN posizione = 'M1' THEN 1
                 WHEN posizione = 'M2' THEN 2
@@ -5391,7 +5399,8 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
                 giocatore: riga.giocatore,
                 slotId: riga.slot_id,
                 coloreSquadra: riga.colore_squadra,
-                numeroSquadra: riga.numero_squadra_circolo
+                numeroSquadra: riga.numero_squadra_circolo,
+                puntiTotali: riga.punti_totali
             };
         });
 

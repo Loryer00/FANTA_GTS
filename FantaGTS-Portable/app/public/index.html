@@ -1894,7 +1894,7 @@
                         giocatore_attuale: dati.giocatore,
                         colore: dati.coloreSquadra,
                         costo_finale: 0, // Nel draft non c'è costo
-                        punti_totali: 0  // TODO: Implementare punti draft
+                        punti_totali: dati.puntiTotali || 0
                     }));
 
                     console.log('✅ Squadra Draft caricata:', squadra.length, 'giocatori');
