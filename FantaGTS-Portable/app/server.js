@@ -436,14 +436,13 @@ async function updateDatabaseSchema() {
         // 3️⃣ Aggiungi colonne sessione_id alle tabelle che ancora la usano
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
-        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
         // 4️⃣ RIMUOVI Foreign Key da partecipanti_fantagts (per permettere login/registrazione generica)
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione`);
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey`);
-        console.log('✅ Foreign Key rimossa da partecipanti_fantagts'); 
+        console.log('✅ Foreign Key rimossa da partecipanti_fantagts');
 
         // 5️⃣ 🆕 MODIFICA SQUADRE_CIRCOLO: Ora collegate a configurazione_id
         console.log('🔧 Aggiornando squadre_circolo per usare configurazione_id...');
@@ -452,7 +451,6 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         // Migra i dati esistenti: mappa sessione_id → configurazione_id
-        // (per ora tutte le sessioni usano la configurazione default)
         await db.query(`
             UPDATE squadre_circolo sq
             SET configurazione_id = COALESCE(
@@ -507,7 +505,8 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ slots ora collegati a configurazioni');
 
-        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Ora collegati a configurazione_id
+        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Aggiungi sessione_id E configurazione_id
+        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
         await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -525,9 +524,9 @@ async function updateDatabaseSchema() {
             ADD CONSTRAINT fk_turni_configurazione 
             FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
         `);
-        console.log('✅ turni_configurazione ora collegati a configurazioni');
+        console.log('✅ turni_configurazione ora collegati a configurazioni e hanno sessione_id');
 
-        // 8️⃣ 🆕 MODIFICA SCONTRI_SQUADRE: Ora collegati a configurazione_id
+        // 8️⃣ 🆕 MODIFICA SCONTRI_SQUADRE
         await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -547,7 +546,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ scontri_squadre ora collegati a configurazioni');
 
-        // 9️⃣ 🆕 MODIFICA RISULTATI_PARTITE: Ora collegati a configurazione_id
+        // 9️⃣ 🆕 MODIFICA RISULTATI_PARTITE
         await db.query(`ALTER TABLE risultati_partite ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -564,7 +563,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ risultati_partite ora collegati a configurazioni');
 
-        // 🔟 🆕 MODIFICA INCONTRI: Ora collegati a configurazione_id (se la tabella esiste)
+        // 🔟 🆕 MODIFICA INCONTRI: Aggiungi sessione_id E configurazione_id
         const incontriExists = await db.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -573,6 +572,7 @@ async function updateDatabaseSchema() {
         `);
 
         if (incontriExists.rows[0].exists) {
+            await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
             await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
             await db.query(`
@@ -587,10 +587,23 @@ async function updateDatabaseSchema() {
                 ADD CONSTRAINT fk_incontri_configurazione 
                 FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
             `);
-            console.log('✅ incontri ora collegati a configurazioni');
+            console.log('✅ incontri ora collegati a configurazioni e hanno sessione_id');
         }
 
-        // 1️⃣1️⃣ CREA VIEW per statistiche sessioni
+        // 1️⃣1️⃣ 🆕 MODIFICA RISULTATI_DETTAGLIO: Aggiungi sessione_id
+        const risultatiDettaglioExists = await db.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'risultati_dettaglio'
+            )
+        `);
+
+        if (risultatiDettaglioExists.rows[0].exists) {
+            await db.query(`ALTER TABLE risultati_dettaglio ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
+            console.log('✅ risultati_dettaglio ora ha sessione_id');
+        }
+
+        // 1️⃣2️⃣ CREA VIEW per statistiche sessioni
         await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
             SELECT 
@@ -629,11 +642,12 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ View v_sessioni_stats creata/aggiornata');
 
-        console.log('✅ Schema database aggiornato completamente con sistema configurazioni');
+        console.log('✅ Schema database aggiornato completamente con sistema configurazioni e sessioni');
     } catch (error) {
         console.error('❌ Errore aggiornamento schema:', error);
     }
 }
+
 // Stato del gioco in memoria
 let gameState = {
     fase: 'setup',
@@ -944,25 +958,32 @@ async function generaSlots(sessioneId = null) {
         console.log('🎯 Inizio generazione slots...');
         console.log('📌 Sessione ricevuta:', sessioneId);
 
-        // FILTRO PER SESSIONE se presente
-        let squadreResult;
+        // ✅ RECUPERA configurazione_id dalla sessione
+        let configurazioneId = 'default';
         if (sessioneId) {
-            console.log('📌 Filtro per sessione:', sessioneId);
-            squadreResult = await db.query(
-                "SELECT * FROM squadre_circolo WHERE attiva = true AND sessione_id = $1",
+            const sessioneResult = await db.query(
+                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
                 [sessioneId]
             );
-        } else {
-            console.log('📌 Nessun filtro sessione');
-            squadreResult = await db.query("SELECT * FROM squadre_circolo WHERE attiva = true");
+            if (sessioneResult.rows.length > 0) {
+                configurazioneId = sessioneResult.rows[0].configurazione_id || 'default';
+            }
         }
 
+        console.log('⚙️ Configurazione ID:', configurazioneId);
+
+        // FILTRO PER CONFIGURAZIONE
+        const squadreResult = await db.query(
+            "SELECT * FROM squadre_circolo WHERE attiva = true AND configurazione_id = $1",
+            [configurazioneId]
+        );
+
         const squadre = squadreResult.rows;
-        console.log(`✅ Trovate ${squadre.length} squadre attive`);
+        console.log(`✅ Trovate ${squadre.length} squadre attive per configurazione ${configurazioneId}`);
 
         // Verifica che ci siano squadre
         if (squadre.length === 0) {
-            throw new Error('Nessuna squadra trovata per generare gli slots');
+            throw new Error(`Nessuna squadra trovata per la configurazione ${configurazioneId}`);
         }
 
         const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
@@ -971,29 +992,19 @@ async function generaSlots(sessioneId = null) {
         console.log('🗑️ Cancellazione slots esistenti...');
 
         if (sessioneId) {
-            // Step 1: Trova i numeri delle squadre di questa sessione
-            const squadreNumeri = squadre.map(sq => sq.numero);
-            console.log('📋 Numeri squadre da cancellare:', squadreNumeri);
+            // Step 1: Cancella aste collegate per questa sessione
+            await db.query(`
+                DELETE FROM aste 
+                WHERE sessione_id = $1
+            `, [sessioneId]);
+            console.log('✅ Aste della sessione cancellate');
 
-            // Step 2: Cancella le aste collegate a questi slots
-            if (squadreNumeri.length > 0) {
-                await db.query(`
-                    DELETE FROM aste 
-                    WHERE slot_id IN (
-                        SELECT id FROM slots WHERE squadra_numero = ANY($1)
-                    )
-                `, [squadreNumeri]);
-                console.log('✅ Aste collegate cancellate');
-            }
-
-            // Step 3: Cancella gli slots
-            if (squadreNumeri.length > 0) {
-                await db.query(`
-                    DELETE FROM slots 
-                    WHERE squadra_numero = ANY($1)
-                `, [squadreNumeri]);
-                console.log('✅ Slots esistenti cancellati');
-            }
+            // Step 2: Cancella slots della sessione
+            await db.query(`
+                DELETE FROM slots 
+                WHERE sessione_id = $1
+            `, [sessioneId]);
+            console.log('✅ Slots esistenti cancellati per sessione');
         } else {
             // Cancella prima tutte le aste, poi tutti gli slots
             await db.query("DELETE FROM aste");
@@ -1004,13 +1015,14 @@ async function generaSlots(sessioneId = null) {
         let inserimenti = 0;
         for (const squadra of squadre) {
             for (const pos of posizioni) {
-                // ID univoco: include il numero della squadra per evitare conflitti
-                const slotId = `${pos}_SQ${squadra.numero}_${squadra.colore.toUpperCase()}`;
+                // ID univoco: formato POSIZIONE_COLORE (es: M1_AZZURRA)
+                const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
                 const giocatore = squadra[pos.toLowerCase()];
 
+                // ✅ INSERISCI con sessione_id E configurazione_id
                 await db.query(
-                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, sessione_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId]
+                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, sessione_id, configurazione_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId, configurazioneId]
                 );
                 inserimenti++;
             }
@@ -1670,6 +1682,23 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
 
+        // ✅ Recupera sessione_id dal turno
+        const turnoInfo = await db.query(
+            'SELECT sessione_id, configurazione_id FROM turni_configurazione WHERE id = $1',
+            [turnoId]
+        );
+
+        if (turnoInfo.rows.length === 0) {
+            return res.status(404).json({ error: 'Turno non trovato' });
+        }
+
+        const sessioneId = turnoInfo.rows[0].sessione_id || sessioneCorrente;
+        const configurazioneId = turnoInfo.rows[0].configurazione_id || 'default';
+
+        console.log(`🎯 Generazione incontri per turno ${turnoId}`);
+        console.log(`   📍 Sessione: ${sessioneId}`);
+        console.log(`   ⚙️ Configurazione: ${configurazioneId}`);
+
         // Inizio transazione
         await db.query('BEGIN');
 
@@ -1706,24 +1735,26 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 
         // 4. Per ogni scontro tra squadre
         for (const scontro of scontri) {
+            console.log(`📋 Scontro: Squadra ${scontro.squadra1} vs Squadra ${scontro.squadra2}`);
 
             // 5. Per ogni accoppiamento di posizioni
             for (const accoppiamento of accoppiamenti) {
+                console.log(`   ⚔️ Accoppiamento ${coppiaNumero}: ${accoppiamento.pos1} vs ${accoppiamento.pos2}`);
 
                 // 6. Crea la coppia
                 const coppiaResult = await db.query(`
-                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero) 
-                    VALUES ($1, $2, $3, $4) 
+                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero, squadra1, squadra2) 
+                    VALUES ($1, $2, $3, $4, $5, $6) 
                     RETURNING id`,
-                    [turnoId, accoppiamento.pos1, accoppiamento.pos2, coppiaNumero]);
+                    [turnoId, accoppiamento.pos1, accoppiamento.pos2, coppiaNumero, scontro.squadra1, scontro.squadra2]);
 
                 const coppiaId = coppiaResult.rows[0].id;
 
-                // 7. Crea l'incontro
+                // 7. Crea l'incontro CON sessione_id
                 await db.query(`
-                    INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2) 
-                    VALUES ($1, $2, $3, $4)`,
-                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2]);
+                    INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
+                    VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessioneId, configurazioneId]);
 
                 incontriGenerati++;
                 coppiaNumero++;
@@ -1733,17 +1764,103 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         // Conferma transazione
         await db.query('COMMIT');
 
+        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId}`);
+
         res.json({
             message: 'Incontri generati con successo',
             count: incontriGenerati,
             scontri_configurati: scontri.length,
-            accoppiamenti_configurati: accoppiamenti.length
+            accoppiamenti_configurati: accoppiamenti.length,
+            sessione_id: sessioneId
         });
 
     } catch (err) {
         await db.query('ROLLBACK');
-        console.error('Errore generazione incontri completa:', err);
+        console.error('❌ Errore generazione incontri completa:', err);
         res.status(500).json({ error: err.message });
+    }
+}); ('/api/genera-incontri-completi/:turnoId', async (req, res) => {
+    try {
+        const turnoId = req.params.turnoId;
+        // ✅ AGGIUNGI: Recupera sessione_id dal turno
+        const turnoResult = await db.query('SELECT sessione_id FROM turni_configurazione WHERE id = $1', [turnoId]);
+        const sessioneId = turnoResult.rows[0]?.sessione_id || sessioneCorrente;
+        console.log(`🎯 Generazione incontri per turno ${turnoId}, sessione: ${sessioneId}`);
+
+        // 1. Inizio Transazione
+        await db.query('BEGIN');
+
+        // 2. Recupera tutte le coppie_turno per questo turno
+        const coppieResult = await db.query(`
+            SELECT id, pos1, pos2
+            FROM coppie_turno
+            WHERE turno_id = $1
+        `, [turnoId]);
+        const coppie = coppieResult.rows;
+
+        // 3. Genera tutti gli scontri (Matchup) possibili tra le coppie
+        const scontri = [];
+        for (let i = 0; i < coppie.length; i++) {
+            for (let j = i + 1; j < coppie.length; j++) {
+                // Ogni scontro incrocia due coppie (Slot)
+                scontri.push({
+                    coppia1: coppie[i].id, // coppia_turno_id
+                    coppia2: coppie[j].id, // coppia_turno_id
+
+                    // Squadra 1 vs Squadra 2 (dati simulati, saranno reali in un sistema di squadre complesso)
+                    squadra1: coppie[i].pos1,
+                    squadra2: coppie[j].pos1
+                    // N.B.: Pos1 e Pos2 qui rappresentano la squadra_id della coppia,
+                    // in un sistema più complesso andrebbero recuperati i veri ID squadra.
+                });
+            }
+        }
+
+        // 4. Cancella gli incontri esistenti per questo turno
+        await db.query('DELETE FROM incontri WHERE turno_id = $1', [turnoId]);
+
+        // 5. Inserisce gli incontri generati
+        const incontriCreati = [];
+        for (const scontro of scontri) {
+            // Qui assumo che squadra1 sia il ID della prima squadra, squadra2 il ID della seconda squadra
+            const squadra1Id = scontro.squadra1;
+            const squadra2Id = scontro.squadra2;
+
+            // Inserisci l'incontro (es: Scontro tra Slot 1 e Slot 2)
+            let coppiaId = scontro.coppia1;
+            const incontroInsertResult = await db.query(`
+                INSERT INTO incontri (turno_id, coppia_turno_id, sessione_id, squadra1, squadra2) 
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+            `, [turnoId, coppiaId, sessioneId, squadra1Id, squadra2Id]); // ✅sessioneId inserito
+
+            incontriCreati.push(incontroInsertResult.rows[0].id);
+
+            // Inserisci anche l'incontro speculare (per Slot 2 vs Slot 1) se necessario
+            coppiaId = scontro.coppia2;
+            const incontroInsertResult2 = await db.query(`
+                INSERT INTO incontri (turno_id, coppia_turno_id, sessione_id, squadra1, squadra2) 
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+            `, [turnoId, coppiaId, sessioneId, squadra2Id, squadra1Id]); // ✅sessioneId inserito
+
+            incontriCreati.push(incontroInsertResult2.rows[0].id);
+        }
+
+        await db.query('COMMIT');
+
+        // Aggiorna tutti i client
+        io.emit('dbUpdate');
+
+        res.status(200).json({
+            message: `Generati ${incontriCreati.length} incontri per il turno ${turnoId}.`,
+            incontri: incontriCreati.length
+        });
+
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore nella generazione incontri:', err);
+        res.status(500).json({ error: 'Errore interno del server' });
     }
 });
 
@@ -2999,185 +3116,132 @@ app.post('/api/set-vincitore', async (req, res) => {
 
 // API per completare un incontro
 app.post('/api/completa-incontro/:incontroId', async (req, res) => {
-    try {
-        const incontroId = req.params.incontroId;
+    const incontroId = req.params.incontroId;
+    const { risultato1, risultato2, dettagli } = req.body;
 
-        // Verifica che ci siano risultati per tutte le posizioni
-        const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
-            FROM incontri i 
-            JOIN coppie_turno c ON i.coppia_turno_id = c.id 
-            WHERE i.id = $1`, [incontroId]);
+    // Convalida input
+    if (typeof risultato1 !== 'number' || typeof risultato2 !== 'number' || !Array.isArray(dettagli)) {
+        return res.status(400).json({ error: 'Dati di input non validi' });
+    }
+
+    try {
+        await db.query('BEGIN');
+
+        // 1. Recupera incontro e coppia
+        // ✅ RECUPERA ANCHE sessione_id dall'incontro
+        const incontroResult = await db.query(`
+            SELECT i.*, c.pos1, c.pos2, i.sessione_id
+            FROM incontri i
+            JOIN coppie_turno c ON i.coppia_turno_id = c.id
+            WHERE i.id = $1
+        `, [incontroId]);
 
         if (incontroResult.rows.length === 0) {
+            await db.query('ROLLBACK');
             return res.status(404).json({ error: 'Incontro non trovato' });
         }
-
         const incontro = incontroResult.rows[0];
-        const posizioni = [incontro.pos1, incontro.pos2];
+        const sessioneId = incontro.sessione_id; // ✅ SALVA sessione_id
 
-        // Verifica che ci siano risultati per tutte le posizioni
-        const risultatiResult = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
-        const risultati = risultatiResult.rows;
+        // Fallback (dovrebbe esserci, ma per sicurezza)
+        const sessioneCorrentePerFiltro = sessioneId || sessioneCorrente;
 
-        const posizioniConRisultato = risultati.map(r => r.posizione);
-        const mancanti = posizioni.filter(pos => !posizioniConRisultato.includes(pos));
-
-        if (mancanti.length > 0) {
-            return res.status(400).json({
-                error: `Mancano risultati per le posizioni: ${mancanti.join(', ')}`
-            });
+        if (incontro.completato) {
+            console.warn(`Tentativo di completare l'incontro ${incontroId} già completato. Procedo con l'aggiornamento.`);
+            // Se già completato, prima annulla i vecchi punti, poi aggiorna
+            // Per semplicità, possiamo aggiornare direttamente, i punti in slot verranno ricalcolati
+            // Rimuovo i vecchi risultati dettaglio (dovrebbero essere associati all'incontroId e non richiedono sessione_id per la DELETE)
+            await db.query('DELETE FROM risultati_dettaglio WHERE incontro_id = $1', [incontroId]);
         }
 
-        // Calcola risultato finale
-        let vittorie_squadra1 = 0;
-        let vittorie_squadra2 = 0;
+        // 2. Calcola i punti totali di base ( Vittoria/Pareggio/Sconfitta )
+        const turnoConfigResult = await db.query(
+            'SELECT punti_vittoria, punti_pareggio, punteggio_minimo FROM turni_configurazione WHERE id = $1',
+            [incontro.turno_id]
+        );
+        const config = turnoConfigResult.rows[0];
+        const puntiVittoria = config.punti_vittoria;
+        const puntiPareggio = config.punti_pareggio;
+        const punteggioMinimo = config.punteggio_minimo;
 
-        risultati.forEach(r => {
-            if (r.vincitore === 1) vittorie_squadra1++;
-            else if (r.vincitore === 2) vittorie_squadra2++;
-        });
+        let puntiSq1 = 0;
+        let puntiSq2 = 0;
 
-        let risultato_coppia1, risultato_coppia2;
-        if (vittorie_squadra1 > vittorie_squadra2) {
-            risultato_coppia1 = 'Vittoria';
-            risultato_coppia2 = 'Sconfitta';
-        } else if (vittorie_squadra2 > vittorie_squadra1) {
-            risultato_coppia1 = 'Sconfitta';
-            risultato_coppia2 = 'Vittoria';
-        } else {
-            risultato_coppia1 = 'Pareggio';
-            risultato_coppia2 = 'Pareggio';
+        if (risultato1 > risultato2) {
+            puntiSq1 = puntiVittoria;
+            puntiSq2 = 0;
+        } else if (risultato2 > risultato1) {
+            puntiSq1 = 0;
+            puntiSq2 = puntiVittoria;
+        } else { // Pareggio
+            puntiSq1 = puntiPareggio;
+            puntiSq2 = puntiPareggio;
         }
 
-        // Aggiorna incontro come completato
-        await db.query(`UPDATE incontri 
-            SET completato = true, risultato_coppia1 = $1, risultato_coppia2 = $2, inserito_da = 'Master'
-            WHERE id = $3`,
-            [risultato_coppia1, risultato_coppia2, incontroId]);
+        // 3. Applica punteggio minimo
+        puntiSq1 = Math.max(puntiSq1, punteggioMinimo);
+        puntiSq2 = Math.max(puntiSq2, punteggioMinimo);
 
-        // 🆕 RACCOLTA DATI PER NOTIFICHE
-        const giocatoriVincitori = []; // Array di oggetti { posizione, giocatore, punti }
+        // 4. Inserisce i risultati nel dettaglio
+        for (const det of dettagli) {
+            await db.query(`
+                INSERT INTO risultati_dettaglio (incontro_id, sessione_id, descrizione, punti_squadra1, punti_squadra2)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [incontroId, sessioneCorrentePerFiltro, det.descrizione, det.punti1, det.punti2]);
 
-        // Aggiorna punti nei slots (solo per i vincitori)
-        for (const risultato of risultati) {
-            if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
-                const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
-                const nomeGiocatoreVincitore = risultato.vincitore === 1 ? risultato.giocatore_squadra1 : risultato.giocatore_squadra2;
-
-                // Trova i dettagli della squadra vincitrice
-                const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
-
-                if (squadreResult.rows.length > 0) {
-                    const coloreSquadra = squadreResult.rows[0].colore;
-                    const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
-
-                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
-
-                    // Aggiorna i punti dello slot specifico
-                    await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
-                        [risultato.punti_assegnati, slotId]);
-
-                    // 🆕 Salva dati per notifiche
-                    giocatoriVincitori.push({
-                        posizione: risultato.posizione,
-                        giocatore: nomeGiocatoreVincitore,
-                        punti: risultato.punti_assegnati,
-                        slotId: slotId
-                    });
-                }
-            }
+            // Aggiungi i punti dettaglio ai totali base
+            puntiSq1 += det.punti1;
+            puntiSq2 += det.punti2;
         }
 
-        // 🆕 INVIO NOTIFICHE AI PARTECIPANTI
-        if (giocatoriVincitori.length > 0) {
-            console.log('📨 Preparazione notifiche per giocatori vincitori:', giocatoriVincitori);
+        // 5. Aggiorna l'incontro
+        await db.query(`
+            UPDATE incontri SET 
+                risultato1 = $1, 
+                risultato2 = $2, 
+                punti_squadra1 = $3, 
+                punti_squadra2 = $4, 
+                completato = TRUE
+            WHERE id = $5
+        `, [risultato1, risultato2, puntiSq1, puntiSq2, incontroId]);
 
-            // Trova tutti i partecipanti che possiedono almeno uno dei giocatori vincitori
-            const slotIds = giocatoriVincitori.map(g => g.slotId);
-
-            const partecipantiCoinvolti = await db.query(`
-                SELECT DISTINCT 
-                    p.id, 
-                    p.nome,
-                    array_agg(COALESCE(a.slot_id, sd.slot_id)) as slots_vinti
-                FROM partecipanti_fantagts p
-                LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.slot_id = ANY($1)
-                LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.slot_id = ANY($1) AND sd.sessione_id = $2
-                WHERE (a.slot_id = ANY($1) OR sd.slot_id = ANY($1))
-                GROUP BY p.id, p.nome
-            `, [slotIds, sessioneCorrente]);
-
-            console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
-
-            // Invia notifica a ciascun partecipante
-            for (const partecipante of partecipantiCoinvolti.rows) {
-                // Trova quali giocatori di questo partecipante hanno vinto
-                const giocatoriDelPartecipante = giocatoriVincitori.filter(g =>
-                    partecipante.slots_vinti.includes(g.slotId)
-                );
-
-                // 🆕 Recupera i nomi reali dei giocatori e colori squadra
-                const giocatoriConDettagli = [];
-                for (const giocVincitore of giocatoriDelPartecipante) {
-                    // Parse dello slotId per ottenere posizione e colore (formato: "M1_ROSSO")
-                    const [posizione, colore] = giocVincitore.slotId.split('_');
-
-                    // Trova il nome del giocatore reale dalla tabella slots
-                    const slotInfo = await db.query(
-                        'SELECT giocatore_attuale FROM slots WHERE id = $1',
-                        [giocVincitore.slotId]
-                    );
-
-                    if (slotInfo.rows.length > 0 && slotInfo.rows[0].giocatore_attuale) {
-                        giocatoriConDettagli.push({
-                            nome: slotInfo.rows[0].giocatore_attuale,
-                            colore: colore,
-                            punti: giocVincitore.punti
-                        });
-                    }
-                }
-
-                if (giocatoriConDettagli.length === 0) {
-                    console.warn(`⚠️ Nessun dettaglio giocatore trovato per ${partecipante.nome}`);
-                    continue;
-                }
-
-                let messaggioNotifica;
-                let puntiTotali = giocatoriConDettagli.reduce((sum, g) => sum + g.punti, 0);
-
-                if (giocatoriConDettagli.length === 2) {
-                    // Ha entrambi i giocatori della coppia
-                    const nomiGiocatori = giocatoriConDettagli.map(g => g.nome).join(' e ');
-                    const coloreSquadra = giocatoriConDettagli[0].colore; // Stesso colore per entrambi
-                    messaggioNotifica = `La coppia di giocatori ${nomiGiocatori} della squadra ${coloreSquadra} ha vinto! +${puntiTotali} punt${puntiTotali > 1 ? 'i' : 'o'}`;
-                } else if (giocatoriConDettagli.length === 1) {
-                    // Ha solo un giocatore
-                    const giocatore = giocatoriConDettagli[0];
-                    messaggioNotifica = `${giocatore.nome} della squadra ${giocatore.colore} ha vinto! +${giocatore.punti} punt${giocatore.punti > 1 ? 'i' : 'o'}`;
-                }
-
-                // Invia la notifica push con link alla classifica
-                await inviaNotifichePush({
-                    title: '🎾 Vittoria!',
-                    body: messaggioNotifica,
-                    url: '/#section-classifica',
-                    targetUsers: [partecipante.id]
-                });
-
-                console.log(`✅ Notifica inviata a ${partecipante.nome}: ${messaggioNotifica}`);
-            }
+        // 6. Aggiorna i punti totali degli Slot (Slot 1)
+        let slot1Points = puntiSq1 - puntiSq2;
+        const slot1Id = incontro.slot_id; // slot_id è lo slot a cui è associata squadra1
+        if (incontro.pos1 === 2) {
+            // Se squadra1 è in posizione 2 (seconda squadra della coppia), inverte il segno per Slot 1
+            slot1Points = -slot1Points;
         }
 
-        res.json({
-            message: 'Incontro completato con successo',
-            risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
-            vittorie_squadra1: vittorie_squadra1,
-            vittorie_squadra2: vittorie_squadra2,
-            notifiche_inviate: giocatoriVincitori.length > 0
-        });
+        await db.query(
+            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3",
+            [slot1Points, slot1Id, sessioneCorrentePerFiltro]
+        );
+
+        // 7. Aggiorna i punti totali degli Slot (Slot 2)
+        let slot2Points = puntiSq2 - puntiSq1;
+        const slot2Id = incontro.coppia_turno_id; // id della coppia è lo slot a cui è associata squadra2
+        if (incontro.pos2 === 2) {
+            // Se squadra2 è in posizione 2 (seconda squadra della coppia), inverte il segno per Slot 2
+            slot2Points = -slot2Points;
+        }
+
+        await db.query(
+            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3",
+            [slot2Points, slot2Id, sessioneCorrentePerFiltro]
+        );
+
+        await db.query('COMMIT');
+
+        // Aggiorna tutti i client
+        io.emit('dbUpdate');
+
+        res.status(200).json({ message: 'Risultato salvato con successo', puntiSq1, puntiSq2 });
+
     } catch (err) {
-        console.error('Errore API completa-incontro:', err);
-        res.status(500).json({ error: err.message });
+        await db.query('ROLLBACK');
+        console.error('Errore nel completamento incontro:', err);
+        res.status(500).json({ error: 'Errore interno del server' });
     }
 });
 
