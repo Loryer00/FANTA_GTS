@@ -1,0 +1,212 @@
+TABELLE CONFIGURAZIONE
+configurazioni
+
+id (TEXT, PK)
+nome (TEXT)
+anno (INTEGER)
+descrizione (TEXT)
+numero_squadre (INTEGER, default 10)
+created_at (TIMESTAMP)
+last_modified (TIMESTAMP)
+
+configurazione (parametri sistema)
+
+chiave (TEXT, PK)
+valore (TEXT)
+descrizione (TEXT)
+updated_at (TIMESTAMP)
+
+sessioni_fantagts
+
+id (TEXT, PK)
+nome (TEXT)
+anno (INTEGER)
+descrizione (TEXT)
+modalita (TEXT, default 'asta_competitiva')
+numero_partecipanti_previsti (INTEGER, default 10)
+crediti_iniziali (INTEGER, default 2000)
+numero_squadre (INTEGER, default 10)
+condivisione_attiva (BOOLEAN, default false)
+ripetizioni_necessarie (INTEGER, default 0)
+premium_condivisione (REAL, default 0.10)
+stato (TEXT, default 'setup')
+attiva (BOOLEAN, default false)
+codice_accesso (VARCHAR(5), UNIQUE)
+configurazione_id (TEXT, FK → configurazioni)
+created_at (TIMESTAMP)
+last_modified (TIMESTAMP)
+
+squadre_circolo
+
+id (SERIAL, PK)
+numero (INTEGER)
+colore (TEXT)
+m1, m2, m3, m4, m5, m6, m7 (TEXT) - giocatori maschi
+f1, f2, f3 (TEXT) - giocatrici femmine
+attiva (BOOLEAN, default true)
+configurazione_id (TEXT, FK → configurazioni)
+created_at (TIMESTAMP)
+
+TABELLE PARTECIPANTI E GIOCO
+partecipanti_fantagts
+
+id (TEXT, PK)
+nome (TEXT)
+email (TEXT)
+telefono (TEXT)
+crediti (INTEGER, default 2000)
+punti_totali (INTEGER, default 0)
+posizione_classifica (INTEGER)
+attivo (BOOLEAN, default true)
+sessione_id (TEXT, default 'default')
+pin (TEXT)
+created_at (TIMESTAMP)
+
+partecipanti_sessioni_accesso
+
+id (SERIAL, PK)
+partecipante_id (TEXT, FK → partecipanti_fantagts)
+sessione_id (TEXT, FK → sessioni_fantagts)
+primo_accesso (TIMESTAMP)
+ultimo_accesso (TIMESTAMP)
+UNIQUE(partecipante_id, sessione_id)
+
+slots
+
+id (TEXT, PK)
+squadra_numero (INTEGER)
+colore (TEXT)
+posizione (TEXT)
+giocatore_attuale (TEXT)
+punti_totali (INTEGER, default 0)
+attivo (BOOLEAN, default true)
+sessione_id (TEXT)
+created_at (TIMESTAMP)
+
+squadre_draft
+
+id (SERIAL, PK)
+partecipante_id (TEXT)
+sessione_id (TEXT)
+posizione (TEXT)
+slot_id (TEXT)
+giocatore (TEXT)
+numero_squadra_circolo (INTEGER)
+colore_squadra (TEXT)
+created_at (TIMESTAMP)
+UNIQUE(partecipante_id, sessione_id, posizione)
+
+aste
+
+id (SERIAL, PK)
+round (TEXT)
+partecipante_id (TEXT)
+slot_id (TEXT)
+offerta (INTEGER)
+costo_finale (INTEGER)
+premium (REAL, default 0)
+vincitore (BOOLEAN, default false)
+condiviso (BOOLEAN, default false)
+sessione_id (TEXT)
+timestamp (TIMESTAMP)
+
+TABELLE TURNI E INCONTRI
+turni_configurazione
+
+id (SERIAL, PK)
+turno_numero (INTEGER)
+nome_turno (TEXT)
+descrizione (TEXT)
+punti_vittoria (INTEGER, default 1)
+attivo (BOOLEAN, default true)
+created_at (TIMESTAMP)
+
+coppie_turno
+
+id (SERIAL, PK)
+turno_id (INTEGER)
+coppia_numero (INTEGER)
+pos1 (TEXT)
+pos2 (TEXT)
+squadra1 (INTEGER)
+squadra2 (INTEGER)
+created_at (TIMESTAMP)
+
+accoppiamenti_posizioni
+
+id (SERIAL, PK)
+turno_id (INTEGER)
+pos1 (TEXT)
+pos2 (TEXT)
+created_at (TIMESTAMP)
+
+incontri
+
+id (SERIAL, PK)
+turno_id (INTEGER)
+coppia_turno_id (INTEGER)
+squadra1 (INTEGER)
+squadra2 (INTEGER)
+risultato_coppia1 (TEXT)
+risultato_coppia2 (TEXT)
+completato (BOOLEAN, default false)
+inserito_da (TEXT)
+configurazione_id (TEXT, FK → configurazioni)
+created_at (TIMESTAMP)
+
+scontri_squadre
+
+id (SERIAL, PK)
+turno_id (INTEGER)
+squadra1 (INTEGER)
+squadra2 (INTEGER)
+created_at (TIMESTAMP)
+
+risultati_partite
+
+id (SERIAL, PK)
+turno (INTEGER)
+squadra_1 (INTEGER)
+squadra_2 (INTEGER)
+risultato (TEXT)
+vincitori (TEXT)
+inserito_da (TEXT)
+verificato (BOOLEAN, default false)
+timestamp (TIMESTAMP)
+
+risultati_dettaglio
+
+id (SERIAL, PK)
+incontro_id (INTEGER)
+posizione (TEXT)
+giocatore_squadra1 (TEXT)
+giocatore_squadra2 (TEXT)
+vincitore (INTEGER)
+punti_assegnati (INTEGER, default 0)
+created_at (TIMESTAMP)
+
+TABELLE SUPPORTO
+sostituzioni
+
+id (SERIAL, PK)
+slot_id (TEXT)
+giocatore_vecchio (TEXT)
+giocatore_nuovo (TEXT)
+dal_turno (INTEGER)
+motivo (TEXT)
+approvato (BOOLEAN, default false)
+sessione_id (TEXT)
+timestamp (TIMESTAMP)
+
+push_subscriptions
+
+id (SERIAL, PK)
+partecipante_id (TEXT)
+endpoint (TEXT, UNIQUE)
+p256dh_key (TEXT)
+auth_key (TEXT)
+user_agent (TEXT)
+sessione_id (TEXT)
+created_at (TIMESTAMP)
+last_seen (TIMESTAMP)
+attiva (BOOLEAN, default true)

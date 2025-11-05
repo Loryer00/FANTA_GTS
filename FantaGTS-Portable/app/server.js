@@ -2480,38 +2480,31 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
-        const { sessione_id } = req.query;
+        // ✅ AGGIUNGI QUESTA RIGA
+        const sessioneId = req.query.sessione_id;
 
-        // Usa sessione_id dalla query, altrimenti fallback a sessioneCorrente
-        const sessioneId = sessione_id || sessioneCorrente;
-
-        console.log(`🔍 API squadra-partecipante - Partecipante: ${partecipanteId}, Sessione: ${sessioneId}`);
+        // ✅ AGGIUNGI VALIDAZIONE
+        if (!sessioneId) {
+            return res.status(400).json({ error: 'sessione_id è richiesto come parametro query' });
+        }
 
         // Ottieni squadra 
-        const squadraResult = await db.query(`
-            SELECT 
-                a.slot_id,
-                a.costo_finale,
-                s.posizione,
-                s.giocatore_attuale,
-                s.colore,
-                s.squadra_numero as numero_squadra_circolo,
-                s.punti_totali
+        const squadraResult = await db.query(`SELECT 
+            a.slot_id,
+            a.costo_finale,
+            s.posizione,
+            s.giocatore_attuale,
+            s.colore,
+            s.punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
-
-        console.log(`📊 Trovati ${squadraResult.rows.length} giocatori nella squadra`);
-        if (squadraResult.rows.length > 0) {
-            console.log('🎨 Colori:', squadraResult.rows.map(r => `${r.posizione}: ${r.colore}`).join(', '));
-            console.log('🏆 Punti:', squadraResult.rows.map(r => `${r.giocatore_attuale}: ${r.punti_totali}pt`).join(', '));
-        }
+            ORDER BY s.posizione`, [partecipanteId, sessioneId]); // ✅ USA sessioneId invece di sessioneCorrente
 
         // Ottieni crediti aggiornati
-        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1`, [partecipanteId]);
+        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`, [partecipanteId, sessioneId]); // ✅ AGGIUNGI filtro sessione
 
         res.json({
             squadra: squadraResult.rows,
