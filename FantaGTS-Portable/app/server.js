@@ -2502,7 +2502,6 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             JOIN slots s ON a.slot_id = s.id
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true
-
             ORDER BY a.round
         `, [partecipanteId);
 
