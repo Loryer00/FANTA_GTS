@@ -1091,16 +1091,41 @@ function avviaAstaSuccessiva() {
         }
     }
 
-    // 🔍 Avvia monitoraggio per questa asta
+    // Avvia monitoraggio per questa asta
     avviaMonitoraggioOfferte();
 }
 
-// 🆕 NUOVA FUNZIONE: Termina round completo
-function terminaRoundCompleto() {
-    console.log(`\n🏁 === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
+// NUOVA FUNZIONE: Termina round completo
+async function terminaRoundCompleto() {
+    console.log(`\n === ROUND ${gameState.roundAttivo} COMPLETATO ===`);
+
+    const roundCompletato = gameState.roundAttivo;
+
+    // RECUPERA I RISULTATI DAL DATABASE
+    let risultati = [];
+    try {
+        const result = await db.query(`
+            SELECT 
+                a.slot_id as slot,
+                p.nome,
+                a.partecipante_id as partecipante,
+                a.offerta as "offertaOriginale",
+                a.costo_finale as "costoFinale",
+                a.condiviso,
+                a.premium
+            FROM aste a
+            JOIN partecipanti_fantagts p ON p.id = a.partecipante_id
+            WHERE a.round = $1 AND a.sessione_id = $2
+            ORDER BY a.created_at
+        `, [roundCompletato, sessioneCorrente]);
+
+        risultati = result.rows;
+        console.log(`ðŸ"Š Risultati recuperati per ${roundCompletato}:`, risultati.length);
+    } catch (error) {
+        console.error('âŒ Errore recupero risultati:', error);
+    }
 
     gameState.asteAttive = false;
-    const roundCompletato = gameState.roundAttivo;
     gameState.roundAttivo = null;
     gameState.astaCorrente = 1;
     gameState.partecipantiAssegnati.clear();
@@ -1108,14 +1133,15 @@ function terminaRoundCompleto() {
     gameState.partecipantiInAttesa = [];
     gameState.offerteTemporanee.clear();
 
-    // 📤 Notifica fine round
+    // ðŸ"¤ Notifica fine round CON RISULTATI
     io.emit('round_ended', {
         round: roundCompletato,
         completato: true,
+        risultati: risultati,  // ðŸ†• AGGIUNGI RISULTATI
         message: `Round ${roundCompletato} completato con tutte le aste`
     });
 
-    console.log(`✅ Round ${roundCompletato} terminato definitivamente`);
+    console.log(`âœ… Round ${roundCompletato} terminato definitivamente`);
 }
 
 // Notifiche Push
