@@ -2494,7 +2494,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
                 a.slot_id,
                 a.offerta,
                 a.costo_finale,
-                s.giocatore,
+                s.giocatore_attuale as giocatore,
                 s.colore as colore_squadra,
                 s.numero as numero_squadra,
                 0 as punti_totali
