@@ -2673,14 +2673,34 @@
                 resetBiddingInterface();
                 loadPlayerTeam();
 
+                // Estrai il nome del giocatore e il colore della squadra dallo slotWon (formato: "M1_ROSSO")
+                const [posizione, coloreSquadra] = data.slotWon.split('_');
+                const coloreSfondo = getTeamColor(coloreSquadra);
+
                 const notification = document.createElement('div');
-                notification.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #48bb78; color: white; padding: 20px; border-radius: 15px; font-size: 1.2em; font-weight: bold; z-index: 2000; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
+                notification.style.cssText = `
+                    position: fixed; 
+                    top: 50%; 
+                    left: 50%; 
+                    transform: translate(-50%, -50%); 
+                    background: rgba(45, 55, 72, 0.95);
+                    color: white; 
+                    padding: 20px; 
+                    border-radius: 15px; 
+                    font-size: 1.2em; 
+                    font-weight: bold; 
+                    z-index: 2000; 
+                    text-align: center; 
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                    backdrop-filter: blur(10px);
+                    border: 2px solid rgba(255,255,255,0.2);
+                `;
                 notification.innerHTML = `
-                                    <div>🏆 COMPLIMENTI!</div>
-                                    <div style="margin: 10px 0;">Hai vinto:</div>
-                                    <div style="font-size: 1.1em; color: #ffd700;">${data.slotWon}</div>
-                                    <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-                                `;
+                    <div>🏆 COMPLIMENTI!</div>
+                    <div style="margin: 10px 0;">Hai vinto:</div>
+                    <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80;">${data.playerName}</div>
+                    <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                `;
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 2000);
             });
