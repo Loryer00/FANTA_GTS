@@ -436,13 +436,14 @@ async function updateDatabaseSchema() {
         // 3️⃣ Aggiungi colonne sessione_id alle tabelle che ancora la usano
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE aste ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
+        await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
         await db.query(`ALTER TABLE sostituzioni ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
 
         // 4️⃣ RIMUOVI Foreign Key da partecipanti_fantagts (per permettere login/registrazione generica)
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione`);
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey`);
-        console.log('✅ Foreign Key rimossa da partecipanti_fantagts');
+        console.log('✅ Foreign Key rimossa da partecipanti_fantagts'); 
 
         // 5️⃣ 🆕 MODIFICA SQUADRE_CIRCOLO: Ora collegate a configurazione_id
         console.log('🔧 Aggiornando squadre_circolo per usare configurazione_id...');
@@ -451,6 +452,7 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE squadre_circolo ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         // Migra i dati esistenti: mappa sessione_id → configurazione_id
+        // (per ora tutte le sessioni usano la configurazione default)
         await db.query(`
             UPDATE squadre_circolo sq
             SET configurazione_id = COALESCE(
@@ -505,8 +507,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ slots ora collegati a configurazioni');
 
-        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Aggiungi sessione_id
-        await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
+        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Ora collegati a configurazione_id
         await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -524,9 +525,9 @@ async function updateDatabaseSchema() {
             ADD CONSTRAINT fk_turni_configurazione 
             FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
         `);
-        console.log('✅ turni_configurazione ora collegati a configurazioni e hanno sessione_id');
+        console.log('✅ turni_configurazione ora collegati a configurazioni');
 
-        // 8️⃣ 🆕 MODIFICA SCONTRI_SQUADRE
+        // 8️⃣ 🆕 MODIFICA SCONTRI_SQUADRE: Ora collegati a configurazione_id
         await db.query(`ALTER TABLE scontri_squadre ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -546,7 +547,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ scontri_squadre ora collegati a configurazioni');
 
-        // 9️⃣ 🆕 MODIFICA RISULTATI_PARTITE
+        // 9️⃣ 🆕 MODIFICA RISULTATI_PARTITE: Ora collegati a configurazione_id
         await db.query(`ALTER TABLE risultati_partite ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
         await db.query(`
@@ -563,7 +564,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ risultati_partite ora collegati a configurazioni');
 
-        // 🔟 🆕 MODIFICA INCONTRI: Aggiungi sessione_id
+        // 🔟 🆕 MODIFICA INCONTRI: Ora collegati a configurazione_id (se la tabella esiste)
         const incontriExists = await db.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -572,7 +573,6 @@ async function updateDatabaseSchema() {
         `);
 
         if (incontriExists.rows[0].exists) {
-            await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
             await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
             await db.query(`
@@ -587,23 +587,10 @@ async function updateDatabaseSchema() {
                 ADD CONSTRAINT fk_incontri_configurazione 
                 FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
             `);
-            console.log('✅ incontri ora collegati a configurazioni e hanno sessione_id');
+            console.log('✅ incontri ora collegati a configurazioni');
         }
 
-        // 1️⃣1️⃣ 🆕 MODIFICA RISULTATI_DETTAGLIO: Aggiungi sessione_id
-        const risultatiDettaglioExists = await db.query(`
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'risultati_dettaglio'
-            )
-        `);
-
-        if (risultatiDettaglioExists.rows[0].exists) {
-            await db.query(`ALTER TABLE risultati_dettaglio ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
-            console.log('✅ risultati_dettaglio ora ha sessione_id');
-        }
-
-        // 1️⃣2️⃣ CREA VIEW per statistiche sessioni
+        // 1️⃣1️⃣ CREA VIEW per statistiche sessioni
         await db.query(`DROP VIEW IF EXISTS v_sessioni_stats CASCADE`);
         await db.query(`CREATE VIEW v_sessioni_stats AS
             SELECT 
@@ -642,7 +629,7 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ View v_sessioni_stats creata/aggiornata');
 
-        console.log('✅ Schema database aggiornato completamente con sistema configurazioni e sessioni');
+        console.log('✅ Schema database aggiornato completamente con sistema configurazioni');
     } catch (error) {
         console.error('❌ Errore aggiornamento schema:', error);
     }
@@ -1683,23 +1670,6 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
 
-        // ✅ Recupera sessione_id dal turno
-        const turnoInfo = await db.query(
-            'SELECT sessione_id, configurazione_id FROM turni_configurazione WHERE id = $1',
-            [turnoId]
-        );
-
-        if (turnoInfo.rows.length === 0) {
-            return res.status(404).json({ error: 'Turno non trovato' });
-        }
-
-        const sessioneId = turnoInfo.rows[0].sessione_id || sessioneCorrente;
-        const configurazioneId = turnoInfo.rows[0].configurazione_id || 'default';
-
-        console.log(`🎯 Generazione incontri per turno ${turnoId}`);
-        console.log(`   📍 Sessione: ${sessioneId}`);
-        console.log(`   ⚙️ Configurazione: ${configurazioneId}`);
-
         // Inizio transazione
         await db.query('BEGIN');
 
@@ -1736,26 +1706,24 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 
         // 4. Per ogni scontro tra squadre
         for (const scontro of scontri) {
-            console.log(`📋 Scontro: Squadra ${scontro.squadra1} vs Squadra ${scontro.squadra2}`);
 
             // 5. Per ogni accoppiamento di posizioni
             for (const accoppiamento of accoppiamenti) {
-                console.log(`   ⚔️ Accoppiamento ${coppiaNumero}: ${accoppiamento.pos1} vs ${accoppiamento.pos2}`);
 
                 // 6. Crea la coppia
                 const coppiaResult = await db.query(`
-                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero, squadra1, squadra2) 
-                    VALUES ($1, $2, $3, $4, $5, $6) 
+                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero) 
+                    VALUES ($1, $2, $3, $4) 
                     RETURNING id`,
-                    [turnoId, accoppiamento.pos1, accoppiamento.pos2, coppiaNumero, scontro.squadra1, scontro.squadra2]);
+                    [turnoId, accoppiamento.pos1, accoppiamento.pos2, coppiaNumero]);
 
                 const coppiaId = coppiaResult.rows[0].id;
 
-                // 7. Crea l'incontro CON sessione_id
+                // 7. Crea l'incontro
                 await db.query(`
-                    INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
-                    VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessioneId, configurazioneId]);
+                    INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2) 
+                    VALUES ($1, $2, $3, $4)`,
+                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2]);
 
                 incontriGenerati++;
                 coppiaNumero++;
@@ -1765,19 +1733,16 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         // Conferma transazione
         await db.query('COMMIT');
 
-        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId}`);
-
         res.json({
             message: 'Incontri generati con successo',
             count: incontriGenerati,
             scontri_configurati: scontri.length,
-            accoppiamenti_configurati: accoppiamenti.length,
-            sessione_id: sessioneId
+            accoppiamenti_configurati: accoppiamenti.length
         });
 
     } catch (err) {
         await db.query('ROLLBACK');
-        console.error('❌ Errore generazione incontri completa:', err);
+        console.error('Errore generazione incontri completa:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1809,10 +1774,6 @@ app.put('/api/turni/:id', async (req, res) => {
 app.get('/api/turno-statistiche/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
-
-        const turnoResult = await db.query('SELECT sessione_id FROM turni_configurazione WHERE id = $1', [turnoId]);
-        const sessioneId = turnoResult.rows[0]?.sessione_id || sessioneCorrente;
-        console.log(`🎯 Generazione incontri per turno ${turnoId}, sessione: ${sessioneId}`);
 
         // Informazioni base turno
         const turnoResult = await db.query(`
@@ -2519,53 +2480,38 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
+        // ✅ AGGIUNGI QUESTA RIGA
         const sessioneId = req.query.sessione_id;
 
-        // Validazione sessione_id
+        // ✅ AGGIUNGI VALIDAZIONE
         if (!sessioneId) {
             return res.status(400).json({ error: 'sessione_id è richiesto come parametro query' });
         }
 
-        console.log(`📊 Caricamento squadra per partecipante: ${partecipanteId}, sessione: ${sessioneId}`);
-
-        // Ottieni squadra con filtro per sessione
-        const squadraResult = await db.query(`
-            SELECT 
-                a.slot_id,
-                a.costo_finale,
-                s.posizione,
-                s.giocatore_attuale,
-                s.colore,
-                s.punti_totali
+        // Ottieni squadra 
+        const squadraResult = await db.query(`SELECT 
+            a.slot_id,
+            a.costo_finale,
+            s.posizione,
+            s.giocatore_attuale,
+            s.colore,
+            s.punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            AND s.sessione_id = $2
-            ORDER BY s.posizione`,
-            [partecipanteId, sessioneId]
-        );
+            ORDER BY s.posizione`, [partecipanteId, sessioneId]); // ✅ USA sessioneId invece di sessioneCorrente
 
-        console.log(`✅ Trovati ${squadraResult.rows.length} giocatori nella squadra`);
-        if (squadraResult.rows.length > 0) {
-            console.log('🎨 Dettagli squadra:', squadraResult.rows.map(r =>
-                `${r.posizione}: ${r.giocatore_attuale} (${r.colore}) - ${r.punti_totali} pt`
-            ).join(', '));
-        }
-
-        // Ottieni crediti aggiornati con filtro sessione
-        const creditiResult = await db.query(
-            `SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`,
-            [partecipanteId, sessioneId]
-        );
+        // Ottieni crediti aggiornati
+        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`, [partecipanteId, sessioneId]); // ✅ AGGIUNGI filtro sessione
 
         res.json({
             squadra: squadraResult.rows,
             crediti: creditiResult.rows[0]?.crediti || 2000
         });
     } catch (err) {
-        console.error('❌ Errore squadra-partecipante:', err);
+        console.error('Errore squadra-partecipante:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -3056,39 +3002,21 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
 
-        console.log(`🎯 Completamento incontro ID: ${incontroId}`);
-
-        // ✅ RECUPERA ANCHE sessione_id dall'incontro
-        const incontroResult = await db.query(`
-            SELECT i.*, c.pos1, c.pos2, i.sessione_id, i.configurazione_id
+        // Verifica che ci siano risultati per tutte le posizioni
+        const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
             FROM incontri i 
             JOIN coppie_turno c ON i.coppia_turno_id = c.id 
-            WHERE i.id = $1`,
-            [incontroId]
-        );
+            WHERE i.id = $1`, [incontroId]);
 
         if (incontroResult.rows.length === 0) {
             return res.status(404).json({ error: 'Incontro non trovato' });
         }
 
         const incontro = incontroResult.rows[0];
-        const sessioneId = incontro.sessione_id || sessioneCorrente;
         const posizioni = [incontro.pos1, incontro.pos2];
 
-        console.log(`   📍 Sessione: ${sessioneId}`);
-        console.log(`   🏟️ Squadra 1: ${incontro.squadra1} vs Squadra 2: ${incontro.squadra2}`);
-        console.log(`   🎾 Posizioni: ${posizioni.join(' vs ')}`);
-
-        // ✅ VERIFICA che la sessione esista
-        if (!sessioneId) {
-            console.warn('⚠️ Incontro senza sessione_id, uso sessioneCorrente');
-        }
-
         // Verifica che ci siano risultati per tutte le posizioni
-        const risultatiResult = await db.query(
-            "SELECT * FROM risultati_dettaglio WHERE incontro_id = $1",
-            [incontroId]
-        );
+        const risultatiResult = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
         const risultati = risultatiResult.rows;
 
         const posizioniConRisultato = risultati.map(r => r.posizione);
@@ -3121,18 +3049,14 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             risultato_coppia2 = 'Pareggio';
         }
 
-        console.log(`   📊 Risultato: ${vittorie_squadra1}-${vittorie_squadra2} (${risultato_coppia1})`);
-
         // Aggiorna incontro come completato
-        await db.query(`
-            UPDATE incontri 
+        await db.query(`UPDATE incontri 
             SET completato = true, risultato_coppia1 = $1, risultato_coppia2 = $2, inserito_da = 'Master'
             WHERE id = $3`,
-            [risultato_coppia1, risultato_coppia2, incontroId]
-        );
+            [risultato_coppia1, risultato_coppia2, incontroId]);
 
         // 🆕 RACCOLTA DATI PER NOTIFICHE
-        const giocatoriVincitori = [];
+        const giocatoriVincitori = []; // Array di oggetti { posizione, giocatore, punti }
 
         // Aggiorna punti nei slots (solo per i vincitori)
         for (const risultato of risultati) {
@@ -3141,28 +3065,17 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 const nomeGiocatoreVincitore = risultato.vincitore === 1 ? risultato.giocatore_squadra1 : risultato.giocatore_squadra2;
 
                 // Trova i dettagli della squadra vincitrice
-                const squadreResult = await db.query(
-                    "SELECT colore FROM squadre_circolo WHERE numero = $1",
-                    [squadraVincitrice]
-                );
+                const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
 
                 if (squadreResult.rows.length > 0) {
                     const coloreSquadra = squadreResult.rows[0].colore;
                     const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
 
-                    console.log(`   💰 Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
+                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
 
-                    // ✅ AGGIUNGI filtro per sessione_id
-                    const updateResult = await db.query(
-                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
-                        [risultato.punti_assegnati, slotId, sessioneId]
-                    );
-
-                    if (updateResult.rows.length > 0) {
-                        console.log(`   ✅ Slot ${slotId} aggiornato: ${updateResult.rows[0].punti_totali} punti totali`);
-                    } else {
-                        console.warn(`   ⚠️ Slot ${slotId} non trovato per sessione ${sessioneId}`);
-                    }
+                    // Aggiorna i punti dello slot specifico
+                    await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
+                        [risultato.punti_assegnati, slotId]);
 
                     // 🆕 Salva dati per notifiche
                     giocatoriVincitori.push({
@@ -3171,12 +3084,6 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                         punti: risultato.punti_assegnati,
                         slotId: slotId
                     });
-
-                    // ✅ Aggiorna anche risultati_dettaglio con sessione_id
-                    await db.query(
-                        "UPDATE risultati_dettaglio SET sessione_id = $1 WHERE incontro_id = $2 AND posizione = $3",
-                        [sessioneId, incontroId, risultato.posizione]
-                    );
                 }
             }
         }
@@ -3192,14 +3099,13 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 SELECT DISTINCT 
                     p.id, 
                     p.nome,
-                    array_agg(a.slot_id) as slots_vinti
+                    array_agg(COALESCE(a.slot_id, sd.slot_id)) as slots_vinti
                 FROM partecipanti_fantagts p
-                JOIN aste a ON p.id = a.partecipante_id
-                WHERE a.vincitore = true 
-                  AND a.slot_id = ANY($1)
-                  AND a.sessione_id = $2
+                LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.slot_id = ANY($1)
+                LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.slot_id = ANY($1) AND sd.sessione_id = $2
+                WHERE (a.slot_id = ANY($1) OR sd.slot_id = ANY($1))
                 GROUP BY p.id, p.nome
-            `, [slotIds, sessioneId]);
+            `, [slotIds, sessioneCorrente]);
 
             console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
@@ -3218,8 +3124,8 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 
                     // Trova il nome del giocatore reale dalla tabella slots
                     const slotInfo = await db.query(
-                        'SELECT giocatore_attuale FROM slots WHERE id = $1 AND sessione_id = $2',
-                        [giocVincitore.slotId, sessioneId]
+                        'SELECT giocatore_attuale FROM slots WHERE id = $1',
+                        [giocVincitore.slotId]
                     );
 
                     if (slotInfo.rows.length > 0 && slotInfo.rows[0].giocatore_attuale) {
@@ -3242,7 +3148,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 if (giocatoriConDettagli.length === 2) {
                     // Ha entrambi i giocatori della coppia
                     const nomiGiocatori = giocatoriConDettagli.map(g => g.nome).join(' e ');
-                    const coloreSquadra = giocatoriConDettagli[0].colore;
+                    const coloreSquadra = giocatoriConDettagli[0].colore; // Stesso colore per entrambi
                     messaggioNotifica = `La coppia di giocatori ${nomiGiocatori} della squadra ${coloreSquadra} ha vinto! +${puntiTotali} punt${puntiTotali > 1 ? 'i' : 'o'}`;
                 } else if (giocatoriConDettagli.length === 1) {
                     // Ha solo un giocatore
@@ -3262,18 +3168,15 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             }
         }
 
-        console.log(`✅ Incontro ${incontroId} completato con successo`);
-
         res.json({
             message: 'Incontro completato con successo',
             risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
             vittorie_squadra1: vittorie_squadra1,
             vittorie_squadra2: vittorie_squadra2,
-            notifiche_inviate: giocatoriVincitori.length > 0,
-            punti_aggiornati: giocatoriVincitori.length
+            notifiche_inviate: giocatoriVincitori.length > 0
         });
     } catch (err) {
-        console.error('❌ Errore API completa-incontro:', err);
+        console.error('Errore API completa-incontro:', err);
         res.status(500).json({ error: err.message });
     }
 });
