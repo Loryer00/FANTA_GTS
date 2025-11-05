@@ -1683,18 +1683,18 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
 
-        // ✅ AGGIUNGI: Recupera sessione_id dal turno
-        const turnoResult = await db.query(
+        // ✅ Recupera sessione_id dal turno
+        const turnoInfo = await db.query(
             'SELECT sessione_id, configurazione_id FROM turni_configurazione WHERE id = $1',
             [turnoId]
         );
 
-        if (turnoResult.rows.length === 0) {
+        if (turnoInfo.rows.length === 0) {
             return res.status(404).json({ error: 'Turno non trovato' });
         }
 
-        const sessioneId = turnoResult.rows[0].sessione_id || sessioneCorrente;
-        const configurazioneId = turnoResult.rows[0].configurazione_id || 'default';
+        const sessioneId = turnoInfo.rows[0].sessione_id || sessioneCorrente;
+        const configurazioneId = turnoInfo.rows[0].configurazione_id || 'default';
 
         console.log(`🎯 Generazione incontri per turno ${turnoId}`);
         console.log(`   📍 Sessione: ${sessioneId}`);
@@ -1742,16 +1742,16 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
             for (const accoppiamento of accoppiamenti) {
                 console.log(`   ⚔️ Accoppiamento ${coppiaNumero}: ${accoppiamento.pos1} vs ${accoppiamento.pos2}`);
 
-                // 6. Crea record coppia_turno
+                // 6. Crea la coppia
                 const coppiaResult = await db.query(`
-                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero, squadra1, squadra2)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    INSERT INTO coppie_turno (turno_id, pos1, pos2, coppia_numero, squadra1, squadra2) 
+                    VALUES ($1, $2, $3, $4, $5, $6) 
                     RETURNING id`,
                     [turnoId, accoppiamento.pos1, accoppiamento.pos2, coppiaNumero, scontro.squadra1, scontro.squadra2]);
 
                 const coppiaId = coppiaResult.rows[0].id;
 
-                // 7. Crea l'incontro con sessione_id
+                // 7. Crea l'incontro CON sessione_id
                 await db.query(`
                     INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
                     VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -1769,15 +1769,15 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 
         res.json({
             message: 'Incontri generati con successo',
-            incontri_generati: incontriGenerati,
-            scontri: scontri.length,
-            accoppiamenti: accoppiamenti.length,
+            count: incontriGenerati,
+            scontri_configurati: scontri.length,
+            accoppiamenti_configurati: accoppiamenti.length,
             sessione_id: sessioneId
         });
 
     } catch (err) {
         await db.query('ROLLBACK');
-        console.error('❌ Errore generazione incontri:', err);
+        console.error('❌ Errore generazione incontri completa:', err);
         res.status(500).json({ error: err.message });
     }
 });
