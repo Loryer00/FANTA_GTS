@@ -2503,7 +2503,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true
             ORDER BY a.round
-        `, [partecipanteId);
+        `, [partecipanteId]);
 
         console.log(`✅ Squadra trovata: ${result.rows.length} giocatori`);
 
