@@ -4498,6 +4498,9 @@ io.on('connection', (socket) => {
                         registeredAt: new Date().toISOString()
                     });
 
+                    // 🆕 RIMUOVI TUTTI I VECCHI LISTENER PRIMA DI INVIARE
+                    socket.removeAllListeners('carica_squadra');
+
                     // Invia stato completo del gioco
                     socket.emit('registered', {
                         success: true,
