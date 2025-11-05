@@ -4419,10 +4419,10 @@ io.on('connection', (socket) => {
 
             // Verifica nel database
             db.query(`
-                SELECT id, nome, crediti FROM partecipanti_fantagts 
-                WHERE id = $1 AND attivo = true
-            `, [data.partecipanteId])
-                .then(result => {
+           SELECT id, nome, crediti, sessione_id FROM partecipanti_fantagts 
+           WHERE id = $1 AND attivo = true
+       `, [data.partecipanteId])
+                .then(async result => {  // ← AGGIUNGI "async" QUI
                     if (result.rows.length === 0) {
                         console.log(`❌ ACCESSO NEGATO: ${data.nome} non è registrato nel database`);
                         socket.emit('registered', {
@@ -4432,6 +4432,20 @@ io.on('connection', (socket) => {
                         });
                         return;
                     }
+
+                    // 🆕 AGGIUNGI QUESTE RIGHE NUOVE QUI
+                    const partecipante = result.rows[0];
+
+                    // 🆕 AGGIORNA LA SESSIONE DEL PARTECIPANTE SE DIVERSA
+                    if (partecipante.sessione_id !== sessioneCorrente) {
+                        console.log(`🔄 Aggiornamento sessione per ${data.nome}: ${partecipante.sessione_id} → ${sessioneCorrente}`);
+                        await db.query(`
+                            UPDATE partecipanti_fantagts 
+                            SET sessione_id = $1 
+                            WHERE id = $2
+                        `, [sessioneCorrente, data.partecipanteId]);
+                    }
+                    // 🆕 FINE RIGHE NUOVE
 
                     // Registrazione WebSocket autorizzata
                     gameState.connessi.set(socket.id, {
