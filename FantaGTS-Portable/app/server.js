@@ -2499,7 +2499,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             AND a.vincitore = true 
             AND a.sessione_id = $2
             AND s.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneCorrente]);
+            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
 
         console.log(`✅ Squadra trovata: ${squadraResult.rows.length} giocatori`);
 
