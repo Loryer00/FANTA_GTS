@@ -443,7 +443,7 @@ async function updateDatabaseSchema() {
         // 4️⃣ RIMUOVI Foreign Key da partecipanti_fantagts (per permettere login/registrazione generica)
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS fk_partecipanti_sessione`);
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey`);
-        console.log('✅ Foreign Key rimossa da partecipanti_fantagts');
+        console.log('✅ Foreign Key rimossa da partecipanti_fantagts'); 
 
         // 5️⃣ 🆕 MODIFICA SQUADRE_CIRCOLO: Ora collegate a configurazione_id
         console.log('🔧 Aggiornando squadre_circolo per usare configurazione_id...');
