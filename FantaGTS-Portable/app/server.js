@@ -2487,14 +2487,24 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
 
         console.log(`🔍 API squadra-partecipante - Partecipante: ${partecipanteId}, Sessione: ${sessioneId}`);
 
-        // Ottieni squadra 
-        const squadraResult = await db.query(`SELECT 
-            a.slot_id,
-            a.costo_finale,
-            s.posizione,
-            s.giocatore_attuale,
-            s.colore,
-            s.punti_totali
+        // Ottieni squadra con calcolo punti dai risultati
+        const squadraResult = await db.query(`
+            SELECT 
+                a.slot_id,
+                a.costo_finale,
+                s.posizione,
+                s.giocatore_attuale,
+                s.colore,
+                s.numero_squadra as numero_squadra_circolo,
+                COALESCE(
+                    (SELECT SUM(rd.punti_assegnati)
+                     FROM risultati_dettaglio rd
+                     JOIN incontri i ON rd.incontro_id = i.id
+                     WHERE rd.giocatore_squadra1 = s.giocatore_attuale 
+                        OR rd.giocatore_squadra2 = s.giocatore_attuale
+                     AND i.sessione_id = $2),
+                    0
+                ) as punti_totali
             FROM aste a 
             JOIN slots s ON a.slot_id = s.id 
             WHERE a.partecipante_id = $1 
@@ -2505,6 +2515,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
         console.log(`📊 Trovati ${squadraResult.rows.length} giocatori nella squadra`);
         if (squadraResult.rows.length > 0) {
             console.log('🎨 Colori:', squadraResult.rows.map(r => `${r.posizione}: ${r.colore}`).join(', '));
+            console.log('🏆 Punti:', squadraResult.rows.map(r => `${r.giocatore_attuale}: ${r.punti_totali}pt`).join(', '));
         }
 
         // Ottieni crediti aggiornati
