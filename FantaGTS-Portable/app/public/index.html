@@ -2170,7 +2170,7 @@
 
         async function caricaSquadraPartecipante(partecipante) {
             try {
-                const response = await fetch(`/api/squadra-partecipante/${partecipante.id}`);
+                const response = await fetch(`/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneCorrente}`);
 
                 let squadra = [];
                 if (response.ok) {
