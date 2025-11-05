@@ -2498,7 +2498,8 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
+            AND s.sessione_id = $2
+            ORDER BY s.posizione`, [partecipanteId, sessioneCorrente]);
 
         console.log(`✅ Squadra trovata: ${squadraResult.rows.length} giocatori`);
 
@@ -3096,16 +3097,16 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             const slotIds = giocatoriVincitori.map(g => g.slotId);
 
             const partecipantiCoinvolti = await db.query(`
-        SELECT DISTINCT 
-            p.id, 
-            p.nome,
-            array_agg(a.slot_id) as slots_vinti
-        FROM partecipanti_fantagts p
-        JOIN aste a ON p.id = a.partecipante_id
-        WHERE a.vincitore = true 
-          AND a.slot_id = ANY($1)
-        GROUP BY p.id, p.nome
-    `, [slotIds]);
+                SELECT DISTINCT 
+                    p.id, 
+                    p.nome,
+                    array_agg(COALESCE(a.slot_id, sd.slot_id)) as slots_vinti
+                FROM partecipanti_fantagts p
+                LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.slot_id = ANY($1)
+                LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.slot_id = ANY($1) AND sd.sessione_id = $2
+                WHERE (a.slot_id = ANY($1) OR sd.slot_id = ANY($1))
+                GROUP BY p.id, p.nome
+            `, [slotIds, sessioneCorrente]);
 
             console.log(`🎯 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
