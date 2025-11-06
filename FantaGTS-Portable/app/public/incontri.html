@@ -1232,28 +1232,9 @@
                     console.log(`[OK] Vincitore ${posizione} impostato`);
                 }
 
-                // Ora completa l'incontro - prepara i dati richiesti dall'API
-                const vittorieSquadra1 = numVincitore === 1 ? posizioni.length : 0;
-                const vittorieSquadra2 = numVincitore === 2 ? posizioni.length : 0;
-
-                const bodyData = {
-                    risultato1: vittorieSquadra1,
-                    risultato2: vittorieSquadra2,
-                    dettagli: posizioni.map(pos => ({
-                        posizione: pos,
-                        vincitore: numVincitore,
-                        giocatore_squadra1: `Giocatore ${pos} Squadra ${incontroData.squadra1}`,
-                        giocatore_squadra2: `Giocatore ${pos} Squadra ${incontroData.squadra2}`,
-                        punti_assegnati: turnoSelezionato?.punti_vittoria || 1
-                    }))
-                };
-
-                console.log('📤 Invio dati completa-incontro:', bodyData);
-
+                // Ora completa l'incontro (legge i risultati già salvati dal database)
                 const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyData)
+                    method: 'POST'
                 });
 
                 if (!completaResponse.ok) {
