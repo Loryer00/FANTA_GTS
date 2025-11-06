@@ -1161,8 +1161,9 @@
             if (configTurno.scontri.length === 0) {
                 showNotification('Aggiungi almeno uno scontro tra squadre', 'error');
                 return;
-                aggiornaPosizioniDisponibili();
             }
+
+            aggiornaPosizioniDisponibili(); // ✅ ORA VIENE ESEGUITO
 
             nascondiTuttiGliStep();
             document.getElementById('step3').style.display = 'block';

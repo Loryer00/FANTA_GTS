@@ -740,6 +740,7 @@
         // Gestione Sessione
         let sessioneCorrente = null;
         let sessioneInfo = null;
+        let configurazioneCorrente = null;
 
         // Carica sessione all'avvio
         window.addEventListener('DOMContentLoaded', async () => {
@@ -760,6 +761,7 @@
                     if (response.ok) {
                         sessioneInfo = await response.json();
                         sessioneCorrente = sessioneId;
+                        configurazioneCorrente = sessioneInfo.configurazione_id;
                     }
                 } else {
                     // Se non c'è nell'URL, prova a caricare qualsiasi sessione attiva
@@ -773,6 +775,7 @@
                             sessioneInfo = data;
                             sessioneCorrente = data.id;
                             console.log('✅ Trovata sessione Asta attiva:', data.nome);
+                            configurazioneCorrente = data.configurazione_id;
                         }
                     }
 
@@ -785,6 +788,7 @@
                                 sessioneInfo = data;
                                 sessioneCorrente = data.id;
                                 console.log('✅ Trovata sessione Draft attiva:', data.nome);
+                                configurazioneCorrente = data.configurazione_id;
                             }
                         }
                     }
@@ -992,11 +996,11 @@
         async function saveMasterState() {
             try {
                 // Assicurati che sessioneCorrente sia definita
-                const sessione = sessioneCorrente || 'default';
+                const configurazione = configurazioneCorrente || 'default';
 
                 // Raccogli tutti i dati necessari dal server
                 const [squadre, partecipanti, risultatiPartite, classifica] = await Promise.all([
-                    fetch(`/api/squadre?sessione=${sessione}`).then(r => r.json()).catch(() => []),
+                    fetch(`/api/squadre?configurazione=${configurazione}`).then(r => r.json()).catch(() => []),
                     fetch('/api/partecipanti').then(r => r.json()).catch(() => []),
                     fetch('/api/risultati-partite').then(r => r.json()).catch(() => []),
                     fetch('/api/classifica').then(r => r.json()).catch(() => [])
