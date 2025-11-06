@@ -1233,13 +1233,24 @@
                 }
 
                 // Ora completa l'incontro (legge i risultati già salvati dal database)
+                console.log(`📤 Chiamata API completa-incontro/${incontroId}`);
+
                 const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
                     method: 'POST'
                 });
 
+                console.log(`📥 Risposta API: status=${completaResponse.status}`);
+
                 if (!completaResponse.ok) {
-                    const error = await completaResponse.json();
-                    throw new Error(error.error);
+                    const errorText = await completaResponse.text();
+                    console.error('❌ Errore dal server:', errorText);
+
+                    try {
+                        const error = JSON.parse(errorText);
+                        throw new Error(error.error || errorText);
+                    } catch (parseError) {
+                        throw new Error(`Errore HTTP ${completaResponse.status}: ${errorText}`);
+                    }
                 }
 
                 // Successo!

@@ -3116,132 +3116,92 @@ app.post('/api/set-vincitore', async (req, res) => {
 
 // API per completare un incontro
 app.post('/api/completa-incontro/:incontroId', async (req, res) => {
-    const incontroId = req.params.incontroId;
-    const { risultato1, risultato2, dettagli } = req.body;
-
-    // Convalida input
-    if (typeof risultato1 !== 'number' || typeof risultato2 !== 'number' || !Array.isArray(dettagli)) {
-        return res.status(400).json({ error: 'Dati di input non validi' });
-    }
-
     try {
-        await db.query('BEGIN');
+        const incontroId = req.params.incontroId;
 
-        // 1. Recupera incontro e coppia
-        // ✅ RECUPERA ANCHE sessione_id dall'incontro
-        const incontroResult = await db.query(`
-            SELECT i.*, c.pos1, c.pos2, i.sessione_id
-            FROM incontri i
-            JOIN coppie_turno c ON i.coppia_turno_id = c.id
-            WHERE i.id = $1
-        `, [incontroId]);
+        // Verifica che ci siano risultati per tutte le posizioni
+        const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
+            FROM incontri i 
+            JOIN coppie_turno c ON i.coppia_turno_id = c.id 
+            WHERE i.id = $1`, [incontroId]);
 
         if (incontroResult.rows.length === 0) {
-            await db.query('ROLLBACK');
             return res.status(404).json({ error: 'Incontro non trovato' });
         }
+
         const incontro = incontroResult.rows[0];
-        const sessioneId = incontro.sessione_id; // ✅ SALVA sessione_id
+        const posizioni = [incontro.pos1, incontro.pos2];
 
-        // Fallback (dovrebbe esserci, ma per sicurezza)
-        const sessioneCorrentePerFiltro = sessioneId || sessioneCorrente;
+        // Verifica che ci siano risultati per tutte le posizioni
+        const risultatiResult = await db.query("SELECT * FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
+        const risultati = risultatiResult.rows;
 
-        if (incontro.completato) {
-            console.warn(`Tentativo di completare l'incontro ${incontroId} già completato. Procedo con l'aggiornamento.`);
-            // Se già completato, prima annulla i vecchi punti, poi aggiorna
-            // Per semplicità, possiamo aggiornare direttamente, i punti in slot verranno ricalcolati
-            // Rimuovo i vecchi risultati dettaglio (dovrebbero essere associati all'incontroId e non richiedono sessione_id per la DELETE)
-            await db.query('DELETE FROM risultati_dettaglio WHERE incontro_id = $1', [incontroId]);
+        const posizioniConRisultato = risultati.map(r => r.posizione);
+        const mancanti = posizioni.filter(pos => !posizioniConRisultato.includes(pos));
+
+        if (mancanti.length > 0) {
+            return res.status(400).json({
+                error: `Mancano risultati per le posizioni: ${mancanti.join(', ')}`
+            });
         }
 
-        // 2. Calcola i punti totali di base ( Vittoria/Pareggio/Sconfitta )
-        const turnoConfigResult = await db.query(
-            'SELECT punti_vittoria, punti_pareggio, punteggio_minimo FROM turni_configurazione WHERE id = $1',
-            [incontro.turno_id]
-        );
-        const config = turnoConfigResult.rows[0];
-        const puntiVittoria = config.punti_vittoria;
-        const puntiPareggio = config.punti_pareggio;
-        const punteggioMinimo = config.punteggio_minimo;
+        // Calcola risultato finale
+        let vittorie_squadra1 = 0;
+        let vittorie_squadra2 = 0;
 
-        let puntiSq1 = 0;
-        let puntiSq2 = 0;
+        risultati.forEach(r => {
+            if (r.vincitore === 1) vittorie_squadra1++;
+            else if (r.vincitore === 2) vittorie_squadra2++;
+        });
 
-        if (risultato1 > risultato2) {
-            puntiSq1 = puntiVittoria;
-            puntiSq2 = 0;
-        } else if (risultato2 > risultato1) {
-            puntiSq1 = 0;
-            puntiSq2 = puntiVittoria;
-        } else { // Pareggio
-            puntiSq1 = puntiPareggio;
-            puntiSq2 = puntiPareggio;
+        let risultato_coppia1, risultato_coppia2;
+        if (vittorie_squadra1 > vittorie_squadra2) {
+            risultato_coppia1 = 'Vittoria';
+            risultato_coppia2 = 'Sconfitta';
+        } else if (vittorie_squadra2 > vittorie_squadra1) {
+            risultato_coppia1 = 'Sconfitta';
+            risultato_coppia2 = 'Vittoria';
+        } else {
+            risultato_coppia1 = 'Pareggio';
+            risultato_coppia2 = 'Pareggio';
         }
 
-        // 3. Applica punteggio minimo
-        puntiSq1 = Math.max(puntiSq1, punteggioMinimo);
-        puntiSq2 = Math.max(puntiSq2, punteggioMinimo);
+        // Aggiorna incontro come completato
+        await db.query(`UPDATE incontri 
+            SET completato = true, risultato_coppia1 = $1, risultato_coppia2 = $2, inserito_da = 'Master'
+            WHERE id = $3`,
+            [risultato_coppia1, risultato_coppia2, incontroId]);
 
-        // 4. Inserisce i risultati nel dettaglio
-        for (const det of dettagli) {
-            await db.query(`
-                INSERT INTO risultati_dettaglio (incontro_id, sessione_id, descrizione, punti_squadra1, punti_squadra2)
-                VALUES ($1, $2, $3, $4, $5)
-            `, [incontroId, sessioneCorrentePerFiltro, det.descrizione, det.punti1, det.punti2]);
+        // Aggiorna punti nei slots (solo per i vincitori)
+        for (const risultato of risultati) {
+            if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
+                const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
 
-            // Aggiungi i punti dettaglio ai totali base
-            puntiSq1 += det.punti1;
-            puntiSq2 += det.punti2;
+                // Trova i dettagli della squadra vincitrice
+                const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
+
+                if (squadreResult.rows.length > 0) {
+                    const coloreSquadra = squadreResult.rows[0].colore;
+                    const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
+
+                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
+
+                    // Aggiorna i punti dello slot specifico
+                    await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
+                        [risultato.punti_assegnati, slotId]);
+                }
+            }
         }
 
-        // 5. Aggiorna l'incontro
-        await db.query(`
-            UPDATE incontri SET 
-                risultato1 = $1, 
-                risultato2 = $2, 
-                punti_squadra1 = $3, 
-                punti_squadra2 = $4, 
-                completato = TRUE
-            WHERE id = $5
-        `, [risultato1, risultato2, puntiSq1, puntiSq2, incontroId]);
-
-        // 6. Aggiorna i punti totali degli Slot (Slot 1)
-        let slot1Points = puntiSq1 - puntiSq2;
-        const slot1Id = incontro.slot_id; // slot_id è lo slot a cui è associata squadra1
-        if (incontro.pos1 === 2) {
-            // Se squadra1 è in posizione 2 (seconda squadra della coppia), inverte il segno per Slot 1
-            slot1Points = -slot1Points;
-        }
-
-        await db.query(
-            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3",
-            [slot1Points, slot1Id, sessioneCorrentePerFiltro]
-        );
-
-        // 7. Aggiorna i punti totali degli Slot (Slot 2)
-        let slot2Points = puntiSq2 - puntiSq1;
-        const slot2Id = incontro.coppia_turno_id; // id della coppia è lo slot a cui è associata squadra2
-        if (incontro.pos2 === 2) {
-            // Se squadra2 è in posizione 2 (seconda squadra della coppia), inverte il segno per Slot 2
-            slot2Points = -slot2Points;
-        }
-
-        await db.query(
-            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3",
-            [slot2Points, slot2Id, sessioneCorrentePerFiltro]
-        );
-
-        await db.query('COMMIT');
-
-        // Aggiorna tutti i client
-        io.emit('dbUpdate');
-
-        res.status(200).json({ message: 'Risultato salvato con successo', puntiSq1, puntiSq2 });
-
+        res.json({
+            message: 'Incontro completato con successo',
+            risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
+            vittorie_squadra1: vittorie_squadra1,
+            vittorie_squadra2: vittorie_squadra2
+        });
     } catch (err) {
-        await db.query('ROLLBACK');
-        console.error('Errore nel completamento incontro:', err);
-        res.status(500).json({ error: 'Errore interno del server' });
+        console.error('Errore API completa-incontro:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
