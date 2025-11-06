@@ -386,7 +386,7 @@
             caricaSquadre();
             caricaTurni();
         });
-        
+
         // Carica sessione (da URL o attiva)
         async function caricaSessioneAttiva() {
             try {
@@ -643,7 +643,7 @@
                         };
                     }
 
-                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);                    
+                    incontriRaggruppati[chiaveGruppo].incontri.push(incontro);
                 });
 
                 // Crea il nuovo layout a colonne
@@ -666,13 +666,13 @@
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
                     headerSquadre.innerHTML = `
-    <div class="badge-squadra" style="background-color: ${squadra1Color};">
-        SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
-    </div>
-    <div class="vs-text">VS</div>
-    <div class="badge-squadra" style="background-color: ${squadra2Color};">
-        SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}  
-    </div>
+        <div class="badge-squadra" style="background-color: ${squadra1Color};">
+            SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+        </div>
+        <div class="vs-text">VS</div>
+        <div class="badge-squadra" style="background-color: ${squadra2Color};">
+            SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}
+        </div>
 `;
 
                     colonnaScontro.appendChild(headerSquadre);
@@ -720,31 +720,31 @@
                         }
 
                         incontroBlock.innerHTML = `
-                    <div class="riga-info">
-                        ${btnAzione}
-                        <div class="etichetta-coppia">${incontro.pos1} + ${incontro.pos2}</div>
-                        <div class="stato-incontro ${statoClasse}">${statoTesto}</div>
-                    </div>
-                    <div class="confronto-coppie">
-                        <div class="coppia-box ${squadra1Vincente ? 'vincitore' : ''}" 
-                                data-squadra="squadra1" 
-                                onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
-                                style="${incontro.completato ? (squadra1Vincente ?
-                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
-                                'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
-                                 ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
+                        <div class="riga-info">
+                            ${btnAzione}
+                            <div class="etichetta-coppia">${incontro.pos1} + ${incontro.pos2}</div>
+                            <div class="stato-incontro ${statoClasse}">${statoTesto}</div>
                         </div>
-                        <div class="vs-centrale">vs</div>
-                        <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}" 
-     data-squadra="squadra2" 
-     onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
-     style="${incontro.completato ? (squadra2Vincente ?
+                        <div class="confronto-coppie">
+                            <div class="coppia-box ${squadra1Vincente ? 'vincitore' : ''}"
+                                    data-squadra="squadra1"
+                                    onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra1')` : ''}"
+                                    style="${incontro.completato ? (squadra1Vincente ?
                                 `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
                                 'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
-    ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
+                                     ${pos1Squadra1?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra1?.nome || `N/A(${incontro.pos2})`}
+                            </div>
+                            <div class="vs-centrale">vs</div>
+                            <div class="coppia-box ${squadra2Vincente ? 'vincitore' : ''}"
+         data-squadra="squadra2"
+         onclick="${!incontro.completato ? `selezionaCoppia('${incontro.id}', 'squadra2')` : ''}"
+         style="${incontro.completato ? (squadra2Vincente ?
+                                `pointer-events: none; background: linear-gradient(135deg, ${coloreVincente}70, ${coloreVincente}90) !important; border: 3px solid ${coloreVincente} !important; color: #ffffff !important; font-weight: bold !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; box-shadow: 0 0 20px ${coloreVincente}90 !important;` :
+                                'pointer-events: none; opacity: 0.4 !important; filter: grayscale(60%) !important; background: rgba(255,255,255,0.02) !important;') : ''}">
+        ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
 </div>
-                    </div>
-                `;
+                        </div>
+                    `;
 
                         colonnaScontro.appendChild(incontroBlock);
                     });
@@ -797,50 +797,50 @@
             }
 
             card.innerHTML = `
-        <div class="incontro-header-live">
-            <div class="coppia-info">
-                <span class="coppia-numero">Coppia ${incontro.coppia_numero}</span>
-                <span class="posizioni">${incontro.pos1} + ${incontro.pos2}</span>
+            <div class="incontro-header-live">
+                <div class="coppia-info">
+                    <span class="coppia-numero">Coppia ${incontro.coppia_numero}</span>
+                    <span class="posizioni">${incontro.pos1} + ${incontro.pos2}</span>
+                </div>
+                <span class="status-badge ${incontro.completato ? 'completato' : 'in-attesa'}">
+                    ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
+                </span>
             </div>
-            <span class="status-badge ${incontro.completato ? 'completato' : 'in-attesa'}">
-                ${incontro.completato ? '✅ Completato' : '⏳ In attesa'}
-            </span>
-        </div>
-        
-        <div class="coppie-confronto">
-            <button class="coppia-btn" data-squadra="1" onclick="selezionaCoppia('${incontro.id}', 1)">
-                <div class="coppia-giocatori">
-                    <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos1)} (${incontro.pos1})</div>
-                    <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos2)} (${incontro.pos2})</div>
-                </div>
-                <div class="squadra-label" style="background-color: ${getTeamColor(squadra1.colore)};">
-                    ${squadra1.colore.toUpperCase()}
-                </div>
-            </button>
-            
-            <div class="vs-divider">VS</div>
-            
-            <button class="coppia-btn" data-squadra="2" onclick="selezionaCoppia('${incontro.id}', 2)">
-                <div class="coppia-giocatori">
-                    <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos1)} (${incontro.pos1})</div>
-                    <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos2)} (${incontro.pos2})</div>
-                </div>
-                <div class="squadra-label" style="background-color: ${getTeamColor(squadra2.colore)};">
-                    ${squadra2.colore.toUpperCase()}
-                </div>
-            </button>
-        </div>
-        
-        <div class="azioni-live">
-            <button class="btn-completa" onclick="completaIncontro('${incontro.id}')"
-                    ${incontro.completato ? 'disabled' : ''}>
-                ${incontro.completato ? 'Completato' : 'Completa Incontro'}
-            </button>
-            <button class="btn-reset" onclick="resetIncontro('${incontro.id}')">
-                Reset
-            </button>
-        </div>
-    `;
+
+            <div class="coppie-confronto">
+                <button class="coppia-btn" data-squadra="1" onclick="selezionaCoppia('${incontro.id}', 1)">
+                    <div class="coppia-giocatori">
+                        <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos1)} (${incontro.pos1})</div>
+                        <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos2)} (${incontro.pos2})</div>
+                    </div>
+                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra1.colore)};">
+                        ${squadra1.colore.toUpperCase()}
+                    </div>
+                </button>
+
+                <div class="vs-divider">VS</div>
+
+                <button class="coppia-btn" data-squadra="2" onclick="selezionaCoppia('${incontro.id}', 2)">
+                    <div class="coppia-giocatori">
+                        <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos1)} (${incontro.pos1})</div>
+                        <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos2)} (${incontro.pos2})</div>
+                    </div>
+                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra2.colore)};">
+                        ${squadra2.colore.toUpperCase()}
+                    </div>
+                </button>
+            </div>
+
+            <div class="azioni-live">
+                <button class="btn-completa" onclick="completaIncontro('${incontro.id}')"
+                        ${incontro.completato ? 'disabled' : ''}>
+                    ${incontro.completato ? 'Completato' : 'Completa Incontro'}
+                </button>
+                <button class="btn-reset" onclick="resetIncontro('${incontro.id}')">
+                    Reset
+                </button>
+            </div>
+        `;
 
             return card;
         }
@@ -873,35 +873,35 @@
                 const vincitore = dettaglio ? dettaglio.vincitore : 0;
 
                 html += `
-                        <div class="posizione-match ${dettaglio ? 'completato' : ''}">
-                            <div class="posizione-header">${pos}</div>
-                            <div class="match-players">
-                                <div class="player-name" style="border-color: ${teamColor1}; ${vincitore === 1 ? 'background: #48bb78; color: white; font-weight: bold;' : ''}">
-                                    ${giocatore1}
+                            <div class="posizione-match ${dettaglio ? 'completato' : ''}">
+                                <div class="posizione-header">${pos}</div>
+                                <div class="match-players">
+                                    <div class="player-name" style="border-color: ${teamColor1}; ${vincitore === 1 ? 'background: #48bb78; color: white; font-weight: bold;' : ''}">
+                                        ${giocatore1}
+                                    </div>
+                                    <div class="vs-separator">VS</div>
+                                    <div class="player-name" style="border-color: ${teamColor2}; ${vincitore === 2 ? 'background: #48bb78; color: white; font-weight: bold;' : ''}">
+                                        ${giocatore2}
+                                    </div>
                                 </div>
-                                <div class="vs-separator">VS</div>
-                                <div class="player-name" style="border-color: ${teamColor2}; ${vincitore === 2 ? 'background: #48bb78; color: white; font-weight: bold;' : ''}">
-                                    ${giocatore2}
-                                </div>
+                                ${!incontro.completato ? `
+                                    <div class="win-buttons">
+                                        <button class="win-btn ${vincitore === 1 ? 'win' : ''}"
+                                                onclick="setVincitore(${incontro.id}, '${pos}', 1, '${giocatore1}', '${giocatore2}')">
+                                            Vince ${squadra1.colore}
+                                        </button>
+                                        <button class="win-btn ${vincitore === 2 ? 'win' : ''}"
+                                                onclick="setVincitore(${incontro.id}, '${pos}', 2, '${giocatore1}', '${giocatore2}')">
+                                            Vince ${squadra2.colore}
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <div style="text-align: center; margin-top: 10px; font-weight: bold; color: #48bb78;">
+                                        Vince: ${vincitore === 1 ? squadra1.colore : vincitore === 2 ? squadra2.colore : 'Pareggio'}
+                                    </div>
+                                `}
                             </div>
-                            ${!incontro.completato ? `
-                                <div class="win-buttons">
-                                    <button class="win-btn ${vincitore === 1 ? 'win' : ''}"
-                                            onclick="setVincitore(${incontro.id}, '${pos}', 1, '${giocatore1}', '${giocatore2}')">
-                                        Vince ${squadra1.colore}
-                                    </button>
-                                    <button class="win-btn ${vincitore === 2 ? 'win' : ''}"
-                                            onclick="setVincitore(${incontro.id}, '${pos}', 2, '${giocatore1}', '${giocatore2}')">
-                                        Vince ${squadra2.colore}
-                                    </button>
-                                </div>
-                            ` : `
-                                <div style="text-align: center; margin-top: 10px; font-weight: bold; color: #48bb78;">
-                                    Vince: ${vincitore === 1 ? squadra1.colore : vincitore === 2 ? squadra2.colore : 'Pareggio'}
-                                </div>
-                            `}
-                        </div>
-                    `;
+                        `;
             }
 
             html += '</div>';
@@ -909,15 +909,15 @@
             // Aggiungi pulsanti di controllo se non completato
             if (!incontro.completato) {
                 html += `
-                        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.1);">
-                            <button class="btn btn-success" onclick="completaIncontro(${incontro.id})">
-                                ✅ Completa Incontro
-                            </button>
-                            <button class="btn btn-secondary" onclick="resetIncontro(${incontro.id})">
-                                🔄 Reset Risultati
-                            </button>
-                        </div>
-                    `;
+                            <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.1);">
+                                <button class="btn btn-success" onclick="completaIncontro(${incontro.id})">
+                                    ✅ Completa Incontro
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetIncontro(${incontro.id})">
+                                    🔄 Reset Risultati
+                                </button>
+                            </div>
+                        `;
             }
 
             return html;
@@ -1360,7 +1360,7 @@
 
             console.log(`🔧 Debug: squadraVincente=${squadraVincente}, squadraVincenteAttr=${squadraVincenteAttr}, colore=${coloreVincente}`);
 
-            // Colora le celle dei giocatori 
+            // Colora le celle dei giocatori
             const coppie = blocco.querySelectorAll('.coppia-box');
             coppie.forEach(coppia => {
                 const squadraAttr = coppia.getAttribute('data-squadra');
@@ -1498,12 +1498,12 @@
                 coppia.setAttribute('onclick', `selezionaCoppia('${incontroId}', '${squadra}')`);
                 coppia.style.cursor = 'pointer';
 
-                // Aggiorna anche l'overview se siamo in gestione-incontri
+                // Aggiorna anche l’overview se siamo in gestione-incontri
                 if (typeof aggiornaOverviewDopoReset === 'function') {
                     aggiornaOverviewDopoReset(incontroId);
                 }
             });
-                        
+
             console.log(`[RESET UI OK] Incontro ${incontroId} pronto per nuova selezione`);
         }
 
