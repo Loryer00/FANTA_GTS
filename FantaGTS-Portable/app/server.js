@@ -4877,6 +4877,25 @@ app.get('/api/sessioni/attiva/:modalita', async (req, res) => {
     }
 });
 
+// API per ottenere la prima sessione attiva (qualsiasi modalità)
+app.get('/api/sessione-attiva', async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT * FROM v_sessioni_stats WHERE attiva = true ORDER BY created_at DESC LIMIT 1'
+        );
+
+        if (result.rows.length === 0) {
+            return res.json(null);
+        }
+
+        console.log('✅ Sessione attiva:', result.rows[0].id);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('❌ Errore caricamento sessione attiva:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET: Dettaglio sessione singola (DOPO tutti gli endpoint specifici)
 app.get('/api/sessioni/:id', async (req, res) => {
     try {
