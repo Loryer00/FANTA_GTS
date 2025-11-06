@@ -1702,7 +1702,7 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         // Inizio transazione
         await db.query('BEGIN');
 
-        // 1. Ottieni scontri squadre per questo turno
+        // 1. Ottieni scontri squadre per questo turno E configurazione
         const scontriResult = await db.query(`
             SELECT * FROM scontri_squadre 
             WHERE turno_id = $1`, [turnoId]);
@@ -1726,8 +1726,11 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
             return res.status(400).json({ error: 'Nessun accoppiamento configurato per questo turno' });
         }
 
-        // 3. Elimina eventuali incontri esistenti per questo turno
-        await db.query("DELETE FROM incontri WHERE turno_id = $1", [turnoId]);
+        // 3. ✅ Elimina solo gli incontri di QUESTA SESSIONE per questo turno
+        await db.query(
+            "DELETE FROM incontri WHERE turno_id = $1 AND sessione_id = $2",
+            [turnoId, sessioneId]
+        );
         await db.query("DELETE FROM coppie_turno WHERE turno_id = $1", [turnoId]);
 
         let incontriGenerati = 0;
@@ -1750,7 +1753,7 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 
                 const coppiaId = coppiaResult.rows[0].id;
 
-                // 7. Crea l'incontro CON sessione_id
+                // 7. ✅ Crea l'incontro CON sessione_id e configurazione_id
                 await db.query(`
                     INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
                     VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -1764,14 +1767,15 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         // Conferma transazione
         await db.query('COMMIT');
 
-        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId}`);
+        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId} nella sessione ${sessioneId}`);
 
         res.json({
             message: 'Incontri generati con successo',
             count: incontriGenerati,
             scontri_configurati: scontri.length,
             accoppiamenti_configurati: accoppiamenti.length,
-            sessione_id: sessioneId
+            sessione_id: sessioneId,
+            configurazione_id: configurazioneId
         });
 
     } catch (err) {
@@ -1779,7 +1783,9 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         console.error('❌ Errore generazione incontri completa:', err);
         res.status(500).json({ error: err.message });
     }
-}); ('/api/genera-incontri-completi/:turnoId', async (req, res) => {
+});
+
+('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
         // ✅ AGGIUNGI: Recupera sessione_id dal turno
