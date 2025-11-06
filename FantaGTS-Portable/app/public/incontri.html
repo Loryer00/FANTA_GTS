@@ -497,75 +497,72 @@
             }
         }
 
-        // Carica squadre del circolo
+        // Funzione globale per caricare e trasformare le squadre
         async function caricaSquadre() {
             try {
-                console.log('🔄 Caricamento squadre con giocatori per incontri.html...');
+                const response = await fetch('/api/squadre');
 
-                // Prova il nuovo endpoint specifico per giocatori
-                let response = await fetch(`/api/squadre-con-giocatori?configurazione=${configurazioneCorrente}`);
+                // Se la risposta del server non è ok, prova il fallback manuale
                 if (!response.ok) {
-                    console.log('⚠️ Endpoint squadre-con-giocatori non disponibile, provo squadre-complete');
-                    response = await fetch(`/api/squadre-complete?configurazione=${configurazioneCorrente}`);
+                    console.warn('⚠️ Risposta non OK, eseguo fallback manuale di trasformazione');
+
+                    const squadre = await response.json();
+                    console.log('🔄 Trasformo manualmente i dati squadre:', squadre);
+
+                    // Trasforma manualmente le squadre dal formato DB
+                    squadreDisponibili = squadre.map(squadra => {
+                        const giocatori = [];
+
+                        // Aggiungi giocatori maschili
+                        for (let i = 1; i <= 7; i++) {
+                            const nomeGiocatore = squadra[`m${i}`];
+                            if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                giocatori.push({
+                                    posizione: `M${i}`,
+                                    nome: nomeGiocatore.trim()
+                                });
+                            }
+                        }
+
+                        // Aggiungi giocatori femminili
+                        for (let i = 1; i <= 3; i++) {
+                            const nomeGiocatore = squadra[`f${i}`];
+                            if (nomeGiocatore && nomeGiocatore.trim() !== '') {
+                                giocatori.push({
+                                    posizione: `F${i}`,
+                                    nome: nomeGiocatore.trim()
+                                });
+                            }
+                        }
+
+                        console.log(`🎯 Squadra ${squadra.colore} trasformata:`, {
+                            numero: squadra.numero,
+                            colore: squadra.colore,
+                            giocatori: giocatori.length
+                        });
+
+                        return {
+                            numero: squadra.numero,
+                            colore: squadra.colore,
+                            giocatori: giocatori
+                        };
+                    });
+
+                    console.log('✅ Squadre trasformate manualmente:', squadreDisponibili);
+                    return; // Termina la funzione qui se il fallback ha funzionato
                 }
 
-                if (!response.ok) {
-                    // Ultimo fallback - endpoint normale e trasformazione manuale
-                    console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
-                    response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
-
-                    if (response.ok) {
-                        const squadre = await response.json();
-                        console.log('🔄 Trasformo manualmente i dati squadre:', squadre);
-
-                        // Trasforma manualmente le squadre dal formato DB
-                        squadreDisponibili = squadre.map(squadra => {
-                            const giocatori = [];
-
-                            // Aggiungi giocatori maschili
-                            for (let i = 1; i <= 7; i++) {
-                                const nomeGiocatore = squadra[`m${i}`];
-                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
-                                    giocatori.push({
-                                        posizione: `M${i}`,
-                                        nome: nomeGiocatore.trim()
-                                    });
-                                }
-                            }
-
-                            // Aggiungi giocatori femminili
-                            for (let i = 1; i <= 3; i++) {
-                                const nomeGiocatore = squadra[`f${i}`];
-                                if (nomeGiocatore && nomeGiocatore.trim() !== '') {
-                                    giocatori.push({
-                                        posizione: `F${i}`,
-                                        nome: nomeGiocatore.trim()
-                                    });
-                                }
-                            }
-
-                            console.log(`🎯 Squadra ${squadra.colore} trasformata:`, {
-                                numero: squadra.numero,
-                                colore: squadra.colore,
-                                giocatori: giocatori.length
-                            });
-                            return { numero: squadra.numero, colore: squadra.colore, giocatori: giocatori };
-                        });
-                        console.log('✅ Squadre trasformate manualmente:', squadreDisponibili);
-                        return; // Termina la funzione qui se il fallback ha funzionato
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                } // Chiude if (!response.ok) del fallback manuale
-
+                // Se la risposta è ok, leggi direttamente i dati dal server
                 squadreDisponibili = await response.json();
                 console.log('✅ Squadre con giocatori caricate dal server:', squadreDisponibili);
+
             } catch (error) {
                 console.error('❌ Errore caricamento squadre:', error);
                 showNotification(`Errore caricamento squadre: ${error.message}`, 'error');
                 squadreDisponibili = [];
             }
         }
+
 
         // Carica turni disponibili
         async function caricaTurni() {
