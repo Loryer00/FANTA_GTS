@@ -549,26 +549,20 @@
                                 colore: squadra.colore,
                                 giocatori: giocatori.length
                             });
-
-                            return {
-                                numero: squadra.numero,
-                                colore: squadra.colore,
-                                giocatori: giocatori
-                            };
+                            return { numero: squadra.numero, colore: squadra.colore, giocatori: giocatori };
                         });
-
                         console.log('✅ Squadre trasformate manualmente:', squadreDisponibili);
-                        return;
+                        return; // Termina la funzione qui se il fallback ha funzionato
                     } else {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                }
+                } // Chiude if (!response.ok) del fallback manuale
 
                 squadreDisponibili = await response.json();
                 console.log('✅ Squadre con giocatori caricate dal server:', squadreDisponibili);
-
             } catch (error) {
                 console.error('❌ Errore caricamento squadre:', error);
+                showNotification(`Errore caricamento squadre: ${error.message}`, 'error');
                 squadreDisponibili = [];
             }
         }
