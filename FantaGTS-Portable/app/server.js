@@ -1348,26 +1348,18 @@ async function inviaNotifichePush(notificationData) {
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
-        const sessioneId = req.query.sessione || sessioneCorrente;
+        const configurazione = req.query.configurazione;
 
-        // Ottieni configurazione_id dalla sessione
-        const sessioneResult = await db.query(
-            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-            [sessioneId]
-        );
-
-        if (sessioneResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione non trovata' });
+        if (!configurazione) {
+            return res.status(400).json({ error: 'Parametro configurazione mancante' });
         }
 
-        const configurazioneId = sessioneResult.rows[0].configurazione_id;
-
-        // Carica squadre dalla configurazione
         const result = await db.query(
             'SELECT * FROM squadre_circolo WHERE attiva = true AND configurazione_id = $1 ORDER BY numero',
-            [configurazioneId]
+            [configurazione]
         );
 
+        console.log(`✅ Caricate ${result.rows.length} squadre per configurazione: ${configurazione}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);
@@ -1499,7 +1491,18 @@ app.get('/api/squadre-complete', async (req, res) => {
 // API per turni
 app.get('/api/turni', async (req, res) => {
     try {
-        const result = await db.query("SELECT * FROM turni_configurazione WHERE attivo = true ORDER BY turno_numero");
+        const configurazione = req.query.configurazione;
+
+        if (!configurazione) {
+            return res.status(400).json({ error: 'Parametro configurazione mancante' });
+        }
+
+        const result = await db.query(
+            "SELECT * FROM turni_configurazione WHERE attivo = true AND configurazione_id = $1 ORDER BY turno_numero",
+            [configurazione]
+        );
+
+        console.log(`✅ Caricati ${result.rows.length} turni per configurazione: ${configurazione}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API turni:', err);
@@ -1959,6 +1962,12 @@ app.get('/api/turno-statistiche/:turnoId', async (req, res) => {
 app.get('/api/incontri-turno/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
+        const configurazione = req.query.configurazione;
+
+        if (!configurazione) {
+            return res.status(400).json({ error: 'Parametro configurazione mancante' });
+        }
+
         const result = await db.query(`
             SELECT 
                 i.*, 
@@ -1972,8 +1981,12 @@ app.get('/api/incontri-turno/:turnoId', async (req, res) => {
                 END as squadra_vincente
             FROM incontri i 
             JOIN coppie_turno c ON i.coppia_turno_id = c.id 
-            WHERE i.turno_id = $1 
-            ORDER BY c.coppia_numero`, [turnoId]);
+            WHERE i.turno_id = $1 AND i.configurazione_id = $2
+            ORDER BY c.coppia_numero`,
+            [turnoId, configurazione]
+        );
+
+        console.log(`✅ Caricati ${result.rows.length} incontri per turno ${turnoId}, configurazione: ${configurazione}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API incontri-turno:', err);
