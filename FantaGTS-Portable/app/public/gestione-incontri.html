@@ -952,6 +952,7 @@
         let turnoSelezionato = null;
         let coppieTemporanee = [];
         let sessioneCorrente = null;
+        let sessioneInfo = null;
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1742,21 +1743,44 @@
                 return;
             }
 
+            // ✅ Verifica che ci sia una sessione attiva
+            if (!sessioneCorrente) {
+                showNotification('❌ Nessuna sessione attiva. Carica una sessione prima di generare gli incontri.', 'error');
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/genera-incontri/${turnoSelezionato}`, {
-                    method: 'POST'
+                console.log(`🎯 Generazione incontri per turno ${turnoSelezionato} nella sessione ${sessioneCorrente}`);
+
+                const response = await fetch(`/api/genera-incontri-completi/${turnoSelezionato}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessione_id: sessioneCorrente  // ✅ Passa la sessione corrente
+                    })
                 });
 
                 if (response.ok) {
                     const result = await response.json();
-                    showNotification(`${result.count} incontri generati!`, 'success');
+                    console.log('✅ Risultato generazione:', result);
+
+                    showNotification(
+                        `✅ ${result.count} incontri generati con successo per la sessione ${result.sessione_id}!`,
+                        'success'
+                    );
+
+                    // Ricarica gli incontri del turno
                     visualizzaIncontri(turnoSelezionato);
                 } else {
                     const error = await response.json();
-                    showNotification('Errore: ' + error.error, 'error');
+                    console.error('❌ Errore generazione:', error);
+                    showNotification('❌ Errore: ' + error.error, 'error');
                 }
             } catch (error) {
-                showNotification('Errore di connessione', 'error');
+                console.error('❌ Errore di connessione:', error);
+                showNotification('❌ Errore di connessione: ' + error.message, 'error');
             }
         }
 

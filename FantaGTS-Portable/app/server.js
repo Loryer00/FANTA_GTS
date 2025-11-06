@@ -1682,27 +1682,35 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
 
-        // ✅ Recupera sessione_id dal turno
-        const turnoInfo = await db.query(
-            'SELECT sessione_id, configurazione_id FROM turni_configurazione WHERE id = $1',
-            [turnoId]
-        );
+        // ✅ Prendi sessione_id dal BODY della richiesta
+        const { sessione_id } = req.body;
 
-        if (turnoInfo.rows.length === 0) {
-            return res.status(404).json({ error: 'Turno non trovato' });
+        if (!sessione_id) {
+            return res.status(400).json({
+                error: 'sessione_id è richiesto nel body della richiesta'
+            });
         }
 
-        const sessioneId = turnoInfo.rows[0].sessione_id || sessioneCorrente;
-        const configurazioneId = turnoInfo.rows[0].configurazione_id || 'default';
+        // ✅ Recupera configurazione_id dalla sessione
+        const sessioneInfo = await db.query(
+            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+            [sessione_id]
+        );
+
+        if (sessioneInfo.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const configurazioneId = sessioneInfo.rows[0].configurazione_id;
 
         console.log(`🎯 Generazione incontri per turno ${turnoId}`);
-        console.log(`   📍 Sessione: ${sessioneId}`);
+        console.log(`   📍 Sessione: ${sessione_id}`);
         console.log(`   ⚙️ Configurazione: ${configurazioneId}`);
 
         // Inizio transazione
         await db.query('BEGIN');
 
-        // 1. Ottieni scontri squadre per questo turno E configurazione
+        // 1. Ottieni scontri squadre per questo turno (dalla configurazione)
         const scontriResult = await db.query(`
             SELECT * FROM scontri_squadre 
             WHERE turno_id = $1`, [turnoId]);
@@ -1727,10 +1735,13 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         }
 
         // 3. ✅ Elimina solo gli incontri di QUESTA SESSIONE per questo turno
-        await db.query(
-            "DELETE FROM incontri WHERE turno_id = $1 AND sessione_id = $2",
-            [turnoId, sessioneId]
+        const deleteResult = await db.query(
+            "DELETE FROM incontri WHERE turno_id = $1 AND sessione_id = $2 RETURNING id",
+            [turnoId, sessione_id]
         );
+        console.log(`🗑️ Eliminati ${deleteResult.rowCount} incontri esistenti per questa sessione`);
+
+        // Elimina anche le coppie_turno relative (se non usate da altre sessioni)
         await db.query("DELETE FROM coppie_turno WHERE turno_id = $1", [turnoId]);
 
         let incontriGenerati = 0;
@@ -1757,7 +1768,7 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
                 await db.query(`
                     INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
                     VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessioneId, configurazioneId]);
+                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessione_id, configurazioneId]);
 
                 incontriGenerati++;
                 coppiaNumero++;
@@ -1767,14 +1778,14 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
         // Conferma transazione
         await db.query('COMMIT');
 
-        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId} nella sessione ${sessioneId}`);
+        console.log(`✅ Generati ${incontriGenerati} incontri per il turno ${turnoId} nella sessione ${sessione_id}`);
 
         res.json({
             message: 'Incontri generati con successo',
             count: incontriGenerati,
             scontri_configurati: scontri.length,
             accoppiamenti_configurati: accoppiamenti.length,
-            sessione_id: sessioneId,
+            sessione_id: sessione_id,
             configurazione_id: configurazioneId
         });
 
