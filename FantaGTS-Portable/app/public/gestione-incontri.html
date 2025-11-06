@@ -953,6 +953,7 @@
         let coppieTemporanee = [];
         let sessioneCorrente = null;
         let sessioneInfo = null;
+        let configurazioneCorrente = null;
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', async () => {
@@ -961,29 +962,72 @@
             caricaTurni();
         });
 
-        // Carica sessione attiva
+        // Carica sessione (da URL o attiva)
         async function caricaSessioneAttiva() {
             try {
-                // Gli incontri usano la modalità asta_competitiva
-                const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+                // 1️⃣ Controlla se c'è ?sessione=XXX nell'URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessioneUrl = urlParams.get('sessione');
 
-                if (!response.ok) {
-                    console.warn('⚠️ Nessuna sessione attiva trovata');
-                    sessioneCorrente = 'default';
-                    return;
-                }
+                if (sessioneUrl) {
+                    // 2️⃣ Carica quella sessione specifica dall'URL
+                    console.log('🎯 Sessione specificata nell\'URL:', sessioneUrl);
+                    const response = await fetch(`/api/sessioni/${sessioneUrl}`);
 
-                const data = await response.json();
-                if (data && data.id) {
+                    if (!response.ok) {
+                        throw new Error(`Sessione ${sessioneUrl} non trovata`);
+                    }
+
+                    const data = await response.json();
                     sessioneCorrente = data.id;
+                    configurazioneCorrente = data.configurazione_id;
+                    sessioneInfo = data;
+
                     console.log('✅ Sessione caricata:', sessioneCorrente);
+                    console.log('✅ Configurazione:', configurazioneCorrente);
+
+                    // Aggiorna header con nome sessione
+                    const header = document.querySelector('.header h1');
+                    if (header) {
+                        header.textContent = `FantaGTS - Gestione Incontri - ${data.nome}`;
+                    }
+
                 } else {
-                    console.warn('⚠️ Usando sessione default');
-                    sessioneCorrente = 'default';
+                    // 3️⃣ Fallback: cerca sessione attiva (asta_competitiva)
+                    console.log('🔍 Nessuna sessione nell\'URL, cerco sessione attiva asta...');
+                    const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+
+                    if (!response.ok) {
+                        console.warn('⚠️ Nessuna sessione asta attiva trovata');
+                        sessioneCorrente = 'default';
+                        configurazioneCorrente = 'default';
+                        return;
+                    }
+
+                    const data = await response.json();
+                    if (data && data.id) {
+                        sessioneCorrente = data.id;
+                        configurazioneCorrente = data.configurazione_id;
+                        sessioneInfo = data;
+                        console.log('✅ Sessione attiva caricata:', sessioneCorrente);
+                        console.log('✅ Configurazione:', configurazioneCorrente);
+                    } else {
+                        console.warn('⚠️ Usando sessione/configurazione default');
+                        sessioneCorrente = 'default';
+                        configurazioneCorrente = 'default';
+                    }
                 }
+
+                // Verifica che abbiamo una configurazione
+                if (!configurazioneCorrente) {
+                    throw new Error('Impossibile determinare la configurazione');
+                }
+
             } catch (error) {
                 console.error('Errore caricamento sessione:', error);
+                showNotification(`Errore: ${error.message}`, 'error');
                 sessioneCorrente = 'default';
+                configurazioneCorrente = 'default';
             }
         }
 
@@ -995,7 +1039,7 @@
                     await caricaSessioneAttiva();
                 }
 
-                const response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
+                const response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
 
                 if (!response.ok) {
                     throw new Error(`Errore ${response.status}: ${response.statusText}`);
@@ -1048,7 +1092,16 @@
         // Carica turni esistenti
         async function caricaTurni() {
             try {
-                const response = await fetch('/api/turni');
+                if (!configurazioneCorrente) {
+                    await caricaSessioneAttiva();
+                }
+
+                const response = await fetch(`/api/turni?configurazione=${configurazioneCorrente}`);
+
+                if (!response.ok) {
+                    throw new Error(`Errore ${response.status}: ${response.statusText}`);
+                }
+
                 const turni = await response.json();
 
                 const container = document.getElementById('turniContainer');
@@ -1062,44 +1115,7 @@
                 const grid = document.createElement('div');
                 grid.className = 'turni-grid';
 
-                // Nella funzione caricaTurni(), sostituisci la creazione delle card turno con:
-
                 turni.forEach(turno => {
-                    const card = document.createElement('div');
-                    card.className = 'turno-card';
-
-                    card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3>Turno ${turno.turno_numero}</h3>
-            <div>
-                <span style="background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 10px;">
-                    ${turno.punti_vittoria} pt
-                </span>
-                <button class="btn btn-danger" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')" 
-                        style="padding: 6px 12px; font-size: 0.8em;">
-                    🗑️ Elimina
-                </button>
-            </div>
-        </div>
-        <h4>${turno.nome_turno}</h4>
-        <p style="opacity: 0.8; margin: 10px 0;">${turno.descrizione || 'Nessuna descrizione'}</p>
-        <div style="margin-top: 15px;">           
-            <button class="btn btn-secondary" onclick="visualizzaIncontri(${turno.id})">
-                👁️ Visualizza Incontri
-            </button>
-        </div>
-    `;
-
-                    grid.appendChild(card);
-                });
-
-                container.appendChild(grid);
-
-            } catch (error) {
-                console.error('Errore caricamento turni:', error);
-                showNotification('Errore caricamento turni', 'error');
-            }
-        }
 
         // Variabili globali per la configurazione del turno
         let configTurno = {
@@ -1191,7 +1207,15 @@
 
         async function caricaSquadrePerScontri() {
             try {
-                const response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
+                if (!configurazioneCorrente) {
+                    await caricaSessioneAttiva();
+                }
+
+                const response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
+
+                if (!response.ok) {
+                    throw new Error(`Errore ${response.status}: ${response.statusText}`);
+                }
                 const squadre = await response.json();
 
                 const select1 = document.getElementById('squadra1Select');
@@ -1886,16 +1910,16 @@
                 console.log('🔄 Caricamento squadre con giocatori...');
 
                 // Prova il nuovo endpoint specifico per giocatori
-                let response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneCorrente}`);
+                let response = await fetch(`/api/squadre-con-giocatori?configurazione=${configurazioneCorrente}`);
                 if (!response.ok) {
                     console.log('⚠️ Endpoint squadre-con-giocatori non disponibile, provo squadre-complete');
-                    response = await fetch(`/api/squadre-complete?sessione=${sessioneCorrente}`);
+                    response = await fetch(`/api/squadre-complete?configurazione=${configurazioneCorrente}`);
                 }
 
                 if (!response.ok) {
                     // Ultimo fallback - endpoint normale e trasformazione manuale
                     console.log('⚠️ Endpoint squadre-complete non disponibile, uso /api/squadre');
-                    response = await fetch(`/api/squadre?sessione=${sessioneCorrente}`);
+                    response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
 
                     if (response.ok) {
                         const squadre = await response.json();
