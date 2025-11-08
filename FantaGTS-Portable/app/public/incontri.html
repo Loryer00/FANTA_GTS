@@ -1475,7 +1475,7 @@
                 statoElement.textContent = '⏳ In attesa';
             }
 
-            // ⚠️ FIX CRITICO: Riabilita selezione coppie e RESET COMPLETO STILI
+            // FIX CRITICO: Riabilita selezione coppie e RESET COMPLETO STILI
             const coppie = blocco.querySelectorAll('.coppia-box');
             coppie.forEach(coppia => {
                 // Rimuovi vincitore
@@ -1493,16 +1493,16 @@
                 coppia.style.filter = 'none';
                 coppia.style.border = '2px solid rgba(255,255,255,0.2)';
 
-                // 🔧 RIATTIVA GLI ONCLICK
+                // RIATTIVA GLI ONCLICK
                 const squadra = coppia.getAttribute('data-squadra');
                 coppia.setAttribute('onclick', `selezionaCoppia('${incontroId}', '${squadra}')`);
                 coppia.style.cursor = 'pointer';
-
-                // Aggiorna anche l’overview se siamo in gestione-incontri
-                if (typeof aggiornaOverviewDopoReset === 'function') {
-                    aggiornaOverviewDopoReset(incontroId);
-                }
             });
+
+            // Aggiorna anche l'overview se siamo in gestione-incontri
+            if (typeof aggiornaOverviewDopoReset === 'function') {
+                aggiornaOverviewDopoReset(incontroId);
+            }
 
             console.log(`[RESET UI OK] Incontro ${incontroId} pronto per nuova selezione`);
         }
