@@ -383,8 +383,9 @@
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', async () => {
             await caricaSessioneAttiva();
-            caricaSquadre();
-            caricaTurni();
+            await caricaSquadre();
+            await caricaTurni();
+            gestisciParametriURL();
         });
 
         // Carica sessione (da URL o attiva)
@@ -500,7 +501,13 @@
         // Funzione globale per caricare e trasformare le squadre
         async function caricaSquadre() {
             try {
-                const response = await fetch('/api/squadre');
+                // Verifica che la configurazione sia stata caricata
+                if (!configurazioneCorrente) {
+                    console.error('❌ configurazioneCorrente non definita');
+                    throw new Error('Configurazione non caricata');
+                }
+
+                const response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
 
                 // Se la risposta del server non è ok, prova il fallback manuale
                 if (!response.ok) {
