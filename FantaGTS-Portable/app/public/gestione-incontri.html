@@ -1116,6 +1116,32 @@
                 grid.className = 'turni-grid';
 
                 turni.forEach(turno => {
+                    const card = document.createElement('div');
+                    card.className = turno.completato ? 'turno-card completato' : 'turno-card';
+                    card.innerHTML = `
+                        <h3>Turno ${turno.turno_numero}</h3>
+                        <p><strong>${turno.nome_turno}</strong></p>
+                        <p>Punti vittoria: ${turno.punti_vittoria || 1}</p>
+                        ${turno.descrizione ? `<p>${turno.descrizione}</p>` : ''}
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-primary" onclick="caricaCoppieDelTurno(${turno.id}, ${turno.turno_numero})">
+                                📋 Gestisci Coppie
+                            </button>
+                            <button class="btn btn-secondary" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')">
+                                🗑️ Elimina
+                            </button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                container.appendChild(grid);
+
+            } catch (error) {
+                console.error('Errore caricamento turni:', error);
+                showNotification('Errore caricamento turni', 'error');
+            }
+        }
 
         // Variabili globali per la configurazione del turno
         let configTurno = {
