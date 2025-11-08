@@ -394,9 +394,24 @@
                 // 1️⃣ Controlla se c'è ?sessione=XXX nell'URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const sessioneUrl = urlParams.get('sessione');
+                const configUrl = urlParams.get('configurazione');
 
+                // 2️⃣ Se c'è una configurazione diretta nell'URL, usala
+                if (configUrl) {
+                    console.log('🎯 Configurazione specificata nell\'URL:', configUrl);
+                    configurazioneCorrente = configUrl;
+                    sessioneCorrente = null; // Non serve una sessione per vedere gli incontri
+
+                    // Aggiorna header
+                    const header = document.querySelector('.header h1');
+                    if (header) {
+                        header.textContent = `FantaGTS - Incontri e Risultati - Configurazione ${configUrl}`;
+                    }
+                    return;
+                }
+
+                // 3️⃣ Se c'è una sessione nell'URL, prendi la sua configurazione
                 if (sessioneUrl) {
-                    // 2️⃣ Carica quella sessione specifica dall'URL
                     console.log('🎯 Sessione specificata nell\'URL:', sessioneUrl);
                     const response = await fetch(`/api/sessioni/${sessioneUrl}`);
 
@@ -416,11 +431,14 @@
                     if (header) {
                         header.textContent = `FantaGTS - Incontri e Risultati - ${data.nome}`;
                     }
+                    return;
+                }
 
-                } else {
-                    // 3️⃣ Fallback: cerca sessione attiva
-                    console.log('🔍 Nessuna sessione nell\'URL, cerco sessione attiva...');
-                    const response = await fetch('/api/sessione-attiva');
+                // 4️⃣ Fallback: cerca sessione attiva per avere un contesto
+                console.log('🔍 Nessun parametro nell\'URL, cerco sessione attiva...');
+                const response = await fetch('/api/sessione-attiva');
+
+                if (response.ok) {
                     const data = await response.json();
 
                     if (data.sessione) {
@@ -428,20 +446,30 @@
                         configurazioneCorrente = data.sessione.configurazione_id;
                         console.log('✅ Sessione attiva caricata:', sessioneCorrente);
                         console.log('✅ Configurazione:', configurazioneCorrente);
-                    } else {
-                        console.error('❌ Nessuna sessione attiva trovata');
-                        showNotification('Nessuna sessione attiva trovata', 'error');
+
+                        // Aggiorna header
+                        const header = document.querySelector('.header h1');
+                        if (header) {
+                            header.textContent = `FantaGTS - Incontri e Risultati - ${data.sessione.nome}`;
+                        }
+                        return;
                     }
                 }
 
-                // Verifica che abbiamo una configurazione
-                if (!configurazioneCorrente) {
-                    throw new Error('Impossibile determinare la configurazione');
-                }
+                // 5️⃣ Ultimo fallback: usa configurazione default
+                console.warn('⚠️ Nessuna sessione attiva, uso configurazione default');
+                configurazioneCorrente = 'default';
+                sessioneCorrente = null;
+
+                showNotification('Visualizzazione configurazione default', 'info');
 
             } catch (error) {
                 console.error('Errore caricamento sessione:', error);
                 showNotification(`Errore: ${error.message}`, 'error');
+
+                // Fallback finale
+                configurazioneCorrente = 'default';
+                sessioneCorrente = null;
             }
         }
 
