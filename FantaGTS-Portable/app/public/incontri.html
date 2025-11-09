@@ -1304,7 +1304,7 @@
                 // Ora completa l'incontro (legge i risultati già salvati dal database)
                 console.log(`📤 Chiamata API completa-incontro/${incontroId}`);
 
-                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}`, {
+                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}?sessione=${sessioneCorrente}`, {
                     method: 'POST'
                 });
 
@@ -1458,7 +1458,7 @@
 
             try {
                 // Chiamata API per resettare
-                const response = await fetch(`/api/reset-incontro/${incontroId}`, {
+                const response = await fetch(`/api/reset-incontro/${incontroId}?sessione=${sessioneCorrente}`, {
                     method: 'POST'
                 });
 
