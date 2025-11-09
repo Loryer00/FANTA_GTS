@@ -531,12 +531,12 @@
         async function caricaSquadre() {
             try {
                 // Verifica che la sessione sia stata caricata
-                if (!sessioneId) {
-                    console.error('❌ sessioneId non definita');
+                if (!sessioneCorrente) {
+                    console.error('❌ sessioneCorrente non definita');
                     throw new Error('Sessione non caricata');
                 }
 
-                const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneId}`);
+                const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneCorrente}`);
 
                 // Se la risposta del server non è ok, prova il fallback manuale
                 if (!response.ok) {
