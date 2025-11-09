@@ -1274,6 +1274,13 @@
                 }, 1000);
             });
 
+            // 🆕 LISTENER: Aggiornamento punti dopo completamento incontro
+            socket.on('aggiornamento_punti', (data) => {
+                console.log('📊 Ricevuto aggiornamento punti:', data);
+                // Ricarica la griglia squadre nel Master
+                caricaSquadreInFormazione();
+            });
+
             socket.on('connessi_update', (connessi) => {
                 gameState.connessi = connessi;
                 updatePartecipanti();
