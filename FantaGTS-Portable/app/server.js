@@ -3241,6 +3241,14 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             }
         }
 
+        // 🆕 EMIT SOCKET.IO: Notifica aggiornamento punti a tutti i client
+        console.log('📡 Emissione evento aggiornamento_punti via Socket.io');
+        io.emit('aggiornamento_punti', {
+            incontroId: incontroId,
+            sessioneId: sessioneId,
+            timestamp: new Date().toISOString()
+        });
+
         res.json({
             message: 'Incontro completato con successo',
             risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
