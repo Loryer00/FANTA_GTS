@@ -2683,12 +2683,10 @@
             // 🆕 LISTENER: Aggiornamento punti dopo completamento incontro
             socket.on('aggiornamento_punti', (data) => {
                 console.log('📊 Ricevuto aggiornamento punti:', data);
-                // Ricarica la squadra del giocatore per mostrare i nuovi punti
                 loadPlayerTeam();
-                // Ricarica anche la classifica se visibile
                 const classificaSection = document.getElementById('section-classifica');
                 if (classificaSection && classificaSection.style.display !== 'none') {
-                    loadClassifica();
+                    caricaClassifica();  // ✅ CORRETTO
                 }
             });
 
