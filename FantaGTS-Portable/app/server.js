@@ -3149,6 +3149,9 @@ app.post('/api/set-vincitore', async (req, res) => {
 app.post('/api/completa-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
+        const sessioneId = req.query.sessione || req.body.sessione || sessioneCorrente;
+
+        console.log(`📊 Completamento incontro ${incontroId} per sessione: ${sessioneId}`);
 
         // Verifica che ci siano risultati per tutte le posizioni
         const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
@@ -3215,11 +3218,19 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     const coloreSquadra = squadreResult.rows[0].colore;
                     const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
 
-                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
+                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti (sessione: ${sessioneId})`);
 
-                    // Aggiorna i punti dello slot specifico
-                    await db.query("UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2",
-                        [risultato.punti_assegnati, slotId]);
+                    // Aggiorna i punti dello slot specifico SOLO per questa sessione
+                    const updateResult = await db.query(
+                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
+                        [risultato.punti_assegnati, slotId, sessioneId]
+                    );
+
+                    if (updateResult.rows.length === 0) {
+                        console.warn(`⚠️ Slot ${slotId} non trovato per sessione ${sessioneId}!`);
+                    } else {
+                        console.log(`✅ Slot ${slotId} aggiornato. Punti totali: ${updateResult.rows[0].punti_totali}`);
+                    }
                 }
             }
         }
@@ -3240,8 +3251,9 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 app.post('/api/reset-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
+        const sessioneId = req.query.sessione || req.body.sessione || sessioneCorrente;
 
-        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti...`);
+        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti... (sessione: ${sessioneId})`);
 
         // 1. Prima di eliminare i risultati, salviamo i punti da togliere
         const risultatiDaRimuovere = await db.query(
@@ -3279,18 +3291,18 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
 
-                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${sessioneId})`);
 
-                        // TOGLIE i punti (usa sottrazione invece di addizione)
+                        // TOGLIE i punti SOLO per questa sessione
                         const updateResult = await db.query(
-                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
-                            [risultato.punti_assegnati, slotId]
+                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
+                            [risultato.punti_assegnati, slotId, sessioneId]
                         );
 
                         if (updateResult.rows.length > 0) {
                             console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
                         } else {
-                            console.warn(`⚠️ Slot ${slotId} non trovato!`);
+                            console.warn(`⚠️ Slot ${slotId} non trovato per sessione ${sessioneId}!`);
                         }
                     }
                 }
