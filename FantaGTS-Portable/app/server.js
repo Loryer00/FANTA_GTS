@@ -1370,12 +1370,18 @@ app.get('/api/squadre', async (req, res) => {
 // API per ottenere squadre con giocatori strutturati per gli incontri
 app.get('/api/squadre-con-giocatori', async (req, res) => {
     try {
-        console.log('🔄 Caricamento squadre con giocatori per incontri...');
+        const sessioneId = req.query.sessione;
 
-        // Ottieni configurazione_id dalla sessione corrente
+        if (!sessioneId) {
+            return res.status(400).json({ error: 'Parametro sessione mancante' });
+        }
+
+        console.log(`🔄 Caricamento squadre con giocatori per sessione: ${sessioneId}`);
+
+        // Ottieni configurazione_id dalla sessione specificata (non più sessioneCorrente)
         const sessioneResult = await db.query(
             'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-            [sessioneCorrente]
+            [sessioneId]
         );
 
         if (sessioneResult.rows.length === 0) {
