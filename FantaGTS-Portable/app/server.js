@@ -1370,16 +1370,17 @@ app.get('/api/squadre', async (req, res) => {
 // API per ottenere squadre con giocatori strutturati per gli incontri
 app.get('/api/squadre-con-giocatori', async (req, res) => {
     try {
-        console.log('🔄 Caricamento squadre con giocatori per incontri...');
+        const sessioneId = req.query.sessione || sessioneCorrente;
+        console.log('🔄 Caricamento squadre con giocatori per incontri... sessione:', sessioneId);
 
-        // Ottieni configurazione_id dalla sessione corrente
+        // Ottieni configurazione_id dalla sessione
         const sessioneResult = await db.query(
             'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-            [sessioneCorrente]
+            [sessioneId]
         );
 
         if (sessioneResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione corrente non trovata' });
+            return res.status(404).json({ error: 'Sessione non trovata' });
         }
 
         const configurazioneId = sessioneResult.rows[0].configurazione_id;
@@ -1430,6 +1431,7 @@ app.get('/api/squadre-con-giocatori', async (req, res) => {
             squadre.map(s => `${s.colore} (${s.giocatori.length} giocatori)`));
 
         res.json(squadre);
+
     } catch (err) {
         console.error('❌ Errore API squadre-con-giocatori:', err);
         res.status(500).json({ error: err.message });

@@ -527,15 +527,16 @@
         }
 
         // Funzione globale per caricare e trasformare le squadre
+        // Funzione globale per caricare e trasformare le squadre
         async function caricaSquadre() {
             try {
-                // Verifica che la configurazione sia stata caricata
-                if (!configurazioneCorrente) {
-                    console.error('❌ configurazioneCorrente non definita');
-                    throw new Error('Configurazione non caricata');
+                // Verifica che la sessione sia stata caricata
+                if (!sessioneId) {
+                    console.error('❌ sessioneId non definita');
+                    throw new Error('Sessione non caricata');
                 }
 
-                const response = await fetch(`/api/squadre?configurazione=${configurazioneCorrente}`);
+                const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneId}`);
 
                 // Se la risposta del server non è ok, prova il fallback manuale
                 if (!response.ok) {
