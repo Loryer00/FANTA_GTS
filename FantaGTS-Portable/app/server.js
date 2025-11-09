@@ -3303,7 +3303,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
                     if (squadreResult.rows.length > 0) {
                         const coloreSquadra = squadreResult.rows[0].colore;
-                        const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
+                        const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
                         console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${sessioneId})`);
 
