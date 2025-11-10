@@ -954,7 +954,7 @@ function elaboraVincitoreUnico(offerte) {
 // FINE FASE 3: SISTEMA CONDIVISIONE GIOCATORI
 // =====================================================
 
-async function generaSlots(sessioneId = null) {
+async function generaSlots(configurazioneId = 'default') {
     try {
         console.log('🎯 Inizio generazione slots...');
         console.log('📌 Sessione ricevuta:', sessioneId);
@@ -1022,8 +1022,8 @@ async function generaSlots(sessioneId = null) {
 
                 // ✅ INSERISCI con sessione_id E configurazione_id
                 await db.query(
-                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, sessione_id, configurazione_id) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId, configurazioneId]
+                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, configurazione_id) VALUES ($1, $2, $3, $4, $5, $6)",
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId]
                 );
                 inserimenti++;
             }
