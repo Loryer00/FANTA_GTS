@@ -3211,12 +3211,15 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             [risultato_coppia1, risultato_coppia2, incontroId]);
 
         // Aggiorna punti nei slots (solo per i vincitori)
-        // 🔍 DEBUG: Verifica esistenza slots per questa sessione
+        // 🔍 DEBUG: Verifica esistenza slots per questa configurazione
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+
         const debugSlots = await db.query(
-            "SELECT id, squadra_numero, colore, posizione, sessione_id FROM slots WHERE sessione_id = $1 LIMIT 5",
-            [sessioneId]
+            "SELECT id, squadra_numero, colore, posizione, configurazione_id FROM slots WHERE configurazione_id = $1 LIMIT 5",
+            [configurazioneId]
         );
-        console.log(`🔍 DEBUG: Trovati ${debugSlots.rows.length} slots per sessione ${sessioneId}:`, debugSlots.rows);
+        console.log(`🔍 DEBUG: Trovati ${debugSlots.rows.length} slots per configurazione ${configurazioneId}:`, debugSlots.rows);
 
         for (const risultato of risultati) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
@@ -3229,7 +3232,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     const coloreSquadra = squadreResult.rows[0].colore;
                     const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
-                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti (sessione: ${sessioneId})`);
+                    console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
 
                     // Aggiorna i punti dello slot specifico (lo slotId è univoco per configurazione)
                     const updateResult = await db.query(
@@ -3238,9 +3241,9 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     );
 
                     if (updateResult.rows.length === 0) {
-                        console.warn(`⚠️ Slot ${slotId} non trovato per sessione ${sessioneId}!`);
+                        console.warn(`⚠️ Slot ${slotId} non trovato!`);
                     } else {
-                        console.log(`✅ Slot ${slotId} aggiornato. Punti totali: ${updateResult.rows[0].punti_totali}`);
+                        console.warn(`⚠️ Slot ${slotId} non trovato!`);
                     }
                 }
             }
@@ -3272,7 +3275,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
         const incontroId = req.params.incontroId;
         const sessioneId = req.query.sessione || req.body.sessione || sessioneCorrente;
 
-        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti... (sessione: ${sessioneId})`);
+        console.log(`🔄 Reset incontro ${incontroId} - Rimuovendo punti...`);
 
         // 1. Prima di eliminare i risultati, salviamo i punti da togliere
         const risultatiDaRimuovere = await db.query(
@@ -3310,18 +3313,18 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
-                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${sessioneId})`);
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
 
                         // TOGLIE i punti (usa sottrazione invece di addizione)
                         const updateResult = await db.query(
-                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
-                            [risultato.punti_assegnati, slotId, sessioneId]
+                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
+                            [risultato.punti_assegnati, slotId]
                         );
 
                         if (updateResult.rows.length > 0) {
                             console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
                         } else {
-                            console.warn(`⚠️ Slot ${slotId} non trovato per sessione ${sessioneId}!`);
+                            console.warn(`⚠️ Slot ${slotId} non trovato!`);
                         }
                     }
                 }
