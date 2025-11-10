@@ -934,6 +934,7 @@
 
         let sessioneCorrente = null;
         let nomeSessioneCorrente = '';
+        let sessioneOggetto = null;
 
         const STORAGE_KEYS = {
             PLAYER_DATA: 'fantagts_player_data',
@@ -1549,6 +1550,7 @@
 
                 sessioneCorrente = sessioneId;
                 nomeSessioneCorrente = sessione.nome;
+                sessioneOggetto = sessione;
 
                 console.log('✅ Sessione ripristinata:', {
                     nome: playerData.name,
@@ -2263,14 +2265,10 @@
             try {
                 console.log('📅 Caricamento turni disponibili...');
 
-                // 1. **CORREZIONE Errore 1: Variabile non definita e parametro errato**
-                // Assumo che la sessione completa sia memorizzata in 'sessioneCorrente' (dal log) o in 'playerData.sessioneData'.
-                // Usa una logica robusta per recuperare l'oggetto sessione completo.
-                const sessioneObj = window.sessioneCorrente || (window.playerData && window.playerData.sessioneData);
+                // 1. Usa l'oggetto sessione completo salvato in sessioneOggetto
+                const sessioneObj = window.sessioneOggetto;
 
                 if (!sessioneObj || !sessioneObj.configurazione_id) {
-                    // Se non è disponibile, usa 'default' (se l'API lo permette) o lancia l'errore
-                    // Per il 'draft' è fondamentale che la configurazione sia corretta.
                     throw new Error("ID configurazione non disponibile o non caricato.");
                 }
 
