@@ -957,25 +957,11 @@ function elaboraVincitoreUnico(offerte) {
 async function generaSlots(configurazioneId = 'default') {
     try {
         console.log('🎯 Inizio generazione slots...');
-        console.log('📌 Sessione ricevuta:', sessioneId);
-
-        // ✅ RECUPERA configurazione_id dalla sessione
-        let configurazioneId = 'default';
-        if (sessioneId) {
-            const sessioneResult = await db.query(
-                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-                [sessioneId]
-            );
-            if (sessioneResult.rows.length > 0) {
-                configurazioneId = sessioneResult.rows[0].configurazione_id || 'default';
-            }
-        }
-
-        console.log('⚙️ Configurazione ID:', configurazioneId);
+        console.log('📌 Configurazione ricevuta:', configurazioneId);
 
         // FILTRO PER CONFIGURAZIONE
         const squadreResult = await db.query(
-            "SELECT * FROM squadre_circolo WHERE attiva = true AND configurazione_id = $1",
+            "SELECT * FROM squadre_circolo WHERE attiva = true AND configurazione_id = $1 ORDER BY numero",
             [configurazioneId]
         );
 
@@ -989,47 +975,31 @@ async function generaSlots(configurazioneId = 'default') {
 
         const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
-        // CANCELLA SLOTS ESISTENTI - Prima cancella le aste collegate
-        console.log('🗑️ Cancellazione slots esistenti...');
+        // CANCELLA SLOTS ESISTENTI per questa configurazione
+        console.log('🗑️ Cancellazione slots esistenti per configurazione...');
 
-        if (sessioneId) {
-            // Step 1: Cancella aste collegate per questa sessione
-            await db.query(`
-                DELETE FROM aste 
-                WHERE sessione_id = $1
-            `, [sessioneId]);
-            console.log('✅ Aste della sessione cancellate');
-
-            // Step 2: Cancella slots della sessione
-            await db.query(`
-                DELETE FROM slots 
-                WHERE sessione_id = $1
-            `, [sessioneId]);
-            console.log('✅ Slots esistenti cancellati per sessione');
-        } else {
-            // Cancella prima tutte le aste, poi tutti gli slots
-            await db.query("DELETE FROM aste");
-            await db.query("DELETE FROM slots");
-            console.log('✅ Tutti gli slots e aste cancellati');
-        }
+        await db.query(`
+            DELETE FROM slots 
+            WHERE configurazione_id = $1
+        `, [configurazioneId]);
+        console.log('✅ Slots esistenti cancellati');
 
         let inserimenti = 0;
         for (const squadra of squadre) {
             for (const pos of posizioni) {
-                // ID univoco: formato POSIZIONE_COLORE (es: M1_AZZURRA)
-                const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
+                // ID univoco: include il numero della squadra per evitare conflitti
+                const slotId = `${pos}_SQ${squadra.numero}_${squadra.colore.toUpperCase()}`;
                 const giocatore = squadra[pos.toLowerCase()];
 
-                // ✅ INSERISCI con sessione_id E configurazione_id
                 await db.query(
                     "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, configurazione_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                    [slotId, squadra.numero, squadra.colore, pos, giocatore, sessioneId]
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore, configurazioneId]
                 );
                 inserimenti++;
             }
         }
 
-        console.log(`✅ Generati ${inserimenti} slots da ${squadre.length} squadre`);
+        console.log(`✅ Generati ${inserimenti} slots da ${squadre.length} squadre per configurazione ${configurazioneId}`);
         return inserimenti;
     } catch (error) {
         console.error('❌ ERRORE generaSlots:', error.message);
@@ -2009,30 +1979,34 @@ app.post('/api/squadre', async (req, res) => {
         // Usa sessione_id dal body, oppure sessioneCorrente
         const sessioneIdValue = sessione_id || sessioneCorrente;
 
-        console.log(`💾 Salvando squadra ${numero} - ${colore} nella sessione: ${sessioneIdValue}`);
+        // Ottieni configurazione dalla sessione
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneIdValue]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
 
-        // 🆕 SOLUZIONE: Prima elimina la squadra con lo stesso numero NELLA STESSA SESSIONE
+        console.log(`💾 Salvando squadra ${numero} - ${colore} nella configurazione: ${configurazioneId}`);
+
+        // Prima elimina la squadra con lo stesso numero NELLA STESSA CONFIGURAZIONE
         // Poi inserisci la nuova (questo evita il problema del constraint)
         await db.query('BEGIN');
 
         try {
-            // Elimina squadra esistente con stesso numero nella stessa sessione
+            // Elimina squadra esistente con stesso numero nella stessa configurazione
             await db.query(
-                'DELETE FROM squadre_circolo WHERE numero = $1 AND sessione_id = $2',
-                [numero, sessioneIdValue]
+                'DELETE FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2',
+                [numero, configurazioneId]
             );
 
             // Inserisci la nuova squadra
             await db.query(`
                 INSERT INTO squadre_circolo 
-                (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id) 
+                (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazione_id) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-                [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessioneIdValue]
+                [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazioneId]
             );
 
             await db.query('COMMIT');
 
-            console.log(`✅ Squadra ${numero} - ${colore} salvata nella sessione ${sessioneIdValue}`);
+            console.log(`✅ Squadra ${numero} - ${colore} salvata nella configurazione ${configurazioneId}`);
             res.json({ message: 'Squadra salvata con successo' });
 
         } catch (insertErr) {
@@ -2569,13 +2543,19 @@ app.delete('/api/partecipanti/:id', async (req, res) => {
 // Generazione slots
 app.post('/api/genera-slots', async (req, res) => {
     try {
-        // Ottieni sessione da query, body, o usa quella corrente
-        const sessioneId = req.query.sessione || req.body.sessione_id || sessioneCorrente;
+        // Ottieni configurazione_id: prima dal body/query, poi dalla sessione corrente
+        let configurazioneId = req.query.configurazione_id || req.body.configurazione_id;
+
+        if (!configurazioneId) {
+            const sessioneId = req.query.sessione || req.body.sessione_id || sessioneCorrente;
+            const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+            configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+        }
 
         console.log('🎯 Richiesta generazione slots...');
-        console.log('📌 Sessione richiesta:', sessioneId);
+        console.log('📌 Configurazione:', configurazioneId);
 
-        const result = await generaSlots(sessioneId);
+        const result = await generaSlots(configurazioneId);
 
         console.log('✅ Slots generati con successo:', result);
         res.json({ message: 'Slots generati con successo', count: result });
@@ -2600,7 +2580,12 @@ app.get('/api/stato', (req, res) => {
 app.get('/api/slot-info/:slotId', async (req, res) => {
     try {
         const slotId = req.params.slotId;
-        const result = await db.query("SELECT * FROM slots WHERE id = $1 AND sessione_id = $2", [slotId, sessioneCorrente]);
+
+        // Ottieni configurazione dalla sessione corrente
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneCorrente]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+
+        const result = await db.query("SELECT * FROM slots WHERE id = $1 AND configurazione_id = $2", [slotId, configurazioneId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Slot non trovato' });
@@ -2618,12 +2603,16 @@ app.get('/api/slots', async (req, res) => {
     try {
         const sessioneId = req.query.sessione || sessioneCorrente;
 
+        // Ottieni configurazione dalla sessione
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+
         const result = await db.query(
-            'SELECT * FROM slots WHERE sessione_id = $1 ORDER BY posizione, colore',
-            [sessioneId]
+            'SELECT * FROM slots WHERE configurazione_id = $1 ORDER BY posizione, colore',
+            [configurazioneId]
         );
 
-        console.log(`✅ Slots caricati per sessione ${sessioneId}: ${result.rows.length}`);
+        console.log(`✅ Slots caricati per configurazione ${configurazioneId}: ${result.rows.length}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API slots:', err);
@@ -2848,6 +2837,10 @@ app.get('/api/aste-round/:round', async (req, res) => {
 // Ottieni classifica generale
 app.get('/api/classifica', async (req, res) => {
     try {
+        // Ottieni configurazione dalla sessione
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneCorrente]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+
         const result = await db.query(`SELECT 
             p.id, p.nome, p.crediti, 
             COUNT(a.id) as giocatori_totali,
@@ -2855,10 +2848,10 @@ app.get('/api/classifica', async (req, res) => {
             COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
             FROM partecipanti_fantagts p 
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
-            LEFT JOIN slots s ON a.slot_id = s.id AND s.sessione_id = $1
+            LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
             WHERE p.sessione_id = $1 AND p.attivo = true
             GROUP BY p.id, p.nome, p.crediti 
-            ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente]);
+            ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -2883,6 +2876,10 @@ app.get('/api/classifica-draft', async (req, res) => {
             return res.status(400).json({ error: 'sessione_id richiesto' });
         }
 
+        // Ottieni configurazione dalla sessione
+        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessione_id]);
+        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+
         const result = await db.query(`
             SELECT 
                 p.id, 
@@ -2891,11 +2888,11 @@ app.get('/api/classifica-draft', async (req, res) => {
                 COALESCE(SUM(s.punti_totali), 0) as punti_totali
             FROM partecipanti_fantagts p 
             LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
-            LEFT JOIN slots s ON sd.slot_id = s.id AND s.sessione_id = $1
+            LEFT JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $2
             WHERE p.sessione_id = $1 AND p.attivo = true
             GROUP BY p.id, p.nome
             ORDER BY punti_totali DESC
-        `, [sessione_id]);
+        `, [sessione_id, configurazioneId]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -3234,10 +3231,10 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 
                     console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti (sessione: ${sessioneId})`);
 
-                    // Aggiorna i punti dello slot specifico SOLO per questa sessione
+                    // Aggiorna i punti dello slot specifico (lo slotId è univoco per configurazione)
                     const updateResult = await db.query(
-                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
-                        [risultato.punti_assegnati, slotId, sessioneId]
+                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 RETURNING punti_totali",
+                        [risultato.punti_assegnati, slotId]
                     );
 
                     if (updateResult.rows.length === 0) {
@@ -5271,13 +5268,8 @@ app.delete('/api/sessioni/:id', async (req, res) => {
         await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
         console.log('  ✓ Squadre draft eliminate');
 
-        // 4. Elimina slots (dipende da squadre_circolo)
-        await db.query('DELETE FROM slots WHERE sessione_id = $1', [sessioneId]);
-        console.log('  ✓ Slots eliminati');
-
-        // 5. Elimina squadre circolo
-        await db.query('DELETE FROM squadre_circolo WHERE sessione_id = $1', [sessioneId]);
-        console.log('  ✓ Squadre circolo eliminate');
+        // 4. NON eliminare slots e squadre_circolo (appartengono alla configurazione, non alla sessione!)
+        console.log('  ℹ️ Slots e squadre circolo NON eliminati (appartengono alla configurazione)');
 
         // 6. Elimina risultati dettaglio, incontri, coppie turno, turni configurazione
         await db.query(`
@@ -5409,7 +5401,11 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
             return res.status(400).json({ error: 'Questa sessione non Ã¨ in modalitÃ  Draft Libero' });
         }
 
-        // Recupera tutti gli slot delle squadre del circolo per questa sessione
+        /// Ottieni configurazione dalla sessione
+        const configQuery = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        const configurazioneId = configQuery.rows[0]?.configurazione_id || 'default';
+
+        // Recupera tutti gli slot delle squadre del circolo per questa configurazione
         const result = await db.query(`
             SELECT 
             s.id,
@@ -5418,8 +5414,8 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
             sc.colore as colore_squadra,
             s.squadra_numero as numero_squadra
         FROM slots s
-        JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.sessione_id = sc.sessione_id
-        WHERE s.sessione_id = $1 AND s.attivo = true
+        JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.configurazione_id = sc.configurazione_id
+        WHERE s.configurazione_id = $1 AND s.attivo = true
             ORDER BY 
                 CASE s.posizione
                     WHEN 'M1' THEN 1
@@ -5434,7 +5430,7 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
                     WHEN 'F3' THEN 10
                 END,
                 sc.numero
-        `, [sessione_id]);
+        `, [configurazioneId]);
 
         // Raggruppa giocatori per posizione
         const giocatoriPerPosizione = {
