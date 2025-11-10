@@ -3222,7 +3222,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 
                 if (squadreResult.rows.length > 0) {
                     const coloreSquadra = squadreResult.rows[0].colore;
-                    const slotId = `${risultato.posizione}_${coloreSquadra.toUpperCase()}`;
+                    const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
                     console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti (sessione: ${sessioneId})`);
 
@@ -3283,7 +3283,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
                 // Trova l'incontro per ottenere le squadre
                 const incontroResult = await db.query(`
-                    SELECT i.squadra1, i.squadra2 
+                    SELECT i.squadra1, i.squadra2, i.sessione_id
                     FROM incontri i 
                     WHERE i.id = $1`, [incontroId]
                 );
@@ -3305,12 +3305,12 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
-                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${sessioneId})`);
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${incontro.sessione_id})`);
 
-                        // TOGLIE i punti SOLO per questa sessione
+                        // TOGLIE i punti (usa sottrazione invece di addizione)
                         const updateResult = await db.query(
                             "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
-                            [risultato.punti_assegnati, slotId, sessioneId]
+                            [risultato.punti_assegnati, slotId, incontro.sessione_id]
                         );
 
                         if (updateResult.rows.length > 0) {
