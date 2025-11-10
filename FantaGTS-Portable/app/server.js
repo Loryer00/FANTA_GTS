@@ -2526,6 +2526,7 @@ app.get('/api/sessioni/:sessionId/partecipante/:nome', async (req, res) => {
 
         console.log(`✅ Partecipante trovato:`, result.rows[0]);
         res.json(result.rows[0]);
+
     } catch (err) {
         console.error('Errore API partecipante:', err);
         res.status(500).json({ error: err.message });
