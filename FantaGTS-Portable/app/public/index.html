@@ -2258,14 +2258,17 @@
         // SEZIONE INCONTRI
         // ========================================
         async function caricaTurniDisponibili() {
-            const select = document.getElementById('turniSelect');
-
             try {
                 console.log('📅 Caricamento turni disponibili...');
-                const response = await fetch('/api/turni');
+
+                // **NUOVO:** Aggiunge il parametro sessioneId
+                const sessioneId = sessioneCorrente.id;
+                if (!sessioneId) throw new Error("ID sessione non disponibile.");
+
+                const response = await fetch(`/api/turni?sessioneId=${sessioneId}`); // <-- CHIAMATA CORRETTA
 
                 if (!response.ok) {
-                    throw new Error('Errore caricamento turni');
+                    throw new Error(`Errore HTTP: ${response.status} - ${await response.text()}`);
                 }
 
                 const turni = await response.json();

@@ -1491,24 +1491,31 @@ app.get('/api/squadre-complete', async (req, res) => {
 // ==================== API INCONTRI ====================
 
 // API per turni
+// server.js (Trova la rotta GET /api/turni)
 app.get('/api/turni', async (req, res) => {
+    // 1. Estrai il sessioneId dalla query string
+    const { sessioneId } = req.query;
+
+    if (!sessioneId) {
+        // Se il parametro manca, restituisce il 400 Bad Request che vedi nel client
+        return res.status(400).send({ errore: 'Manca il parametro sessioneId' });
+    }
+
     try {
-        const configurazione = req.query.configurazione;
-
-        if (!configurazione) {
-            return res.status(400).json({ error: 'Parametro configurazione mancante' });
-        }
-
+        // 2. Query al database usando l'ID della sessione
         const result = await db.query(
-            "SELECT * FROM turni_configurazione WHERE attivo = true AND configurazione_id = $1 ORDER BY turno_numero",
-            [configurazione]
+            `SELECT t.id, t.nome, t.stato, t.data_inizio 
+             FROM turni t
+             JOIN sessioni s ON t.sessione_id = s.id
+             WHERE s.id = $1 
+             ORDER BY t.data_inizio DESC`,
+            [sessioneId] // Utilizza il sessioneId recuperato
         );
 
-        console.log(`✅ Caricati ${result.rows.length} turni per configurazione: ${configurazione}`);
         res.json(result.rows);
-    } catch (err) {
-        console.error('Errore API turni:', err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("Errore recupero turni:", error);
+        res.status(500).send({ errore: 'Errore interno del server' });
     }
 });
 
