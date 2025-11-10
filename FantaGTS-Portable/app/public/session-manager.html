@@ -571,6 +571,10 @@
         }
 
         function caricaSessione(id) {
+            // 🆕 PULISCI il localStorage per evitare conflitti con vecchie sessioni
+            localStorage.removeItem('userSession');
+            localStorage.removeItem('lastScreen');
+
             // Redirige al master con la sessione caricata
             window.location.href = `/master?sessione=${id}`;
         }
