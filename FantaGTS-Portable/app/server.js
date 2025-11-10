@@ -243,6 +243,7 @@ async function initializeDatabase() {
             risultato_coppia2 TEXT,
             completato BOOLEAN DEFAULT false,
             inserito_da TEXT,
+            sessione_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
         console.log('✅ Tabella incontri creata/verificata');
@@ -3305,12 +3306,12 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
-                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${incontro.sessione_id})`);
+                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId} (sessione: ${sessioneId})`);
 
                         // TOGLIE i punti (usa sottrazione invece di addizione)
                         const updateResult = await db.query(
                             "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 AND sessione_id = $3 RETURNING punti_totali",
-                            [risultato.punti_assegnati, slotId, incontro.sessione_id]
+                            [risultato.punti_assegnati, slotId, sessioneId]
                         );
 
                         if (updateResult.rows.length > 0) {
