@@ -487,15 +487,33 @@ async function updateDatabaseSchema() {
         // 6️⃣ 🆕 MODIFICA SLOTS: Ora collegati a configurazione_id
         await db.query(`ALTER TABLE slots ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
-        // Migra dati esistenti
-        await db.query(`
-            UPDATE slots sl
-            SET configurazione_id = COALESCE(
-                (SELECT configurazione_id FROM sessioni_fantagts WHERE id = sl.sessione_id),
-                'default'
-            )
-            WHERE configurazione_id IS NULL
+        // Verifica se sessione_id esiste ancora prima di usarla
+        const checkSessioneId = await db.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'slots' AND column_name = 'sessione_id'
         `);
+
+        // Migra dati esistenti SOLO se sessione_id esiste ancora
+        if (checkSessioneId.rows.length > 0) {
+            await db.query(`
+                UPDATE slots sl
+                SET configurazione_id = COALESCE(
+                    (SELECT configurazione_id FROM sessioni_fantagts WHERE id = sl.sessione_id),
+                    'default'
+                )
+                WHERE configurazione_id IS NULL
+            `);
+            console.log('✅ Dati slots migrati da sessione_id a configurazione_id');
+        } else {
+            // Se sessione_id non esiste, imposta tutti a 'default'
+            await db.query(`
+                UPDATE slots
+                SET configurazione_id = 'default'
+                WHERE configurazione_id IS NULL
+            `);
+            console.log('✅ Slots senza configurazione impostati a default');
+        }
 
         // Aggiungi foreign key
         await db.query(`ALTER TABLE slots DROP CONSTRAINT IF EXISTS fk_slots_configurazione`);
@@ -504,12 +522,15 @@ async function updateDatabaseSchema() {
             ADD CONSTRAINT fk_slots_configurazione 
             FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
         `);
+        console.log('✅ slots ora collegati a configurazioni');
 
-        // 🆕 RIMUOVI sessione_id da slots (campo obsoleto)
-        await db.query(`ALTER TABLE slots DROP COLUMN IF EXISTS sessione_id`);
-        console.log('✅ Campo sessione_id rimosso da slots');
+        // RIMUOVI sessione_id da slots (campo obsoleto) - SOLO se esiste
+        if (checkSessioneId.rows.length > 0) {
+            await db.query(`ALTER TABLE slots DROP COLUMN IF EXISTS sessione_id`);
+            console.log('✅ Campo sessione_id rimosso da slots');
+        }
 
-        // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Aggiungi sessione_id E configurazione_id
+        // 70 MODIFICA TURNI_CONFIGURAZIONE: Aggiungi sessione_id E configurazione_id
         await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
         await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS configurazione_id TEXT`);
 
