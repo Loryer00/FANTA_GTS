@@ -504,7 +504,10 @@ async function updateDatabaseSchema() {
             ADD CONSTRAINT fk_slots_configurazione 
             FOREIGN KEY (configurazione_id) REFERENCES configurazioni(id) ON DELETE CASCADE
         `);
-        console.log('✅ slots ora collegati a configurazioni');
+
+        // 🆕 RIMUOVI sessione_id da slots (campo obsoleto)
+        await db.query(`ALTER TABLE slots DROP COLUMN IF EXISTS sessione_id`);
+        console.log('✅ Campo sessione_id rimosso da slots');
 
         // 7️⃣ 🆕 MODIFICA TURNI_CONFIGURAZIONE: Aggiungi sessione_id E configurazione_id
         await db.query(`ALTER TABLE turni_configurazione ADD COLUMN IF NOT EXISTS sessione_id TEXT`);
@@ -3225,8 +3228,11 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
                 const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
 
-                // Trova i dettagli della squadra vincitrice
-                const squadreResult = await db.query("SELECT colore FROM squadre_circolo WHERE numero = $1", [squadraVincitrice]);
+                // Trova i dettagli della squadra vincitrice (filtrata per configurazione!)
+                const squadreResult = await db.query(
+                    "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
+                    [squadraVincitrice, configurazioneId]
+                );
 
                 if (squadreResult.rows.length > 0) {
                     const coloreSquadra = squadreResult.rows[0].colore;
@@ -3289,9 +3295,9 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
         for (const risultato of risultatiDaRimuovere.rows) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
 
-                // Trova l'incontro per ottenere le squadre
+                // Trova l'incontro per ottenere le squadre E la configurazione
                 const incontroResult = await db.query(`
-                    SELECT i.squadra1, i.squadra2, i.sessione_id
+                    SELECT i.squadra1, i.squadra2, i.configurazione_id
                     FROM incontri i 
                     WHERE i.id = $1`, [incontroId]
                 );
@@ -3303,10 +3309,10 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
                     const squadraVincitrice = risultato.vincitore === 1 ?
                         incontro.squadra1 : incontro.squadra2;
 
-                    // Trova il colore della squadra vincitrice
+                    // Trova il colore della squadra vincitrice (filtrata per configurazione!)
                     const squadreResult = await db.query(
-                        "SELECT colore FROM squadre_circolo WHERE numero = $1",
-                        [squadraVincitrice]
+                        "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
+                        [squadraVincitrice, incontro.configurazione_id]
                     );
 
                     if (squadreResult.rows.length > 0) {
