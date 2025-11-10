@@ -3214,6 +3214,13 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             [risultato_coppia1, risultato_coppia2, incontroId]);
 
         // Aggiorna punti nei slots (solo per i vincitori)
+        // 🔍 DEBUG: Verifica esistenza slots per questa sessione
+        const debugSlots = await db.query(
+            "SELECT id, squadra_numero, colore, posizione, sessione_id FROM slots WHERE sessione_id = $1 LIMIT 5",
+            [sessioneId]
+        );
+        console.log(`🔍 DEBUG: Trovati ${debugSlots.rows.length} slots per sessione ${sessioneId}:`, debugSlots.rows);
+
         for (const risultato of risultati) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
                 const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
