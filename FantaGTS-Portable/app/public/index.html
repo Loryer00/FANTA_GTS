@@ -2269,9 +2269,6 @@
                 // 1. Usa l'oggetto sessione completo salvato in sessioneOggetto
                 const sessioneObj = window.sessioneOggetto;
 
-                // I turni sono globali, non serve configurazione_id
-                const response = await fetch(`/api/turni`);
-
                 // 2. **CORREZIONE API: Passa 'configurazione'**
                 const response = await fetch(`/api/turni`);
 
