@@ -5510,20 +5510,27 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
         }
 
         const result = await db.query(`
-            SELECT posizione, giocatore, slot_id, numero_squadra_circolo, colore_squadra
-            FROM squadre_draft
-            WHERE partecipante_id = $1 AND sessione_id = $2
+            SELECT 
+                sd.posizione, 
+                sd.giocatore, 
+                sd.slot_id, 
+                sd.numero_squadra_circolo, 
+                sd.colore_squadra,
+                COALESCE(s.punti_totali, 0) as punti_totali
+            FROM squadre_draft sd
+            LEFT JOIN slots s ON sd.slot_id = s.id
+            WHERE sd.partecipante_id = $1 AND sd.sessione_id = $2
             ORDER BY CASE
-                WHEN posizione = 'M1' THEN 1
-                WHEN posizione = 'M2' THEN 2
-                WHEN posizione = 'M3' THEN 3
-                WHEN posizione = 'M4' THEN 4
-                WHEN posizione = 'M5' THEN 5
-                WHEN posizione = 'M6' THEN 6
-                WHEN posizione = 'M7' THEN 7
-                WHEN posizione = 'F1' THEN 8
-                WHEN posizione = 'F2' THEN 9
-                WHEN posizione = 'F3' THEN 10
+                WHEN sd.posizione = 'M1' THEN 1
+                WHEN sd.posizione = 'M2' THEN 2
+                WHEN sd.posizione = 'M3' THEN 3
+                WHEN sd.posizione = 'M4' THEN 4
+                WHEN sd.posizione = 'M5' THEN 5
+                WHEN sd.posizione = 'M6' THEN 6
+                WHEN sd.posizione = 'M7' THEN 7
+                WHEN sd.posizione = 'F1' THEN 8
+                WHEN sd.posizione = 'F2' THEN 9
+                WHEN sd.posizione = 'F3' THEN 10
                 ELSE 11
             END
         `, [partecipanteId, sessione_id]);
@@ -5540,7 +5547,8 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
                 giocatore: riga.giocatore,
                 slotId: riga.slot_id,
                 coloreSquadra: riga.colore_squadra,
-                numeroSquadra: riga.numero_squadra_circolo
+                numeroSquadra: riga.numero_squadra_circolo,
+                puntiTotali: riga.punti_totali
             };
         });
 
