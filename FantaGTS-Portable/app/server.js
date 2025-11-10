@@ -1491,7 +1491,6 @@ app.get('/api/squadre-complete', async (req, res) => {
 // ==================== API INCONTRI ====================
 
 // API per turni
-// server.js (Trova la rotta GET /api/turni)
 app.get('/api/turni', async (req, res) => {
     // 1. Estrai il sessioneId dalla query string
     const { sessioneId } = req.query;

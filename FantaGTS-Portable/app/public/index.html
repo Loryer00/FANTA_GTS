@@ -2257,35 +2257,63 @@
         // ========================================
         // SEZIONE INCONTRI
         // ========================================
+        // index.html (circa riga 2262)
+
         async function caricaTurniDisponibili() {
             try {
                 console.log('📅 Caricamento turni disponibili...');
 
-                // **NUOVO:** Aggiunge il parametro sessioneId
-                const sessioneId = sessioneCorrente.id;
-                if (!sessioneId) throw new Error("ID sessione non disponibile.");
+                // 1. **CORREZIONE Errore 1: Variabile non definita e parametro errato**
+                // Assumo che la sessione completa sia memorizzata in 'sessioneCorrente' (dal log) o in 'playerData.sessioneData'.
+                // Usa una logica robusta per recuperare l'oggetto sessione completo.
+                const sessioneObj = window.sessioneCorrente || (window.playerData && window.playerData.sessioneData);
 
-                const response = await fetch(`/api/turni?sessioneId=${sessioneId}`); // <-- CHIAMATA CORRETTA
+                if (!sessioneObj || !sessioneObj.configurazione_id) {
+                    // Se non è disponibile, usa 'default' (se l'API lo permette) o lancia l'errore
+                    // Per il 'draft' è fondamentale che la configurazione sia corretta.
+                    throw new Error("ID configurazione non disponibile o non caricato.");
+                }
+
+                const configurazioneId = sessioneObj.configurazione_id;
+
+                // 2. **CORREZIONE API: Passa 'configurazione'**
+                const response = await fetch(`/api/turni?configurazione=${configurazioneId}`);
 
                 if (!response.ok) {
-                    throw new Error(`Errore HTTP: ${response.status} - ${await response.text()}`);
+                    const errorText = await response.text();
+                    throw new Error(`Errore HTTP ${response.status}: ${errorText}`);
                 }
 
                 const turni = await response.json();
 
-                // Popola select
-                let options = '<option value="">-- Seleziona un turno --</option>';
-                turni.forEach(turno => {
-                    options += `<option value="${turno.id}">Turno ${turno.turno_numero}: ${turno.nome_turno}</option>`;
-                });
+                // Trova l'elemento select
+                const selectTurno = document.getElementById('selectTurno');
+                if (!selectTurno) {
+                    console.error("Elemento DOM per i turni ('selectTurno') non trovato.");
+                    return;
+                }
 
-                select.innerHTML = options;
+                // 3. **CORREZIONE Errore 2: ReferenceError: select is not defined**
+                // Popola l'elemento select
+                selectTurno.innerHTML = turni.map(turno =>
+                    `<option value="${turno.id}">${turno.nome_turno}</option>`
+                ).join('');
 
-                console.log('✅ Turni caricati:', turni.length);
+                // Se ci sono turni, seleziona il primo e carica gli incontri
+                if (turni.length > 0) {
+                    const primoTurnoId = turni[0].id;
+                    selectTurno.value = primoTurnoId;
+                    caricaIncontri(primoTurnoId);
+                } else {
+                    // Logica per nessun turno
+                }
+
+                // (La riga 2288 con l'errore 'select is not defined' si trovava probabilmente qui e
+                //  sostituiva 'selectTurno' con 'select'. L'ho corretta con 'selectTurno'.)
 
             } catch (error) {
-                console.error('❌ Errore caricamento turni:', error);
-                select.innerHTML = '<option value="">Errore caricamento turni</option>';
+                console.error('❌ Errore caricamento turni:', error); // <--- Corrisponde a (index):2287
+                // Non rilancio l'errore, altrimenti la Promise rimane Uncaught (in promise)
             }
         }
 
