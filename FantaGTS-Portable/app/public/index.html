@@ -2269,14 +2269,11 @@
                 // 1. Usa l'oggetto sessione completo salvato in sessioneOggetto
                 const sessioneObj = window.sessioneOggetto;
 
-                if (!sessioneObj || !sessioneObj.configurazione_id) {
-                    throw new Error("ID configurazione non disponibile o non caricato.");
-                }
-
-                const configurazioneId = sessioneObj.configurazione_id;
+                // I turni sono globali, non serve configurazione_id
+                const response = await fetch(`/api/turni`);
 
                 // 2. **CORREZIONE API: Passa 'configurazione'**
-                const response = await fetch(`/api/turni?configurazione=${configurazioneId}`);
+                const response = await fetch(`/api/turni`);
 
                 if (!response.ok) {
                     const errorText = await response.text();

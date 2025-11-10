@@ -1652,7 +1652,7 @@
                 const response = await fetch(`/api/coppie-turno/${turnoId}`);
                 const coppie = await response.json();
 
-                const container = document.getElementById('coppieConfigurate');
+                const container = document.getElementById('accoppiamentiConfigurati');
                 container.innerHTML = '';
 
                 if (coppie.length === 0) {
