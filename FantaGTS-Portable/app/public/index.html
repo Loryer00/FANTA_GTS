@@ -1226,6 +1226,7 @@
                     throw new Error('Impossibile caricare i dati della sessione');
                 }
                 const sessioneData = await sessioneResponse.json();
+                sessioneOggetto = sessioneData;
                 console.log('📊 Sessione caricata:', sessioneData);
 
                 if (partecipanteResponse.ok) {
