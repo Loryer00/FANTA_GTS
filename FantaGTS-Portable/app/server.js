@@ -3249,7 +3249,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     if (updateResult.rows.length === 0) {
                         console.warn(`⚠️ Slot ${slotId} non trovato!`);
                     } else {
-                        console.warn(`⚠️ Slot ${slotId} non trovato!`);
+                        console.log(`✅ Slot ${slotId} aggiornato. Punti totali: ${updateResult.rows[0].punti_totali}`);
                     }
                 }
             }
@@ -3291,47 +3291,49 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
         console.log(`📋 Trovati ${risultatiDaRimuovere.rows.length} risultati da rimuovere:`, risultatiDaRimuovere.rows);
 
+        // 🚀 OTTIMIZZAZIONE: Carica l'incontro UNA SOLA VOLTA (non per ogni risultato)
+        const incontroResult = await db.query(`
+            SELECT i.squadra1, i.squadra2, i.configurazione_id
+            FROM incontri i 
+            WHERE i.id = $1`, [incontroId]
+        );
+
+        if (incontroResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Incontro non trovato' });
+        }
+
+        const incontro = incontroResult.rows[0];
+
         // 2. Per ogni risultato, togliamo i punti dalla tabella slots
         for (const risultato of risultatiDaRimuovere.rows) {
             if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
 
-                // Trova l'incontro per ottenere le squadre E la configurazione
-                const incontroResult = await db.query(`
-                    SELECT i.squadra1, i.squadra2, i.configurazione_id
-                    FROM incontri i 
-                    WHERE i.id = $1`, [incontroId]
+                // Determina quale squadra ha vinto
+                const squadraVincitrice = risultato.vincitore === 1 ?
+                    incontro.squadra1 : incontro.squadra2;
+
+                // Trova il colore della squadra vincitrice (filtrata per configurazione!)
+                const squadreResult = await db.query(
+                    "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
+                    [squadraVincitrice, incontro.configurazione_id]
                 );
 
-                if (incontroResult.rows.length > 0) {
-                    const incontro = incontroResult.rows[0];
+                if (squadreResult.rows.length > 0) {
+                    const coloreSquadra = squadreResult.rows[0].colore;
+                    const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
 
-                    // Determina quale squadra ha vinto
-                    const squadraVincitrice = risultato.vincitore === 1 ?
-                        incontro.squadra1 : incontro.squadra2;
+                    console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
 
-                    // Trova il colore della squadra vincitrice (filtrata per configurazione!)
-                    const squadreResult = await db.query(
-                        "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
-                        [squadraVincitrice, incontro.configurazione_id]
+                    // TOGLIE i punti (usa sottrazione invece di addizione)
+                    const updateResult = await db.query(
+                        "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
+                        [risultato.punti_assegnati, slotId]
                     );
 
-                    if (squadreResult.rows.length > 0) {
-                        const coloreSquadra = squadreResult.rows[0].colore;
-                        const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
-
-                        console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
-
-                        // TOGLIE i punti (usa sottrazione invece di addizione)
-                        const updateResult = await db.query(
-                            "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
-                            [risultato.punti_assegnati, slotId]
-                        );
-
-                        if (updateResult.rows.length > 0) {
-                            console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
-                        } else {
-                            console.warn(`⚠️ Slot ${slotId} non trovato!`);
-                        }
+                    if (updateResult.rows.length > 0) {
+                        console.log(`✅ Slot ${slotId} aggiornato. Punti rimanenti: ${updateResult.rows[0].punti_totali}`);
+                    } else {
+                        console.warn(`⚠️ Slot ${slotId} non trovato!`);
                     }
                 }
             }
@@ -3340,7 +3342,7 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
         // 3. Ora elimina i risultati dettaglio
         await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
 
-        // 4. Reset stato incontro - SENZA squadra_vincente
+        // 4. Reset stato incontro
         await db.query(`UPDATE incontri 
             SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
             WHERE id = $1`, [incontroId]);
