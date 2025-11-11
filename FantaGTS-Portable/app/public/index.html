@@ -2318,8 +2318,26 @@
                     return;
                 }
 
+                // Ottieni configurazione_id dalla sessione
+                let configurazioneId = null;
+                if (sessioneOggetto && sessioneOggetto.configurazione_id) {
+                    configurazioneId = sessioneOggetto.configurazione_id;
+                } else {
+                    // Fallback: carica dalla sessione
+                    const sessioneResp = await fetch(`/api/sessioni/${sessioneCorrente}`);
+                    if (sessioneResp.ok) {
+                        const sessioneData = await sessioneResp.json();
+                        configurazioneId = sessioneData.configurazione_id;
+                    }
+                }
+
+                if (!configurazioneId) {
+                    throw new Error('Impossibile determinare la configurazione della sessione');
+                }
+
+                console.log('📡 Configurazione:', configurazioneId);
+
                 // Carica squadre con giocatori passando la sessione
-                console.log('📡 Caricamento squadre per sessione:', sessioneCorrente);
                 const responseSquadre = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneCorrente}`);
                 if (!responseSquadre.ok) {
                     const errorText = await responseSquadre.text();
@@ -2328,12 +2346,14 @@
                 const squadre = await responseSquadre.json();
                 console.log('✅ Squadre caricate:', squadre.length);
 
-                // Carica incontri del turno
-                const responseIncontri = await fetch(`/api/incontri-turno/${turnoId}`);
+                // Carica incontri del turno passando la configurazione
+                const responseIncontri = await fetch(`/api/incontri-turno/${turnoId}?configurazione=${configurazioneId}`);
                 if (!responseIncontri.ok) {
-                    throw new Error('Errore caricamento incontri');
+                    const errorText = await responseIncontri.text();
+                    throw new Error(`Errore caricamento incontri: ${responseIncontri.status} - ${errorText}`);
                 }
                 const incontri = await responseIncontri.json();
+                console.log('✅ Incontri caricati:', incontri.length);
 
                 if (incontri.length === 0) {
                     container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessun incontro generato per questo turno</p>';
@@ -2347,7 +2367,7 @@
                 const overviewHtml = creaOverviewCompattoHtml(incontriRaggruppati);
                 container.innerHTML = overviewHtml;
 
-                console.log('✅ Incontri caricati con overview compatto:', incontri.length);
+                console.log('✅ Incontri visualizzati con overview compatto');
 
             } catch (error) {
                 console.error('❌ Errore caricamento incontri:', error);
