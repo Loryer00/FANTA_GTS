@@ -2312,12 +2312,21 @@
             try {
                 console.log('⚽ Caricamento incontri per turno:', turnoId);
 
-                // Carica squadre con giocatori
-                const responseSquadre = await fetch('/api/squadre-con-giocatori');
+                // Verifica che ci sia una sessione corrente
+                if (!sessioneCorrente) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">⚠️ Nessuna sessione attiva. Ricarica la pagina.</p>';
+                    return;
+                }
+
+                // Carica squadre con giocatori passando la sessione
+                console.log('📡 Caricamento squadre per sessione:', sessioneCorrente);
+                const responseSquadre = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneCorrente}`);
                 if (!responseSquadre.ok) {
-                    throw new Error('Errore caricamento squadre');
+                    const errorText = await responseSquadre.text();
+                    throw new Error(`Errore caricamento squadre: ${responseSquadre.status} - ${errorText}`);
                 }
                 const squadre = await responseSquadre.json();
+                console.log('✅ Squadre caricate:', squadre.length);
 
                 // Carica incontri del turno
                 const responseIncontri = await fetch(`/api/incontri-turno/${turnoId}`);
@@ -2342,7 +2351,7 @@
 
             } catch (error) {
                 console.error('❌ Errore caricamento incontri:', error);
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento incontri</p>';
+                container.innerHTML = `<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento incontri<br><small>${error.message}</small></p>`;
             }
         }
 
