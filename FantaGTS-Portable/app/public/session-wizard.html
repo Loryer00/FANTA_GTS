@@ -115,6 +115,64 @@
                 font-weight: bold;
             }
 
+        /* Stili per le card delle configurazioni */
+        .config-card {
+            position: relative;
+            padding: 20px;
+            border: 2px solid #4a5568;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+            .config-card:hover {
+                border-color: #4299e1;
+                background: rgba(255,255,255,0.08);
+            }
+
+            .config-card.selected {
+                border-color: #48bb78;
+                background: rgba(72, 187, 120, 0.15);
+            }
+
+        /* Pulsante elimina configurazione */
+        .delete-config-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #e53e3e;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            z-index: 10;
+            opacity: 0;
+        }
+
+        .config-card:hover .delete-config-btn {
+            opacity: 1;
+        }
+
+        .delete-config-btn:hover {
+            background: #c53030;
+            transform: scale(1.1);
+        }
+
+        .delete-config-btn:active {
+            transform: scale(0.95);
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 32px;
+        }
+
         /* Wizard Content */
         .wizard-content {
             background: rgba(255,255,255,0.08);
@@ -589,53 +647,46 @@
                 </div>
             </div>
 
-            <!-- STEP 4: Configurazione Squadre -->
+            <!-- STEP 4: Squadre Circolo -->
             <div class="step-content" id="step4">
                 <h2 class="step-title">🏆 Configurazione Squadre</h2>
                 <p class="step-description">Scegli come configurare le squadre per questa sessione</p>
 
                 <div class="form-group">
                     <label>Vuoi usare una configurazione esistente?</label>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <button class="btn btn-primary" onclick="scegliNuovaConfigurazione()" id="btnNuovaConfig">
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="mostraOpzioneNuova()">
                             ✨ Crea Nuova Configurazione
                         </button>
-                        <button class="btn btn-secondary" onclick="scegliConfigurazioneEsistente()" id="btnConfigEsistente">
+                        <button class="btn btn-secondary" onclick="mostraOpzioneEsistente()">
                             📋 Usa Configurazione Esistente
                         </button>
                     </div>
                 </div>
 
-                <!-- Sezione: Nuova Configurazione -->
-                <div id="sezNuovaConfig" style="display: none; margin-top: 25px;">
-                    <h3>✨ Nuova Configurazione</h3>
-                    <p>Crea una nuova configurazione di squadre che potrai riutilizzare in altre sessioni</p>
-
-                    <div class="form-group">
-                        <label>Nome Configurazione *</label>
-                        <input type="text" id="nomeConfigurazione" placeholder="es: Campionato 2025">
-                        <div class="form-hint">Questo nome identifica il set di squadre</div>
+                <!-- Lista configurazioni esistenti -->
+                <div id="configurazioniContainer" style="display: none;">
+                    <h3>📋 Seleziona Configurazione</h3>
+                    <p style="color: #cbd5e0; margin-bottom: 15px;">
+                        Usa una configurazione già esistente (Squadre e giocatori già configurati)
+                    </p>
+                    <div id="configurazioniList">
+                        <!-- Le configurazioni verranno caricate qui dinamicamente -->
                     </div>
+                </div>
 
+                <!-- Opzione nuova configurazione -->
+                <div id="nuovaConfigContainer" style="display: none;">
                     <div class="form-group">
                         <label>Numero Squadre *</label>
-                        <input type="number" id="numeroSquadreConfig" min="2" max="20" value="10">
+                        <input type="number" id="numeroSquadre" min="2" max="20" value="10"
+                               onchange="calcolaCondivisionePreview()">
                         <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
                     </div>
 
                     <div class="alert-box alert-info">
-                        <strong>ℹ️ Nota:</strong> Dopo aver creato la sessione, potrai configurare nel dettaglio
-                        ogni squadra con i suoi giocatori tramite la pagina di Setup.
-                    </div>
-                </div>
-
-                <!-- Sezione: Configurazione Esistente -->
-                <div id="sezConfigEsistente" style="display: none; margin-top: 25px;">
-                    <h3>📋 Seleziona Configurazione</h3>
-                    <p>Usa una configurazione già esistente (squadre e giocatori già configurati)</p>
-
-                    <div id="listaConfigurazioni" style="margin-top: 15px;">
-                        <!-- Le configurazioni verranno caricate qui -->
+                        <strong>ℹ️ Nota:</strong> Dopo la creazione della sessione, potrai configurare in dettaglio
+                        ogni squadra con i suoi giocatori utilizzando l'interfaccia di setup.
                     </div>
                 </div>
 
@@ -643,6 +694,44 @@
                     <!-- Preview condivisione -->
                 </div>
             </div>
+
+            <!-- Sezione: Nuova Configurazione -->
+            <div id="sezNuovaConfig" style="display: none; margin-top: 25px;">
+                <h3>✨ Nuova Configurazione</h3>
+                <p>Crea una nuova configurazione di squadre che potrai riutilizzare in altre sessioni</p>
+
+                <div class="form-group">
+                    <label>Nome Configurazione *</label>
+                    <input type="text" id="nomeConfigurazione" placeholder="es: Campionato 2025">
+                    <div class="form-hint">Questo nome identifica il set di squadre</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Numero Squadre *</label>
+                    <input type="number" id="numeroSquadreConfig" min="2" max="20" value="10">
+                    <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
+                </div>
+
+                <div class="alert-box alert-info">
+                    <strong>ℹ️ Nota:</strong> Dopo aver creato la sessione, potrai configurare nel dettaglio
+                    ogni squadra con i suoi giocatori tramite la pagina di Setup.
+                </div>
+            </div>
+
+            <!-- Sezione: Configurazione Esistente -->
+            <div id="sezConfigEsistente" style="display: none; margin-top: 25px;">
+                <h3>📋 Seleziona Configurazione</h3>
+                <p>Usa una configurazione già esistente (squadre e giocatori già configurati)</p>
+
+                <div id="listaConfigurazioni" style="margin-top: 15px;">
+                    <!-- Le configurazioni verranno caricate qui -->
+                </div>
+            </div>
+
+            <div id="condivisionePreview" class="alert-box alert-warning" style="display: none;">
+                <!-- Preview condivisione -->
+            </div>
+        </div>
 
             <!-- STEP 5: Riepilogo -->
             <div class="step-content" id="step5">
@@ -767,6 +856,54 @@
             if (currentStep > 1) {
                 currentStep--;
                 updateWizard();
+            }
+        }
+
+        // Funzione per eliminare una configurazione
+        async function eliminaConfigurazione(configId, configNome, event) {
+            // Previene la selezione della card quando si clicca sul pulsante elimina
+            event.stopPropagation();
+
+            // Conferma eliminazione
+            const conferma = confirm(
+                `⚠️ ATTENZIONE!\n\n` +
+                `Stai per eliminare la configurazione:\n"${configNome}"\n\n` +
+                `Questa azione eliminerà:\n` +
+                `• La configurazione\n` +
+                `• Tutte le squadre associate\n` +
+                `• Tutti i turni e incontri collegati\n\n` +
+                `Le sessioni attive che usano questa configurazione NON potranno essere eliminate.\n\n` +
+                `Sei sicuro di voler procedere?`
+            );
+
+            if (!conferma) {
+                return;
+            }
+
+            try {
+                console.log(`🗑️ Eliminazione configurazione: ${configId}`);
+
+                const response = await fetch(`/api/configurazioni/${configId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Errore durante l\'eliminazione');
+                }
+
+                console.log('✅ Configurazione eliminata con successo');
+                showSuccess(`✅ Configurazione "${configNome}" eliminata con successo!`);
+
+                // Ricarica la lista delle configurazioni
+                await caricaConfigurazioni();
+
+            } catch (error) {
+                console.error('❌ Errore eliminazione configurazione:', error);
+                showError(`❌ ${error.message}`);
             }
         }
 
@@ -1173,21 +1310,30 @@
             configurazioniDisponibili.forEach(config => {
                 const isSelected = configurazioneSelezionataId === config.id;
 
+                // Pulsante elimina (solo se non è la configurazione default)
+                let deleteButton = '';
+                if (config.id !== 'default') {
+                    deleteButton = `
+                        <button class="delete-config-btn" 
+                                onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
+                                title="Elimina configurazione">
+                            🗑️
+                        </button>
+                    `;
+                }
+
+                // Checkmark se selezionata
+                const checkmark = isSelected ? '<div class="checkmark" style="position: absolute; top: 15px; right: 15px; font-size: 32px;">✅</div>' : '';
+
                 html += `
             <div class="config-card ${isSelected ? 'selected' : ''}" 
-                 onclick="selezionaConfigurazione('${config.id}')"
-                 style="
-                     border: 2px solid ${isSelected ? '#4299e1' : '#2d3748'};
-                     background: ${isSelected ? 'rgba(66, 153, 225, 0.1)' : 'rgba(45, 55, 72, 0.3)'};
-                     padding: 15px;
-                     border-radius: 10px;
-                     cursor: pointer;
-                     transition: all 0.3s ease;
-                 ">
+                 onclick="selezionaConfigurazione('${config.id}')">
+                ${deleteButton}
+                ${checkmark}
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <div>
                         <h4 style="margin: 0 0 8px 0; color: #4299e1; font-size: 1.1em;">
-                            ${isSelected ? '✅ ' : ''}${config.nome}
+                            ${config.nome}
                         </h4>
                         <p style="margin: 5px 0; color: #a0aec0; font-size: 0.9em;">
                             ${config.anno ? `📅 Anno: ${config.anno}` : ''} 
@@ -1198,7 +1344,6 @@
                             <span style="color: #f6ad55;">🎮 ${config.sessioni_collegate} sessioni</span>
                         </div>
                     </div>
-                    ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
                 </div>
             </div>
         `;
@@ -1223,6 +1368,51 @@
             }
 
             renderListaConfigurazioni();
+        }
+
+        renderListaConfigurazioni();
+        }
+
+        // Elimina configurazione
+        async function eliminaConfigurazione(configId, configNome, event) {
+            event.stopPropagation();
+
+            const conferma = confirm(
+                `⚠️ ATTENZIONE!\n\n` +
+                `Stai per eliminare la configurazione:\n"${configNome}"\n\n` +
+                `Questa azione eliminerà:\n` +
+                `• La configurazione\n` +
+                `• Tutte le squadre associate\n` +
+                `• Tutti i turni e incontri collegati\n\n` +
+                `Le sessioni attive che usano questa configurazione NON potranno essere eliminate.\n\n` +
+                `Sei sicuro di voler procedere?`
+            );
+
+            if (!conferma) return;
+
+            try {
+                console.log(`🗑️ Eliminazione configurazione: ${configId}`);
+
+                const response = await fetch(`/api/configurazioni/${configId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Errore durante l\'eliminazione');
+                }
+
+                console.log('✅ Configurazione eliminata');
+                showSuccess(`✅ Configurazione "${configNome}" eliminata!`);
+
+                // Ricarica e re-renderizza
+                await caricaConfigurazioni();
+                renderListaConfigurazioni();
+
+            } catch (error) {
+                console.error('❌ Errore:', error);
+                showError(`❌ ${error.message}`);
+            }
         }
 
         function showLoading() {
