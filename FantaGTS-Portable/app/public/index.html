@@ -2280,29 +2280,18 @@
                 const turni = await response.json();
 
                 // Trova l'elemento select
-                const selectTurno = document.getElementById('selectTurno');
+                const selectTurno = document.getElementById('turniSelect'); // <-- CORRETTO: era 'selectTurno'
                 if (!selectTurno) {
-                    console.error("Elemento DOM per i turni ('selectTurno') non trovato.");
+                    console.error("Elemento DOM per i turni ('turniSelect') non trovato.");
                     return;
                 }
 
-                // 3. **CORREZIONE Errore 2: ReferenceError: select is not defined**
                 // Popola l'elemento select
-                selectTurno.innerHTML = turni.map(turno =>
+                selectTurno.innerHTML = '<option value="">-- Seleziona un turno --</option>' + turni.map(turno =>
                     `<option value="${turno.id}">${turno.nome_turno}</option>`
                 ).join('');
 
-                // Se ci sono turni, seleziona il primo e carica gli incontri
-                if (turni.length > 0) {
-                    const primoTurnoId = turni[0].id;
-                    selectTurno.value = primoTurnoId;
-                    caricaIncontri(primoTurnoId);
-                } else {
-                    // Logica per nessun turno
-                }
-
-                // (La riga 2288 con l'errore 'select is not defined' si trovava probabilmente qui e
-                //  sostituiva 'selectTurno' con 'select'. L'ho corretta con 'selectTurno'.)
+                console.log('✅ Turni caricati nel select:', turni.length);
 
             } catch (error) {
                 console.error('❌ Errore caricamento turni:', error); // <--- Corrisponde a (index):2287
