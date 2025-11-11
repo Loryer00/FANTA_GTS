@@ -656,6 +656,163 @@
                 color: #a0aec0;
                 border: 1px solid rgba(255, 255, 255, 0.15);
             }
+
+        /* ========== MEDIA QUERIES PER MOBILE ========== */
+        @media (max-width: 768px) {
+            /* Assicura che il body copra tutto lo schermo */
+            body {
+                min-height: 100vh;
+                height: 100%;
+                background-attachment: fixed;
+                background-size: cover;
+                padding: 10px;
+            }
+
+            /* Container principale */
+            .container {
+                max-width: 100%;
+                padding: 0 5px;
+            }
+
+            /* Header più compatto su mobile */
+            .header {
+                padding: 15px 10px;
+                margin-bottom: 15px;
+            }
+
+                .header h1 {
+                    font-size: 1.8em;
+                }
+
+            /* Sezioni con padding ridotto */
+            .section {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            /* INCONTRI: layout responsive */
+            .scontro-box {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+
+            .scontro-header {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .squadra-badge {
+                padding: 6px 10px;
+                font-size: 0.8em;
+                min-width: auto;
+            }
+
+            /* Overview compatto per incontri */
+            .overview-compatto-container {
+                padding: 12px;
+            }
+
+            .overview-box-container {
+                gap: 10px;
+            }
+
+            .scontro-overview-box {
+                padding: 10px;
+            }
+
+            .squadra-mini {
+                padding: 6px 10px;
+                font-size: 0.75em;
+            }
+
+            /* Incontri mini grid - scroll orizzontale */
+            .incontri-mini-grid {
+                gap: 4px;
+                padding-bottom: 5px;
+            }
+
+            .incontro-mini {
+                min-width: 60px;
+                padding: 6px 3px;
+                font-size: 0.65em;
+            }
+
+            /* Progress bar responsive */
+            .progress-container {
+                gap: 6px;
+            }
+
+            .progress-text {
+                font-size: 0.75em;
+                min-width: 30px;
+            }
+
+            /* Stats line */
+            .stats-line {
+                font-size: 0.8em;
+            }
+
+            /* Selettore turni */
+            .turni-select {
+                padding: 10px;
+                font-size: 0.95em;
+            }
+
+            /* Bottom nav - assicura che sia sempre visibile */
+            .bottom-nav {
+                padding: 6px 3px;
+            }
+
+            .bottom-nav-btn .icon {
+                font-size: 1.3em;
+            }
+
+            .bottom-nav-btn .label {
+                font-size: 0.65em;
+            }
+
+            /* Spazio per bottom navigation */
+            .content-with-bottom-nav {
+                padding-bottom: 75px;
+            }
+        }
+
+        /* Media query specifico per schermi molto piccoli */
+        @media (max-width: 380px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 0 3px;
+            }
+
+            .section {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .squadra-mini {
+                font-size: 0.7em;
+                padding: 5px 8px;
+            }
+
+            .incontro-mini {
+                min-width: 55px;
+                font-size: 0.6em;
+            }
+
+            .bottom-nav-btn .icon {
+                font-size: 1.2em;
+            }
+
+            .bottom-nav-btn .label {
+                font-size: 0.6em;
+            }
+        }
     </style>
 </head>
 <body class="loading">
