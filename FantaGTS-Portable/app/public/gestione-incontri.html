@@ -1124,7 +1124,7 @@
                         <p>Punti vittoria: ${turno.punti_vittoria || 1}</p>
                         ${turno.descrizione ? `<p>${turno.descrizione}</p>` : ''}
                         <div style="margin-top: 10px;">
-                            <button class="btn btn-primary" onclick="caricaCoppieDelTurno(${turno.id}, ${turno.turno_numero})">
+                             <button class="btn btn-primary" onclick="mostraGestioneCoppie(${turno.id}, ${turno.turno_numero}, '${turno.nome_turno}')">
                                 📋 Gestisci Coppie
                             </button>
                             <button class="btn btn-secondary" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')">
@@ -1643,6 +1643,41 @@
             } catch (error) {
                 console.error('Errore eliminazione turno:', error);
                 showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Mostra la sezione di gestione coppie per un turno
+        async function mostraGestioneCoppie(turnoId, turnoNumero, nomeTurno) {
+            try {
+                // Salva il turno selezionato
+                turnoSelezionato = turnoId;
+
+                // Carica le squadre se non sono già caricate
+                if (squadreDisponibili.length === 0) {
+                    await caricaSquadre();
+                }
+
+                // Carica le coppie del turno
+                await caricaCoppieDelTurno(turnoId);
+
+                // Mostra la sezione di gestione
+                const sezioneGestione = document.getElementById('sezioneCoppie');
+                if (sezioneGestione) {
+                    sezioneGestione.style.display = 'block';
+                    sezioneGestione.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                // Aggiorna il titolo della sezione
+                const titoloSezione = document.querySelector('#sezioneCoppie h2');
+                if (titoloSezione) {
+                    titoloSezione.textContent = `🎯 Gestione Coppie - Turno ${turnoNumero}: ${nomeTurno}`;
+                }
+
+                showNotification(`Caricamento coppie per Turno ${turnoNumero}`, 'success');
+
+            } catch (error) {
+                console.error('Errore apertura gestione coppie:', error);
+                showNotification('Errore caricamento sezione coppie', 'error');
             }
         }
 
