@@ -2396,7 +2396,17 @@
         }
 
         function vaiAIncontri() {
-            window.location.href = '/incontri';
+            // Costruisci URL con sessione o configurazione
+            let url = '/incontri';
+
+            if (sessioneCorrente) {
+                url += `?sessione=${sessioneCorrente}`;
+            } else if (configurazioneCorrente) {
+                url += `?configurazione=${configurazioneCorrente}`;
+            }
+
+            console.log(`🔗 Navigando a incontri:`, url);
+            window.location.href = url;
         }
     </script>
 </body>
