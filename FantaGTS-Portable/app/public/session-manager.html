@@ -371,7 +371,7 @@
                     <h1>ðŸŽ¾ FantaGTS - Gestione Sessioni</h1>
                     <p>Crea, gestisci e monitora le tue sessioni di fantasy tennis</p>
                 </div>
-                <a href="/archivio-sessioni.html" class="archive-link">ðŸ"¦ Archivio</a>
+                <a href="/archivio-sessioni.html" class="archive-link">Archivio</a>
             </div>
         </div>
 
@@ -442,19 +442,22 @@
             try {
                 const response = await fetch('/api/sessioni');
                 if (!response.ok) throw new Error('Errore caricamento sessioni');
-
                 sessioni = await response.json();
+
+                // Filtra via le sessioni archiviate
+                sessioni = sessioni.filter(s => s.stato !== 'archiviata');
+
                 sessioniFiltrate = sessioni;
                 mostraSessioni();
             } catch (error) {
                 console.error('Errore:', error);
                 document.getElementById('sessionsList').innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">⚠️</div>
-                            <h3>Errore di caricamento</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3>Errore di caricamento</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
             }
         }
 
