@@ -1,0 +1,607 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FantaGTS - Archivio Sessioni</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3EðŸŽ¾%3C/text%3E%3C/svg%3E">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                color: #f59e0b;
+            }
+
+            .header p {
+                color: #cbd5e0;
+                font-size: 1.1em;
+            }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+            .back-button:hover {
+                background: rgba(255,255,255,0.2);
+                transform: translateX(-5px);
+            }
+
+        .section {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+            .section h2 {
+                margin-bottom: 20px;
+                color: #f59e0b;
+                border-bottom: 2px solid #f59e0b;
+                padding-bottom: 10px;
+                font-size: 1.5em;
+            }
+
+        .info-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #fbbf24;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: #3182ce;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+            .btn-danger:hover {
+                background: #e53e3e;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+            }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+            .btn-warning:hover {
+                background: #d97706;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .session-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+            .session-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+                border-color: #f59e0b;
+            }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .session-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .session-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-asta {
+            background: #4299e1;
+            color: white;
+        }
+
+        .badge-draft {
+            background: #9f7aea;
+            color: white;
+        }
+
+        .badge-archiviata {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .session-info {
+            margin: 15px 0;
+            font-size: 0.95em;
+            color: #cbd5e0;
+        }
+
+            .session-info p {
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .session-info strong {
+                color: #e2e8f0;
+            }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #cbd5e0;
+            margin-top: 5px;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+
+            .empty-state h3 {
+                font-size: 2em;
+                margin-bottom: 15px;
+                color: #cbd5e0;
+            }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4299e1;
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+            color: #cbd5e0;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #cbd5e0;
+            font-size: 1.2em;
+        }
+
+            .loading::after {
+                content: '...';
+                animation: dots 1.5s steps(4, end) infinite;
+            }
+
+        @keyframes dots {
+            0%, 20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%, 100% {
+                content: '...';
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/session-manager.html" class="back-button">â†� Torna alla Gestione Sessioni</a>
+
+        <div class="header">
+            <h1>ðŸ"¦ Archivio Sessioni</h1>
+            <p>Consulta le sessioni archiviate o eliminale definitivamente</p>
+        </div>
+
+        <div class="info-box">
+            <strong>âš ï¸ Attenzione:</strong> Le sessioni archiviate sono disattivate ma conservano tutti i dati.
+            Puoi consultarle o eliminarle definitivamente se non ti servono più.
+        </div>
+
+        <div class="section">
+            <h2>ðŸ"‚ Sessioni Archiviate</h2>
+            <div id="sessionsContainer" class="loading">
+                Caricamento sessioni archiviate
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Conferma -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="confirmTitle">Conferma</div>
+            <div class="modal-body" id="confirmMessage"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary btn-small" onclick="closeModal()">Annulla</button>
+                <button class="btn btn-danger btn-small" id="confirmBtn">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await caricaSessioniArchiviate();
+        });
+
+        async function caricaSessioniArchiviate() {
+            const container = document.getElementById('sessionsContainer');
+
+            try {
+                // Carica solo le sessioni archiviate
+                const response = await fetch('/api/sessioni?stato=archiviata');
+                if (!response.ok) throw new Error('Errore caricamento sessioni');
+
+                const sessioni = await response.json();
+
+                if (sessioni.length === 0) {
+                    container.innerHTML = `
+                            <div class="empty-state">
+                                <h3>ðŸ"­ Nessuna sessione archiviata</h3>
+                                <p>Non ci sono sessioni nell'archivio.</p>
+                            </div>
+                        `;
+                    return;
+                }
+
+                let html = '<div class="sessions-grid">';
+
+                sessioni.forEach(sessione => {
+                    const badgeModalita = sessione.modalita === 'asta_competitiva' ?
+                        '<span class="session-badge badge-asta"> Asta</span> ' :
+                    '<span class="session-badge badge-draft">Draft</span>';
+
+                    html += `
+                            <div class="session-card">
+                                <div class="session-header">
+                                    <div>
+                                        <div class="session-title">${sessione.nome}</div>
+                                        ${badgeModalita}
+                                    </div>
+                                    <span class="session-badge badge-archiviata">ðŸ"¦ Archiviata</span>
+                                </div>
+
+                                <div class="session-info">
+                                    <p><strong>Anno:</strong> <span>${sessione.anno || 'N/D'}</span></p>
+                                    <p><strong>Configurazione:</strong> <span style="color: #f59e0b; font-weight: 600;">${sessione.configurazione_id || 'default'}</span></p>
+                                    <p><strong>Data archiviazione:</strong> <span>${formatData(sessione.updated_at)}</span></p>
+                                    <p><strong>Partecipanti:</strong> <span>${sessione.numero_partecipanti_previsti}</span></p>
+                                    <p><strong>Squadre:</strong> <span>${sessione.numero_squadre}</span></p>
+                                    ${sessione.modalita === 'asta_competitiva' ?
+                            `<p><strong>Crediti:</strong> <span>${sessione.crediti_iniziali}</span></p>` : ''}
+                                </div>
+
+                                <div class="session-stats">
+                                    <div class="stat-box">
+                                        <div class="stat-number">${sessione.partecipanti_iscritti || 0}</div>
+                                        <div class="stat-label">Iscritti</div>
+                                    </div>
+                                    <div class="stat-box">
+                                        <div class="stat-number">${sessione.squadre_create || 0}</div>
+                                        <div class="stat-label">Squadre</div>
+                                    </div>
+                                    <div class="stat-box">
+                                        <div class="stat-number">${sessione.aste_completate || 0}</div>
+                                        <div class="stat-label">Aste</div>
+                                    </div>
+                                </div>
+
+                                <div class="session-actions">
+                                    <button class="btn btn-primary btn-small" onclick="consultaSessione('${sessione.id}')">
+                                        ðŸ"Š Consulta
+                                    </button>
+                                    <button class="btn btn-warning btn-small" onclick="ripristinaSessione('${sessione.id}')">
+                                        â™»ï¸ Ripristina
+                                    </button>
+                                    <button class="btn btn-danger btn-small" onclick="eliminaDefinitivamente('${sessione.id}', '${sessione.nome}')">
+                                        ðŸ—'ï¸ Elimina
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Errore:', error);
+                container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>âŒ Errore</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+            }
+        }
+
+        function consultaSessione(id) {
+            // Apri la sessione in modalità sola lettura nel master
+            window.location.href = `/master?sessione=${id}`;
+        }
+
+        async function ripristinaSessione(id) {
+            const conferma = await showConfirm(
+                'Ripristinare Sessione',
+                'Vuoi ripristinare questa sessione? Verrà riattivata e potrà essere utilizzata nuovamente.'
+            );
+
+            if (!conferma) return;
+
+            try {
+                // Riattiva la sessione (la toglie dallo stato archiviato)
+                const response = await fetch(`/api/sessioni/${id}/toggle-attiva`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Errore ripristino');
+
+                showNotification('âœ… Sessione ripristinata con successo', 'success');
+                await caricaSessioniArchiviate();
+            } catch (error) {
+                showNotification('âŒ ' + error.message, 'error');
+            }
+        }
+
+        async function eliminaDefinitivamente(id, nome) {
+            const conferma = await showConfirm(
+                'Eliminare Definitivamente',
+                `Sei sicuro di voler eliminare DEFINITIVAMENTE "${nome}"?\n\nQuesta azione è IRREVERSIBILE e cancellerà tutti i dati associati:\n• Partecipanti e squadre\n• Risultati aste/draft\n• Statistiche e punteggi\n\nNon potrai più recuperare questi dati.`
+            );
+
+            if (!conferma) return;
+
+            // Doppia conferma per sicurezza
+            const doppiaConferma = await showConfirm(
+                'Ultima Conferma',
+                `Confermi di voler eliminare definitivamente "${nome}"?\n\nÈ l'ultima occasione per annullare.`
+            );
+
+            if (!doppiaConferma) return;
+
+            try {
+                const response = await fetch(`/api/sessioni/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Errore eliminazione');
+
+                showNotification('âœ… Sessione eliminata definitivamente', 'success');
+                await caricaSessioniArchiviate();
+            } catch (error) {
+                showNotification('âŒ ' + error.message, 'error');
+            }
+        }
+
+        function formatData(dataString) {
+            if (!dataString) return 'N/D';
+            const data = new Date(dataString);
+            return data.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        function showConfirm(title, message) {
+            return new Promise((resolve) => {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMessage').textContent = message;
+                document.getElementById('confirmModal').style.display = 'flex';
+
+                const confirmBtn = document.getElementById('confirmBtn');
+                confirmBtn.onclick = () => {
+                    closeModal();
+                    resolve(true);
+                };
+
+                // Chiudi cliccando fuori
+                window.onclick = (e) => {
+                    if (e.target.id === 'confirmModal') {
+                        closeModal();
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        function showNotification(message, type) {
+            const notif = document.createElement('div');
+            notif.textContent = message;
+            notif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease;
+                    background: ${type === 'success' ? '#48bb78' : '#f56565'};
+                `;
+
+            document.body.appendChild(notif);
+
+            setTimeout(() => {
+                notif.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

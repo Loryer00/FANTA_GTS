@@ -29,7 +29,6 @@
         }
 
         .header {
-            text-align: center;
             margin-bottom: 30px;
             padding: 25px;
             background: rgba(0,0,0,0.4);
@@ -37,6 +36,42 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1);
         }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-title {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4299e1;
+        }
+
+        .archive-link {
+            padding: 12px 24px;
+            background: rgba(245, 158, 11, 0.2);
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            color: #fbbf24;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+            .archive-link:hover {
+                background: rgba(245, 158, 11, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            }
 
             .header h1 {
                 font-size: 2.5em;
@@ -330,8 +365,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎾 Gestione Sessioni FantaGTS</h1>
-            <p>Crea e gestisci le sessioni di gioco</p>
+            <div class="header-content">
+                <div style="width: 200px;"></div> <!-- Spacer per centrare il titolo -->
+                <div class="header-title">
+                    <h1>ðŸŽ¾ FantaGTS - Gestione Sessioni</h1>
+                    <p>Crea, gestisci e monitora le tue sessioni di fantasy tennis</p>
+                </div>
+                <a href="/archivio-sessioni.html" class="archive-link">ðŸ"¦ Archivio</a>
+            </div>
         </div>
 
         <!-- Barra Filtri e Azioni -->

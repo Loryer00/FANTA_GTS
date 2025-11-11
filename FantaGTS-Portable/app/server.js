@@ -1340,6 +1340,11 @@ async function inviaNotifichePush(notificationData) {
 
 // Routes API
 
+// Route per servire la pagina archivio sessioni
+app.get('/archivio-sessioni', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'archivio-sessioni.html'));
+});
+
 // Setup squadre circolo
 app.get('/api/squadre', async (req, res) => {
     try {
