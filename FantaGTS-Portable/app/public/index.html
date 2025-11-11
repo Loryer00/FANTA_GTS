@@ -1330,6 +1330,9 @@
                             // Carica squadra del partecipante
                             await loadPlayerTeam();
 
+                            // ✅ FORZA visualizzazione tab Squadra
+                            switchSection('squadra');
+
                             mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
                             return;
                         } else {
@@ -1381,6 +1384,9 @@
 
                 // Carica squadra del partecipante
                 await loadPlayerTeam();
+
+                // ✅ FORZA visualizzazione tab Squadra
+                switchSection('squadra');
 
                 // Setup notifiche se abilitate
                 if (playerData.notificationsEnabled) {
