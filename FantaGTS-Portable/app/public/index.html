@@ -1331,31 +1331,44 @@
 
                 const result = await response.json();
                 console.log('📦 Risultato sessioni:', result);
-
                 console.log('📊 Numero sessioni trovate:', result.sessioni ? result.sessioni.length : 0);
 
                 if (result.sessioni && result.sessioni.length > 0) {
-                    console.log('✅ Mostrando', result.sessioni.length, 'sessioni');
-                    sessionsList.innerHTML = result.sessioni.map(sessione => `
-                        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-                            <div class="session-name">📋 ${sessione.nome}</div>
-                            <div class="session-info">
-                                ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
-                                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
-                            </div>
-                            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
-                        </div>
-                    `).join('');
+                    // Filtra via le sessioni archiviate
+                    const sessioniAttive = result.sessioni.filter(s => s.stato !== 'archiviata');
+
+                    console.log('✅ Mostrando', sessioniAttive.length, 'sessioni attive (su', result.sessioni.length, 'totali)');
+
+                    if (sessioniAttive.length === 0) {
+                        sessionsList.innerHTML = `
+            <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                📭 Non sei iscritto a nessuna sessione attiva.<br>
+                Usa il codice qui sotto per entrare!
+            </p>
+        `;
+                        return;
+                    }
+
+                    sessionsList.innerHTML = sessioniAttive.map(sessione => `
+        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+            <div class="session-name">📋 ${sessione.nome}</div>
+            <div class="session-info">
+                ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
+                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+            </div>
+            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
+        </div>
+    `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
                     console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
-                        <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                            🔭 Non sei ancora iscritto a nessuna sessione.<br>
-                            Usa il codice qui sotto per entrare!
-                        </p>
-                    `;
+        <p style="text-align: center; color: #a0aec0; padding: 20px;">
+            🔭 Non sei ancora iscritto a nessuna sessione.<br>
+            Usa il codice qui sotto per entrare!
+        </p>
+    `;
                 }
             } catch (error) {
                 console.error('❌ Errore caricamento sessioni:', error);
