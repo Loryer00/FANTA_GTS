@@ -659,6 +659,32 @@
 
         /* ========== MEDIA QUERIES PER MOBILE ========== */
         @media (max-width: 768px) {
+            /* Assicura che i box degli scontri non siano troppo stretti */
+            .scontro-box {
+                min-width: 280px; /* Larghezza minima */
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            /* Header scontri - layout verticale su mobile */
+            .scontro-header {
+                flex-direction: row; /* Mantieni orizzontale ma compatta */
+                gap: 8px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            /* Stats line - più leggibile */
+            .stats-line {
+                font-size: 0.82em;
+                margin-bottom: 12px;
+            }
+
+            /* VS text - più piccolo su mobile */
+            .vs-mini, .vs-text {
+                font-size: 0.9em;
+            }
+
             /* Assicura che il body copra tutto lo schermo */
             body {
                 min-height: 100vh;
@@ -725,16 +751,49 @@
                 font-size: 0.75em;
             }
 
-            /* Incontri mini grid - scroll orizzontale */
+            /* Incontri mini grid - layout responsive migliorato */
             .incontri-mini-grid {
-                gap: 4px;
+                display: flex !important;
+                flex-wrap: wrap !important; /* Permette wrapping su mobile */
+                gap: 6px;
                 padding-bottom: 5px;
+                justify-content: center; /* Centra i box */
             }
 
             .incontro-mini {
-                min-width: 60px;
-                padding: 6px 3px;
-                font-size: 0.65em;
+                flex: 0 0 auto;
+                min-width: 70px; /* Aumentato da 60px */
+                max-width: 85px; /* Limita larghezza massima */
+                padding: 8px 4px; /* Più padding */
+                font-size: 0.68em;
+            }
+
+            /* Scontro overview box - più spazio */
+            .scontro-overview-box {
+                padding: 15px; /* Aumentato da 10px */
+            }
+
+            /* Badge squadre - più grandi */
+            .squadra-badge, .squadra-mini {
+                padding: 8px 12px; /* Più padding */
+                font-size: 0.82em; /* Font leggermente più grande */
+                min-width: auto;
+                white-space: nowrap; /* Evita wrapping del testo */
+            }
+
+            /* Progress container */
+            .progress-container {
+                gap: 8px; /* Più spazio */
+                margin-bottom: 15px; /* Più margine */
+            }
+
+            /* Overview container - più padding */
+            .overview-compatto-container {
+                padding: 15px; /* Mantieni consistente */
+            }
+
+            .overview-box-container {
+                gap: 12px; /* Più gap tra i box */
             }
 
             /* Progress bar responsive */
