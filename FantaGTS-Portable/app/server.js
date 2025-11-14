@@ -1193,8 +1193,30 @@ async function inviaNotifichePush(notificationData) {
             };
         }
 
-        // Cerca subscription nel database - SOLO per sessione corrente
+        // Cerca subscription nel database - Recupera la sessione attiva dinamicamente
         try {
+            // 🔍 Recupera la sessione attiva corrente
+            const sessioneAttivaQuery = await db.query(
+                'SELECT id FROM sessioni_fantagts WHERE attiva = true LIMIT 1'
+            );
+            
+            const sessioneAttiva = sessioneAttivaQuery.rows.length > 0 
+                ? sessioneAttivaQuery.rows[0].id 
+                : null;
+            
+            if (!sessioneAttiva) {
+                console.log('⚠️ Nessuna sessione attiva trovata per le notifiche push');
+                return {
+                    success: true,
+                    websocket: notificheTramiteSocket,
+                    push_sent: 0,
+                    push_failed: 0,
+                    message: 'Notifiche WebSocket inviate, nessuna sessione attiva per push'
+                };
+            }
+            
+            console.log(`🎮 Usando sessione attiva: ${sessioneAttiva} per notifiche push`);
+            
             let query, params;
             if (targetUsers && targetUsers.length > 0) {
                 const placeholders = targetUsers.map((_, i) => `$${i + 2}`).join(',');
@@ -1204,19 +1226,19 @@ async function inviaNotifichePush(notificationData) {
                 SELECT id FROM partecipanti_fantagts 
                 WHERE sessione_id = $1 AND attivo = true
             ) AND attiva = true`;
-                params = [sessioneCorrente, ...targetUsers];
+                params = [sessioneAttiva, ...targetUsers];
             } else {
                 query = `SELECT * FROM push_subscriptions 
             WHERE partecipante_id IN (
                 SELECT id FROM partecipanti_fantagts 
                 WHERE sessione_id = $1 AND attivo = true
             ) AND attiva = true`;
-                params = [sessioneCorrente];
+                params = [sessioneAttiva];
             }
 
             const result = await db.query(query, params);
             subscriptions = result.rows;
-            console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length}`);
+            console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length} per sessione ${sessioneAttiva}`);
         } catch (dbError) {
             console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
             return {
@@ -4159,6 +4181,33 @@ async function elaboraRisultatiAste() {
                     const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
                     vincitore = offerteVincenti[randomIndex];
                     console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
+                    
+                    // 📢 Notifica i perdenti del pareggio
+                    const perdenti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante);
+                    console.log(`⚔️ Notificando ${perdenti.length} perdenti per pareggio su ${slotId}`);
+                    
+                    perdenti.forEach(perdente => {
+                        for (let [socketId, connesso] of gameState.connessi.entries()) {
+                            if (connesso.partecipanteId === perdente.partecipante) {
+                                io.to(socketId).emit('show_notification', {
+                                    title: '⚔️ Pareggio - Non hai vinto',
+                                    body: `Pareggio su ${slotId} con ${vincitore.nome}. Entrambi ${offertaMassima} crediti, ma vince ${vincitore.nome} al sorteggio.`,
+                                    url: '/'
+                                });
+                                console.log(`📢 Notifica pareggio inviata a: ${perdente.nome}`);
+                                
+                                // Invio anche notifica push se disponibile
+                                inviaNotifichePush({
+                                    title: '⚔️ Pareggio perso',
+                                    body: `Non hai vinto ${slotId}. Pareggio con ${vincitore.nome} (${offertaMassima} crediti), sorteggio favorevole a lui.`,
+                                    url: '/',
+                                    targetUsers: [perdente.partecipante]
+                                }).catch(err => console.log('⚠️ Errore notifica push pareggio:', err));
+                                
+                                break;
+                            }
+                        }
+                    });
                 }
 
                 risultatiAsta.push({
