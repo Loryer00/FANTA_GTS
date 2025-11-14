@@ -1292,6 +1292,7 @@
         }
 
         // Renderizza lista configurazioni disponibili
+        // Renderizza lista configurazioni disponibili
         function renderListaConfigurazioni() {
             const container = document.getElementById('listaConfigurazioni');
 
@@ -1310,30 +1311,13 @@
             configurazioniDisponibili.forEach(config => {
                 const isSelected = configurazioneSelezionataId === config.id;
 
-                // Pulsante elimina (solo se non è la configurazione default)
-                let deleteButton = '';
-                if (config.id !== 'default') {
-                    deleteButton = `
-                        <button class="delete-config-btn" 
-                                onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
-                                title="Elimina configurazione">
-                            🗑️
-                        </button>
-                    `;
-                }
-
-                // Checkmark se selezionata
-                const checkmark = isSelected ? '<div class="checkmark" style="position: absolute; top: 15px; right: 15px; font-size: 32px;">✅</div>' : '';
-
                 html += `
             <div class="config-card ${isSelected ? 'selected' : ''}" 
                  onclick="selezionaConfigurazione('${config.id}')">
-                ${deleteButton}
-                ${checkmark}
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <div>
                         <h4 style="margin: 0 0 8px 0; color: #4299e1; font-size: 1.1em;">
-                            ${config.nome}
+                            ${isSelected ? '✅ ' : ''}${config.nome}
                         </h4>
                         <p style="margin: 5px 0; color: #a0aec0; font-size: 0.9em;">
                             ${config.anno ? `📅 Anno: ${config.anno}` : ''} 
@@ -1344,6 +1328,7 @@
                             <span style="color: #f6ad55;">🎮 ${config.sessioni_collegate} sessioni</span>
                         </div>
                     </div>
+                    ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
                 </div>
             </div>
         `;
