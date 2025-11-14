@@ -872,6 +872,28 @@
                 font-size: 0.6em;
             }
         }
+		
+		@keyframes slideIn {
+			from {
+				transform: translate(-50%, -60%);
+				opacity: 0;
+			}
+			to {
+				transform: translate(-50%, -50%);
+				opacity: 1;
+			}
+		}
+
+		@keyframes slideOut {
+			from {
+				transform: translate(-50%, -50%);
+				opacity: 1;
+			}
+			to {
+				transform: translate(-50%, -40%);
+				opacity: 0;
+			}
+		}
     </style>
 </head>
 <body class="loading">
@@ -3011,6 +3033,60 @@
                 `;
                 document.body.appendChild(notification);
                 setTimeout(() => notification.remove(), 2000);
+            });
+
+            });
+
+            // 📢 LISTENER: Notifiche generali (pareggi, avvisi, ecc.)
+            socket.on('show_notification', (data) => {
+                console.log('📢 Notifica ricevuta:', data);
+                
+                // Determina il colore in base al tipo di notifica
+                let backgroundColor = 'rgba(239, 68, 68, 0.95)'; // Rosso per default (perdita)
+                let emoji = '⚔️';
+                
+                if (data.title.includes('vinto') || data.title.includes('COMPLIMENTI')) {
+                    backgroundColor = 'rgba(16, 185, 129, 0.95)'; // Verde per vittoria
+                    emoji = '🏆';
+                } else if (data.title.includes('Pareggio')) {
+                    backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Arancione per pareggio
+                    emoji = '⚔️';
+                }
+                
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; 
+                    top: 50%; 
+                    left: 50%; 
+                    transform: translate(-50%, -50%); 
+                    background: ${backgroundColor};
+                    color: white; 
+                    padding: 25px 30px; 
+                    border-radius: 15px; 
+                    font-size: 1.1em; 
+                    font-weight: bold; 
+                    z-index: 2000; 
+                    text-align: center; 
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                    backdrop-filter: blur(10px);
+                    border: 2px solid rgba(255,255,255,0.3);
+                    max-width: 90%;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                
+                notification.innerHTML = `
+                    <div style="font-size: 2em; margin-bottom: 10px;">${emoji}</div>
+                    <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
+                    <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.4;">${data.body}</div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Rimuovi dopo 4 secondi (più tempo per leggere il messaggio di pareggio)
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
             });
 
             socket.on('bid_confirmed', (data) => {
