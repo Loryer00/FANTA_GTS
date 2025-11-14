@@ -1563,26 +1563,53 @@
                 `;
 
             try {
-                console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
+				console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
 
-                // PASSA LA SESSIONE CORRENTE
-                const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
-                const url = sessioneId
-                    ? `/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneId}`
-                    : `/api/squadra-partecipante/${partecipante.id}`;
+				// PASSA LA SESSIONE CORRENTE E DETERMINA API IN BASE ALLA MODALITÀ
+				const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
+				const isDraft = sessioneInfo?.modalita === 'draft_libero';
+				
+				let url;
+				if (isDraft) {
+					// API Draft
+					url = sessioneId
+						? `/api/draft/squadra/${partecipante.id}?sessione_id=${sessioneId}`
+						: `/api/draft/squadra/${partecipante.id}`;
+				} else {
+					// API Asta
+					url = sessioneId
+						? `/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneId}`
+						: `/api/squadra-partecipante/${partecipante.id}`;
+				}
 
                 console.log(`📡 URL richiesta: ${url}`);
 
                 const response = await fetch(url);
-                let squadra = [];
+				let squadra = [];
 
-                if (response.ok) {
-                    const data = await response.json();
-                    squadra = Array.isArray(data) ? data : (data.squadra || []);
-                    console.log(`✅ Squadra caricata per ${partecipante.nome}:`, squadra);
-                } else {
-                    console.log(`⚠️ Squadra non ancora formata per ${partecipante.nome}`);
-                }
+				if (response.ok) {
+					const data = await response.json();
+					
+					if (isDraft) {
+						// Nel draft, la risposta ha formato {squadra: {M1: {...}, M2: {...}}}
+						if (data.squadra && typeof data.squadra === 'object') {
+							// Converti da oggetto a array
+							squadra = Object.entries(data.squadra).map(([pos, dati]) => ({
+								posizione: pos,
+								giocatore_attuale: dati.giocatore,
+								colore: dati.coloreSquadra,
+								costo_finale: 0, // Nel draft non c'è costo
+								punti_totali: dati.puntiTotali || 0
+							}));
+						}
+					} else {
+						// Asta - formato array standard
+						squadra = Array.isArray(data) ? data : (data.squadra || []);
+					}
+					console.log(`✅ Squadra caricata per ${partecipante.nome}:`, squadra);
+				} else {
+					console.log(`⚠️ Squadra non ancora formata per ${partecipante.nome}`);
+				}
 
                 const giocatoriAcquistati = squadra.length;
                 const creditiSpesi = squadra.reduce((sum, g) => sum + (g.costo_finale || 0), 0);
@@ -1612,16 +1639,18 @@
                             <!-- I slots verranno popolati dinamicamente -->
                         </div>
 
-                        <div style="
-                            margin-top: 10px;
-                            padding-top: 10px;
-                            border-top: 1px solid rgba(255,255,255,0.2);
-                            font-size: 0.8em;
-                            text-align: center;
-                            opacity: 0.8;
-                        ">
-                            💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
-                        </div>
+                        ${isDraft ? '' : `
+							<div style="
+								margin-top: 10px;
+								padding-top: 10px;
+								border-top: 1px solid rgba(255,255,255,0.2);
+								font-size: 0.8em;
+								text-align: center;
+								opacity: 0.8;
+							">
+								💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
+							</div>
+						`}
                     `;
 
                 // Popola i slots delle posizioni
@@ -1656,9 +1685,11 @@
                         <div style="font-weight: 600; font-size: 0.9em; opacity: 0.9; margin-bottom: 2px;">
                             Squadra ${giocatore.colore}
                         </div>
-                        <div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
-                            💰 ${giocatore.costo_finale}
-                        </div>
+                        ${isDraft ? '' : `
+							<div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
+								💰 ${giocatore.costo_finale}
+							</div>
+						`}
                         <div style="font-size: 2em; opacity: 0.9; margin-bottom: 0px;">
                         🏆 ${giocatore.punti_totali || 0}
                     `;
@@ -2336,37 +2367,50 @@
         }
 
         async function mostraClassifica() {
-            try {
-                console.log('📊 Caricamento classifica su richiesta...');
-                const response = await fetch('/api/classifica');
-                if (!response.ok) {
-                    throw new Error('API non disponibile');
-                }
+			try {
+				console.log('📊 Caricamento classifica su richiesta...');
+				
+				// Determina quale API chiamare in base alla modalità
+				const isDraft = sessioneInfo?.modalita === 'draft_libero';
+				const sessioneId = sessioneCorrente || gameState.sessioneAttiva;
+				
+				let url;
+				if (isDraft) {
+					url = `/api/classifica-draft?sessione_id=${sessioneId}`;
+				} else {
+					url = '/api/classifica';
+				}
+				
+				const response = await fetch(url);
+				if (!response.ok) {
+					throw new Error('API non disponibile');
+				}
 
-                const classifica = await response.json();
+				const classifica = await response.json();
 
-                const modal = document.getElementById('classificaModal');
-                const content = document.getElementById('classificaContent');
+				const modal = document.getElementById('classificaModal');
+				const content = document.getElementById('classificaContent');
 
-                let html = '<table class="results-table"><thead><tr>';
-                html += '<th>Pos</th><th>Nome</th><th>Punti</th>';
-                html += '</tr></thead><tbody>';
+				let html = '<table class="results-table"><thead><tr>';
+				html += '<th>Pos</th><th>Nome</th><th>Giocatori</th><th>Punti</th>';
+				html += '</tr></thead><tbody>';
 
-                classifica.forEach((p, index) => {
-                    html += `<tr>
-                        <td><strong>${index + 1}°</strong></td>
-                        <td>${p.nome}</td>
-                        <td>${p.punti_totali}</td>
-                    </tr>`;
-                });
+				classifica.forEach((p, index) => {
+					html += `<tr>
+						<td><strong>${index + 1}°</strong></td>
+						<td>${p.nome}</td>
+						<td>${p.giocatori_totali}/10</td>
+						<td>${p.punti_totali}</td>
+					</tr>`;
+				});
 
-                html += '</tbody></table>';
-                content.innerHTML = html;
-                modal.style.display = 'flex';
-            } catch (error) {
-                showNotification('Classifica non ancora disponibile', 'warning');
-            }
-        }
+				html += '</tbody></table>';
+				content.innerHTML = html;
+				modal.style.display = 'flex';
+			} catch (error) {
+				showNotification('Classifica non ancora disponibile', 'warning');
+			}
+		}
 
         // Strumenti admin
         function vaiASetup() {
