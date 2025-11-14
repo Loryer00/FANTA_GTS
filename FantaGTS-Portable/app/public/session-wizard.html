@@ -1364,17 +1364,21 @@
                             <span style="color: #f6ad55;">🎮 ${config.sessioni_collegate} sessioni</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
-                        <button 
-                            onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
-                            style="padding: 8px 12px; font-size: 1.2em; border-radius: 6px; min-width: auto; background: #e53e3e; color: white; border: none; cursor: pointer; transition: all 0.2s ease;"
-                            onmouseover="this.style.background='#c53030'"
-                            onmouseout="this.style.background='#e53e3e'"
-                            title="Elimina configurazione">
-                            ❌
-                        </button>
-                    </div>
+                    ${isSelected ? `
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(72, 187, 120, 0.2); border: 2px solid #48bb78; border-radius: 6px; color: #48bb78; font-size: 16px;">
+                                ✓
+                            </div>
+                            <button 
+                                onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
+                                style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; border-radius: 6px; background: rgba(229, 62, 62, 0.2); border: 2px solid #e53e3e; color: #e53e3e; cursor: pointer; transition: all 0.2s ease;"
+                                onmouseover="this.style.background='rgba(229, 62, 62, 0.3)'; this.style.transform='scale(1.05)'"
+                                onmouseout="this.style.background='rgba(229, 62, 62, 0.2)'; this.style.transform='scale(1)'"
+                                title="Elimina configurazione">
+                                ✕
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
