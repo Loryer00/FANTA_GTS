@@ -1368,9 +1368,10 @@
                     <div style="display: flex; gap: 10px; align-items: center;">
                         ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
                         <button 
-                            class="btn btn-danger btn-small" 
                             onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
-                            style="padding: 8px 12px; font-size: 1.2em; border-radius: 6px; min-width: auto;"
+                            style="padding: 8px 12px; font-size: 1.2em; border-radius: 6px; min-width: auto; background: #e53e3e; color: white; border: none; cursor: pointer; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#c53030'"
+                            onmouseout="this.style.background='#e53e3e'"
                             title="Elimina configurazione">
                             ❌
                         </button>
