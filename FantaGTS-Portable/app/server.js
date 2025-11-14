@@ -3401,6 +3401,15 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
         console.log(`✅ Incontro ${incontroId} resettato completamente`);
 
+        // 🆕 EMIT SOCKET.IO: Notifica aggiornamento punti dopo reset
+        console.log('📡 Emissione evento aggiornamento_punti dopo reset via Socket.io');
+        io.emit('aggiornamento_punti', {
+            incontroId: incontroId,
+            sessioneId: sessioneId,
+            timestamp: new Date().toISOString(),
+            tipo: 'reset'
+        });
+
         res.json({
             message: 'Incontro resettato con successo',
             punti_rimossi: risultatiDaRimuovere.rows.length
