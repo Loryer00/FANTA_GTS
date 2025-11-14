@@ -1348,10 +1348,11 @@
                 const isSelected = configurazioneSelezionataId === config.id;
 
                 html += `
+            html += `
             <div class="config-card ${isSelected ? 'selected' : ''}" 
                  onclick="selezionaConfigurazione('${config.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
+                    <div style="flex: 1;">
                         <h4 style="margin: 0 0 8px 0; color: #4299e1; font-size: 1.1em;">
                             ${isSelected ? '✅ ' : ''}${config.nome}
                         </h4>
@@ -1364,7 +1365,16 @@
                             <span style="color: #f6ad55;">🎮 ${config.sessioni_collegate} sessioni</span>
                         </div>
                     </div>
-                    ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        ${isSelected ? '<div style="font-size: 2em;">✅</div>' : ''}
+                        <button 
+                            class="btn btn-danger btn-small" 
+                            onclick="eliminaConfigurazione('${config.id}', '${config.nome.replace(/'/g, "\\'")}', event)"
+                            style="padding: 8px 12px; font-size: 1.2em; border-radius: 6px; min-width: auto;"
+                            title="Elimina configurazione">
+                            ❌
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
