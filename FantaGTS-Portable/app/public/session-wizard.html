@@ -1257,6 +1257,9 @@
             // Mostra/nascondi container
             document.getElementById('nuovaConfigContainer').style.display = 'block';
             document.getElementById('configurazioniContainer').style.display = 'none';
+            
+            // Nascondi preview condivisione finché non viene inserito il numero squadre
+            document.getElementById('condivisionePreview').style.display = 'none';
 
             console.log('✅ Modalità: Nuova Configurazione');
         }
@@ -1273,6 +1276,9 @@
             // Mostra/nascondi container
             document.getElementById('nuovaConfigContainer').style.display = 'none';
             document.getElementById('configurazioniContainer').style.display = 'block';
+            
+            // Nascondi preview condivisione finché non viene selezionata una configurazione
+            document.getElementById('condivisionePreview').style.display = 'none';
 
             // Renderizza lista configurazioni
             renderListaConfigurazioni();
@@ -1323,9 +1329,8 @@
         }
 
         // Renderizza lista configurazioni disponibili
-        // Renderizza lista configurazioni disponibili
         function renderListaConfigurazioni() {
-            const container = document.getElementById('listaConfigurazioni');
+            const container = document.getElementById('configurazioniList');
 
             if (configurazioniDisponibili.length === 0) {
                 container.innerHTML = `
