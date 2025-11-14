@@ -4746,17 +4746,14 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // NUOVO: Controllo round più flessibile per sistema multi-asta
-        const roundBase = data.round.split('_')[0]; // Es: "M1_ASTA_2" -> "M1"
-        const currentRoundBase = gameState.roundAttivo ? gameState.roundAttivo.split('_')[0] : null;
-
-        if (currentRoundBase !== roundBase) {
-            console.log(`❌ Round base non corrispondente: attuale=${currentRoundBase}, richiesto=${roundBase}`);
-            socket.emit('bid_error', { message: 'Round non corrispondente' });
+        // Controllo round - confronta direttamente senza split
+        if (gameState.roundAttivo !== data.round) {
+            console.log(`❌ Round non corrispondente: attuale=${gameState.roundAttivo}, richiesto=${data.round}`);
+            socket.emit('bid_error', { message: `Round non corrispondente. Attuale: ${gameState.roundAttivo}, Richiesto: ${data.round}` });
             return;
         }
 
-        console.log(`✅ Controllo round OK: ${gameState.roundAttivo} vs ${data.round}`);
+        console.log(`✅ Controllo round OK: ${gameState.roundAttivo} === ${data.round}`);
 
         // Verifica che il socket sia registrato
         const connesso = gameState.connessi.get(socket.id);
@@ -4794,24 +4791,29 @@ io.on('connection', (socket) => {
         }
 
         // Verifica che non abbia già fatto un'offerta in questa asta
+        // Confronta usando gameState.roundAttivo invece di data.round
         let hasAlreadyBid = false;
         for (let [existingSocketId, offerta] of gameState.offerteTemporanee.entries()) {
             if (existingSocketId !== socket.id) {
                 const offerenteConnesso = gameState.connessi.get(existingSocketId);
                 if (offerenteConnesso &&
                     offerenteConnesso.partecipanteId === connesso.partecipanteId &&
-                    offerta.round === data.round) {
+                    offerta.round === gameState.roundAttivo) {
                     hasAlreadyBid = true;
+                    console.log(`⚠️ ${connesso.nome} aveva già un'offerta su ${offerta.slot}, verrà sovrascritta`);
+                    // Rimuovi l'offerta precedente
+                    gameState.offerteTemporanee.delete(existingSocketId);
                     break;
                 }
             }
         }
 
-        if (hasAlreadyBid) {
-            console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
-            socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
-            return;
-        }
+        // Nota: Non blocchiamo più se ha già offerto, permettiamo di cambiare offerta
+        // if (hasAlreadyBid) {
+        //     console.log(`❌ ${connesso.nome} ha già fatto un'offerta in questa asta`);
+        //     socket.emit('bid_error', { message: 'Hai già fatto un\'offerta in questa asta' });
+        //     return;
+        // }
 
         // Verifica validità dati offerta
         if (!data.slot || !data.importo || data.importo <= 0) {
@@ -4846,9 +4848,9 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Salva offerta temporanea (sovrascrive se esiste già per questo socket)
+            // Salva offerta temporanea usando gameState.roundAttivo invece di data.round
             gameState.offerteTemporanee.set(socket.id, {
-                round: data.round,
+                round: gameState.roundAttivo,  // ✅ Usa il round del server
                 slot: data.slot,
                 importo: parseInt(data.importo),
                 partecipanteId: connesso.partecipanteId,
