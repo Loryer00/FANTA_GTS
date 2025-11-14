@@ -1366,7 +1366,7 @@
                     </div>
                     ${isSelected ? `
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(72, 187, 120, 0.2); border: 2px solid #48bb78; border-radius: 6px; color: #48bb78; font-size: 16px;">
+                            <div onclick="event.stopPropagation()" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(72, 187, 120, 0.2); border: 2px solid #48bb78; border-radius: 6px; color: #48bb78; font-size: 16px; cursor: default;">
                                 ✓
                             </div>
                             <button 
