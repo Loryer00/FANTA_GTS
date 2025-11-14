@@ -1587,25 +1587,28 @@
                 const response = await fetch(url);
 				let squadra = [];
 
-				if (response.ok) {
-					const data = await response.json();
-					
-					if (isDraft) {
-						// Nel draft, la risposta ha formato {squadra: {M1: {...}, M2: {...}}}
-						if (data.squadra && typeof data.squadra === 'object') {
-							// Converti da oggetto a array
-							squadra = Object.entries(data.squadra).map(([pos, dati]) => ({
-								posizione: pos,
-								giocatore_attuale: dati.giocatore,
-								colore: dati.coloreSquadra,
-								costo_finale: 0, // Nel draft non c'è costo
-								punti_totali: dati.puntiTotali || 0
-							}));
-						}
-					} else {
-						// Asta - formato array standard
-						squadra = Array.isArray(data) ? data : (data.squadra || []);
+				if (isDraft) {
+					// Nel draft, la risposta ha formato {squadra: {M1: {...}, M2: {...}}}
+					if (data.squadra && typeof data.squadra === 'object') {
+						// Converti da oggetto a array
+						squadra = Object.entries(data.squadra).map(([pos, dati]) => ({
+							posizione: pos,
+							giocatore_attuale: dati.giocatore,
+							colore: dati.coloreSquadra,
+							costo_finale: 0, // Nel draft non c'è costo
+							punti_totali: dati.puntiTotali || 0
+						}));
+						
+						// 🔍 LOG DEBUG
+						console.log(`🔍 PUNTI DRAFT per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
 					}
+				} else {
+					// Asta - formato array standard
+					squadra = Array.isArray(data) ? data : (data.squadra || []);
+					
+					// 🔍 LOG DEBUG
+					console.log(`🔍 PUNTI ASTA per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
+				}
 					console.log(`✅ Squadra caricata per ${partecipante.nome}:`, squadra);
 				} else {
 					console.log(`⚠️ Squadra non ancora formata per ${partecipante.nome}`);
@@ -1625,9 +1628,9 @@
                             border-bottom: 2px solid #4299e1;
                         ">
                             <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
-                            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
-                                ${giocatoriAcquistati}/10 giocatori | 💰 ${creditiRimasti} | 🏆 ${puntiTotali}pt
-                            </div>
+							<div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+								${giocatoriAcquistati}/10 giocatori ${isDraft ? '' : `| 💰 ${creditiRimasti}`} | 🏆 ${puntiTotali}pt
+							</div>
                         </div>
 
                         <div id="squadra-slots-${partecipante.id}" style="
@@ -1686,9 +1689,11 @@
                             Squadra ${giocatore.colore}
                         </div>
                         ${isDraft ? '' : `
-							<div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
-								💰 ${giocatore.costo_finale}
-							</div>
+							${isDraft ? '' : `
+								<div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
+									💰 ${giocatore.costo_finale}
+								</div>
+							`}
 						`}
                         <div style="font-size: 2em; opacity: 0.9; margin-bottom: 0px;">
                         🏆 ${giocatore.punti_totali || 0}
