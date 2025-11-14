@@ -174,15 +174,14 @@
         }
 
         /* Wizard Content */
-        .wizard-content {
-            background: rgba(255,255,255,0.08);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 25px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-            min-height: 400px;
-        }
+		.wizard-content {
+			background: rgba(255,255,255,0.08);
+			border-radius: 15px;
+			padding: 30px;
+			margin-bottom: 25px;
+			backdrop-filter: blur(10px);
+			border: 1px solid rgba(255,255,255,0.1);
+		}
 
         .step-content {
             display: none;
@@ -1463,7 +1462,23 @@
             transition: opacity 0.3s;
             opacity: 1;
         `;
-                loadingOverlay.innerHTML = '<div class="spinner">⏳ Caricamento...</div>';
+                loadingOverlay.innerHTML = `
+				<div style="text-align: center;">
+					<div style="font-size: 3em; margin-bottom: 20px;">🎾</div>
+					<div style="font-size: 1.2em; font-weight: bold;">Creazione sessione in corso</div>
+					<div style="margin-top: 15px; font-size: 1.5em; letter-spacing: 5px;">
+						<span style="animation: blink 1.4s infinite both; animation-delay: 0s;">●</span>
+						<span style="animation: blink 1.4s infinite both; animation-delay: 0.2s;">●</span>
+						<span style="animation: blink 1.4s infinite both; animation-delay: 0.4s;">●</span>
+					</div>
+				</div>
+				<style>
+					@keyframes blink {
+						0%, 80%, 100% { opacity: 0.3; }
+						40% { opacity: 1; }
+					}
+				</style>
+			`;
                 document.body.appendChild(loadingOverlay);
             }
             loadingOverlay.style.display = 'flex';
