@@ -1345,11 +1345,10 @@
             let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
 
             configurazioniDisponibili.forEach(config => {
-                const isSelected = configurazioneSelezionataId === config.id;
+			const isSelected = configurazioneSelezionataId === config.id;
 
-                html += `
-            html += `
-            <div class="config-card ${isSelected ? 'selected' : ''}" 
+			html += `
+			<div class="config-card ${isSelected ? 'selected' : ''}"
                  onclick="selezionaConfigurazione('${config.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <div style="flex: 1;">
