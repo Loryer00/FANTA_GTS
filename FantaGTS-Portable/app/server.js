@@ -2173,13 +2173,19 @@ app.get('/api/partecipanti', async (req, res) => {
 
         console.log(`📊 Caricamento partecipanti per sessione: ${sessioneId}`);
 
+        // 🆕 Query che supporta sia sessioni asta che draft
+        // Per le sessioni con partecipanti_sessioni_accesso (draft), fa JOIN
+        // Per le vecchie sessioni con sessione_id diretto, usa quello
         const result = await db.query(`
-            SELECT * FROM partecipanti_fantagts 
-            WHERE attivo = true AND sessione_id = $1 
-            ORDER BY nome
+            SELECT DISTINCT p.* 
+            FROM partecipanti_fantagts p
+            LEFT JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE p.attivo = true 
+            AND (p.sessione_id = $1 OR psa.sessione_id = $1)
+            ORDER BY p.nome
         `, [sessioneId]);
 
-        console.log(`✅ Trovati ${result.rows.length} partecipanti`);
+        console.log(`✅ Trovati ${result.rows.length} partecipanti per sessione ${sessioneId}`);
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API partecipanti:', err);
