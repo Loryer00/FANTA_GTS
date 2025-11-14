@@ -1587,28 +1587,31 @@
                 const response = await fetch(url);
 				let squadra = [];
 
-				if (isDraft) {
-					// Nel draft, la risposta ha formato {squadra: {M1: {...}, M2: {...}}}
-					if (data.squadra && typeof data.squadra === 'object') {
-						// Converti da oggetto a array
-						squadra = Object.entries(data.squadra).map(([pos, dati]) => ({
-							posizione: pos,
-							giocatore_attuale: dati.giocatore,
-							colore: dati.coloreSquadra,
-							costo_finale: 0, // Nel draft non c'è costo
-							punti_totali: dati.puntiTotali || 0
-						}));
+				if (response.ok) {
+					const data = await response.json();
+					
+					if (isDraft) {
+						// Nel draft, la risposta ha formato {squadra: {M1: {...}, M2: {...}}}
+						if (data.squadra && typeof data.squadra === 'object') {
+							// Converti da oggetto a array
+							squadra = Object.entries(data.squadra).map(([pos, dati]) => ({
+								posizione: pos,
+								giocatore_attuale: dati.giocatore,
+								colore: dati.coloreSquadra,
+								costo_finale: 0, // Nel draft non c'è costo
+								punti_totali: dati.puntiTotali || 0
+							}));
+							
+							// 🔍 LOG DEBUG
+							console.log(`🔍 PUNTI DRAFT per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
+						}
+					} else {
+						// Asta - formato array standard
+						squadra = Array.isArray(data) ? data : (data.squadra || []);
 						
 						// 🔍 LOG DEBUG
-						console.log(`🔍 PUNTI DRAFT per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
+						console.log(`🔍 PUNTI ASTA per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
 					}
-				} else {
-					// Asta - formato array standard
-					squadra = Array.isArray(data) ? data : (data.squadra || []);
-					
-					// 🔍 LOG DEBUG
-					console.log(`🔍 PUNTI ASTA per ${partecipante.nome}:`, squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
-				}
 					console.log(`✅ Squadra caricata per ${partecipante.nome}:`, squadra);
 				} else {
 					console.log(`⚠️ Squadra non ancora formata per ${partecipante.nome}`);
