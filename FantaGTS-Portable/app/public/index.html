@@ -3106,7 +3106,9 @@
             }
 
             try {
-                const currentRound = document.getElementById('currentRound').textContent.replace('Round ', '').trim();
+                // Estrae solo la parte base del round (es: "M1" da "M1 - Asta 2")
+                const currentRoundText = document.getElementById('currentRound').textContent.replace('Round ', '').trim();
+                const currentRound = currentRoundText.split(' - ')[0].trim(); // Prende solo "M1"
 
                 console.log('📤 Invio puntata:', {
                     round: currentRound,
@@ -3115,7 +3117,7 @@
                 });
 
                 socket.emit('place_bid', {
-                    round: currentRound,              // ✅ Nome corretto
+                    round: currentRound,              // ✅ Solo parte base (es: "M1")
                     slot: window.selectedPlayer.id,   // ✅ Nome corretto
                     importo: bidAmount                // ✅ Nome corretto
                 });
