@@ -1249,6 +1249,37 @@
             }
         }
 
+		// Mostra opzione nuova configurazione
+        function mostraOpzioneNuova() {
+            configurazioneTipo = 'nuova';
+            configurazioneSelezionataId = null;
+
+            // Mostra/nascondi container
+            document.getElementById('nuovaConfigContainer').style.display = 'block';
+            document.getElementById('configurazioniContainer').style.display = 'none';
+
+            console.log('✅ Modalità: Nuova Configurazione');
+        }
+
+        // Mostra opzione configurazione esistente
+        async function mostraOpzioneEsistente() {
+            configurazioneTipo = 'esistente';
+
+            // Carica le configurazioni se non ancora fatto
+            if (configurazioniDisponibili.length === 0) {
+                await caricaConfigurazioni();
+            }
+
+            // Mostra/nascondi container
+            document.getElementById('nuovaConfigContainer').style.display = 'none';
+            document.getElementById('configurazioniContainer').style.display = 'block';
+
+            // Renderizza lista configurazioni
+            renderListaConfigurazioni();
+
+            console.log('✅ Modalità: Configurazione Esistente');
+        }
+
         // Scelta: Nuova configurazione
         function scegliNuovaConfigurazione() {
             configurazioneTipo = 'nuova';
