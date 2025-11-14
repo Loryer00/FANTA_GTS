@@ -5487,8 +5487,8 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
             return res.status(400).json({ error: 'Questa sessione non Ã¨ in modalitÃ  Draft Libero' });
         }
 
-        /// Ottieni configurazione dalla sessione
-        const configQuery = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+        // Ottieni configurazione dalla sessione
+        const configQuery = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessione_id]);
         const configurazioneId = configQuery.rows[0]?.configurazione_id || 'default';
 
         // Recupera tutti gli slot delle squadre del circolo per questa configurazione

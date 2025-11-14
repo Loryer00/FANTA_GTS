@@ -426,6 +426,27 @@
             appState.partecipanteId = session.partecipanteId;
             appState.nomePartecipante = session.name;
 
+            // Verifica che i dati essenziali siano presenti
+            if (!appState.sessioneId) {
+                console.error('❌ sessioneId mancante:', session);
+                showAlert('Errore: ID sessione mancante. Torna alla home e accedi nuovamente.', 'error');
+                setTimeout(() => window.location.href = '/index.html', 2000);
+                return;
+            }
+
+            if (!appState.partecipanteId) {
+                console.error('❌ partecipanteId mancante:', session);
+                showAlert('Errore: ID partecipante mancante. Torna alla home e accedi nuovamente.', 'error');
+                setTimeout(() => window.location.href = '/index.html', 2000);
+                return;
+            }
+
+            console.log('✅ Sessione caricata:', {
+                sessioneId: appState.sessioneId,
+                partecipanteId: appState.partecipanteId,
+                nome: appState.nomePartecipante
+            });
+
             document.getElementById('participantName').textContent = appState.nomePartecipante;
 
             // Carica giocatori disponibili
