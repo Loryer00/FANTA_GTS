@@ -458,14 +458,49 @@
     <script>
         let squadre = [];
         let currentReplacement = null;
+        let configurazioneCorrente = null;
 
         // Carica squadre all'avvio
         async function caricaSquadre() {
             try {
-                const response = await fetch('/api/squadre');
-                if (!response.ok) throw new Error('Errore caricamento squadre');
+                // 🆕 Recupera la sessione attiva
+                const sessioneAttivaResponse = await fetch('/api/sessioni?stato=attivo');
+                let sessioneId = null;
 
-                squadre = await response.json();
+                if (sessioneAttivaResponse.ok) {
+                    const sessioni = await sessioneAttivaResponse.json();
+                    if (sessioni.length > 0) {
+                        sessioneId = sessioni[0].id;
+                        configurazioneCorrente = sessioni[0].configurazione_id; // 🆕 SALVA LA CONFIGURAZIONE
+                        console.log('📋 Usando sessione attiva:', sessioni[0].nome, 'Configurazione:', configurazioneCorrente);
+                    }
+                }
+
+                if (!sessioneId) {
+                    console.log('⚠️ Nessuna sessione attiva, uso configurazione default');
+                    configurazioneCorrente = 'default'; // 🆕 FALLBACK
+                    const configResponse = await fetch('/api/squadre?configurazione=default');
+                    if (!configResponse.ok) throw new Error('Errore caricamento squadre');
+                    squadre = await configResponse.json();
+                } else {
+                    const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneId}`);
+                    if (!response.ok) throw new Error('Errore caricamento squadre');
+
+                    const squadreData = await response.json();
+                    squadre = squadreData.map(sq => {
+                        const squadraObj = {
+                            numero: sq.numero,
+                            colore: sq.colore,
+                            attiva: sq.attiva
+                        };
+                        sq.giocatori.forEach(g => {
+                            squadraObj[g.posizione.toLowerCase()] = g.nome;
+                        });
+                        return squadraObj;
+                    });
+                }
+
+                console.log('✅ Squadre caricate:', squadre.length, 'Configurazione:', configurazioneCorrente);
                 popolaFiltroSquadre();
             } catch (error) {
                 console.error('Errore:', error);
@@ -610,7 +645,8 @@
                         posizione: currentReplacement.posizione,
                         nomeVecchio: currentReplacement.nomeAttuale,
                         nomeNuovo: nuovoNome,
-                        motivo: motivo
+                        motivo: motivo,
+                        configurazioneId: configurazioneCorrente // 🆕 AGGIUNGI QUESTA RIGA
                     })
                 });
 

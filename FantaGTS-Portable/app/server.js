@@ -4008,72 +4008,87 @@ app.get('/sostituzioni', (req, res) => {
 // API per gestire le sostituzioni
 app.post('/api/sostituzioni', async (req, res) => {
     try {
-        const { numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo } = req.body;
+        const { numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo, configurazioneId } = req.body;
 
-        console.log(`🔄 Richiesta sostituzione: Squadra ${numeroSquadra}, ${posizione}: "${nomeVecchio}" → "${nomeNuovo}"`);
+        console.log(`🔄 Richiesta sostituzione: Squadra ${numeroSquadra}, ${posizione}: "${nomeVecchio}" → "${nomeNuovo}" per configurazione: ${configurazioneId}`);
 
         // Validazione input
         if (!numeroSquadra || !posizione || !nomeVecchio || !nomeNuovo) {
             return res.status(400).json({ error: 'Dati mancanti per la sostituzione' });
         }
 
+        // Usa configurazione specificata o default
+        const configId = configurazioneId || 'default';
+
         // Determina il campo da aggiornare (m1, m2, ..., f1, f2, f3)
         const campo = posizione.toLowerCase();
 
-        // 🆕 TROVA IL COLORE DELLA SQUADRA per identificare lo slot
+        // 🆕 TROVA IL COLORE DELLA SQUADRA NELLA CONFIGURAZIONE SPECIFICA
         const squadraResult = await db.query(
-            'SELECT colore FROM squadre_circolo WHERE numero = $1',
-            [numeroSquadra]
+            'SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2',
+            [numeroSquadra, configId]
         );
 
         if (squadraResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Squadra non trovata' });
+            return res.status(404).json({ error: 'Squadra non trovata nella configurazione specificata' });
         }
 
         const coloreSquadra = squadraResult.rows[0].colore;
-        const slotId = `${posizione}_${coloreSquadra.toUpperCase()}`;
+        const slotId = `${posizione}_SQ${numeroSquadra}_${coloreSquadra.toUpperCase()}`;
 
         console.log(`🎯 Slot identificato: ${slotId}`);
 
-        // 🆕 TROVA TUTTI I PARTECIPANTI CHE POSSIEDONO QUESTO GIOCATORE
+        // 🆕 TROVA TUTTE LE SESSIONI CHE USANO QUESTA CONFIGURAZIONE
+        const sessioniResult = await db.query(
+            'SELECT id, nome FROM sessioni_fantagts WHERE configurazione_id = $1',
+            [configId]
+        );
+
+        console.log(`📊 Trovate ${sessioniResult.rows.length} sessioni che usano questa configurazione`);
+
+        // 🆕 TROVA TUTTI I PARTECIPANTI CHE POSSIEDONO QUESTO GIOCATORE IN QUALSIASI SESSIONE DI QUESTA CONFIGURAZIONE
         const partecipantiCoinvolti = await db.query(`
-            SELECT DISTINCT p.id, p.nome
+            SELECT DISTINCT p.id, p.nome, s.id as sessione_id, s.nome as sessione_nome
             FROM partecipanti_fantagts p
             JOIN aste a ON p.id = a.partecipante_id
+            JOIN sessioni_fantagts s ON a.sessione_id = s.id
             WHERE a.slot_id = $1 
               AND a.vincitore = true
               AND p.attivo = true
-              AND p.sessione_id = $2
-        `, [slotId, sessioneCorrente]);
+              AND s.configurazione_id = $2
+        `, [slotId, configId]);
 
         console.log(`👥 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 
-        // Aggiorna il nome nella tabella squadre_circolo
+        // Aggiorna il nome nella tabella squadre_circolo PER QUESTA CONFIGURAZIONE
         await db.query(
-            `UPDATE squadre_circolo SET ${campo} = $1 WHERE numero = $2`,
-            [nomeNuovo, numeroSquadra]
+            `UPDATE squadre_circolo SET ${campo} = $1 WHERE numero = $2 AND configurazione_id = $3`,
+            [nomeNuovo, numeroSquadra, configId]
         );
 
-        // 🆕 AGGIORNA ANCHE IL NOME NELLO SLOT
+        // 🆕 AGGIORNA ANCHE IL NOME NELLO SLOT PER QUESTA CONFIGURAZIONE
         await db.query(
-            'UPDATE slots SET giocatore_attuale = $1 WHERE id = $2',
-            [nomeNuovo, slotId]
+            'UPDATE slots SET giocatore_attuale = $1 WHERE id = $2 AND configurazione_id = $3',
+            [nomeNuovo, slotId, configId]
         );
 
-        // Registra la sostituzione nella tabella sostituzioni (se esiste)
+        // Registra la sostituzione nella tabella sostituzioni
         try {
-            await db.query(
-                `INSERT INTO sostituzioni (squadra_numero, posizione, giocatore_vecchio, giocatore_nuovo, motivo, timestamp)
-                 VALUES ($1, $2, $3, $4, $5, NOW())`,
-                [numeroSquadra, posizione, nomeVecchio, nomeNuovo, motivo || null]
-            );
+            // 🆕 REGISTRA LA SOSTITUZIONE PER OGNI SESSIONE COINVOLTA
+            for (const sessione of sessioniResult.rows) {
+                await db.query(
+                    `INSERT INTO sostituzioni (slot_id, giocatore_vecchio, giocatore_nuovo, dal_turno, motivo, approvato, sessione_id, timestamp)
+                     VALUES ($1, $2, $3, 1, $4, true, $5, NOW())`,
+                    [slotId, nomeVecchio, nomeNuovo, motivo || null, sessione.id]
+                );
+            }
         } catch (err) {
-            console.log('ℹ️ Tabella sostituzioni non disponibile, continuo comunque');
+            console.log('ℹ️ Errore registrazione sostituzione:', err);
         }
 
-        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI
+        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI (raggruppati per sessione)
         if (partecipantiCoinvolti.rows.length > 0) {
-            const idsPartecipanti = partecipantiCoinvolti.rows.map(p => p.id);
+            const idsPartecipanti = [...new Set(partecipantiCoinvolti.rows.map(p => p.id))]; // Deduplica
 
             const messaggioNotifica = motivo
                 ? `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}. Motivo: ${motivo}`
@@ -4082,20 +4097,31 @@ app.post('/api/sostituzioni', async (req, res) => {
             await inviaNotifichePush({
                 title: '🔄 Sostituzione Giocatore',
                 body: messaggioNotifica,
-                url: '/#section-classifica',
+                url: '/?auto_open=true',
                 targetUsers: idsPartecipanti
             });
 
-            console.log(`✅ Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => p.nome).join(', ')}`);
+            console.log(`✅ Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => `${p.nome} (${p.sessione_nome})`).join(', ')}`);
         } else {
             console.log('ℹ️ Nessun partecipante possiede questo giocatore, nessuna notifica inviata');
         }
 
-        console.log(`✅ Sostituzione completata con successo`);
+        // 🆕 Notifica via Socket.IO
+        io.emit('sostituzione_effettuata', {
+            slotId,
+            nomeVecchio,
+            nomeNuovo,
+            configurazione: configId,
+            timestamp: new Date().toISOString()
+        });
+
+        console.log(`✅ Sostituzione completata con successo per configurazione ${configId}`);
 
         res.json({
             success: true,
             message: `${nomeVecchio} sostituito con ${nomeNuovo}`,
+            configurazione: configId,
+            sessioni_coinvolte: sessioniResult.rows.length,
             notifiche_inviate: partecipantiCoinvolti.rows.length
         });
 
