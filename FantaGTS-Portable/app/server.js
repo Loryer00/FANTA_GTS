@@ -3572,17 +3572,26 @@ app.post('/api/subscribe-notifications', async (req, res) => {
             auth: keys.auth.substring(0, 20) + '...'
         });
 
+        // 🔍 Recupera la sessione del partecipante
+        const sessioneQuery = await db.query(
+            'SELECT sessione_id FROM partecipanti_fantagts WHERE id = $1',
+            [partecipanteId]
+        );
+
+        const sessioneId = sessioneQuery.rows.length > 0 ? sessioneQuery.rows[0].sessione_id : null;
+        console.log(`📋 Sessione del partecipante ${partecipanteId}: ${sessioneId}`);
+
         // NUOVO: Prima elimina tutte le subscription esistenti per questo partecipante
         await db.query('DELETE FROM push_subscriptions WHERE partecipante_id = $1', [partecipanteId]);
         console.log(`🗑️ Rimosse subscription esistenti per: ${partecipanteId}`);
 
         // Poi inserisci la nuova subscription
         await db.query(`INSERT INTO push_subscriptions 
-            (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, last_seen, attiva) 
-            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, true)`,
-            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent]);
+            (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, sessione_id, last_seen, attiva) 
+            VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, true)`,
+            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent, sessioneId]);
 
-        console.log('✅ SUBSCRIPTION SALVATA (unica per utente)');
+        console.log(`✅ SUBSCRIPTION SALVATA per sessione: ${sessioneId}`);
 
         // Verifica salvataggio
         const savedResult = await db.query("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
