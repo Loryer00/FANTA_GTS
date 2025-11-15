@@ -3730,12 +3730,12 @@ function avviaMonitoraggioOfferte() {
 }
 
 // API per forzare fine round
-app.post('/api/forza-fine-round', (req, res) => {
+app.post('/api/forza-fine-round', async (req, res) => {
     if (!gameState.asteAttive) {
         return res.status(400).json({ error: 'Nessun round attivo' });
     }
 
-    terminaRound();
+    await terminaRound(true);  // Passa true per forzare la chiusura
     res.json({ message: 'Round terminato forzatamente' });
 });
 
@@ -4006,13 +4006,19 @@ app.post('/api/sostituzioni', async (req, res) => {
     }
 });
 
-function terminaRound() {
+async function terminaRound(forzato = false) {
     console.log('🔄 terminaRound chiamato - elaborando risultati asta');
 
-    // NON settare asteAttive = false qui, perché potrebbe continuare il round
-    // gameState.asteAttive = false; // RIMOSSO
-    gameState.gamePhase = 'results';
+    if (forzato) {
+        console.log('⚠️ TERMINAZIONE FORZATA - Chiusura immediata round');
+        // Elabora le offerte ricevute fino ad ora
+        await elaboraRisultatiAste();
+        // Forza la chiusura completa del round
+        await terminaRoundCompleto();
+        return;
+    }
 
+    gameState.gamePhase = 'results';
     elaboraRisultatiAste();
 }
 
