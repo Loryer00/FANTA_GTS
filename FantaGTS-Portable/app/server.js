@@ -2736,8 +2736,8 @@ app.post('/api/avvia-round/:round', async (req, res) => {
 
         // Ottieni tutti i slots disponibili per questo round
         const slotsResult = await db.query(
-            "SELECT * FROM slots WHERE posizione = $1 AND attivo = true ORDER BY squadra_numero",
-            [round]
+            "SELECT * FROM slots WHERE posizione = $1 AND attivo = true AND sessione_id = $2 ORDER BY squadra_numero",
+            [round, sessione]
         );
 
         const tuttiPartecipanti = partecipantiResult.rows;
