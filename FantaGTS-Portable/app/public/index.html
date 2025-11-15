@@ -2845,19 +2845,82 @@
         // NOTIFICHE
         // ========================================
         async function setupPushNotifications() {
-            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                console.log('⚠️ Notifiche non supportate');
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+                console.log('⚠️ Notifiche push non supportate');
                 return;
             }
 
             try {
+                // 1. Richiedi permesso
                 const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    console.log('✅ Permesso notifiche concesso');
+                if (permission !== 'granted') {
+                    console.log('⚠️ Permesso notifiche negato');
+                    return;
                 }
+
+                console.log('✅ Permesso notifiche concesso');
+
+                // 2. Aspetta che il service worker sia pronto
+                const registration = await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker pronto');
+
+                // 3. Ottieni la chiave pubblica VAPID dal server
+                const vapidResponse = await fetch('/api/vapid-public-key');
+                const vapidData = await vapidResponse.json();
+
+                if (!vapidData.publicKey) {
+                    console.log('⚠️ Chiave VAPID non disponibile sul server');
+                    return;
+                }
+
+                console.log('🔑 Chiave VAPID ottenuta');
+
+                // 4. Sottoscrivi alle notifiche push
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                });
+
+                console.log('📨 Subscription creata:', subscription);
+
+                // 5. Invia la subscription al server
+                if (playerData.id) {
+                    const response = await fetch('/api/subscribe-notifications', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subscription: subscription,
+                            partecipanteId: playerData.id
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('✅ Notifiche push attivate con successo!');
+                    } else {
+                        console.error('❌ Errore attivazione notifiche:', result);
+                    }
+                }
+
             } catch (error) {
-                console.error('Errore setup notifiche:', error);
+                console.error('❌ Errore setup notifiche push:', error);
             }
+        }
+
+        // Funzione helper per convertire la chiave VAPID
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
         }
 
         // ========================================

@@ -3547,6 +3547,21 @@ app.get('/api/slots-round/:round', async (req, res) => {
     }
 });
 
+// Endpoint per fornire la chiave pubblica VAPID ai client
+app.get('/api/vapid-public-key', (req, res) => {
+    if (!webPushConfigured || !currentVapidKeys) {
+        return res.status(503).json({
+            error: 'Web Push non configurato',
+            publicKey: null
+        });
+    }
+
+    res.json({
+        publicKey: currentVapidKeys.publicKey,
+        configured: true
+    });
+});
+
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
