@@ -3460,9 +3460,9 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
                     console.log(`➖ Rimuovendo ${risultato.punti_assegnati} punti da slot ${slotId}`);
 
-                    // TOGLIE i punti (usa sottrazione invece di addizione)
+                    // TOGLIE i punti (usa sottrazione ma non va sotto zero)
                     const updateResult = await db.query(
-                        "UPDATE slots SET punti_totali = punti_totali - $1 WHERE id = $2 RETURNING punti_totali",
+                        "UPDATE slots SET punti_totali = GREATEST(0, punti_totali - $1) WHERE id = $2 RETURNING punti_totali",
                         [risultato.punti_assegnati, slotId]
                     );
 

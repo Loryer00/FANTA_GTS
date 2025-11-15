@@ -3340,6 +3340,22 @@
         // ========================================
         // INIZIALIZZAZIONE
         // ========================================
+
+        // 🎯 SALVA PARAMETRI AUTO-APERTURA PRIMA DEL LOGIN (esegui PRIMA del DOMContentLoaded)
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoOpen = urlParams.get('auto_open');
+            const sessioneId = urlParams.get('sessione');
+
+            if (autoOpen === 'true' && sessioneId) {
+                console.log('💾 Salvando parametri auto-apertura per dopo il login');
+                sessionStorage.setItem('pendingAutoOpen', JSON.stringify({
+                    sessioneId: sessioneId,
+                    timestamp: Date.now()
+                }));
+            }
+        })();
+
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('FantaGTS Client caricato');
 
@@ -3349,40 +3365,72 @@
                 console.log('✅ Sessione ripristinata automaticamente');
             }
 
-            // POI: Controlla se c'è una richiesta di auto-apertura
-            const urlParams = new URLSearchParams(window.location.search);
-            const autoOpen = urlParams.get('auto_open');
-            const sessioneId = urlParams.get('sessione');
+            // 🎯 CONTROLLA AUTO-APERTURA (da URL o da sessionStorage post-login)
+            let autoOpenData = null;
 
-            if (autoOpen === 'true' && sessioneId && playerData && playerData.registered) {
-                console.log('🎯 Auto-apertura sessione da notifica:', sessioneId);
+            // Controlla URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoOpenUrl = urlParams.get('auto_open');
+            const sessioneIdUrl = urlParams.get('sessione');
+
+            if (autoOpenUrl === 'true' && sessioneIdUrl) {
+                autoOpenData = { sessioneId: sessioneIdUrl };
+                console.log('🔗 Auto-apertura da URL:', sessioneIdUrl);
+            }
+
+            // Controlla sessionStorage (dopo login)
+            const pendingAutoOpen = sessionStorage.getItem('pendingAutoOpen');
+            if (pendingAutoOpen) {
+                try {
+                    const pending = JSON.parse(pendingAutoOpen);
+                    // Controlla che non sia troppo vecchio (max 5 minuti)
+                    if (Date.now() - pending.timestamp < 5 * 60 * 1000) {
+                        autoOpenData = { sessioneId: pending.sessioneId };
+                        console.log('💾 Auto-apertura da sessionStorage (post-login):', pending.sessioneId);
+                    } else {
+                        console.log('⏰ Auto-apertura scaduta');
+                    }
+                    sessionStorage.removeItem('pendingAutoOpen');
+                } catch (e) {
+                    console.error('Errore parsing pendingAutoOpen:', e);
+                }
+            }
+
+            // Se c'è una richiesta di auto-apertura E l'utente è loggato
+            if (autoOpenData && playerData && playerData.registered) {
+                console.log('🎯 Auto-apertura sessione:', autoOpenData.sessioneId);
 
                 setTimeout(async () => {
                     try {
-                        const sessioneResponse = await fetch(`/api/sessioni/${sessioneId}`);
+                        const sessioneResponse = await fetch(`/api/sessioni/${autoOpenData.sessioneId}`);
 
                         if (sessioneResponse.ok) {
                             const sessioneData = await sessioneResponse.json();
                             console.log('✅ Aprendo automaticamente:', sessioneData.nome);
 
-                            await entraInSessione(sessioneId, sessioneData.nome);
+                            await entraInSessione(autoOpenData.sessioneId, sessioneData.nome);
                             window.history.replaceState({}, document.title, window.location.pathname);
+                        } else {
+                            console.error('❌ Sessione non trovata');
+                            mostraMessaggio('❌ Sessione non disponibile', 'error');
                         }
                     } catch (error) {
                         console.error('❌ Errore auto-apertura:', error);
+                        mostraMessaggio('❌ Errore apertura sessione', 'error');
                     }
                 }, 500);
+            } else if (autoOpenData && (!playerData || !playerData.registered)) {
+                console.log('⏳ Auto-apertura in attesa di login... (dati già salvati in sessionStorage)');
+                // L'auto-apertura è già salvata in sessionStorage, aspettiamo il login/registrazione
             }
 
             // Gestione PIN fields
             document.querySelectorAll('[data-pin-field]').forEach(input => {
                 input.dataset.realPin = '';
                 input.value = '';
-
                 input.addEventListener('input', function (e) {
                     const currentReal = this.dataset.realPin || '';
                     const displayed = this.value;
-
                     if (displayed.length > currentReal.length) {
                         const newChar = displayed[displayed.length - 1];
                         if (/^\d$/.test(newChar) && currentReal.length < 4) {
@@ -3396,17 +3444,14 @@
                         this.value = '•'.repeat(this.dataset.realPin.length);
                     }
                 });
-
                 input.addEventListener('keydown', function (e) {
                     const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'];
                     const isNumber = /^\d$/.test(e.key);
                     const currentLength = (this.dataset.realPin || '').length;
-
                     if (!isNumber && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
                         e.preventDefault();
                         return;
                     }
-
                     if (isNumber && currentLength >= 4) {
                         e.preventDefault();
                     }
