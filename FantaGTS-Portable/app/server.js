@@ -2785,7 +2785,7 @@ app.post('/api/avvia-round/:round', async (req, res) => {
             await inviaNotifichePush({
                 title: `FantaGTS - Round ${round}`,
                 body: `È iniziato il round ${round}! Fai la tua offerta!`,
-                url: '/',
+                url: `/?sessione=${sessione}&auto_open=true`,
                 targetUsers: partecipantiIds
             });
         } catch (error) {
@@ -3325,6 +3325,79 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             sessioneId: sessioneId,
             timestamp: new Date().toISOString()
         });
+
+        // 🔔 INVIA NOTIFICHE PUSH ai proprietari dei giocatori che hanno vinto punti
+        try {
+            // Trova quali slot hanno guadagnato punti
+            const slotsAggiornati = [];
+            for (const risultato of risultati) {
+                if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
+                    const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
+                    const squadreResult = await db.query(
+                        "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
+                        [squadraVincitrice, configurazioneId]
+                    );
+
+                    if (squadreResult.rows.length > 0) {
+                        const coloreSquadra = squadreResult.rows[0].colore;
+                        const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
+                        slotsAggiornati.push({
+                            slotId: slotId,
+                            punti: risultato.punti_assegnati,
+                            posizione: risultato.posizione
+                        });
+                    }
+                }
+            }
+
+            // Trova i proprietari di questi slot nelle aste
+            for (const slot of slotsAggiornati) {
+                const proprietarioResult = await db.query(`
+                    SELECT p.id, p.nome, s.giocatore_attuale
+                    FROM aste a
+                    JOIN partecipanti_fantagts p ON a.partecipante_id = p.id
+                    JOIN slots s ON a.slot_id = s.id
+                    WHERE a.slot_id = $1 AND a.vincitore = true AND a.sessione_id = $2
+                `, [slot.slotId, sessioneId]);
+
+                if (proprietarioResult.rows.length > 0) {
+                    const proprietario = proprietarioResult.rows[0];
+                    console.log(`📨 Inviando notifica a ${proprietario.nome} per ${proprietario.giocatore_attuale} (+${slot.punti} pt)`);
+
+                    await inviaNotifichePush({
+                        title: `🎾 ${proprietario.giocatore_attuale} ha vinto!`,
+                        body: `Il tuo giocatore ha guadagnato ${slot.punti} punti! 🏆`,
+                        url: `/?sessione=${sessioneId}&auto_open=true`,
+                        targetUsers: [proprietario.id]
+                    });
+                }
+            }
+
+            // Trova anche i proprietari nel Draft
+            for (const slot of slotsAggiornati) {
+                const proprietarioDraftResult = await db.query(`
+                    SELECT p.id, p.nome, sd.giocatore
+                    FROM squadre_draft sd
+                    JOIN partecipanti_fantagts p ON sd.partecipante_id = p.id
+                    WHERE sd.slot_id = $1 AND sd.sessione_id = $2
+                `, [slot.slotId, sessioneId]);
+
+                if (proprietarioDraftResult.rows.length > 0) {
+                    const proprietario = proprietarioDraftResult.rows[0];
+                    console.log(`📨 Inviando notifica DRAFT a ${proprietario.nome} per ${proprietario.giocatore} (+${slot.punti} pt)`);
+
+                    await inviaNotifichePush({
+                        title: `🎾 ${proprietario.giocatore} ha vinto!`,
+                        body: `Il tuo giocatore ha guadagnato ${slot.punti} punti! 🏆`,
+                        url: `/?sessione=${sessioneId}&auto_open=true`,
+                        targetUsers: [proprietario.id]
+                    });
+                }
+            }
+        } catch (notifError) {
+            console.error('⚠️ Errore invio notifiche completamento incontro:', notifError);
+            // Non bloccare la risposta se le notifiche falliscono
+        }
 
         res.json({
             message: 'Incontro completato con successo',
@@ -4089,6 +4162,7 @@ async function eseguiRoundCompleto(posizione, roundNumber, partecipantiTarget, g
         inviaNotifichePush({
             title: `FantaGTS - ${posizione} Round ${roundNumber}`,
             body: `Round ${roundNumber} per posizione ${posizione}!`,
+            url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
             targetUsers: gameState.partecipantiTarget
         });
 
@@ -4256,7 +4330,7 @@ async function elaboraRisultatiAste() {
                                 inviaNotifichePush({
                                     title: '⚔️ Pareggio perso',
                                     body: `Non hai vinto ${slotId}. Pareggio con ${vincitore.nome} (${offertaMassima} crediti), sorteggio favorevole a lui.`,
-                                    url: '/',
+                                    url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
                                     targetUsers: [perdente.partecipante]
                                 }).catch(err => console.log('⚠️ Errore notifica push pareggio:', err));
                                 

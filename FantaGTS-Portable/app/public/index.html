@@ -3343,10 +3343,35 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('FantaGTS Client caricato');
 
-            // ðŸ†• Prova a caricare la sessione salvata
+            // PRIMA: Carica sempre i dati del giocatore
             const sessionRestored = await loadSavedSession();
             if (sessionRestored) {
-                console.log('âœ… Sessione ripristinata automaticamente');
+                console.log('✅ Sessione ripristinata automaticamente');
+            }
+
+            // POI: Controlla se c'è una richiesta di auto-apertura
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoOpen = urlParams.get('auto_open');
+            const sessioneId = urlParams.get('sessione');
+
+            if (autoOpen === 'true' && sessioneId && playerData && playerData.registered) {
+                console.log('🎯 Auto-apertura sessione da notifica:', sessioneId);
+
+                setTimeout(async () => {
+                    try {
+                        const sessioneResponse = await fetch(`/api/sessioni/${sessioneId}`);
+
+                        if (sessioneResponse.ok) {
+                            const sessioneData = await sessioneResponse.json();
+                            console.log('✅ Aprendo automaticamente:', sessioneData.nome);
+
+                            await entraInSessione(sessioneId, sessioneData.nome);
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                    } catch (error) {
+                        console.error('❌ Errore auto-apertura:', error);
+                    }
+                }, 500);
             }
 
             // Gestione PIN fields
