@@ -3052,6 +3052,44 @@
                 }
             });
 
+            socket.on('sostituzione_effettuata', (data) => {
+                console.log('🔄 Ricevuta sostituzione giocatore:', data);
+
+                // Ricarica la squadra per aggiornare i nomi
+                loadPlayerTeam();
+
+                // Mostra notifica all'utente
+                const message = `Il giocatore ${data.nomeVecchio} è stato sostituito con ${data.nomeNuovo}`;
+
+                // Crea notifica visiva
+                const notification = document.createElement('div');
+                notification.className = 'notification success';
+                notification.innerHTML = `
+                    <strong>🔄 Sostituzione Effettuata</strong><br>
+                    ${message}
+                `;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    max-width: 350px;
+                    animation: slideIn 0.3s ease-out;
+                `;
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            });
+
             socket.on('round_ended', (data) => {
                 console.log('🏁 Round terminato:', data);
                 loadPlayerTeam();

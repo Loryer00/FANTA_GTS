@@ -4072,6 +4072,21 @@ app.post('/api/sostituzioni', async (req, res) => {
             [nomeNuovo, slotId, configId]
         );
 
+        // 🆕 AGGIORNA ANCHE squadre_draft per tutti i partecipanti che hanno questo slot
+        const updateDraftResult = await db.query(`
+            UPDATE squadre_draft 
+            SET giocatore = $1 
+            WHERE slot_id = $2 
+            AND sessione_id IN (
+                SELECT id FROM sessioni_fantagts WHERE configurazione_id = $3
+            )
+            RETURNING partecipante_id, sessione_id
+        `, [nomeNuovo, slotId, configId]);
+
+        if (updateDraftResult.rows.length > 0) {
+            console.log(`🔄 Aggiornati ${updateDraftResult.rows.length} draft con il nuovo giocatore`);
+        }
+
         // Registra la sostituzione nella tabella sostituzioni
         try {
             // 🆕 REGISTRA LA SOSTITUZIONE PER OGNI SESSIONE COINVOLTA
