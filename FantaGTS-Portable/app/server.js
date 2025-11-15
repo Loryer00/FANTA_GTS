@@ -2734,10 +2734,21 @@ app.post('/api/avvia-round/:round', async (req, res) => {
         AND psa.sessione_id = $1
     `, [sessione]);
 
-        // Ottieni tutti i slots disponibili per questo round
+        // Recupera la configurazione_id della sessione
+        const sessioneConfig = await db.query(
+            "SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1",
+            [sessione]
+        );
+
+        const configurazioneId = sessioneConfig.rows[0]?.configurazione_id;
+
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'Configurazione non trovata per questa sessione' });
+        }
+
         const slotsResult = await db.query(
-            "SELECT * FROM slots WHERE posizione = $1 AND attivo = true AND sessione_id = $2 ORDER BY squadra_numero",
-            [round, sessione]
+            "SELECT * FROM slots WHERE posizione = $1 AND attivo = true AND configurazione_id = $2 ORDER BY squadra_numero",
+            [round, configurazioneId]
         );
 
         const tuttiPartecipanti = partecipantiResult.rows;
