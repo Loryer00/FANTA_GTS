@@ -1552,13 +1552,29 @@
                 if (!sessionResponse.ok) throw new Error('Errore creazione sessione');
 
                 const sessioneCreata = await sessionResponse.json();
-
                 console.log('✅ Sessione creata:', sessioneCreata);
+
+                // 🆕 3️⃣ GENERA AUTOMATICAMENTE GLI SLOTS
+                console.log('🎯 Generazione automatica slots...');
+                const slotsResponse = await fetch('/api/genera-slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        configurazione: configurazioneId
+                    })
+                });
+
+                if (!slotsResponse.ok) {
+                    console.warn('⚠️ Errore generazione slots, ma continuo comunque');
+                } else {
+                    const slotsData = await slotsResponse.json();
+                    console.log('✅ Slots generati:', slotsData.count);
+                }
+
                 showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                // 3️⃣ Redirect appropriato
+                // 4️⃣ Redirect appropriato
                 setTimeout(() => {
-                    // Vai sempre al master, indipendentemente dal tipo di configurazione
                     window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
                 }, 1500);
 

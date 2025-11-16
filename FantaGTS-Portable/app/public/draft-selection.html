@@ -462,9 +462,22 @@
         });
 
         // Carica giocatori disponibili
+        // Carica giocatori disponibili
         async function caricaGiocatoriDisponibili() {
             try {
                 const response = await fetch(`/api/draft/giocatori-disponibili?sessione_id=${appState.sessioneId}`);
+
+                // 🆕 GESTIONE ERRORE 404 - Sessione non trovata
+                if (response.status === 404) {
+                    console.error('❌ Sessione non trovata o eliminata');
+                    showAlert('⚠️ Sessione non più disponibile. Torno alla home...', 'error');
+                    localStorage.removeItem('userSession');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 2000);
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (!response.ok) {
