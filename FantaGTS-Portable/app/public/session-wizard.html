@@ -1248,15 +1248,17 @@
             }
         }
 
-		// Mostra opzione nuova configurazione
+        // Mostra opzione nuova configurazione
         function mostraOpzioneNuova() {
             configurazioneTipo = 'nuova';
             configurazioneSelezionataId = null;
 
-            // Mostra/nascondi container
-            document.getElementById('nuovaConfigContainer').style.display = 'block';
+            // Mostra/nascondi container CORRETTI
+            document.getElementById('nuovaConfigContainer').style.display = 'none';
             document.getElementById('configurazioniContainer').style.display = 'none';
-            
+            document.getElementById('sezNuovaConfig').style.display = 'block';
+            document.getElementById('sezConfigEsistente').style.display = 'none';
+
             // Nascondi preview condivisione finché non viene inserito il numero squadre
             document.getElementById('condivisionePreview').style.display = 'none';
 
@@ -1272,15 +1274,28 @@
                 await caricaConfigurazioni();
             }
 
-            // Mostra/nascondi container
+            // Mostra/nascondi container CORRETTI
             document.getElementById('nuovaConfigContainer').style.display = 'none';
-            document.getElementById('configurazioniContainer').style.display = 'block';
-            
+            document.getElementById('configurazioniContainer').style.display = 'none';
+            document.getElementById('sezNuovaConfig').style.display = 'none';
+            document.getElementById('sezConfigEsistente').style.display = 'block';
+
             // Nascondi preview condivisione finché non viene selezionata una configurazione
             document.getElementById('condivisionePreview').style.display = 'none';
 
-            // Renderizza lista configurazioni
-            renderListaConfigurazioni();
+            // Renderizza lista configurazioni usando il container corretto
+            const container = document.getElementById('listaConfigurazioni');
+
+            if (configurazioniDisponibili.length === 0) {
+                container.innerHTML = `
+            <div class="alert-box alert-warning">
+                <strong>⚠️ Nessuna configurazione disponibile</strong>
+                <p>Non ci sono configurazioni salvate. Crea una nuova configurazione per questa sessione.</p>
+            </div>
+        `;
+            } else {
+                renderListaConfigurazioni();
+            }
 
             console.log('✅ Modalità: Configurazione Esistente');
         }
@@ -1329,7 +1344,7 @@
 
         // Renderizza lista configurazioni disponibili
         function renderListaConfigurazioni() {
-            const container = document.getElementById('configurazioniList');
+            const container = document.getElementById('listaConfigurazioni'); // <-- USA IL CONTAINER CORRETTO
 
             if (configurazioniDisponibili.length === 0) {
                 container.innerHTML = `
