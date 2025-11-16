@@ -607,11 +607,29 @@ F3 Brunelli E</pre>
             try {
                 console.log('🔍 DEBUG - Facendo richiesta a /api/squadre...');
 
-                // Se c'è una sessione, filtra per quella sessione
-                const url = sessioneCorrente ?
-                    `/api/squadre?sessione=${sessioneCorrente}` :
-                    '/api/squadre';
+                // Determina la configurazione da usare
+                let configurazioneId = 'default';
 
+                if (sessioneInfo && sessioneInfo.configurazione_id) {
+                    // Se abbiamo già caricato la sessione, usa la sua configurazione
+                    configurazioneId = sessioneInfo.configurazione_id;
+                } else if (sessioneCorrente) {
+                    // Altrimenti carica la sessione per ottenere la configurazione
+                    try {
+                        const sessResp = await fetch(`/api/sessioni/${sessioneCorrente}`);
+                        if (sessResp.ok) {
+                            const sessData = await sessResp.json();
+                            configurazioneId = sessData.configurazione_id || 'default';
+                            sessioneInfo = sessData; // Salva per usi futuri
+                        }
+                    } catch (err) {
+                        console.warn('⚠️ Impossibile caricare sessione, uso default');
+                    }
+                }
+
+                console.log('📌 Carico squadre per configurazione:', configurazioneId);
+
+                const url = `/api/squadre?configurazione=${configurazioneId}`;
                 const response = await fetch(url);
 
                 if (!response.ok) {
