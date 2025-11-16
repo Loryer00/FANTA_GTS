@@ -1534,6 +1534,13 @@
                     console.log('✅ Configurazione creata:', configurazioneId);
                 } else {
                     // Usa configurazione esistente
+                    console.log('🔍 DEBUG - configurazioneTipo:', configurazioneTipo);
+                    console.log('🔍 DEBUG - configurazioneSelezionataId:', configurazioneSelezionataId);
+
+                    if (!configurazioneSelezionataId || configurazioneSelezionataId === 'default') {
+                        throw new Error('Devi selezionare una configurazione esistente dalla lista!');
+                    }
+
                     configurazioneId = configurazioneSelezionataId;
                     console.log('✅ Configurazione esistente selezionata:', configurazioneId);
                 }
