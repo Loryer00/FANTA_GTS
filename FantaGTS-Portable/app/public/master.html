@@ -1401,53 +1401,54 @@
         // Carica partecipanti per gestione
         async function caricaPartecipantiPerGestione() {
             try {
-                const response = await fetch('/api/debug/partecipanti');
-                const data = await response.json();
+                const sessioneId = sessioneCorrente || 'default';
+                const response = await fetch(`/api/partecipanti?sessione_id=${sessioneId}`);
+                const partecipanti = await response.json();
 
                 const content = document.getElementById('partecipantiGestioneContent');
 
-                if (data.count === 0) {
-                    content.innerHTML = '<p>Nessun partecipante registrato</p>';
+                if (partecipanti.length === 0) {
+                    content.innerHTML = '<p>Nessun partecipante registrato in questa sessione</p>';
                     return;
                 }
 
                 let html = `
-                            <div style="margin-bottom: 15px;">
-                                <strong>Totale partecipanti: ${data.count}</strong> |
-                                <strong>Sessione: ${data.sessione_corrente}</strong>
-                            </div>
-                            <table class="results-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Crediti</th>
-                                        <th>Giocatori</th>
-                                        <th>Notifiche</th>
-                                        <th>Registrato</th>
-                                        <th>Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
+                    <div style="margin-bottom: 15px;">
+                        <strong>Totale partecipanti: ${partecipanti.length}</strong> |
+                        <strong>Sessione: ${sessioneId}</strong>
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Crediti</th>
+                                <th>Giocatori</th>
+                                <th>Notifiche</th>
+                                <th>Registrato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
 
-                data.partecipanti.forEach(p => {
-                    const dataRegistrazione = new Date(p.registrato_il).toLocaleDateString('it-IT');
+                partecipanti.forEach(p => {
+                    const dataRegistrazione = new Date(p.created_at).toLocaleDateString('it-IT');
                     html += `
-                                <tr id="partecipante-${p.id}">
-                                    <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
-                                    <td>${p.crediti}</td>
-                                    <td>${p.giocatori_vinti}/10</td>
-                                    <td>${p.notifiche_attive > 0 ? '✅' : '❌'}</td>
-                                    <td>${dataRegistrazione}</td>
-                                    <td>
-                                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
-                                                onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
-                                                title="Elimina partecipante">
-                                            🗑️ Elimina
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
+                        <tr id="partecipante-${p.id}">
+                            <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                            <td>${p.crediti}</td>
+                            <td>0/10</td>
+                            <td>❌</td>
+                            <td>${dataRegistrazione}</td>
+                            <td>
+                                <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
+                                        onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
+                                        title="Elimina partecipante">
+                                    🗑️ Elimina
+                                </button>
+                            </td>
+                        </tr>
+                    `;
                 });
 
                 html += '</tbody></table>';
