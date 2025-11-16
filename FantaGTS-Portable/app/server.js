@@ -2021,14 +2021,17 @@ app.get('/api/incontri-turno/:turnoId', async (req, res) => {
 
 app.post('/api/squadre', async (req, res) => {
     try {
-        const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id } = req.body;
+        const { numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, sessione_id, configurazione_id } = req.body;
 
-        // Usa sessione_id dal body, oppure sessioneCorrente
-        const sessioneIdValue = sessione_id || sessioneCorrente;
+        // Se configurazione_id è passato direttamente, usalo
+        let configurazioneId = configurazione_id;
 
-        // Ottieni configurazione dalla sessione
-        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneIdValue]);
-        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+        // Altrimenti prova a ottenerlo dalla sessione
+        if (!configurazioneId) {
+            const sessioneIdValue = sessione_id || sessioneCorrente;
+            const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneIdValue]);
+            configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+        }
 
         console.log(`💾 Salvando squadra ${numero} - ${colore} nella configurazione: ${configurazioneId}`);
 
