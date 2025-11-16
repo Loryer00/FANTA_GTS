@@ -724,8 +724,16 @@ function mostraFormManuale() {
             try {
                 showNotification(`Caricamento di ${files.length} file in corso...`, 'info');
 
-                // OTTIENI IL NUMERO INIZIALE DAL SERVER
-                const squadreEsistenti = await fetch('/api/squadre').then(r => r.json());
+                // 🔧 OTTIENI IL NUMERO INIZIALE DAL SERVER - USA CONFIGURAZIONE CORRETTA
+                // Determina quale configurazione usare
+                const urlParams = new URLSearchParams(window.location.search);
+                const configUrl = urlParams.get('config');
+                let configurazioneId = configUrl || (sessioneInfo && sessioneInfo.configurazione_id) || 'default';
+
+                console.log('📌 Usando configurazione:', configurazioneId);
+
+                // 🔧 CHIAMA L'API CON IL PARAMETRO CORRETTO
+                const squadreEsistenti = await fetch(`/api/squadre?configurazione=${configurazioneId}`).then(r => r.json());
                 let numeroSequenziale = squadreEsistenti.length + 1;
 
                 for (let file of files) {
@@ -734,7 +742,8 @@ function mostraFormManuale() {
                         const squadra = parseFileSquadra(text, file.name, numeroSequenziale); // Passa il numero
 
                         if (squadra) {
-                            await salvaSquadra(squadra);
+                            // 🔧 PASSA LA CONFIGURAZIONE ALLA FUNZIONE DI SALVATAGGIO
+                            await salvaSquadra(squadra, configurazioneId);
                             successCount++;
                             numeroSequenziale++; // Incrementa per la prossima squadra
                         } else {
@@ -864,11 +873,18 @@ function clearFormManualeEChiudi() {
 }
 
         // Funzione comune per salvare squadra
-        async function salvaSquadra(squadra) {
-            // Aggiungi sessione_id se presente
+        async function salvaSquadra(squadra, configurazioneId) {
+            // 🔧 AGGIUNGI CONFIGURAZIONE_ID (prioritario)
+            if (configurazioneId) {
+                squadra.configurazione_id = configurazioneId;
+            }
+
+            // Aggiungi sessione_id se presente (per compatibilità)
             if (sessioneCorrente) {
                 squadra.sessione_id = sessioneCorrente;
             }
+
+            console.log('💾 Salvataggio squadra:', squadra);
 
             const response = await fetch('/api/squadre', {
                 method: 'POST',
@@ -877,7 +893,8 @@ function clearFormManualeEChiudi() {
             });
 
             if (!response.ok) {
-                throw new Error('Errore salvataggio squadra');
+                const error = await response.json();
+                throw new Error(error.error || 'Errore salvataggio squadra');
             }
 
             return await response.json();
