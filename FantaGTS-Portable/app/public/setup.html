@@ -458,9 +458,14 @@ F3 Brunelli E</pre>
         // Verifica se gli slot sono già stati generati
         async function verificaSlotsEsistenti() {
             try {
-                const url = sessioneCorrente
-                    ? `/api/slots?sessione=${sessioneCorrente}`
-                    : '/api/slots';
+                // Determina la configurazione da verificare
+                const urlParams = new URLSearchParams(window.location.search);
+                const configUrl = urlParams.get('config');
+                const configurazioneId = configUrl || (sessioneInfo && sessioneInfo.configurazione_id) || 'default';
+
+                console.log('🔍 Verifico slots esistenti per configurazione:', configurazioneId);
+
+                const url = `/api/slots?configurazione=${configurazioneId}`;
 
                 const response = await fetch(url);
                 if (response.ok) {
@@ -1022,12 +1027,15 @@ function clearFormManualeEChiudi() {
             }
 
             try {
-                // Passa la sessione corrente nell'URL o nel body
-                const url = sessioneCorrente
-                    ? `/api/genera-slots?sessione=${sessioneCorrente}`
-                    : '/api/genera-slots';
+                // Determina la configurazione da usare
+                const urlParams = new URLSearchParams(window.location.search);
+                const configUrl = urlParams.get('config');
+                const configurazioneId = configUrl || (sessioneInfo && sessioneInfo.configurazione_id) || 'default';
 
-                console.log('🎯 Generando slots per sessione:', sessioneCorrente);
+                console.log('🎯 Generando slots per configurazione:', configurazioneId);
+
+                // Passa la configurazione nell'URL
+                const url = `/api/genera-slots?configurazione_id=${configurazioneId}`;
 
                 const response = await fetch(url, { method: 'POST' });
 
