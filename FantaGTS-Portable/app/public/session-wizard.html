@@ -1510,7 +1510,6 @@
         async function creaSessione() {
             try {
                 showLoading(true);
-
                 let configurazioneId;
 
                 // 1️⃣ Gestisci configurazione
@@ -1555,28 +1554,34 @@
                 console.log('✅ Sessione creata:', sessioneCreata);
 
                 // 🆕 3️⃣ GENERA AUTOMATICAMENTE GLI SLOTS
-                console.log('🎯 Generazione automatica slots...');
-                const slotsResponse = await fetch('/api/genera-slots', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        configurazione: configurazioneId
-                    })
-                });
+                console.log('🎯 Generazione automatica slots per configurazione:', configurazioneId);
 
-                if (!slotsResponse.ok) {
-                    console.warn('⚠️ Errore generazione slots, ma continuo comunque');
-                } else {
-                    const slotsData = await slotsResponse.json();
-                    console.log('✅ Slots generati:', slotsData.count);
+                try {
+                    const slotsResponse = await fetch('/api/genera-slots', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            configurazione: configurazioneId
+                        })
+                    });
+
+                    if (slotsResponse.ok) {
+                        const slotsData = await slotsResponse.json();
+                        console.log('✅ Slots generati automaticamente:', slotsData.count);
+                        showSuccess(`Sessione "${sessioneCreata.nome}" creata con ${slotsData.count} slot!`);
+                    } else {
+                        console.warn('⚠️ Errore generazione slots');
+                        showSuccess(`Sessione "${sessioneCreata.nome}" creata! (Verifica gli slot)`);
+                    }
+                } catch (slotError) {
+                    console.error('❌ Errore generazione slots:', slotError);
+                    showSuccess(`Sessione "${sessioneCreata.nome}" creata! (Slot non generati)`);
                 }
-
-                showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
                 // 4️⃣ Redirect appropriato
                 setTimeout(() => {
                     window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
-                }, 1500);
+                }, 2000);
 
             } catch (error) {
                 console.error('❌ Errore:', error);
