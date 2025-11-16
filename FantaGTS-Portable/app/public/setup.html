@@ -603,6 +603,7 @@ F3 Brunelli E</pre>
         }
 
         // Gestione squadre
+        // Gestione squadre
         async function caricaSquadre() {
             try {
                 console.log('🔍 DEBUG - Facendo richiesta a /api/squadre...');
@@ -610,9 +611,18 @@ F3 Brunelli E</pre>
                 // Determina la configurazione da usare
                 let configurazioneId = 'default';
 
-                if (sessioneInfo && sessioneInfo.configurazione_id) {
+                // 1️⃣ PRIMA: Controlla se c'è il parametro 'config' nell'URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const configUrl = urlParams.get('config');
+
+                if (configUrl) {
+                    // Se c'è nell'URL, usalo direttamente
+                    configurazioneId = configUrl;
+                    console.log('📌 Configurazione da URL:', configurazioneId);
+                } else if (sessioneInfo && sessioneInfo.configurazione_id) {
                     // Se abbiamo già caricato la sessione, usa la sua configurazione
                     configurazioneId = sessioneInfo.configurazione_id;
+                    console.log('📌 Configurazione da sessioneInfo:', configurazioneId);
                 } else if (sessioneCorrente) {
                     // Altrimenti carica la sessione per ottenere la configurazione
                     try {
@@ -621,6 +631,7 @@ F3 Brunelli E</pre>
                             const sessData = await sessResp.json();
                             configurazioneId = sessData.configurazione_id || 'default';
                             sessioneInfo = sessData; // Salva per usi futuri
+                            console.log('📌 Configurazione da sessione:', configurazioneId);
                         }
                     } catch (err) {
                         console.warn('⚠️ Impossibile caricare sessione, uso default');
