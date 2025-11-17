@@ -5250,7 +5250,8 @@ app.post('/api/sessioni', async (req, res) => {
             modalita,
             numeroPartecipanti,
             creditiIniziali,
-            numeroSquadre
+            numeroSquadre,
+            configurazione_id
         } = req.body;
 
         // Validazione
@@ -5270,6 +5271,12 @@ app.post('/api/sessioni', async (req, res) => {
 
         if (numeroSquadre < 1 || numeroSquadre > 50) {
             return res.status(400).json({ error: 'Numero squadre deve essere tra 1 e 50' });
+        }
+
+        // Validazione configurazione_id
+        const configurazioneId = configurazione_id || 'default';
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'configurazione_id richiesto' });
         }
 
         // Validazione crediti solo per asta competitiva
@@ -5305,10 +5312,10 @@ app.post('/api/sessioni', async (req, res) => {
         id, nome, anno, descrizione, modalita,
         numero_partecipanti_previsti, crediti_iniziali, numero_squadre,
         condivisione_attiva, ripetizioni_necessarie, 
-        stato, attiva, codice_accesso
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        stato, attiva, codice_accesso, configurazione_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     RETURNING *
-        `, [
+`, [
             sessioneId,
             nome,
             anno || new Date().getFullYear(),
@@ -5321,7 +5328,8 @@ app.post('/api/sessioni', async (req, res) => {
             condivisione.ripetizioniNecessarie,
             'setup',
             true,
-            codiceAccesso
+            codiceAccesso,
+            configurazioneId  // 🆕 AGGIUNGI QUESTO PARAMETRO
         ]);
         console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita}) - Codice: ${codiceAccesso}`);
         console.log(`   📊 Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
@@ -5677,30 +5685,30 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
 
         // Recupera tutti gli slot delle squadre del circolo per questa configurazione
         const result = await db.query(`
-            SELECT 
-            s.id,
-            s.posizione,
-            s.giocatore_attuale,
-            sc.colore as colore_squadra,
-            s.squadra_numero as numero_squadra
-        FROM slots s
-        JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.configurazione_id = sc.configurazione_id
-        WHERE s.configurazione_id = $1 AND s.attivo = true
-            ORDER BY 
-                CASE s.posizione
-                    WHEN 'M1' THEN 1
-                    WHEN 'M2' THEN 2
-                    WHEN 'M3' THEN 3
-                    WHEN 'M4' THEN 4
-                    WHEN 'M5' THEN 5
-                    WHEN 'M6' THEN 6
-                    WHEN 'M7' THEN 7
-                    WHEN 'F1' THEN 8
-                    WHEN 'F2' THEN 9
-                    WHEN 'F3' THEN 10
-                END,
-                sc.numero
-        `, [configurazioneId]);
+    SELECT 
+    s.id,
+    s.posizione,
+    s.giocatore_attuale,
+    sc.colore as colore_squadra,
+    s.squadra_numero as numero_squadra
+FROM slots s
+JOIN squadre_circolo sc ON s.squadra_numero = sc.numero AND s.configurazione_id = sc.configurazione_id
+WHERE s.configurazione_id = $1 AND s.attivo = true
+    ORDER BY 
+        CASE s.posizione
+            WHEN 'M1' THEN 1
+            WHEN 'M2' THEN 2
+            WHEN 'M3' THEN 3
+            WHEN 'M4' THEN 4
+            WHEN 'M5' THEN 5
+            WHEN 'M6' THEN 6
+            WHEN 'M7' THEN 7
+            WHEN 'F1' THEN 8
+            WHEN 'F2' THEN 9
+            WHEN 'F3' THEN 10
+        END,
+        sc.numero
+`, [configurazioneId]);
 
         // Raggruppa giocatori per posizione
         const giocatoriPerPosizione = {
