@@ -5665,6 +5665,16 @@ app.get('/api/draft/giocatori-disponibili', async (req, res) => {
         const configQuery = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessione_id]);
         const configurazioneId = configQuery.rows[0]?.configurazione_id || 'default';
 
+        console.log(`🔍 DEBUG - Configurazione richiesta: ${configurazioneId}`);
+
+        // DEBUG: Verifica slot disponibili
+        const slotsDebug = await db.query('SELECT COUNT(*) as count FROM slots WHERE configurazione_id = $1', [configurazioneId]);
+        console.log(`🔍 DEBUG - Slot trovati per config ${configurazioneId}: ${slotsDebug.rows[0].count}`);
+
+        // DEBUG: Verifica squadre disponibili
+        const squadreDebug = await db.query('SELECT COUNT(*) as count FROM squadre_circolo WHERE configurazione_id = $1', [configurazioneId]);
+        console.log(`🔍 DEBUG - Squadre trovate per config ${configurazioneId}: ${squadreDebug.rows[0].count}`);
+
         // Recupera tutti gli slot delle squadre del circolo per questa configurazione
         const result = await db.query(`
             SELECT 
