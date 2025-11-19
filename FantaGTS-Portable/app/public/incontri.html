@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FantaGTS - Incontri e Risultati</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -381,7 +382,40 @@
         let sessioneCorrente = null;
 
         // Inizializzazione
+        let socket = null;
+
+        function initSocket() {
+            if (socket) {
+                console.log('⚠️ Socket già inizializzato');
+                return;
+            }
+
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('✅ Socket.IO connesso in incontri.html');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('❌ Socket.IO disconnesso');
+            });
+
+            // 🎯 Listener per aggiornamenti punti
+            socket.on('aggiornamento_punti', (data) => {
+                console.log('📊 Ricevuto aggiornamento punti:', data);
+                
+                // Ricarica gli incontri del turno selezionato
+                if (turnoSelezionato) {
+                    console.log('🔄 Ricarico incontri del turno', turnoSelezionato.id);
+                    caricaIncontriTurno(turnoSelezionato.id);
+                }
+            });
+
+            console.log('✅ Socket.IO inizializzato con listener aggiornamento_punti');
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
+            initSocket(); // 🔌 Aggiungi questa riga QUI
             await caricaSessioneAttiva();
             await caricaSquadre();
             await caricaTurni();
