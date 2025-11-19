@@ -985,6 +985,7 @@
 
                     console.log('✅ Sessione caricata:', sessioneCorrente);
                     console.log('✅ Configurazione:', configurazioneCorrente);
+                    console.log('📋 Modalità sessione:', data.modalita);
 
                     // Aggiorna header con nome sessione
                     const header = document.querySelector('.header h1');
@@ -993,14 +994,25 @@
                     }
 
                 } else {
-                    // 3️⃣ Fallback: cerca sessione attiva (asta_competitiva)
-                    console.log('🔍 Nessuna sessione nell\'URL, cerco sessione attiva asta...');
-                    const response = await fetch('/api/sessioni/attiva/asta_competitiva');
+                    // 3️⃣ Fallback: cerca QUALSIASI sessione attiva (non solo asta)
+                    console.log('🔍 Nessuna sessione nell\'URL, cerco sessione attiva...');
+                    
+                    // Prima prova asta_competitiva
+                    let response = await fetch('/api/sessioni/attiva/asta_competitiva');
+                    
+                    // Se non trova asta, prova draft_libero
+                    if (!response.ok) {
+                        console.log('   ⏩ Nessuna asta attiva, cerco draft...');
+                        response = await fetch('/api/sessioni/attiva/draft_libero');
+                    }
 
                     if (!response.ok) {
-                        console.warn('⚠️ Nessuna sessione asta attiva trovata');
-                        sessioneCorrente = 'default';
+                        console.warn('⚠️ Nessuna sessione attiva trovata, uso configurazione default');
+                        sessioneCorrente = null;
                         configurazioneCorrente = 'default';
+                        
+                        // Mostra avviso all'utente
+                        showNotification('⚠️ Nessuna sessione attiva. Usando configurazione default.', 'warning');
                         return;
                     }
 
@@ -1011,9 +1023,10 @@
                         sessioneInfo = data;
                         console.log('✅ Sessione attiva caricata:', sessioneCorrente);
                         console.log('✅ Configurazione:', configurazioneCorrente);
+                        console.log('📋 Modalità sessione:', data.modalita);
                     } else {
-                        console.warn('⚠️ Usando sessione/configurazione default');
-                        sessioneCorrente = 'default';
+                        console.warn('⚠️ Usando configurazione default');
+                        sessioneCorrente = null;
                         configurazioneCorrente = 'default';
                     }
                 }
@@ -1024,9 +1037,9 @@
                 }
 
             } catch (error) {
-                console.error('Errore caricamento sessione:', error);
+                console.error('❌ Errore caricamento sessione:', error);
                 showNotification(`Errore: ${error.message}`, 'error');
-                sessioneCorrente = 'default';
+                sessioneCorrente = null;
                 configurazioneCorrente = 'default';
             }
         }
