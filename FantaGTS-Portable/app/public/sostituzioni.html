@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sostituzioni - FantaGTS Master</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -460,6 +461,38 @@
         let currentReplacement = null;
         let configurazioneCorrente = null;
 
+        // 🔌 Inizializza connessione Socket.IO
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('✅ Socket.IO connesso');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('❌ Socket.IO disconnesso');
+            });
+
+            // 🎯 Ascolta evento sostituzione
+            socket.on('sostituzione_effettuata', (data) => {
+                console.log('🔄 Sostituzione ricevuta via Socket.IO:', data);
+                
+                // Verifica se la sostituzione riguarda la configurazione corrente
+                if (data.configurazione === configurazioneCorrente) {
+                    showNotification(`🔄 ${data.nomeVecchio} sostituito con ${data.nomeNuovo}`, 'success');
+                    
+                    // Ricarica le squadre
+                    caricaSquadre().then(() => {
+                        // Se c'era una squadra selezionata, ricaricala
+                        const squadraSelezionata = document.getElementById('squadraFilter').value;
+                        if (squadraSelezionata) {
+                            mostraGiocatoriSquadra(parseInt(squadraSelezionata));
+                        }
+                    });
+                }
+            });
+        }
+
         // Carica squadre all'avvio
         async function caricaSquadre() {
             try {
@@ -736,7 +769,10 @@
         });
 
         // Inizializza al caricamento
-        document.addEventListener('DOMContentLoaded', caricaSquadre);
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            caricaSquadre();
+        });
     </script>
 </body>
 </html>
