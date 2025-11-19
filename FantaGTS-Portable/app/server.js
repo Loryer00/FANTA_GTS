@@ -4053,13 +4053,32 @@ app.post('/api/sostituzioni', async (req, res) => {
         const partecipantiCoinvolti = await db.query(`
             SELECT DISTINCT p.id, p.nome, s.id as sessione_id, s.nome as sessione_nome
             FROM partecipanti_fantagts p
-            JOIN aste a ON p.id = a.partecipante_id
-            JOIN sessioni_fantagts s ON a.sessione_id = s.id
-            WHERE a.slot_id = $1 
-              AND a.vincitore = true
-              AND p.attivo = true
-              AND s.configurazione_id = $2
-        `, [slotId, configId]);
+            JOIN sessioni_fantagts s ON s.id IN (
+                SELECT sessione_id FROM aste WHERE partecipante_id = p.id
+                UNION
+                SELECT sessione_id FROM squadre_draft WHERE partecipante_id = p.id
+            )
+            WHERE s.configurazione_id = $1
+            AND p.attivo = true
+            AND (
+                -- Cerca nelle aste (modalità asta)
+                EXISTS (
+                    SELECT 1 FROM aste a 
+                    WHERE a.partecipante_id = p.id 
+                        AND a.slot_id = $2 
+                        AND a.vincitore = true
+                        AND a.sessione_id = s.id
+                )
+                OR
+                -- Cerca nelle squadre draft (modalità draft)
+                EXISTS (
+                    SELECT 1 FROM squadre_draft sd 
+                    WHERE sd.partecipante_id = p.id 
+                        AND sd.slot_id = $2
+                        AND sd.sessione_id = s.id
+                )
+            )
+        `, [configId, slotId]);
 
         console.log(`👥 Trovati ${partecipantiCoinvolti.rows.length} partecipanti da notificare`);
 

@@ -482,12 +482,22 @@
                     // Salva la squadra attualmente selezionata PRIMA del reload
                     const squadraSelezionata = document.getElementById('squadraFilter').value;
                     
+                    console.log('🔄 Squadra selezionata prima del reload:', squadraSelezionata);
+                    
+                    // AGGIUNGI UN PICCOLO DELAY per evitare conflitti
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
                     // ASPETTA il caricamento delle squadre
                     await caricaSquadre();
                     
+                    console.log('✅ Squadre ricaricate, ora aggiorno la visualizzazione');
+                    
                     // Se c'era una squadra selezionata, aggiorna la visualizzazione
                     if (squadraSelezionata) {
+                        // AGGIUNGI UN ALTRO PICCOLO DELAY
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         mostraGiocatoriSquadra(parseInt(squadraSelezionata));
+                        console.log('✅ Visualizzazione aggiornata per squadra:', squadraSelezionata);
                     }
                     
                     // Mostra notifica DOPO aver aggiornato la UI
