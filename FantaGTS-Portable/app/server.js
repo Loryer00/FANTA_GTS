@@ -4847,18 +4847,7 @@ io.on('connection', (socket) => {
                     }
 
                     // 🆕 AGGIUNGI QUESTE RIGHE NUOVE QUI
-                    const partecipante = result.rows[0];
-
-                    // 🆕 AGGIORNA LA SESSIONE DEL PARTECIPANTE SE DIVERSA
-                    if (partecipante.sessione_id !== sessioneCorrente) {
-                        console.log(`🔄 Aggiornamento sessione per ${data.nome}: ${partecipante.sessione_id} → ${sessioneCorrente}`);
-                        await db.query(`
-                            UPDATE partecipanti_fantagts 
-                            SET sessione_id = $1 
-                            WHERE id = $2
-                        `, [sessioneCorrente, data.partecipanteId]);
-                    }
-                    // 🆕 FINE RIGHE NUOVE
+                    const partecipante = result.rows[0];                    
 
                     // Registrazione WebSocket autorizzata
                     gameState.connessi.set(socket.id, {
