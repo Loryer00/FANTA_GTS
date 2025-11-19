@@ -1624,7 +1624,12 @@
 
                 // 4. Genera tutti gli incontri
                 const incontriResponse = await fetch(`/api/genera-incontri-completi/${turnoId}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        configurazione_id: configurazioneCorrente,
+                        sessione_id: sessioneCorrente || null
+                    })
                 });
 
                 if (!incontriResponse.ok) {

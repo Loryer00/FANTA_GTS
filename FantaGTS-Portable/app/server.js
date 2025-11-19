@@ -1710,26 +1710,35 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
     try {
         const turnoId = req.params.turnoId;
 
-        // ✅ Prendi sessione_id dal BODY della richiesta
-        const { sessione_id } = req.body;
+        // ✅ Accetta sia sessione_id che configurazione_id (priorità a configurazione_id)
+        let { sessione_id, configurazione_id } = req.body;
 
-        if (!sessione_id) {
+        // Se è stata passata configurazione_id, usala direttamente
+        if (configurazione_id) {
+            console.log(`🎯 Usando configurazione_id dal body: ${configurazione_id}`);
+        } 
+        // Altrimenti, se c'è sessione_id, recupera la configurazione dalla sessione
+        else if (sessione_id) {
+            console.log(`🔍 Recupero configurazione_id dalla sessione: ${sessione_id}`);
+            const sessioneInfo = await db.query(
+                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+                [sessione_id]
+            );
+
+            if (sessioneInfo.rows.length === 0) {
+                return res.status(404).json({ error: 'Sessione non trovata' });
+            }
+
+            configurazione_id = sessioneInfo.rows[0].configurazione_id;
+        } 
+        // Se non c'è né sessione né configurazione, errore
+        else {
             return res.status(400).json({
-                error: 'sessione_id è richiesto nel body della richiesta'
+                error: 'Devi fornire sessione_id o configurazione_id nel body della richiesta'
             });
         }
 
-        // ✅ Recupera configurazione_id dalla sessione
-        const sessioneInfo = await db.query(
-            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-            [sessione_id]
-        );
-
-        if (sessioneInfo.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione non trovata' });
-        }
-
-        const configurazioneId = sessioneInfo.rows[0].configurazione_id;
+        const configurazioneId = configurazione_id;
 
         console.log(`🎯 Generazione incontri per turno ${turnoId}`);
         console.log(`   📍 Sessione: ${sessione_id}`);
@@ -1762,12 +1771,23 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
             return res.status(400).json({ error: 'Nessun accoppiamento configurato per questo turno' });
         }
 
-        // 3. ✅ Elimina solo gli incontri di QUESTA SESSIONE per questo turno
-        const deleteResult = await db.query(
-            "DELETE FROM incontri WHERE turno_id = $1 AND sessione_id = $2 RETURNING id",
-            [turnoId, sessione_id]
-        );
-        console.log(`🗑️ Eliminati ${deleteResult.rowCount} incontri esistenti per questa sessione`);
+        // 3. ✅ Elimina incontri esistenti per questo turno e configurazione
+        let deleteResult;
+        if (sessione_id) {
+            // Se abbiamo sessione_id, elimina solo gli incontri di quella sessione
+            deleteResult = await db.query(
+                "DELETE FROM incontri WHERE turno_id = $1 AND sessione_id = $2 RETURNING id",
+                [turnoId, sessione_id]
+            );
+            console.log(`🗑️ Eliminati ${deleteResult.rowCount} incontri esistenti per la sessione ${sessione_id}`);
+        } else {
+            // Altrimenti elimina gli incontri per turno e configurazione
+            deleteResult = await db.query(
+                "DELETE FROM incontri WHERE turno_id = $1 AND configurazione_id = $2 RETURNING id",
+                [turnoId, configurazioneId]
+            );
+            console.log(`🗑️ Eliminati ${deleteResult.rowCount} incontri esistenti per la configurazione ${configurazioneId}`);
+        }
 
         // Elimina anche le coppie_turno relative (se non usate da altre sessioni)
         await db.query("DELETE FROM coppie_turno WHERE turno_id = $1", [turnoId]);
@@ -1792,11 +1812,11 @@ app.post('/api/genera-incontri-completi/:turnoId', async (req, res) => {
 
                 const coppiaId = coppiaResult.rows[0].id;
 
-                // 7. ✅ Crea l'incontro CON sessione_id e configurazione_id
+                // 7. ✅ Crea l'incontro CON configurazione_id (sessione_id opzionale)
                 await db.query(`
                     INSERT INTO incontri (turno_id, coppia_turno_id, squadra1, squadra2, sessione_id, configurazione_id) 
                     VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessione_id, configurazioneId]);
+                    [turnoId, coppiaId, scontro.squadra1, scontro.squadra2, sessione_id || null, configurazioneId]);
 
                 incontriGenerati++;
                 coppiaNumero++;
