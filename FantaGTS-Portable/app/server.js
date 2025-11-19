@@ -7,7 +7,7 @@ const path = require('path');
 const os = require('os');
 
 // Variabile globale sessione corrente 
-let sessioneCorrente = process.env.SESSIONE_CORRENTE || 'fantagts_2025';
+let sessioneCorrente = null; // Sarà caricata dinamicamente dalla sessione attiva
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +22,17 @@ const io = socketIo(server, {
 const webpush = require('web-push');
 let webPushConfigured = false;
 let currentVapidKeys = null;
+
+// Funzione helper per ottenere la sessione attiva
+async function getSessioneAttiva() {
+    try {
+        const result = await db.query('SELECT id FROM sessioni_fantagts WHERE attiva = true LIMIT 1');
+        return result.rows[0]?.id || null;
+    } catch (error) {
+        console.error('❌ Errore recupero sessione attiva:', error);
+        return null;
+    }
+}
 
 try {
     // Usa chiavi da variabili ambiente SE ci sono
@@ -3247,8 +3258,15 @@ app.post('/api/set-vincitore', async (req, res) => {
 app.post('/api/completa-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
-        const sessioneId = req.query.sessione || req.body.sessione || sessioneCorrente;
+        const sessioneIdQuery = req.query.sessione || req.body.sessione;
         const configurazioneQuery = req.query.configurazione || req.body.configurazione;
+
+        // 🎯 Determina la sessione: prima dall'URL, poi dalla sessione attiva
+        let sessioneId = sessioneIdQuery;
+        if (!sessioneId || sessioneId === 'null') {
+            sessioneId = await getSessioneAttiva();
+            console.log(`📌 Nessuna sessione nell'URL, uso sessione attiva: ${sessioneId}`);
+        }
 
         console.log(`📊 Completamento incontro ${incontroId} per sessione: ${sessioneId}, configurazione: ${configurazioneQuery}`);
 
