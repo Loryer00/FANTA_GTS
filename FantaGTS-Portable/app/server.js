@@ -3720,6 +3720,37 @@ app.post('/api/subscribe-notifications', async (req, res) => {
     }
 });
 
+// Test notifica push
+app.post('/api/test-notification', async (req, res) => {
+    try {
+        const { partecipanteId } = req.body;
+        
+        if (!partecipanteId) {
+            return res.status(400).json({ error: 'partecipanteId richiesto' });
+        }
+
+        console.log('🧪 Test notifica richiesto per:', partecipanteId);
+
+        // Invia notifica di test
+        const result = await inviaNotifiche(
+            '🧪 Test Notifica',
+            'Questa è una notifica di test. Se la vedi, le notifiche funzionano correttamente! 🎉',
+            '/',
+            [partecipanteId]
+        );
+
+        res.json({
+            success: true,
+            result: result,
+            message: 'Notifica di test inviata'
+        });
+
+    } catch (error) {
+        console.error('❌ Errore test notifica:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Monitoraggio automatico offerte - VERSIONE CORRETTA
 function avviaMonitoraggioOfferte() {
     const monitorInterval = setInterval(async () => {

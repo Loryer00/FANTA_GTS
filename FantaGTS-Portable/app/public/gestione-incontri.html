@@ -1280,12 +1280,35 @@
         }
 
         function aggiornaPosizioniDisponibili() {
+            console.log('🔄 Aggiornamento posizioni disponibili...');
+            console.log('   - Accoppiamenti attuali:', configTurno.accoppiamenti);
+            
             const pos1Select = document.getElementById('pos1Select');
             const pos2Select = document.getElementById('pos2Select');
+
+            if (!pos1Select || !pos2Select) {
+                console.error('❌ Select delle posizioni non trovati!');
+                return;
+            }
 
             // Reset options - RIMUOVI i placeholder
             pos1Select.innerHTML = '';
             pos2Select.innerHTML = '';
+
+            // ✅ Aggiungi placeholder
+            const placeholderOption1 = document.createElement('option');
+            placeholderOption1.value = '';
+            placeholderOption1.textContent = 'Seleziona posizione...';
+            placeholderOption1.disabled = true;
+            placeholderOption1.selected = true;
+            pos1Select.appendChild(placeholderOption1);
+
+            const placeholderOption2 = document.createElement('option');
+            placeholderOption2.value = '';
+            placeholderOption2.textContent = 'Seleziona posizione...';
+            placeholderOption2.disabled = true;
+            placeholderOption2.selected = true;
+            pos2Select.appendChild(placeholderOption2);
 
             const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
 
@@ -1296,6 +1319,7 @@
                 posizioniUtilizzate.add(acc.pos2);
             });
 
+            let posizioniAggiunte = 0;
             posizioni.forEach(pos => {
                 if (!posizioniUtilizzate.has(pos)) {
                     const option1 = document.createElement('option');
@@ -1307,8 +1331,12 @@
                     option2.value = pos;
                     option2.textContent = pos;
                     pos2Select.appendChild(option2);
+                    
+                    posizioniAggiunte++;
                 }
             });
+
+            console.log(`✅ Aggiunte ${posizioniAggiunte} posizioni ai menu`);
         }
 
         function aggiungiScontro() {
