@@ -2890,7 +2890,8 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             subscription: subscription,
-                            partecipanteId: playerData.id
+                            partecipanteId: playerData.id,
+                            sessioneId: playerData.sessione // 🆕 PASSA LA SESSIONE CORRENTE
                         })
                     });
 

@@ -3652,8 +3652,8 @@ app.get('/api/vapid-public-key', (req, res) => {
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
-        const { subscription, partecipanteId } = req.body;
-        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId });
+        const { subscription, partecipanteId, sessioneId } = req.body; // 🆕 AGGIUNGI sessioneId
+        console.log('📨 RICEVUTA SUBSCRIPTION:', { subscription, partecipanteId, sessioneId });
 
         if (!subscription || !partecipanteId) {
             return res.status(400).json({ error: 'Subscription e partecipanteId richiesti' });
@@ -3669,40 +3669,50 @@ app.post('/api/subscribe-notifications', async (req, res) => {
 
         console.log('💾 SALVANDO NEL DB:', {
             partecipanteId,
+            sessioneId, // 🆕 LOG
             endpoint: endpoint.substring(0, 50) + '...',
             p256dh: keys.p256dh.substring(0, 20) + '...',
             auth: keys.auth.substring(0, 20) + '...'
         });
 
-        // 🔍 Recupera la sessione del partecipante
-        const sessioneQuery = await db.query(
-            'SELECT sessione_id FROM partecipanti_fantagts WHERE id = $1',
-            [partecipanteId]
-        );
+        // 🆕 USA LA SESSIONE PASSATA DAL CLIENT, oppure fallback alla sessione del partecipante
+        let sessioneIdFinale = sessioneId;
+        
+        if (!sessioneIdFinale) {
+            const sessioneQuery = await db.query(
+                'SELECT sessione_id FROM partecipanti_fantagts WHERE id = $1',
+                [partecipanteId]
+            );
+            sessioneIdFinale = sessioneQuery.rows.length > 0 ? sessioneQuery.rows[0].sessione_id : null;
+        }
+        
+        console.log(`📋 Sessione per subscription: ${sessioneIdFinale}`);
 
-        const sessioneId = sessioneQuery.rows.length > 0 ? sessioneQuery.rows[0].sessione_id : null;
-        console.log(`📋 Sessione del partecipante ${partecipanteId}: ${sessioneId}`);
-
-        // NUOVO: Prima elimina tutte le subscription esistenti per questo partecipante
-        await db.query('DELETE FROM push_subscriptions WHERE partecipante_id = $1', [partecipanteId]);
-        console.log(`🗑️ Rimosse subscription esistenti per: ${partecipanteId}`);
+        // NUOVO: Prima elimina tutte le subscription esistenti per questo partecipante IN QUESTA SESSIONE
+        await db.query('DELETE FROM push_subscriptions WHERE partecipante_id = $1 AND sessione_id = $2', 
+            [partecipanteId, sessioneIdFinale]);
+        console.log(`🗑️ Rimosse subscription esistenti per: ${partecipanteId} in sessione ${sessioneIdFinale}`);
 
         // Poi inserisci la nuova subscription
         await db.query(`INSERT INTO push_subscriptions 
             (partecipante_id, endpoint, p256dh_key, auth_key, user_agent, sessione_id, last_seen, attiva) 
             VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, true)`,
-            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent, sessioneId]);
+            [partecipanteId, endpoint, keys.p256dh, keys.auth, userAgent, sessioneIdFinale]);
 
-        console.log(`✅ SUBSCRIPTION SALVATA per sessione: ${sessioneId}`);
+        console.log(`✅ SUBSCRIPTION SALVATA per sessione: ${sessioneIdFinale}`);
 
         // Verifica salvataggio
-        const savedResult = await db.query("SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1", [partecipanteId]);
+        const savedResult = await db.query(
+            "SELECT COUNT(*) as count FROM push_subscriptions WHERE partecipante_id = $1 AND sessione_id = $2", 
+            [partecipanteId, sessioneIdFinale]
+        );
         console.log('🔍 VERIFICA SALVATAGGIO:', savedResult.rows[0]);
 
         res.json({
             success: true,
             message: 'Notifiche attivate con successo',
-            saved: savedResult.rows[0].count
+            saved: savedResult.rows[0].count,
+            sessioneId: sessioneIdFinale
         });
     } catch (error) {
         console.error('❌ ERRORE SALVATAGGIO SUBSCRIPTION:', error);
