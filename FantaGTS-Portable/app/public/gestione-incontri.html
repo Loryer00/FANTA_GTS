@@ -962,15 +962,39 @@
             caricaTurni();
         });
 
-        // Carica sessione (da URL o attiva)
+        // Carica configurazione (da URL, sessione, o default)
         async function caricaSessioneAttiva() {
             try {
-                // 1️⃣ Controlla se c'è ?sessione=XXX nell'URL
                 const urlParams = new URLSearchParams(window.location.search);
+                
+                // 🎯 PRIORITÀ 1: Configurazione nell'URL
+                const configUrl = urlParams.get('configurazione');
+                if (configUrl) {
+                    console.log('🎯 Configurazione specificata nell\'URL:', configUrl);
+                    configurazioneCorrente = configUrl;
+                    sessioneCorrente = null;
+                    
+                    // Carica info configurazione per mostrare il nome
+                    try {
+                        const response = await fetch(`/api/configurazioni/${configUrl}`);
+                        if (response.ok) {
+                            const configData = await response.json();
+                            const header = document.querySelector('.header h1');
+                            if (header) {
+                                header.textContent = `FantaGTS - Gestione Incontri - ${configData.nome}`;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Non riesco a caricare il nome della configurazione');
+                    }
+                    
+                    console.log('✅ Configurazione caricata:', configurazioneCorrente);
+                    return;
+                }
+                
+                // 📋 PRIORITÀ 2: Sessione nell'URL
                 const sessioneUrl = urlParams.get('sessione');
-
                 if (sessioneUrl) {
-                    // 2️⃣ Carica quella sessione specifica dall'URL
                     console.log('🎯 Sessione specificata nell\'URL:', sessioneUrl);
                     const response = await fetch(`/api/sessioni/${sessioneUrl}`);
 
@@ -987,57 +1011,48 @@
                     console.log('✅ Configurazione:', configurazioneCorrente);
                     console.log('📋 Modalità sessione:', data.modalita);
 
-                    // Aggiorna header con nome sessione
                     const header = document.querySelector('.header h1');
                     if (header) {
                         header.textContent = `FantaGTS - Gestione Incontri - ${data.nome}`;
                     }
-
-                } else {
-                    // 3️⃣ Fallback: cerca QUALSIASI sessione attiva (non solo asta)
-                    console.log('🔍 Nessuna sessione nell\'URL, cerco sessione attiva...');
-                    
-                    // Prima prova asta_competitiva
-                    let response = await fetch('/api/sessioni/attiva/asta_competitiva');
-                    
-                    // Se non trova asta, prova draft_libero
-                    if (!response.ok) {
-                        console.log('   ⏩ Nessuna asta attiva, cerco draft...');
-                        response = await fetch('/api/sessioni/attiva/draft_libero');
-                    }
-
-                    if (!response.ok) {
-                        console.warn('⚠️ Nessuna sessione attiva trovata, uso configurazione default');
-                        sessioneCorrente = null;
-                        configurazioneCorrente = 'default';
-                        
-                        // Mostra avviso all'utente
-                        showNotification('⚠️ Nessuna sessione attiva. Usando configurazione default.', 'warning');
-                        return;
-                    }
-
-                    const data = await response.json();
-                    if (data && data.id) {
-                        sessioneCorrente = data.id;
-                        configurazioneCorrente = data.configurazione_id;
-                        sessioneInfo = data;
-                        console.log('✅ Sessione attiva caricata:', sessioneCorrente);
-                        console.log('✅ Configurazione:', configurazioneCorrente);
-                        console.log('📋 Modalità sessione:', data.modalita);
-                    } else {
-                        console.warn('⚠️ Usando configurazione default');
-                        sessioneCorrente = null;
-                        configurazioneCorrente = 'default';
-                    }
+                    return;
+                }
+                
+                // 🔍 PRIORITÀ 3: Cerca sessione attiva come fallback
+                console.log('🔍 Nessun parametro nell\'URL, cerco sessione attiva...');
+                
+                const response = await fetch('/api/sessione-attiva');
+                
+                if (!response.ok) {
+                    throw new Error('Errore nel caricamento della sessione attiva');
                 }
 
-                // Verifica che abbiamo una configurazione
-                if (!configurazioneCorrente) {
-                    throw new Error('Impossibile determinare la configurazione');
+                const data = await response.json();
+                
+                if (data && data.id) {
+                    // ✅ Trovata sessione attiva
+                    sessioneCorrente = data.id;
+                    configurazioneCorrente = data.configurazione_id;
+                    sessioneInfo = data;
+                    console.log('✅ Sessione attiva caricata:', sessioneCorrente);
+                    console.log('✅ Configurazione:', configurazioneCorrente);
+                    console.log('📋 Modalità sessione:', data.modalita);
+                    
+                    const header = document.querySelector('.header h1');
+                    if (header) {
+                        header.textContent = `FantaGTS - Gestione Incontri - ${data.nome}`;
+                    }
+                } else {
+                    // ⚠️ Nessuna sessione attiva trovata - usa config default
+                    console.warn('⚠️ Nessuna sessione attiva trovata, uso configurazione default');
+                    sessioneCorrente = null;
+                    configurazioneCorrente = 'default';
+                    
+                    showNotification('⚠️ Nessuna sessione attiva. Usando configurazione default.', 'warning');
                 }
 
             } catch (error) {
-                console.error('❌ Errore caricamento sessione:', error);
+                console.error('❌ Errore caricamento:', error);
                 showNotification(`Errore: ${error.message}`, 'error');
                 sessioneCorrente = null;
                 configurazioneCorrente = 'default';

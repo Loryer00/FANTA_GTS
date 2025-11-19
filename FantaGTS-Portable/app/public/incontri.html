@@ -1381,7 +1381,12 @@
         }
 
         function vaiAGestione() {
-            window.location.href = '/gestione-incontri';
+            // Passa la configurazione corrente a gestione-incontri
+            if (configurazioneCorrente) {
+                window.location.href = `/gestione-incontri?configurazione=${configurazioneCorrente}`;
+            } else {
+                window.location.href = '/gestione-incontri';
+            }
         }
     </script>
 </body>
