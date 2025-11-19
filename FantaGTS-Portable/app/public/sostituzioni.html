@@ -484,19 +484,40 @@
                     
                     console.log('🔄 Squadra selezionata prima del reload:', squadraSelezionata);
                     
+                    // 🆕 FORZA IL CLEAR del container PRIMA di ricaricare
+                    const container = document.getElementById('playersContainer');
+                    container.innerHTML = '<p style="text-align: center; color: #a0aec0;">Aggiornamento in corso...</p>';
+                    
                     // AGGIUNGI UN PICCOLO DELAY per evitare conflitti
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    
+                    // 🆕 FORZA il reload con cache busting
+                    const timestamp = Date.now();
+                    console.log('🔄 Force reload con timestamp:', timestamp);
                     
                     // ASPETTA il caricamento delle squadre
                     await caricaSquadre();
                     
-                    console.log('✅ Squadre ricaricate, ora aggiorno la visualizzazione');
+                    console.log('✅ Squadre ricaricate:', squadre.length);
+                    console.log('📊 Dati squadra da visualizzare:', squadre.find(s => s.numero === parseInt(squadraSelezionata)));
                     
                     // Se c'era una squadra selezionata, aggiorna la visualizzazione
                     if (squadraSelezionata) {
                         // AGGIUNGI UN ALTRO PICCOLO DELAY
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        mostraGiocatoriSquadra(parseInt(squadraSelezionata));
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                        
+                        // 🆕 FORZA il re-render completo
+                        const numeroSquadra = parseInt(squadraSelezionata);
+                        const squadra = squadre.find(s => s.numero === numeroSquadra);
+                        
+                        if (squadra) {
+                            console.log('🎯 Forzo visualizzazione per squadra:', numeroSquadra);
+                            console.log('📋 Dati squadra:', JSON.stringify(squadra));
+                            mostraGiocatoriSquadra(numeroSquadra);
+                        } else {
+                            console.error('❌ Squadra non trovata:', numeroSquadra);
+                        }
+                        
                         console.log('✅ Visualizzazione aggiornata per squadra:', squadraSelezionata);
                     }
                     
