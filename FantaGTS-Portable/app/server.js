@@ -3311,15 +3311,15 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         if (!configurazioneId && sessioneId) {
             const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
             configurazioneId = sessione.rows[0]?.configurazione_id;
-}
+            }
 
-if (!configurazioneId) {
-    // Fallback: prendi la configurazione dall'incontro stesso
-    const incontroConfig = await db.query('SELECT configurazione_id FROM incontri WHERE id = $1', [incontroId]);
-    configurazioneId = incontroConfig.rows[0]?.configurazione_id || 'default';
-}
+            if (!configurazioneId) {
+                // Fallback: prendi la configurazione dall'incontro stesso
+                const incontroConfig = await db.query('SELECT configurazione_id FROM incontri WHERE id = $1', [incontroId]);
+                configurazioneId = incontroConfig.rows[0]?.configurazione_id || 'default';
+            }
 
-console.log(`✅ Configurazione determinata: ${configurazioneId}`);
+            console.log(`✅ Configurazione determinata: ${configurazioneId}`);
 
         const debugSlots = await db.query(
             "SELECT id, squadra_numero, colore, posizione, configurazione_id FROM slots WHERE configurazione_id = $1 LIMIT 5",
@@ -3368,6 +3368,9 @@ console.log(`✅ Configurazione determinata: ${configurazioneId}`);
 
         // 🔔 INVIA NOTIFICHE PUSH ai proprietari dei giocatori che hanno vinto punti
         try {
+            console.log('🔔 Inizio ricerca proprietari per notifiche push');
+            console.log(`📊 SessioneId per ricerca: ${sessioneId}`);
+            
             // Trova quali slot hanno guadagnato punti
             const slotsAggiornati = [];
             for (const risultato of risultati) {
@@ -3386,12 +3389,17 @@ console.log(`✅ Configurazione determinata: ${configurazioneId}`);
                             punti: risultato.punti_assegnati,
                             posizione: risultato.posizione
                         });
+                        console.log(`✅ Slot aggiunto per notifica: ${slotId} (+${risultato.punti_assegnati} pt)`);
                     }
                 }
             }
+            
+            console.log(`📋 Totale slots da notificare: ${slotsAggiornati.length}`);
 
             // Trova i proprietari di questi slot nelle aste
             for (const slot of slotsAggiornati) {
+                console.log(`🔍 Cerco proprietario ASTE per slot: ${slot.slotId}, sessione: ${sessioneId}`);
+                
                 const proprietarioResult = await db.query(`
                     SELECT p.id, p.nome, s.giocatore_attuale
                     FROM aste a
@@ -3399,6 +3407,8 @@ console.log(`✅ Configurazione determinata: ${configurazioneId}`);
                     JOIN slots s ON a.slot_id = s.id
                     WHERE a.slot_id = $1 AND a.vincitore = true AND a.sessione_id = $2
                 `, [slot.slotId, sessioneId]);
+
+                console.log(`📊 Trovati ${proprietarioResult.rows.length} proprietari in ASTE`);
 
                 if (proprietarioResult.rows.length > 0) {
                     const proprietario = proprietarioResult.rows[0];
@@ -3410,17 +3420,23 @@ console.log(`✅ Configurazione determinata: ${configurazioneId}`);
                         url: `/?sessione=${sessioneId}&auto_open=true`,
                         targetUsers: [proprietario.id]
                     });
+                } else {
+                    console.log(`⚠️ Nessun proprietario trovato in ASTE per ${slot.slotId}`);
                 }
             }
 
             // Trova anche i proprietari nel Draft
             for (const slot of slotsAggiornati) {
+                console.log(`🔍 Cerco proprietario DRAFT per slot: ${slot.slotId}, sessione: ${sessioneId}`);
+                
                 const proprietarioDraftResult = await db.query(`
                     SELECT p.id, p.nome, sd.giocatore
                     FROM squadre_draft sd
                     JOIN partecipanti_fantagts p ON sd.partecipante_id = p.id
                     WHERE sd.slot_id = $1 AND sd.sessione_id = $2
                 `, [slot.slotId, sessioneId]);
+
+                console.log(`📊 Trovati ${proprietarioDraftResult.rows.length} proprietari in DRAFT`);
 
                 if (proprietarioDraftResult.rows.length > 0) {
                     const proprietario = proprietarioDraftResult.rows[0];
@@ -3432,8 +3448,12 @@ console.log(`✅ Configurazione determinata: ${configurazioneId}`);
                         url: `/?sessione=${sessioneId}&auto_open=true`,
                         targetUsers: [proprietario.id]
                     });
+                } else {
+                    console.log(`⚠️ Nessun proprietario trovato in DRAFT per ${slot.slotId}`);
                 }
             }
+            
+            console.log('✅ Ricerca proprietari completata');
         } catch (notifError) {
             console.error('⚠️ Errore invio notifiche completamento incontro:', notifError);
             // Non bloccare la risposta se le notifiche falliscono
