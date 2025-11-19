@@ -3412,6 +3412,17 @@
             const sessionRestored = await loadSavedSession();
             if (sessionRestored) {
                 console.log('✅ Sessione ripristinata automaticamente');
+                
+                // 🆕 Ri-attiva notifiche push se erano abilitate
+                if (playerData && playerData.registered && playerData.notificationsEnabled) {
+                    console.log('🔔 Ri-attivazione notifiche push...');
+                    try {
+                        await setupPushNotifications();
+                        console.log('✅ Notifiche push ri-attivate con successo');
+                    } catch (error) {
+                        console.error('❌ Errore ri-attivazione notifiche push:', error);
+                    }
+                }
             }
 
             // 🎯 CONTROLLA AUTO-APERTURA (da URL o da sessionStorage post-login)
