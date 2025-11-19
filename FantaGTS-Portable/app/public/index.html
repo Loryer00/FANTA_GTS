@@ -3054,12 +3054,16 @@
 
             socket.on('sostituzione_effettuata', (data) => {
                 console.log('🔄 Ricevuta sostituzione giocatore:', data);
+                console.log('📍 Socket connesso:', socket.connected);
+                console.log('👤 Player data:', playerData);
 
                 // Ricarica la squadra per aggiornare i nomi
                 loadPlayerTeam();
 
                 // Mostra notifica all'utente
                 const message = `Il giocatore ${data.nomeVecchio} è stato sostituito con ${data.nomeNuovo}`;
+                
+                console.log('📢 Mostrando notifica sostituzione');
 
                 // Crea notifica visiva
                 const notification = document.createElement('div');
@@ -3072,21 +3076,27 @@
                     position: fixed;
                     top: 20px;
                     right: 20px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
                     color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                    z-index: 10000;
-                    max-width: 350px;
+                    padding: 20px 25px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                    z-index: 99999;
+                    max-width: 400px;
+                    font-size: 16px;
                     animation: slideIn 0.3s ease-out;
+                    border: 2px solid rgba(255,255,255,0.3);
                 `;
 
                 document.body.appendChild(notification);
+                console.log('✅ Notifica aggiunta al DOM');
 
                 setTimeout(() => {
                     notification.style.animation = 'slideOut 0.3s ease-out';
-                    setTimeout(() => notification.remove(), 300);
+                    setTimeout(() => {
+                        notification.remove();
+                        console.log('🗑️ Notifica rimossa');
+                    }, 300);
                 }, 5000);
             });
 
