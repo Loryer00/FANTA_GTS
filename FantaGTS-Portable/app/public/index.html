@@ -987,7 +987,7 @@
                 </button>
             </div>  <!-- ✅ Chiude register-screen -->
             <!-- Schermata SELEZIONE SESSIONI -->
-            <div id="sessions-screen" class="registration-form" style="text-align: center; display: none;">
+            <div id="sessions-screen" class="registration-form" style="text-align: center; display: none; position: relative; padding-top: 60px;">
                 <h2>Le Tue Sessioni</h2>
                 <p style="margin-bottom: 20px;">Seleziona una sessione o aggiungine una nuova</p>
 
@@ -1003,10 +1003,10 @@
                     </button>
                 </div>
 
-                <!-- 🔔 Pulsante Diagnostica Notifiche (compatto) -->
-                <div style="text-align: right; margin-bottom: 15px;">
+                <!-- 🔔 Pulsante Diagnostica Notifiche (in alto a destra, compatto) -->
+                <div style="position: absolute; top: 20px; right: 20px;">
                     <button onclick="mostraDialogNotifiche()"
-                            style="background: rgba(237, 137, 54, 0.15); border: 1px solid rgba(237, 137, 54, 0.3); color: #ed8936; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.2em; width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center;"
+                            style="background: rgba(237, 137, 54, 0.15); border: 1px solid rgba(237, 137, 54, 0.3); color: #ed8936; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.2em; width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
                             title="Gestisci Notifiche Push">
                         🔔
                     </button>

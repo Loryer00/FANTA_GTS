@@ -660,6 +660,7 @@ async function updateDatabaseSchema() {
                 s.last_modified,
                 s.codice_accesso,
                 s.configurazione_id,
+                c.nome as configurazione_nome,
                 COALESCE(COUNT(DISTINCT psa.partecipante_id), 0)::INTEGER as partecipanti_iscritti,
                 COALESCE(
                     (SELECT COUNT(DISTINCT numero) 
@@ -669,6 +670,7 @@ async function updateDatabaseSchema() {
                 )::INTEGER as squadre_create,
                 COALESCE(COUNT(DISTINCT a.id), 0)::INTEGER as aste_completate
             FROM sessioni_fantagts s
+            LEFT JOIN configurazioni c ON c.id = s.configurazione_id
             LEFT JOIN partecipanti_sessioni_accesso psa ON psa.sessione_id = s.id
             LEFT JOIN aste a ON a.sessione_id = s.id
             GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
