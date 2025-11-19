@@ -546,7 +546,7 @@
                 <button class="btn btn-primary" onclick="mostraClassifica()">
                     🏆 Classifica
                 </button>
-                <button class="btn btn-primary" onclick="location.href='/sostituzioni'">
+                <button class="btn btn-primary" onclick="apriSostituzioni()">
                     🔄 Sostituzioni
                 </button>
             </div>
@@ -741,6 +741,15 @@
         let sessioneCorrente = null;
         let sessioneInfo = null;
         let configurazioneCorrente = null;
+
+        // Apri pagina sostituzioni passando la configurazione corrente
+        function apriSostituzioni() {
+            if (!configurazioneCorrente) {
+                alert('⚠️ Nessuna configurazione caricata. Carica una sessione prima.');
+                return;
+            }
+            window.location.href = `/sostituzioni?configurazione=${configurazioneCorrente}`;
+        }
 
         // Carica sessione all'avvio
         window.addEventListener('DOMContentLoaded', async () => {
