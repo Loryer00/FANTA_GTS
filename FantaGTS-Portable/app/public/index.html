@@ -2885,13 +2885,29 @@
 
                 // 5. Invia la subscription al server
                 if (playerData.id) {
+                    // 🆕 RECUPERA L'ID DELLA SESSIONE CORRETTO
+                    let sessioneIdDaInviare = sessioneCorrente;
+                    
+                    // Se sessioneCorrente è null, prova a recuperarlo dalla userSession salvata
+                    if (!sessioneIdDaInviare) {
+                        const savedSession = localStorage.getItem('userSession');
+                        if (savedSession) {
+                            const parsed = JSON.parse(savedSession);
+                            sessioneIdDaInviare = parsed.sessioneId || parsed.sessione_id;
+                        }
+                    }
+                    
+                    console.log('🔔 [SETUP PUSH] sessioneCorrente:', sessioneCorrente);
+                    console.log('🔔 [SETUP PUSH] sessioneIdDaInviare:', sessioneIdDaInviare);
+                    console.log('🔔 [SETUP PUSH] playerData:', playerData);
+                    
                     const response = await fetch('/api/subscribe-notifications', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             subscription: subscription,
                             partecipanteId: playerData.id,
-                            sessioneId: sessioneCorrente // 🆕 PASSA L'ID DELLA SESSIONE (non il nome)
+                            sessioneId: sessioneIdDaInviare // 🆕 PASSA L'ID DELLA SESSIONE
                         })
                     });
 
