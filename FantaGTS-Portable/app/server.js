@@ -1393,24 +1393,29 @@ app.get('/api/squadre', async (req, res) => {
 app.get('/api/squadre-con-giocatori', async (req, res) => {
     try {
         const sessioneId = req.query.sessione;
+        let configurazioneId = req.query.configurazione;
 
-        if (!sessioneId) {
-            return res.status(400).json({ error: 'Parametro sessione mancante' });
+        // ✅ Accetta sia configurazione che sessione
+        if (configurazioneId) {
+            // Usa direttamente la configurazione se fornita
+            console.log(`📄 Caricamento squadre con giocatori per configurazione: ${configurazioneId}`);
+        } else if (sessioneId) {
+            // Recupera configurazione dalla sessione
+            console.log(`📄 Caricamento squadre con giocatori per sessione: ${sessioneId}`);
+            
+            const sessioneResult = await db.query(
+                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+                [sessioneId]
+            );
+
+            if (sessioneResult.rows.length === 0) {
+                return res.status(404).json({ error: 'Sessione non trovata' });
+            }
+
+            configurazioneId = sessioneResult.rows[0].configurazione_id;
+        } else {
+            return res.status(400).json({ error: 'Parametro sessione o configurazione richiesto' });
         }
-
-        console.log(`🔄 Caricamento squadre con giocatori per sessione: ${sessioneId}`);
-
-        // Ottieni configurazione_id dalla sessione specificata (non più sessioneCorrente)
-        const sessioneResult = await db.query(
-            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-            [sessioneId]
-        );
-
-        if (sessioneResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Sessione corrente non trovata' });
-        }
-
-        const configurazioneId = sessioneResult.rows[0].configurazione_id;
 
         const result = await db.query(`
             SELECT numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, attiva 
