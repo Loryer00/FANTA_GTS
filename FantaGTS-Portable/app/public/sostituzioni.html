@@ -463,61 +463,112 @@
         // Carica squadre all'avvio
         async function caricaSquadre() {
             try {
+                console.log('🔄 Inizio caricamento squadre...');
+                
                 // 🆕 Recupera la sessione attiva
                 const sessioneAttivaResponse = await fetch('/api/sessioni?stato=attivo');
                 let sessioneId = null;
 
                 if (sessioneAttivaResponse.ok) {
                     const sessioni = await sessioneAttivaResponse.json();
+                    console.log('📋 Sessioni ricevute:', sessioni);
+                    
                     if (sessioni.length > 0) {
                         sessioneId = sessioni[0].id;
-                        configurazioneCorrente = sessioni[0].configurazione_id; // 🆕 SALVA LA CONFIGURAZIONE
-                        console.log('📋 Usando sessione attiva:', sessioni[0].nome, 'Configurazione:', configurazioneCorrente);
+                        configurazioneCorrente = sessioni[0].configurazione_id;
+                        console.log('✅ Sessione attiva trovata:', {
+                            id: sessioneId,
+                            nome: sessioni[0].nome,
+                            configurazione: configurazioneCorrente
+                        });
+                    } else {
+                        console.warn('⚠️ Nessuna sessione attiva trovata');
                     }
+                } else {
+                    console.error('❌ Errore nel recupero sessioni:', sessioneAttivaResponse.status);
                 }
 
                 if (!sessioneId) {
-                    console.log('⚠️ Nessuna sessione attiva, uso configurazione default');
-                    configurazioneCorrente = 'default'; // 🆕 FALLBACK
-                    const configResponse = await fetch('/api/squadre?configurazione=default');
-                    if (!configResponse.ok) throw new Error('Errore caricamento squadre');
-                    squadre = await configResponse.json();
-                } else {
-                    const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneId}`);
-                    if (!response.ok) throw new Error('Errore caricamento squadre');
-
-                    const squadreData = await response.json();
-                    squadre = squadreData.map(sq => {
-                        const squadraObj = {
-                            numero: sq.numero,
-                            colore: sq.colore,
-                            attiva: sq.attiva
-                        };
-                        sq.giocatori.forEach(g => {
-                            squadraObj[g.posizione.toLowerCase()] = g.nome;
-                        });
-                        return squadraObj;
-                    });
+                    showNotification('⚠️ Nessuna sessione attiva. Crea una sessione dal Master.', 'error');
+                    return;
                 }
 
-                console.log('✅ Squadre caricate:', squadre.length, 'Configurazione:', configurazioneCorrente);
+                // Carica squadre dalla configurazione della sessione
+                console.log(`🔍 Carico squadre per sessione: ${sessioneId}`);
+                const response = await fetch(`/api/squadre-con-giocatori?sessione=${sessioneId}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Errore HTTP ${response.status}`);
+                }
+
+                const squadreData = await response.json();
+                console.log('📦 Dati squadre ricevuti:', squadreData);
+                
+                if (!Array.isArray(squadreData) || squadreData.length === 0) {
+                    throw new Error('Nessuna squadra trovata per questa configurazione');
+                }
+
+                // Trasforma i dati nel formato necessario
+                squadre = squadreData.map(sq => {
+                    const squadraObj = {
+                        numero: sq.numero,
+                        colore: sq.colore,
+                        attiva: sq.attiva
+                    };
+                    
+                    // Aggiungi i giocatori al formato piatto
+                    sq.giocatori.forEach(g => {
+                        squadraObj[g.posizione.toLowerCase()] = g.nome;
+                    });
+                    
+                    return squadraObj;
+                });
+
+                console.log('✅ Squadre elaborate:', squadre.length);
+                console.log('📊 Prima squadra:', squadre[0]);
+                
                 popolaFiltroSquadre();
+                
             } catch (error) {
-                console.error('Errore:', error);
-                showNotification('Errore nel caricamento delle squadre', 'error');
+                console.error('❌ Errore caricamento squadre:', error);
+                showNotification(`Errore: ${error.message}`, 'error');
+                
+                // Mostra messaggio nel DOM
+                const select = document.getElementById('squadraFilter');
+                select.innerHTML = '<option value="">❌ Errore caricamento squadre</option>';
             }
         }
 
         // Popola il dropdown delle squadre
         function popolaFiltroSquadre() {
             const select = document.getElementById('squadraFilter');
+            
+            // Pulisci le opzioni esistenti (tranne la prima)
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            console.log(`🎯 Popolo filtro con ${squadre.length} squadre`);
+
+            if (squadre.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '⚠️ Nessuna squadra disponibile';
+                option.disabled = true;
+                select.appendChild(option);
+                return;
+            }
 
             squadre.forEach(squadra => {
                 const option = document.createElement('option');
                 option.value = squadra.numero;
                 option.textContent = `Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}`;
                 select.appendChild(option);
+                console.log(`  ✓ Aggiunta: Squadra ${squadra.numero}`);
             });
+            
+            console.log('✅ Filtro popolato con successo');
         }
 
         // Gestione cambio squadra nel filtro

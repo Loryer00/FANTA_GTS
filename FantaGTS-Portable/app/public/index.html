@@ -988,7 +988,7 @@
             </div>  <!-- ✅ Chiude register-screen -->
             <!-- Schermata SELEZIONE SESSIONI -->
             <div id="sessions-screen" class="registration-form" style="text-align: center; display: none;">
-                <h2>🎾 Le Tue Sessioni</h2>
+                <h2>Le Tue Sessioni</h2>
                 <p style="margin-bottom: 20px;">Seleziona una sessione o aggiungine una nuova</p>
 
                 <!-- Lista sessioni -->
@@ -1005,7 +1005,7 @@
 
                 <!-- Form aggiungi sessione (nascosto inizialmente) -->
                 <div id="formAggiungiSessione" style="display: none; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">âž• Aggiungi Nuova Sessione</h3>
+                    <h3 style="margin-bottom: 15px; font-size: 1.1em;">Aggiungi Nuova Sessione</h3>
                     <div class="input-group" style="margin-bottom: 15px;">
                         <label>Codice Sessione (5 caratteri):</label>
                         <input type="text" id="sessionCode" placeholder="es: XK7M2" maxlength="5"
@@ -1694,7 +1694,7 @@
                 localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(dataToSave));
                 localStorage.setItem('userSession', JSON.stringify(dataToSave));
                 localStorage.setItem(STORAGE_KEYS.REGISTRATION_TIME, new Date().getTime().toString());
-                console.log('âœ… Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
+                console.log('Sessione salvata per:', playerData.name, 'Sessione:', nomeSessioneCorrente);
             } catch (error) {
                 console.error('Errore salvataggio sessione:', error);
             }
