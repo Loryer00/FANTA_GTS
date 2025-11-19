@@ -3248,8 +3248,9 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
     try {
         const incontroId = req.params.incontroId;
         const sessioneId = req.query.sessione || req.body.sessione || sessioneCorrente;
+        const configurazioneQuery = req.query.configurazione || req.body.configurazione;
 
-        console.log(`📊 Completamento incontro ${incontroId} per sessione: ${sessioneId}`);
+        console.log(`📊 Completamento incontro ${incontroId} per sessione: ${sessioneId}, configurazione: ${configurazioneQuery}`);
 
         // Verifica che ci siano risultati per tutte le posizioni
         const incontroResult = await db.query(`SELECT i.*, c.pos1, c.pos2 
@@ -3304,10 +3305,21 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             WHERE id = $3`,
             [risultato_coppia1, risultato_coppia2, incontroId]);
 
-        // Aggiorna punti nei slots (solo per i vincitori)
-        // 🔍 DEBUG: Verifica esistenza slots per questa configurazione
-        const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
-        const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
+        // 🎯 Determina la configurazione dall'URL, dalla sessione, o dall'incontro stesso
+        let configurazioneId = configurazioneQuery;
+
+        if (!configurazioneId && sessioneId) {
+            const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]);
+            configurazioneId = sessione.rows[0]?.configurazione_id;
+}
+
+if (!configurazioneId) {
+    // Fallback: prendi la configurazione dall'incontro stesso
+    const incontroConfig = await db.query('SELECT configurazione_id FROM incontri WHERE id = $1', [incontroId]);
+    configurazioneId = incontroConfig.rows[0]?.configurazione_id || 'default';
+}
+
+console.log(`✅ Configurazione determinata: ${configurazioneId}`);
 
         const debugSlots = await db.query(
             "SELECT id, squadra_numero, colore, posizione, configurazione_id FROM slots WHERE configurazione_id = $1 LIMIT 5",

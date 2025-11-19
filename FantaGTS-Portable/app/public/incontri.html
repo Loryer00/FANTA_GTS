@@ -1136,7 +1136,16 @@
                 // Ora completa l'incontro (legge i risultati già salvati dal database)
                 console.log(`📤 Chiamata API completa-incontro/${incontroId}`);
 
-                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}?sessione=${sessioneCorrente}`, {
+                // Prepara i parametri URL includendo la configurazione
+                const params = new URLSearchParams();
+                if (sessioneCorrente) {
+                    params.append('sessione', sessioneCorrente);
+                }
+                if (configurazioneCorrente) {
+                    params.append('configurazione', configurazioneCorrente);
+                }
+
+                const completaResponse = await fetch(`/api/completa-incontro/${incontroId}?${params.toString()}`, {
                     method: 'POST'
                 });
 
