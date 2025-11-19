@@ -474,21 +474,24 @@
             });
 
             // 🎯 Ascolta evento sostituzione
-            socket.on('sostituzione_effettuata', (data) => {
+            socket.on('sostituzione_effettuata', async (data) => {
                 console.log('🔄 Sostituzione ricevuta via Socket.IO:', data);
                 
                 // Verifica se la sostituzione riguarda la configurazione corrente
                 if (data.configurazione === configurazioneCorrente) {
-                    showNotification(`🔄 ${data.nomeVecchio} sostituito con ${data.nomeNuovo}`, 'success');
+                    // Salva la squadra attualmente selezionata PRIMA del reload
+                    const squadraSelezionata = document.getElementById('squadraFilter').value;
                     
-                    // Ricarica le squadre
-                    caricaSquadre().then(() => {
-                        // Se c'era una squadra selezionata, ricaricala
-                        const squadraSelezionata = document.getElementById('squadraFilter').value;
-                        if (squadraSelezionata) {
-                            mostraGiocatoriSquadra(parseInt(squadraSelezionata));
-                        }
-                    });
+                    // ASPETTA il caricamento delle squadre
+                    await caricaSquadre();
+                    
+                    // Se c'era una squadra selezionata, aggiorna la visualizzazione
+                    if (squadraSelezionata) {
+                        mostraGiocatoriSquadra(parseInt(squadraSelezionata));
+                    }
+                    
+                    // Mostra notifica DOPO aver aggiornato la UI
+                    showNotification(`🔄 ${data.nomeVecchio} sostituito con ${data.nomeNuovo}`, 'success');
                 }
             });
         }
