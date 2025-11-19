@@ -513,7 +513,7 @@
 
                             <div class="session-info">
                         <p><strong>Anno:</strong> <span>${sessione.anno || 'N/D'}</span></p>
-                        <p><strong>Configurazione:</strong> <span style="color: #f59e0b; font-weight: 600;">${sessione.configurazione_id || 'default'}</span></p>
+                        <p><strong>Configurazione:</strong> <span style="color: #f59e0b; font-weight: 600;">${sessione.configurazione_nome || sessione.configurazione_id || 'default'}</span></p>
                         <p><strong>Stato:</strong> <span>${formatStato(sessione.stato)}</span></p>
                         <p><strong>Partecipanti:</strong> <span>${sessione.numero_partecipanti_previsti}</span></p>
                         <p><strong>Squadre:</strong> <span>${sessione.numero_squadre}</span></p>
