@@ -1707,39 +1707,21 @@
             }
         }
 
-        // Mostra la sezione di gestione coppie per un turno
-        async function mostraGestioneCoppie(turnoId, turnoNumero, nomeTurno) {
-            try {
-                // Salva il turno selezionato
-                turnoSelezionato = turnoId;
-
-                // Carica le squadre se non sono già caricate
-                if (squadreDisponibili.length === 0) {
-                    await caricaSquadre();
-                }
-
-                // Carica le coppie del turno
-                await caricaCoppieDelTurno(turnoId);
-
-                // Mostra la sezione di gestione
-                const sezioneGestione = document.getElementById('sezioneCoppie');
-                if (sezioneGestione) {
-                    sezioneGestione.style.display = 'block';
-                    sezioneGestione.scrollIntoView({ behavior: 'smooth' });
-                }
-
-                // Aggiorna il titolo della sezione
-                const titoloSezione = document.querySelector('#sezioneCoppie h2');
-                if (titoloSezione) {
-                    titoloSezione.textContent = `🎯 Gestione Coppie - Turno ${turnoNumero}: ${nomeTurno}`;
-                }
-
-                showNotification(`Caricamento coppie per Turno ${turnoNumero}`, 'success');
-
-            } catch (error) {
-                console.error('Errore apertura gestione coppie:', error);
-                showNotification('Errore caricamento sezione coppie', 'error');
+        // Reindirizza alla pagina incontri per gestire questo turno
+        function mostraGestioneCoppie(turnoId, turnoNumero, nomeTurno) {
+            // Costruisci URL con configurazione e turno
+            const params = new URLSearchParams();
+            
+            if (configurazioneCorrente) {
+                params.append('configurazione', configurazioneCorrente);
+            } else if (sessioneCorrente) {
+                params.append('sessione', sessioneCorrente);
             }
+            
+            params.append('turno', turnoId);
+            
+            // Reindirizza alla pagina incontri
+            window.location.href = `/incontri.html?${params.toString()}`;
         }
 
         // Carica coppie del turno selezionato
