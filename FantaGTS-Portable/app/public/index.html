@@ -1003,6 +1003,14 @@
                     </button>
                 </div>
 
+                <!-- 🔔 Pulsante Diagnostica Notifiche -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn" onclick="mostraDialogNotifiche()" 
+                            style="background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936;">
+                        🔔 Notifiche Push
+                    </button>
+                </div>
+
                 <!-- Form aggiungi sessione (nascosto inizialmente) -->
                 <div id="formAggiungiSessione" style="display: none; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
                     <h3 style="margin-bottom: 15px; font-size: 1.1em;">Aggiungi Nuova Sessione</h3>
@@ -2921,6 +2929,240 @@
 
             } catch (error) {
                 console.error('❌ Errore setup notifiche push:', error);
+            }
+        }
+
+        // ========================================
+        // DIAGNOSTICA E RESET NOTIFICHE
+        // ========================================
+        async function mostraDialogNotifiche() {
+            // Controlla stato attuale
+            const permesso = Notification.permission;
+            const supportate = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+            
+            let statusHTML = '<div style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">';
+            statusHTML += '<h4 style="margin-bottom: 10px; color: #4299e1;">📊 Stato Notifiche</h4>';
+            
+            // 1. Supporto browser
+            if (!supportate) {
+                statusHTML += '<p style="color: #f56565;">❌ Il tuo browser non supporta le notifiche push</p>';
+            } else {
+                statusHTML += '<p style="color: #48bb78;">✅ Browser supportato</p>';
+            }
+            
+            // 2. Permesso
+            if (permesso === 'granted') {
+                statusHTML += '<p style="color: #48bb78;">✅ Permesso concesso</p>';
+            } else if (permesso === 'denied') {
+                statusHTML += '<p style="color: #f56565;">❌ Permesso bloccato</p>';
+            } else {
+                statusHTML += '<p style="color: #ed8936;">⚠️ Permesso non richiesto</p>';
+            }
+            
+            // 3. Service Worker
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    statusHTML += '<p style="color: #48bb78;">✅ Service Worker registrato</p>';
+                    
+                    // 4. Subscription attiva
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        statusHTML += '<p style="color: #48bb78;">✅ Subscription attiva</p>';
+                    } else {
+                        statusHTML += '<p style="color: #ed8936;">⚠️ Nessuna subscription attiva</p>';
+                    }
+                } else {
+                    statusHTML += '<p style="color: #ed8936;">⚠️ Service Worker non trovato</p>';
+                }
+            }
+            
+            statusHTML += '</div>';
+            
+            // Istruzioni in base allo stato
+            let istruzioniHTML = '';
+            let azioniHTML = '';
+            
+            if (permesso === 'denied') {
+                istruzioniHTML = `
+                    <div style="background: rgba(245, 101, 101, 0.1); border: 1px solid rgba(245, 101, 101, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="color: #fc8181; margin-bottom: 10px;"><strong>🚫 Notifiche Bloccate</strong></p>
+                        <p style="color: #e2e8f0; font-size: 0.9em; margin-bottom: 10px;">
+                            Le notifiche sono state bloccate dal browser. Per sbloccarle:
+                        </p>
+                        <ol style="text-align: left; color: #cbd5e0; font-size: 0.85em; margin: 10px 0; padding-left: 20px;">
+                            <li style="margin-bottom: 5px;">Clicca sull'icona del <strong>lucchetto</strong> o <strong>info (ⓘ)</strong> nella barra degli indirizzi</li>
+                            <li style="margin-bottom: 5px;">Cerca la voce <strong>"Notifiche"</strong></li>
+                            <li style="margin-bottom: 5px;">Cambia da <strong>"Blocca"</strong> a <strong>"Consenti"</strong></li>
+                            <li style="margin-bottom: 5px;">Ricarica la pagina</li>
+                        </ol>
+                    </div>
+                `;
+                azioniHTML = `
+                    <button onclick="window.location.reload()" class="btn btn-primary" style="margin-right: 10px;">
+                        🔄 Ricarica Pagina
+                    </button>
+                `;
+            } else if (permesso === 'default') {
+                istruzioniHTML = `
+                    <div style="background: rgba(237, 137, 54, 0.1); border: 1px solid rgba(237, 137, 54, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="color: #f6ad55; margin-bottom: 10px;"><strong>⚠️ Notifiche Non Attivate</strong></p>
+                        <p style="color: #e2e8f0; font-size: 0.9em;">
+                            Clicca sul pulsante qui sotto per attivare le notifiche push.
+                        </p>
+                    </div>
+                `;
+                azioniHTML = `
+                    <button onclick="attivaNotifichePush()" class="btn btn-primary" style="margin-right: 10px;">
+                        ✅ Attiva Notifiche
+                    </button>
+                `;
+            } else if (permesso === 'granted') {
+                istruzioniHTML = `
+                    <div style="background: rgba(72, 187, 120, 0.1); border: 1px solid rgba(72, 187, 120, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="color: #68d391; margin-bottom: 10px;"><strong>✅ Notifiche Attive</strong></p>
+                        <p style="color: #e2e8f0; font-size: 0.9em;">
+                            Le notifiche push sono correttamente configurate. Se non le ricevi, prova a ri-registrare la subscription.
+                        </p>
+                    </div>
+                `;
+                azioniHTML = `
+                    <button onclick="resetNotifiche()" class="btn" style="background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936; margin-right: 10px;">
+                        🔄 Reset Subscription
+                    </button>
+                    <button onclick="testNotifica()" class="btn btn-primary" style="margin-right: 10px;">
+                        🧪 Test Notifica
+                    </button>
+                `;
+            }
+            
+            // Crea modale
+            const overlay = document.createElement('div');
+            overlay.id = 'notifiche-dialog';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 20px;
+            `;
+            
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: #1a202c;
+                padding: 25px;
+                border-radius: 12px;
+                max-width: 500px;
+                width: 100%;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                border: 1px solid rgba(66, 153, 225, 0.3);
+            `;
+            
+            dialog.innerHTML = `
+                <h3 style="color: #4299e1; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    🔔 Gestione Notifiche Push
+                </h3>
+                ${statusHTML}
+                ${istruzioniHTML}
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    ${azioniHTML}
+                    <button onclick="chiudiDialogNotifiche()" class="btn btn-secondary">
+                        Chiudi
+                    </button>
+                </div>
+            `;
+            
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+        }
+        
+        function chiudiDialogNotifiche() {
+            const dialog = document.getElementById('notifiche-dialog');
+            if (dialog) dialog.remove();
+        }
+        
+        async function attivaNotifichePush() {
+            try {
+                mostraMessaggio('🔔 Attivazione notifiche in corso...', 'info');
+                const result = await setupPushNotifications();
+                
+                if (result && result.success) {
+                    mostraMessaggio('✅ Notifiche attivate con successo!', 'success');
+                    chiudiDialogNotifiche();
+                    // Riapri per mostrare nuovo stato
+                    setTimeout(() => mostraDialogNotifiche(), 500);
+                } else if (result && result.blocked) {
+                    mostraMessaggio('❌ Notifiche bloccate nel browser. Segui le istruzioni.', 'error');
+                } else {
+                    mostraMessaggio('❌ Errore attivazione notifiche', 'error');
+                }
+            } catch (error) {
+                console.error('Errore attivazione:', error);
+                mostraMessaggio('❌ Errore: ' + error.message, 'error');
+            }
+        }
+        
+        async function resetNotifiche() {
+            try {
+                mostraMessaggio('🔄 Reset subscription in corso...', 'info');
+                
+                // 1. Cancella subscription esistente
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    
+                    if (subscription) {
+                        await subscription.unsubscribe();
+                        console.log('✅ Subscription rimossa');
+                    }
+                }
+                
+                // 2. Ricrea subscription
+                await setupPushNotifications();
+                
+                mostraMessaggio('✅ Subscription resettata con successo!', 'success');
+                chiudiDialogNotifiche();
+                setTimeout(() => mostraDialogNotifiche(), 500);
+                
+            } catch (error) {
+                console.error('Errore reset:', error);
+                mostraMessaggio('❌ Errore reset: ' + error.message, 'error');
+            }
+        }
+        
+        async function testNotifica() {
+            try {
+                if (!playerData || !playerData.id) {
+                    mostraMessaggio('❌ Devi essere loggato per testare', 'error');
+                    return;
+                }
+                
+                mostraMessaggio('📨 Invio notifica di test...', 'info');
+                
+                const response = await fetch('/api/test-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        partecipanteId: playerData.id
+                    })
+                });
+                
+                if (response.ok) {
+                    mostraMessaggio('✅ Notifica di test inviata! Controlla il tuo dispositivo.', 'success');
+                } else {
+                    mostraMessaggio('❌ Errore invio test', 'error');
+                }
+            } catch (error) {
+                console.error('Errore test:', error);
+                mostraMessaggio('❌ Errore: ' + error.message, 'error');
             }
         }
 
