@@ -3647,17 +3647,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             console.error('⚠️ Errore invio notifiche completamento incontro:', notifError);
             // Non bloccare la risposta se le notifiche falliscono
         }
-
-        // 🆕 RICALCOLO AUTOMATICO PUNTI dopo completamento incontro (per sicurezza)
-        try {
-            if (configurazioneId && configurazioneId !== 'default') {
-                console.log(`🔄 Ricalcolo automatico punti post-completamento incontro`);
-                await ricalcolaPuntiConfigurazione(configurazioneId);
-            }
-        } catch (error) {
-            console.warn('⚠️ Errore ricalcolo punti (non bloccante):', error.message);
-        }
-
+        
         res.json({
             message: 'Incontro completato con successo',
             risultato: `${risultato_coppia1} vs ${risultato_coppia2}`,
