@@ -676,7 +676,8 @@ async function updateDatabaseSchema() {
             GROUP BY s.id, s.nome, s.anno, s.descrizione, s.attiva, s.created_at, 
                      s.modalita, s.numero_partecipanti_previsti, s.crediti_iniziali, 
                      s.numero_squadre, s.condivisione_attiva, s.ripetizioni_necessarie, 
-                     s.premium_condivisione, s.stato, s.last_modified, s.configurazione_id
+                     s.premium_condivisione, s.stato, s.last_modified, s.configurazione_id, 
+                     s.codice_accesso, c.nome
         `);
         console.log('✅ View v_sessioni_stats creata/aggiornata');
 
