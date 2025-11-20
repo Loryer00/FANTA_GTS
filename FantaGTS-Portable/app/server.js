@@ -1046,6 +1046,45 @@ async function generaSlots(configurazioneId = 'default') {
     }
 }
 
+// Copia punti da configurazione esistente
+async function copiaPuntiDaConfigurazione(configurazioneId) {
+    try {
+        console.log(`Inizio copia punti per configurazione: ${configurazioneId}`);
+
+        // Trova tutti gli slots con punti > 0 per questa configurazione
+        const slotsConPunti = await db.query(`
+            SELECT id, punti_totali 
+            FROM slots 
+            WHERE configurazione_id = $1 AND punti_totali > 0
+        `, [configurazioneId]);
+
+        if (slotsConPunti.rows.length === 0) {
+            console.log('Nessuno slot con punti trovato per questa configurazione');
+            return 0;
+        }
+
+        console.log(`Trovati ${slotsConPunti.rows.length} slots con punti da copiare`);
+
+        // Aggiorna i punti per ogni slot (gli ID sono uguali nella stessa configurazione)
+        let aggiornamenti = 0;
+        for (const slot of slotsConPunti.rows) {
+            await db.query(`
+                UPDATE slots 
+                SET punti_totali = $1 
+                WHERE id = $2 AND configurazione_id = $3
+            `, [slot.punti_totali, slot.id, configurazioneId]);
+            aggiornamenti++;
+        }
+
+        console.log(`Copiati ${aggiornamenti} punti per configurazione ${configurazioneId}`);
+        return aggiornamenti;
+
+    } catch (error) {
+        console.error('Errore copia punti:', error);
+        throw error;
+    }
+}
+
 // 🆕 NUOVA FUNZIONE: Avvia asta successiva nel round
 function avviaAstaSuccessiva() {
     if (!gameState.asteAttive) return;
@@ -2648,15 +2687,40 @@ app.post('/api/genera-slots', async (req, res) => {
             configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
         }
 
-        console.log('🎯 Richiesta generazione slots...');
-        console.log('📌 Configurazione:', configurazioneId);
+        console.log('Richiesta generazione slots...');
+        console.log('Configurazione:', configurazioneId);
 
+        //SALVA I PUNTI PRIMA DI RIGENERARE GLI SLOTS
+        const puntiDaSalvare = await db.query(`
+            SELECT id, punti_totali 
+            FROM slots 
+            WHERE configurazione_id = $1 AND punti_totali > 0
+        `, [configurazioneId]);
+
+        console.log(`Salvati ${puntiDaSalvare.rows.length} slots con punti`);
+
+        // Genera nuovi slots (cancella e ricrea)
         const result = await generaSlots(configurazioneId);
 
-        console.log('✅ Slots generati con successo:', result);
+        // RIPRISTINA I PUNTI DOPO LA RIGENERAZIONE
+        if (puntiDaSalvare.rows.length > 0) {
+            console.log('Ripristino punti salvati...');
+            let ripristinati = 0;
+            for (const slotSalvato of puntiDaSalvare.rows) {
+                await db.query(`
+                    UPDATE slots 
+                    SET punti_totali = $1 
+                    WHERE id = $2 AND configurazione_id = $3
+                `, [slotSalvato.punti_totali, slotSalvato.id, configurazioneId]);
+                ripristinati++;
+            }
+            console.log(`Ripristinati ${ripristinati} punti`);
+        }
+
+        console.log('Slots generati con successo:', result);
         res.json({ message: 'Slots generati con successo', count: result });
     } catch (err) {
-        console.error('❌ ERRORE genera-slots:', err.message);
+        console.error('ERRORE genera-slots:', err.message);
         console.error('Stack completo:', err.stack);
         res.status(500).json({ error: err.message });
     }
