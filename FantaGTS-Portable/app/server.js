@@ -1413,6 +1413,70 @@ async function inviaNotifichePush(notificationData) {
     }
 }
 
+// 🆕 FUNZIONE INTERNA: Ricalcola punti (può essere chiamata da altre funzioni)
+async function ricalcolaPuntiConfigurazione(configurazioneId) {
+    try {
+        console.log(`🔄 Ricalcolo automatico punti per configurazione: ${configurazioneId}`);
+
+        // 1️⃣ Reset di tutti i punti della configurazione
+        await db.query(`
+            UPDATE slots 
+            SET punti_totali = 0 
+            WHERE configurazione_id = $1
+        `, [configurazioneId]);
+
+        // 2️⃣ Trova tutti gli incontri di questa configurazione
+        const incontriResult = await db.query(`
+            SELECT DISTINCT i.id, i.squadra1, i.squadra2, i.configurazione_id
+            FROM incontri i
+            WHERE i.configurazione_id = $1
+        `, [configurazioneId]);
+
+        console.log(`📊 Trovati ${incontriResult.rows.length} incontri da analizzare`);
+
+        let puntiAggiornati = 0;
+
+        // 3️⃣ Per ogni incontro, riapplica i punti dai risultati_dettaglio
+        for (const incontro of incontriResult.rows) {
+            const risultatiResult = await db.query(`
+                SELECT * FROM risultati_dettaglio 
+                WHERE incontro_id = $1 AND vincitore > 0 AND punti_assegnati > 0
+            `, [incontro.id]);
+
+            for (const risultato of risultatiResult.rows) {
+                const squadraVincitrice = risultato.vincitore === 1
+                    ? incontro.squadra1
+                    : incontro.squadra2;
+
+                const squadraResult = await db.query(`
+                    SELECT colore FROM squadre_circolo 
+                    WHERE numero = $1 AND configurazione_id = $2
+                `, [squadraVincitrice, configurazioneId]);
+
+                if (squadraResult.rows.length > 0) {
+                    const coloreSquadra = squadraResult.rows[0].colore;
+                    const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
+
+                    await db.query(`
+                        UPDATE slots 
+                        SET punti_totali = punti_totali + $1 
+                        WHERE id = $2 AND configurazione_id = $3
+                    `, [risultato.punti_assegnati, slotId, configurazioneId]);
+
+                    puntiAggiornati++;
+                }
+            }
+        }
+
+        console.log(`✅ Ricalcolo automatico completato: ${puntiAggiornati} aggiornamenti`);
+        return { incontri: incontriResult.rows.length, aggiornamenti: puntiAggiornati };
+
+    } catch (err) {
+        console.error('❌ Errore ricalcolo automatico punti:', err);
+        throw err;
+    }
+}
+
 // Routes API
 
 // Route per servire la pagina archivio sessioni
@@ -1438,6 +1502,28 @@ app.get('/api/squadre', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API squadre:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API endpoint (opzionale, se vuoi mantenerla per debug)
+app.post('/api/ricalcola-punti-configurazione', async (req, res) => {
+    try {
+        const { configurazione_id } = req.body;
+
+        if (!configurazione_id) {
+            return res.status(400).json({ error: 'configurazione_id richiesto' });
+        }
+
+        const result = await ricalcolaPuntiConfigurazione(configurazione_id);
+
+        res.json({
+            success: true,
+            message: 'Punti ricalcolati con successo',
+            ...result
+        });
+
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -2568,6 +2654,24 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
 
+        // 🆕 RICALCOLO AUTOMATICO PUNTI quando un partecipante si unisce
+        try {
+            const configResult = await db.query(
+                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+                [sessione.id]
+            );
+
+            if (configResult.rows.length > 0) {
+                const configurazioneId = configResult.rows[0].configurazione_id;
+                if (configurazioneId && configurazioneId !== 'default') {
+                    console.log(`🔄 Ricalcolo automatico punti per nuovo partecipante`);
+                    await ricalcolaPuntiConfigurazione(configurazioneId);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Errore ricalcolo punti (non bloccante):', error.message);
+        }
+
         // 🆕 Ritorna anche i crediti aggiornati
         res.json({
             success: true,
@@ -3542,6 +3646,16 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         } catch (notifError) {
             console.error('⚠️ Errore invio notifiche completamento incontro:', notifError);
             // Non bloccare la risposta se le notifiche falliscono
+        }
+
+        // 🆕 RICALCOLO AUTOMATICO PUNTI dopo completamento incontro (per sicurezza)
+        try {
+            if (configurazioneId && configurazioneId !== 'default') {
+                console.log(`🔄 Ricalcolo automatico punti post-completamento incontro`);
+                await ricalcolaPuntiConfigurazione(configurazioneId);
+            }
+        } catch (error) {
+            console.warn('⚠️ Errore ricalcolo punti (non bloccante):', error.message);
         }
 
         res.json({
@@ -5525,6 +5639,16 @@ app.post('/api/sessioni', async (req, res) => {
         console.log(`✅ Sessione creata: ${sessioneId} - ${nome} (${modalita}) - Codice: ${codiceAccesso}`);
         console.log(`   📊 Partecipanti: ${numeroPartecipanti}, Squadre: ${numeroSquadre}`);
         console.log(`   🔄 Condivisione: ${condivisione.condivisioneAttiva ? 'ATTIVA' : 'NON NECESSARIA'}`);
+
+        // 🆕 RICALCOLO AUTOMATICO PUNTI quando si usa una configurazione esistente
+        if (configurazioneId && configurazioneId !== 'default') {
+            try {
+                console.log(`🔄 Ricalcolo automatico punti per configurazione: ${configurazioneId}`);
+                await ricalcolaPuntiConfigurazione(configurazioneId);
+            } catch (error) {
+                console.warn('⚠️ Errore ricalcolo punti (non bloccante):', error.message);
+            }
+        }
 
         res.status(201).json(result.rows[0]);
     } catch (err) {
