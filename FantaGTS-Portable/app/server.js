@@ -3559,7 +3559,22 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         try {
             console.log('🔔 Inizio ricerca proprietari per notifiche push');
             console.log(`📊 SessioneId per ricerca: ${sessioneId}`);
-            
+
+            // 🆕 PRIMA: Ottieni la configurazione dell'incontro
+            const incontroConfigResult = await db.query(
+                'SELECT configurazione_id FROM incontri WHERE id = $1',
+                [incontroId]
+            );
+
+            const configurazioneId = incontroConfigResult.rows[0]?.configurazione_id;
+
+            if (!configurazioneId) {
+                console.log('⚠️ Nessuna configurazione trovata per l\'incontro');
+                return;
+            }
+
+            console.log(`📋 Configurazione incontro: ${configurazioneId}`);
+
             // Trova quali slot hanno guadagnato punti
             const slotsAggiornati = [];
             for (const risultato of risultati) {
@@ -3583,23 +3598,8 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 }
             }
             
-            console.log(`📋 Totale slots da notificare: ${slotsAggiornati.length}`);
-
-            // 🆕 PRIMA: Ottieni la configurazione dell'incontro
-            const incontroConfigResult = await db.query(
-                'SELECT configurazione_id FROM incontri WHERE id = $1',
-                [incontroId]
-            );
-
-            const configurazioneId = incontroConfigResult.rows[0]?.configurazione_id;
-
-            if (!configurazioneId) {
-                console.log('⚠️ Nessuna configurazione trovata per l\'incontro');
-                return;
-            }
-
-            console.log(`📋 Configurazione incontro: ${configurazioneId}`);
-
+            console.log(`📋 Totale slots da notificare: ${slotsAggiornati.length}`);      
+                      
             // 🆕 TROVA TUTTE LE SESSIONI CHE USANO QUESTA CONFIGURAZIONE
             const sessioniConfigResult = await db.query(
                 'SELECT id, nome FROM sessioni_fantagts WHERE configurazione_id = $1',
@@ -4445,22 +4445,23 @@ app.post('/api/sostituzioni', async (req, res) => {
             console.log('ℹ️ Errore registrazione sostituzione:', err);
         }
 
-        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI (raggruppati per sessione)
+        // 🆕 INVIA NOTIFICHE AI PARTECIPANTI COINVOLTI (una per sessione)
         if (partecipantiCoinvolti.rows.length > 0) {
-            const idsPartecipanti = [...new Set(partecipantiCoinvolti.rows.map(p => p.id))]; // Deduplica
-
             const messaggioNotifica = motivo
                 ? `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}. Motivo: ${motivo}`
                 : `Il tuo giocatore ${nomeVecchio} (${posizione} - Squadra ${coloreSquadra}) è stato sostituito con ${nomeNuovo}`;
 
-            await inviaNotifichePush({
-                title: '🔄 Sostituzione Giocatore',
-                body: messaggioNotifica,
-                url: '/?auto_open=true',
-                targetUsers: idsPartecipanti
-            });
+            // 🆕 Invia una notifica per ogni partecipante con la SUA sessione
+            for (const partecipante of partecipantiCoinvolti.rows) {
+                await inviaNotifichePush({
+                    title: '🔄 Sostituzione Giocatore',
+                    body: messaggioNotifica,
+                    url: `/?sessione=${partecipante.sessione_id}&auto_open=true`,
+                    targetUsers: [partecipante.id]
+                });
 
-            console.log(`✅ Notifiche inviate a: ${partecipantiCoinvolti.rows.map(p => `${p.nome} (${p.sessione_nome})`).join(', ')}`);
+                console.log(`✅ Notifica inviata a: ${partecipante.nome} (${partecipante.sessione_nome})`);
+            }
         } else {
             console.log('ℹ️ Nessun partecipante possiede questo giocatore, nessuna notifica inviata');
         }
