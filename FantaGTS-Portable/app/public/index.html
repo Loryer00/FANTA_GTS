@@ -1542,73 +1542,79 @@
                     console.log('🔍 playerData.id:', playerData.id);
                     console.log('🔍 sessioneId:', sessioneId);
 
-                    // Verifica se ha già completato la squadra draft
-                    const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+                    // 🔥 OTTIMIZZAZIONE: Controlla cache prima di chiamare API
+                    let squadraCompleta = false;
+                    let draftData = null;
 
-                    console.log('📡 Draft response status:', draftResponse.status);
-                    console.log('📡 Draft response OK:', draftResponse.ok);
+                    // Se abbiamo appena salvato (< 10 secondi fa), skip verifica API
+                    if (sessioneData.squadraCompletata &&
+                        sessioneData.timestampSalvataggio &&
+                        (Date.now() - sessioneData.timestampSalvataggio) < 10000) {
 
-                    if (draftResponse.ok) {
-                        const draftData = await draftResponse.json();
-                        console.log('📦 Draft data ricevuta:', draftData);
-                        console.log('📊 Completata:', draftData.completata);
-                        console.log('📊 Numero giocatori:', Object.keys(draftData.squadra || {}).length);
+                        console.log('⚡ Cache hit - Squadra già verificata come completa (skip API)');
+                        squadraCompleta = true;
 
-                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
-                            console.log('✅ Squadra draft già completa (10/10) - Carico interfaccia user');
+                    } else {
+                        // Altrimenti verifica con API
+                        console.log('📡 Cache miss - Verifico con API...');
+                        const draftResponse = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
+                        console.log('📡 Draft response status:', draftResponse.status);
+                        console.log('📡 Draft response OK:', draftResponse.ok);
 
-                            // Nascondi schermata sessioni
-                            document.getElementById('sessions-screen').style.display = 'none';
+                        if (draftResponse.ok) {
+                            draftData = await draftResponse.json();
+                            console.log('📦 Draft data ricevuta:', draftData);
+                            console.log('📊 Completata:', draftData.completata);
+                            console.log('📊 Numero giocatori:', Object.keys(draftData.squadra || {}).length);
 
-                            // Mostra game area
-                            showGameArea();
+                            squadraCompleta = draftData.completata && Object.keys(draftData.squadra).length === 10;
+                        }
+                    }
 
-                            // Aggiorna display (ora gli elementi esistono)
-                            const currentPlayerEl = document.getElementById('currentPlayer');
-                            const playerCreditsEl = document.getElementById('playerCredits');
+                    if (squadraCompleta) {
+                        console.log('✅ Squadra draft già completa (10/10) - Carico interfaccia user');
 
-                            if (currentPlayerEl) currentPlayerEl.textContent = playerData.name;
-                            if (playerCreditsEl) playerCreditsEl.textContent = playerData.credits;
+                        // Nascondi schermata sessioni
+                        document.getElementById('sessions-screen').style.display = 'none';
 
-                            // Nascondi crediti per draft
-                            const playerStatsDisplay = document.getElementById('playerStatsDisplay');
-                            if (playerStatsDisplay) {
-                                playerStatsDisplay.style.display = 'none';
-                            }
+                        // 🆕 RESET immediato per evitare flash di colori vecchi
+                        resetTeamUI();
 
-                            // Nascondi schermata sessioni e mostra game area
-                            document.getElementById('sessions-screen').style.display = 'none';
+                        // Mostra game area
+                        showGameArea();
 
-                            // 🆕 RESET immediato per evitare flash di colori vecchi
-                            resetTeamUI();
+                        // Aggiorna display (ora gli elementi esistono)
+                        const currentPlayerEl = document.getElementById('currentPlayer');
+                        const playerCreditsEl = document.getElementById('playerCredits');
+                        if (currentPlayerEl) currentPlayerEl.textContent = playerData.name;
+                        if (playerCreditsEl) playerCreditsEl.textContent = playerData.credits;
 
-                            showGameArea();
+                        // Nascondi crediti per draft
+                        const playerStatsDisplay = document.getElementById('playerStatsDisplay');
+                        if (playerStatsDisplay) {
+                            playerStatsDisplay.style.display = 'none';
+                        }
 
-                            // Carica squadra del partecipante
-                            await loadPlayerTeam();
+                        // Carica squadra del partecipante
+                        await loadPlayerTeam();
 
-                            // ✅ FORZA visualizzazione tab Squadra
-                            switchSection('squadra');
+                        // ✅ FORZA visualizzazione tab Squadra
+                        switchSection('squadra');
 
-                            mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
-                            return;
-                        } else {
-                            // Squadra non completa → Reindirizza a draft-selection
+                        mostraMessaggio(`🎯 Bentornato in "${nomeSessione}"!`, 'success');
+                        return;
+
+                    } else {
+                        // Squadra non completa o non trovata
+                        if (draftData) {
                             console.log('⚠️ Squadra draft incompleta o non trovata');
                             console.log('   - Completata:', draftData.completata);
                             console.log('   - Giocatori:', Object.keys(draftData.squadra || {}).length, '/ 10');
-
-                            mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
-
-                            setTimeout(() => {
-                                window.location.href = '/draft-selection.html';
-                            }, 800);
-                            return;
+                        } else {
+                            console.log('⚠️ Nessuna risposta valida dal server - Reindirizzamento a draft-selection...');
                         }
-                    } else {
-                        // Nessuna squadra trovata → Reindirizza a draft-selection
-                        console.log('⚠️ Nessuna risposta valida dal server - Reindirizzamento a draft-selection...');
-                        mostraMessaggio(`🎯 Seleziona la tua squadra per "${nomeSessione}"...`, 'info');
+
+                        mostraMessaggio(`🎯 Completa la tua squadra per "${nomeSessione}"...`, 'info');
 
                         setTimeout(() => {
                             window.location.href = '/draft-selection.html';
@@ -2131,14 +2137,21 @@
                 console.log('🔄 Caricamento squadra per:', playerData.id);
 
                 // 🆕 DETERMINA DA QUALE API CARICARE IN BASE ALLA MODALITÀ
-                const savedSession = localStorage.getItem('userSession');
-                let modalita = 'asta_competitiva'; // default
-                let sessioneId = null;
+                let modalita = playerData.modalita || 'asta_competitiva'; // Usa modalitÃ  giÃ  caricata
+                let sessioneId = playerData.sessioneId || null;
 
-                if (savedSession) {
-                    const session = JSON.parse(savedSession);
-                    modalita = session.modalita || 'asta_competitiva';
-                    sessioneId = session.sessioneId;
+                // Se playerData non ha la modalitÃ , allora leggi da localStorage come fallback
+                if (!playerData.modalita) {
+                    const savedSession = localStorage.getItem('userSession');
+                    if (savedSession) {
+                        const session = JSON.parse(savedSession);
+                        modalita = session.modalita || 'asta_competitiva';
+                        sessioneId = session.sessioneId;
+
+                        // ðŸ"„ Aggiorna playerData per evitare riletture future
+                        playerData.modalita = modalita;
+                        playerData.sessioneId = sessioneId;
+                    }
                 }
 
                 console.log('🎯 Modalità rilevata:', modalita);

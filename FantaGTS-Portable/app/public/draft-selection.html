@@ -711,17 +711,18 @@
 
                 showAlert('✅ Squadra salvata con successo! Reindirizzamento...', 'success');
 
-                // 🆕 Assicurati che la modalità sia nel localStorage
+                // 🔥 OTTIMIZZAZIONE: Salva flag nel localStorage per evitare verifiche API
                 const sessionData = localStorage.getItem('userSession');
                 if (sessionData) {
                     const session = JSON.parse(sessionData);
-                    session.modalita = 'draft_libero'; // Forza modalità draft
+                    session.modalita = 'draft_libero';
+                    session.squadraCompletata = true; // Flag per skip verifica API
+                    session.timestampSalvataggio = Date.now(); // Timestamp per cache
                     localStorage.setItem('userSession', JSON.stringify(session));
                 }
 
-                setTimeout(() => {
-                    window.location.href = '/index.html';
-                }, 1500);
+                // Reindirizzamento immediato (no timeout inutile)
+                window.location.href = '/index.html';
 
             } catch (err) {
                 console.error('❌ Errore salvataggio:', err);
