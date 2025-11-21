@@ -15,7 +15,8 @@ self.addEventListener('activate', (event) => {
 
 // Gestione Push Notifications - VERSIONE MIGLIORATA
 self.addEventListener('push', async (event) => {
-    console.log('📨 Service Worker: Notifica push ricevuta');
+    console.log('📨 Service Worker: Push notification ricevuta');
+    console.log('📱 Dati push ricevuti:', event.data ? event.data.text() : 'Nessun dato');
 
     // 🆕 VERIFICA E RICREA SUBSCRIPTION SE NECESSARIA
     event.waitUntil(
@@ -28,27 +29,29 @@ self.addEventListener('push', async (event) => {
                 if (!currentSubscription) {
                     console.log('⚠️ SW: Subscription persa! Tento di ricrearla...');
 
-                    // 2. Ottieni chiavi VAPID
                     try {
+                        // 2. Ottieni chiavi VAPID
                         const vapidResponse = await fetch('/api/vapid-public-key');
                         const vapidData = await vapidResponse.json();
 
-                        // 3. Crea nuova subscription
-                        const newSubscription = await registration.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
-                        });
+                        if (vapidData.publicKey) {
+                            // 3. Crea nuova subscription
+                            const newSubscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                            });
 
-                        console.log('✅ SW: Nuova subscription creata');
+                            console.log('✅ SW: Nuova subscription creata');
 
-                        // 4. Salva nel database (tentativo best-effort)
-                        // Non possiamo sapere il partecipanteId qui, quindi il server dovrà gestirlo
-                        fetch('/api/resubscribe-push', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ subscription: newSubscription })
-                        }).catch(err => console.log('⚠️ Impossibile salvare subscription:', err));
+                            // 4. Salva nel database
+                            await fetch('/api/resubscribe-push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ subscription: newSubscription })
+                            });
 
+                            console.log('💾 SW: Subscription salvata nel database');
+                        }
                     } catch (err) {
                         console.error('❌ SW: Impossibile ricreare subscription:', err);
                     }

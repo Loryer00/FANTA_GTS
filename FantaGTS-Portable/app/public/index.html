@@ -1865,29 +1865,35 @@
 
                             // 🆕 REGISTRA IL SOCKET DOPO AVER RIPRISTINATO I DATI
                             registerSocketWhenReady();
-
-                            // 🆕 VERIFICA E ATTIVA AUTOMATICAMENTE LE NOTIFICHE PUSH
+                            
+                            // 🆕 AUTO-VERIFICA E RICREA SUBSCRIPTION
                             setTimeout(async () => {
                                 try {
-                                    if ('Notification' in window && 'serviceWorker' in navigator) {
+                                    if ('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
                                         const registration = await navigator.serviceWorker.ready;
                                         const subscription = await registration.pushManager.getSubscription();
 
                                         if (!subscription && Notification.permission === 'granted') {
-                                            console.log('🔔 Nessuna subscription trovata ma permesso già dato - Creo subscription automaticamente');
+                                            console.log('🔔 Permesso già dato ma subscription persa - Ricreo automaticamente');
                                             await setupPushNotifications();
                                         } else if (!subscription && Notification.permission === 'default') {
-                                            console.log('🔔 Nessuna subscription e nessun permesso - Chiedo permesso automaticamente');
-                                            await setupPushNotifications();
+                                            console.log('🔔 Prima volta - Chiedo permesso automaticamente');
+                                            const result = await setupPushNotifications();
+                                            if (result && !result.success) {
+                                                console.log('ℹ️ Utente non ha dato il permesso');
+                                            }
+                                        } else if (subscription) {
+                                            console.log('✅ Subscription già presente e valida');
                                         }
                                     }
                                 } catch (err) {
-                                    console.log('⚠️ Errore auto-attivazione notifiche:', err);
+                                    console.log('⚠️ Errore verifica subscription:', err);
                                 }
-                            }, 2000); // Aspetta 2 secondi dopo il caricamento
+                            }, 2000); // Dopo 2 secondi dal caricamento
 
-                            mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            mostraMessaggio(`💰 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
+
                         } else {
                             // 🆕 SQUADRA DRAFT INCOMPLETA: torna alla pagina sessioni (NON a draft-selection!)
                             console.log('⚠️ Squadra draft incompleta - Mostro pagina sessioni');
@@ -1919,6 +1925,31 @@
                     if (playerData.notificationsEnabled) {
                         await setupPushNotifications();
                     }
+
+                    // 🆕 AUTO-VERIFICA E RICREA SUBSCRIPTION (anche per ASTE)
+                    setTimeout(async () => {
+                        try {
+                            if ('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
+                                const registration = await navigator.serviceWorker.ready;
+                                const subscription = await registration.pushManager.getSubscription();
+
+                                if (!subscription && Notification.permission === 'granted') {
+                                    console.log('🔔 Permesso già dato ma subscription persa - Ricreo automaticamente');
+                                    await setupPushNotifications();
+                                } else if (!subscription && Notification.permission === 'default') {
+                                    console.log('🔔 Prima volta - Chiedo permesso automaticamente');
+                                    const result = await setupPushNotifications();
+                                    if (result && !result.success) {
+                                        console.log('ℹ️ Utente non ha dato il permesso');
+                                    }
+                                } else if (subscription) {
+                                    console.log('✅ Subscription già presente e valida');
+                                }
+                            }
+                        } catch (err) {
+                            console.log('⚠️ Errore verifica subscription:', err);
+                        }
+                    }, 2000);
 
                     mostraMessaggio(`🎾 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                     return true;
