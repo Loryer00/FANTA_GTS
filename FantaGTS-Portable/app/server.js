@@ -439,11 +439,19 @@ async function updateDatabaseSchema() {
             id SERIAL PRIMARY KEY,
             partecipante_id TEXT REFERENCES partecipanti_fantagts(id) ON DELETE CASCADE,
             sessione_id TEXT REFERENCES sessioni_fantagts(id) ON DELETE CASCADE,
+            crediti INTEGER DEFAULT 2000,
             primo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultimo_accesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(partecipante_id, sessione_id)
         )`);
         console.log('✅ Tabella accessi partecipanti creata/verificata');
+
+        // Migrazione: aggiungi campo crediti se non esiste (per DB già esistenti)
+        await db.query(`
+            ALTER TABLE partecipanti_sessioni_accesso 
+            ADD COLUMN IF NOT EXISTS crediti INTEGER DEFAULT 2000
+        `);
+        console.log('✅ Campo crediti aggiunto a partecipanti_sessioni_accesso');
 
         // 3️⃣ Aggiungi colonne sessione_id alle tabelle che ancora la usano
         await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS sessione_id TEXT DEFAULT 'default'`);
@@ -2378,12 +2386,11 @@ app.get('/api/partecipanti', async (req, res) => {
         // Per le sessioni con partecipanti_sessioni_accesso (draft), fa JOIN
         // Per le vecchie sessioni con sessione_id diretto, usa quello
         const result = await db.query(`
-            SELECT DISTINCT p.* 
+            SELECT p.id, p.nome, p.pin, psa.crediti
             FROM partecipanti_fantagts p
-            LEFT JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-            WHERE p.attivo = true 
-            AND (p.sessione_id = $1 OR psa.sessione_id = $1)
-            ORDER BY p.nome
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE psa.sessione_id = $1 AND p.attivo = true
+            ORDER BY p.nome ASC
         `, [sessioneId]);
 
         console.log(`✅ Trovati ${result.rows.length} partecipanti per sessione ${sessioneId}`);
@@ -2650,7 +2657,7 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         // Verifica che partecipante esista
         const partCheck = await db.query(
-            'SELECT id, nome, crediti FROM partecipanti_fantagts WHERE id = $1',
+            'SELECT id, nome FROM partecipanti_fantagts WHERE id = $1',
             [partecipanteId]
         );
 
@@ -2660,31 +2667,25 @@ app.post('/api/join-session-with-code', async (req, res) => {
 
         const partecipante = partCheck.rows[0];
 
-        // 🆕 AGGIORNA I CREDITI DEL PARTECIPANTE CON I CREDITI DELLA SESSIONE
+        // 🆕 Ottieni i crediti iniziali della sessione
         const creditiSessione = sessione.crediti_iniziali || 2000;
 
-        // Solo se i crediti sono diversi da quelli della sessione (evita update inutili)
-        if (partecipante.crediti !== creditiSessione) {
-            await db.query(
-                'UPDATE partecipanti_fantagts SET crediti = $1, sessione_id = $2 WHERE id = $3',
-                [creditiSessione, sessione.id, partecipanteId]
-            );
-            console.log(`💰 Crediti aggiornati per ${partecipante.nome}: ${partecipante.crediti} → ${creditiSessione}`);
-        } else {
-            // Aggiorna solo la sessione
-            await db.query(
-                'UPDATE partecipanti_fantagts SET sessione_id = $1 WHERE id = $2',
-                [sessione.id, partecipanteId]
-            );
-        }
-
-        // Registra accesso (INSERT o UPDATE ultimo_accesso)
+        // 🆕 Inserisci o aggiorna l'accesso del partecipante alla sessione con i crediti
         await db.query(`
-            INSERT INTO partecipanti_sessioni_accesso (partecipante_id, sessione_id, ultimo_accesso)
-            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            INSERT INTO partecipanti_sessioni_accesso (partecipante_id, sessione_id, crediti, primo_accesso, ultimo_accesso)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (partecipante_id, sessione_id) 
-            DO UPDATE SET ultimo_accesso = CURRENT_TIMESTAMP
-        `, [partecipanteId, sessione.id]);
+            DO UPDATE SET 
+                ultimo_accesso = CURRENT_TIMESTAMP
+        `, [partecipanteId, sessione.id, creditiSessione]);
+
+        console.log(`💰 Crediti per ${partecipante.nome} nella sessione ${sessione.nome}: ${creditiSessione}`);
+
+        // Aggiorna anche il campo legacy sessione_id in partecipanti_fantagts (per retrocompatibilità)
+        await db.query(
+            'UPDATE partecipanti_fantagts SET sessione_id = $1 WHERE id = $2',
+            [sessione.id, partecipanteId]
+        );
 
         console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
 
@@ -2922,10 +2923,8 @@ app.get('/api/slots', async (req, res) => {
 app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
     try {
         const partecipanteId = req.params.partecipanteId;
-        // ✅ AGGIUNGI QUESTA RIGA
         const sessioneId = req.query.sessione_id;
 
-        // ✅ AGGIUNGI VALIDAZIONE
         if (!sessioneId) {
             return res.status(400).json({ error: 'sessione_id è richiesto come parametro query' });
         }
@@ -2943,13 +2942,14 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneId]); // ✅ USA sessioneId invece di sessioneCorrente
+            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
 
-        // Ottieni crediti aggiornati
-        const creditiResult = await db.query(
-            `SELECT crediti FROM partecipanti_fantagts WHERE id = $1`,
-            [partecipanteId]
-        );
+        // ✅ NUOVA QUERY: Ottieni crediti dalla tabella partecipanti_sessioni_accesso
+        const creditiResult = await db.query(`
+            SELECT crediti 
+            FROM partecipanti_sessioni_accesso 
+            WHERE partecipante_id = $1 AND sessione_id = $2
+        `, [partecipanteId, sessioneId]);
 
         res.json({
             squadra: squadraResult.rows,
@@ -2960,6 +2960,7 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 // Controllo aste
 app.post('/api/avvia-round/:round', async (req, res) => {
     const round = req.params.round;
@@ -3154,15 +3155,16 @@ app.get('/api/classifica', async (req, res) => {
         const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
 
         const result = await db.query(`SELECT 
-            p.id, p.nome, p.crediti, 
+            p.id, p.nome, psa.crediti, 
             COUNT(a.id) as giocatori_totali,
             COALESCE(SUM(s.punti_totali), 0) as punti_totali,
             COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
             FROM partecipanti_fantagts p 
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id AND psa.sessione_id = $1
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
             LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
-            WHERE p.sessione_id = $1 AND p.attivo = true
-            GROUP BY p.id, p.nome, p.crediti 
+            WHERE p.attivo = true 
+            GROUP BY p.id, p.nome, psa.crediti 
             ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
 
         // Aggiungi posizione in classifica
@@ -4932,6 +4934,7 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
         console.log(`   Giocatori replicati: ${giocatoriReplicati.length}`);
 
         for (const r of risultati) {
+            // Inserisci il risultato dell'asta
             await db.query(`INSERT INTO aste 
                 (round, partecipante_id, slot_id, offerta, costo_finale, premium, vincitore, condiviso, sessione_id) 
                 VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8)`,
@@ -4943,37 +4946,39 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
                     r.costoFinale,
                     r.premium,
                     r.condiviso,
-                    sessioneCorrente
+                    gameState.sessioneCorrente
                 ]);
 
-            await db.query(`UPDATE partecipanti_fantagts 
-                    SET crediti = crediti - $1 
-                    WHERE id = $2 AND sessione_id = $3`,
-                [r.costoFinale, r.partecipante, sessioneCorrente]);
+            // ✅ AGGIORNA crediti nella tabella partecipanti_sessioni_accesso
+            await db.query(`
+                UPDATE partecipanti_sessioni_accesso 
+                SET crediti = crediti - $1 
+                WHERE partecipante_id = $2 AND sessione_id = $3
+            `, [r.costoFinale, r.partecipante, gameState.sessioneCorrente]);
 
             const simbolo = r.condiviso ? '🔁' : '✅';
             const dettaglio = r.condiviso
                 ? `(pos. ${r.posizione}, premium ${Math.round(r.premium * 100)}%)`
                 : '';
-
             console.log(`${simbolo} ${r.nome} → ${r.slot} per ${r.costoFinale} crediti ${dettaglio}`);
         }
 
+        // Salva statistiche condivisione se presenti
         if (statsCondivisione) {
             try {
                 await db.query(`
                     UPDATE sessioni_fantagts 
                     SET ripetizioni_necessarie = GREATEST(ripetizioni_necessarie, $1),
                         last_modified = CURRENT_TIMESTAMP
-                    WHERE attiva = true
-                `, [statsCondivisione.ripetizioniNecessarie]);
-
+                    WHERE id = $2
+                `, [statsCondivisione.ripetizioniNecessarie, gameState.sessioneCorrente]);
                 console.log(`📊 Statistiche condivisione salvate nella sessione`);
             } catch (err) {
                 console.error('⚠️ Errore salvataggio stats condivisione:', err);
             }
         }
 
+        // Notifica tutti i client
         io.emit('asta_ended', {
             round: round,
             astaNumero: gameState.astaCorrente,
@@ -4988,10 +4993,10 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
             continuaRound: gameState.partecipantiInAttesa.length > 0 && gameState.slotsRimasti.length > 0
         });
 
+        // Aggiorna crediti di tutti i partecipanti
         aggiornaCreditiPartecipanti();
 
         console.log(`✅ Salvataggio completato con successo`);
-
     } catch (error) {
         console.error('❌ Errore salvataggio asta:', error);
         throw error;
@@ -5041,7 +5046,14 @@ async function salvaRisultatiAste(round, risultati) {
 
 async function aggiornaCreditiPartecipanti() {
     try {
-        const result = await db.query("SELECT id, nome, crediti FROM partecipanti_fantagts");
+        // ✅ Prendi i crediti dalla tabella partecipanti_sessioni_accesso per la sessione corrente
+        const result = await db.query(`
+            SELECT p.id, p.nome, psa.crediti 
+            FROM partecipanti_fantagts p
+            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+            WHERE psa.sessione_id = $1
+        `, [gameState.sessioneCorrente]);
+
         const partecipanti = result.rows;
 
         partecipanti.forEach(p => {
@@ -5074,7 +5086,7 @@ app.post('/api/reset/:livello', async (req, res) => {
 
             case 'aste':
                 await db.query("DELETE FROM aste");
-                await db.query("UPDATE partecipanti_fantagts SET crediti = 2000, punti_totali = 0");
+                await db.query("UPDATE partecipanti_sessioni_accesso SET crediti = 2000");
                 await db.query("UPDATE slots SET punti_totali = 0");
 
                 gameState.asteAttive = false;
@@ -5421,16 +5433,20 @@ io.on('connection', (socket) => {
 
         // Verifica crediti disponibili nel database
         try {
-            const result = await db.query("SELECT crediti FROM partecipanti_fantagts WHERE id = $1",
-                [connesso.partecipanteId]); // ✅ CORRETTO
+            const result = await db.query(`
+                SELECT psa.crediti 
+                FROM partecipanti_sessioni_accesso psa
+                WHERE psa.partecipante_id = $1 AND psa.sessione_id = $2
+            `, [data.id, gameState.sessioneCorrente]);
+
             if (result.rows.length === 0) {
-                console.log(`❌ Partecipante ${connesso.partecipanteId} non trovato nel database`); // ✅ PARENTESI
-                socket.emit('bid_error', { message: 'Partecipante non trovato nel database' });
+                socket.emit('bid_error', { message: 'Partecipante non trovato nella sessione' });
                 return;
             }
+
             const creditiDisponibili = result.rows[0].crediti;
             if (data.importo > creditiDisponibili) {
-                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`); // ✅ PARENTESI
+                console.log(`❌ ${connesso.nome} ha crediti insufficienti: ${data.importo} > ${creditiDisponibili}`);
                 socket.emit('bid_error', { message: `Crediti insufficienti. Disponibili: ${creditiDisponibili}` });
                 return;
             }
@@ -6014,15 +6030,15 @@ app.delete('/api/sessioni/:id', async (req, res) => {
 // Endpoint per aggiornare i crediti iniziali di una sessione
 app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
     try {
-        const { sessioneId } = req.params;
+        const sessioneId = req.params.sessioneId;
         const { creditiIniziali } = req.body;
 
         if (!creditiIniziali || creditiIniziali < 100 || creditiIniziali > 100000) {
-            return res.status(400).json({ error: 'Crediti devono essere tra 100 e 100.000' });
+            return res.status(400).json({ error: 'Crediti non validi (min: 100, max: 100000)' });
         }
 
         if (creditiIniziali % 100 !== 0) {
-            return res.status(400).json({ error: 'Crediti devono essere multipli di 100' });
+            return res.status(400).json({ error: 'I crediti devono essere multipli di 100' });
         }
 
         // Aggiorna i crediti della sessione
@@ -6031,33 +6047,32 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
             [creditiIniziali, sessioneId]
         );
 
-        // 🆕 AGGIORNA I CREDITI DI TUTTI I PARTECIPANTI DELLA SESSIONE
-        const updateResult = await db.query(
-            'UPDATE partecipanti_fantagts SET crediti = $1 WHERE sessione_id = $2 RETURNING id, nome',
+        // ✅ AGGIORNA crediti nella tabella partecipanti_sessioni_accesso
+        const result = await db.query(
+            'UPDATE partecipanti_sessioni_accesso SET crediti = $1 WHERE sessione_id = $2 RETURNING partecipante_id',
             [creditiIniziali, sessioneId]
         );
 
         console.log(`✅ Crediti sessione ${sessioneId} aggiornati a ${creditiIniziali}`);
-        console.log(`✅ Aggiornati ${updateResult.rows.length} partecipanti`);
+        console.log(`📊 Partecipanti aggiornati:`, result.rows.length);
 
-        // 🆕 NOTIFICA TUTTI I CLIENT CONNESSI VIA WEBSOCKET
-        updateResult.rows.forEach(part => {
-            for (let [socketId, connesso] of gameState.connessi.entries()) {
-                if (connesso.partecipanteId === part.id) {
+        // Notifica tutti i partecipanti connessi
+        if (result.rows.length > 0) {
+            result.rows.forEach(row => {
+                const socketId = gameState.connessi.find(c => c.id === row.partecipante_id)?.socketId;
+                if (socketId) {
                     io.to(socketId).emit('crediti_aggiornati', {
                         crediti: creditiIniziali
                     });
-                    console.log(`📤 Crediti aggiornati inviati a ${part.nome}`);
-                    break;
                 }
-            }
-        });
+            });
+        }
 
         res.json({
             success: true,
-            message: 'Crediti aggiornati con successo',
+            message: `Crediti aggiornati per ${result.rows.length} partecipanti`,
             creditiIniziali: creditiIniziali,
-            partecipantiAggiornati: updateResult.rows.length
+            partecipantiAggiornati: result.rows.length
         });
 
     } catch (err) {
