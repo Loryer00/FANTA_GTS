@@ -1862,6 +1862,9 @@
                             showGameArea();
                             await loadPlayerTeam();
 
+                            // 🆕 REGISTRA IL SOCKET DOPO AVER RIPRISTINATO I DATI
+                            registerSocketWhenReady();
+
                             mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
