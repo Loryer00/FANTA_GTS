@@ -2955,48 +2955,11 @@
             }
         }
 
-        // 🆕 RINNOVO AUTOMATICO SUBSCRIPTION
-        let intervalRinnovoSubscription = null;
-
+        // 🆕 VERIFICA SUBSCRIPTION (solo quando app diventa visibile - niente timer)
         async function avviaRinnovoAutomaticoSubscription() {
-            // Ferma eventuali intervalli precedenti
-            if (intervalRinnovoSubscription) {
-                clearInterval(intervalRinnovoSubscription);
-            }
+            console.log('👁️ Sistema di verifica subscription attivato (solo quando app visibile)');
 
-            // Rinnova ogni 2 ore (2 * 60 * 60 * 1000 ms)
-            const INTERVALLO_RINNOVO = 2 * 60 * 60 * 1000; // 2 ore
-
-            console.log('🔄 Sistema di rinnovo automatico subscription attivato (ogni 4 ore)');
-
-            intervalRinnovoSubscription = setInterval(async () => {
-                try {
-                    console.log('🔄 Rinnovo automatico subscription in corso...');
-
-                    // Verifica se la subscription è ancora valida
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.getSubscription();
-
-                    if (!subscription) {
-                        console.log('⚠️ Subscription non trovata, creandone una nuova...');
-                        await setupPushNotifications();
-                    } else {
-                        console.log('✅ Subscription ancora valida, ma la rinnovo comunque per sicurezza');
-
-                        // Rimuovi la vecchia
-                        await subscription.unsubscribe();
-
-                        // Crea una nuova
-                        await setupPushNotifications();
-                    }
-
-                    console.log('✅ Rinnovo automatico completato con successo');
-                } catch (error) {
-                    console.error('❌ Errore rinnovo automatico:', error);
-                }
-            }, INTERVALLO_RINNOVO);
-
-            // Rinnova anche quando la pagina diventa visibile (utente torna sull'app)
+            // Verifica solo quando la pagina diventa visibile (utente torna sull'app)
             document.addEventListener('visibilitychange', async () => {
                 if (!document.hidden && playerData && playerData.id) {
                     console.log('👀 App tornata visibile, verifico subscription...');
@@ -3007,6 +2970,8 @@
                     if (!subscription) {
                         console.log('⚠️ Subscription persa, ripristinandola...');
                         await setupPushNotifications();
+                    } else {
+                        console.log('✅ Subscription ancora presente');
                     }
                 }
             });

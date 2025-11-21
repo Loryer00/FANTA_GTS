@@ -1279,7 +1279,33 @@ async function inviaNotifichePush(notificationData) {
             }
             
             console.log(`🎮 Usando sessione attiva: ${sessioneAttiva} per notifiche push`);
-            
+
+            // 🆕 RIATTIVA SUBSCRIPTION PRIMA DI INVIARE
+            if (targetUsers && targetUsers.length > 0) {
+                console.log('🔄 Riattivazione subscription per utenti:', targetUsers);
+                for (const userId of targetUsers) {
+                    // Cerca subscription esistenti per questo utente
+                    const existingSub = await db.query(
+                        'SELECT * FROM push_subscriptions WHERE partecipante_id = $1 ORDER BY created_at DESC LIMIT 1',
+                        [userId]
+                    );
+
+                    if (existingSub.rows.length > 0) {
+                        // Riattiva e aggiorna sessione
+                        await db.query(`
+                            UPDATE push_subscriptions 
+                            SET attiva = true, 
+                                sessione_id = $1, 
+                                last_seen = CURRENT_TIMESTAMP 
+                            WHERE partecipante_id = $2
+                        `, [sessioneAttiva, userId]);
+                        console.log(`✅ Subscription riattivata per ${userId} in sessione ${sessioneAttiva}`);
+                    } else {
+                        console.log(`⚠️ Nessuna subscription trovata per ${userId} - dovrà attivarle manualmente`);
+                    }
+                }
+            }
+
             let query, params;
             if (targetUsers && targetUsers.length > 0) {
                 const placeholders = targetUsers.map((_, i) => `$${i + 2}`).join(',');
