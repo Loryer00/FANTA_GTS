@@ -3585,17 +3585,50 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             
             console.log(`📋 Totale slots da notificare: ${slotsAggiornati.length}`);
 
-            // Trova i proprietari di questi slot nelle aste
+            // 🆕 PRIMA: Ottieni la configurazione dell'incontro
+            const incontroConfigResult = await db.query(
+                'SELECT configurazione_id FROM incontri WHERE id = $1',
+                [incontroId]
+            );
+
+            const configurazioneId = incontroConfigResult.rows[0]?.configurazione_id;
+
+            if (!configurazioneId) {
+                console.log('⚠️ Nessuna configurazione trovata per l\'incontro');
+                return;
+            }
+
+            console.log(`📋 Configurazione incontro: ${configurazioneId}`);
+
+            // 🆕 TROVA TUTTE LE SESSIONI CHE USANO QUESTA CONFIGURAZIONE
+            const sessioniConfigResult = await db.query(
+                'SELECT id, nome FROM sessioni_fantagts WHERE configurazione_id = $1',
+                [configurazioneId]
+            );
+
+            const sessioniIds = sessioniConfigResult.rows.map(s => s.id);
+            console.log(`🎮 Trovate ${sessioniIds.length} sessioni con questa configurazione:`, sessioniIds);
+
+            if (sessioniIds.length === 0) {
+                console.log('⚠️ Nessuna sessione trovata per questa configurazione');
+                return;
+            }
+
+            // Trova i proprietari di questi slot nelle aste (in TUTTE le sessioni che usano questa configurazione)
             for (const slot of slotsAggiornati) {
-                console.log(`🔍 Cerco proprietario ASTE per slot: ${slot.slotId}, sessione: ${sessioneId}`);
-                
+                console.log(`🔍 Cerco proprietario ASTE per slot: ${slot.slotId} in ${sessioniIds.length} sessioni`);
+
+                // Query con IN per cercare in tutte le sessioni
+                const placeholders = sessioniIds.map((_, i) => `$${i + 2}`).join(',');
                 const proprietarioResult = await db.query(`
-                    SELECT p.id, p.nome, s.giocatore_attuale
-                    FROM aste a
-                    JOIN partecipanti_fantagts p ON a.partecipante_id = p.id
-                    JOIN slots s ON a.slot_id = s.id
-                    WHERE a.slot_id = $1 AND a.vincitore = true AND a.sessione_id = $2
-                `, [slot.slotId, sessioneId]);
+        SELECT p.id, p.nome, s.giocatore_attuale, a.sessione_id
+        FROM aste a
+        JOIN partecipanti_fantagts p ON a.partecipante_id = p.id
+        JOIN slots s ON a.slot_id = s.id
+        WHERE a.slot_id = $1 
+          AND a.vincitore = true 
+          AND a.sessione_id IN (${placeholders})
+    `, [slot.slotId, ...sessioniIds]);
 
                 console.log(`📊 Trovati ${proprietarioResult.rows.length} proprietari in ASTE`);
 
@@ -3606,7 +3639,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     await inviaNotifichePush({
                         title: `🎾 ${proprietario.giocatore_attuale} ha vinto!`,
                         body: `Il tuo giocatore ha guadagnato ${slot.punti} punti! 🏆`,
-                        url: `/?sessione=${sessioneId}&auto_open=true`,
+                        url: `/?sessione=${proprietario.sessione_id}&auto_open=true`,
                         targetUsers: [proprietario.id]
                     });
                 } else {
@@ -3614,16 +3647,18 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                 }
             }
 
-            // Trova anche i proprietari nel Draft
+            // Trova anche i proprietari nel Draft (in TUTTE le sessioni)
             for (const slot of slotsAggiornati) {
-                console.log(`🔍 Cerco proprietario DRAFT per slot: ${slot.slotId}, sessione: ${sessioneId}`);
-                
+                console.log(`🔍 Cerco proprietario DRAFT per slot: ${slot.slotId} in ${sessioniIds.length} sessioni`);
+
+                const placeholders = sessioniIds.map((_, i) => `$${i + 2}`).join(',');
                 const proprietarioDraftResult = await db.query(`
-                    SELECT p.id, p.nome, sd.giocatore
-                    FROM squadre_draft sd
-                    JOIN partecipanti_fantagts p ON sd.partecipante_id = p.id
-                    WHERE sd.slot_id = $1 AND sd.sessione_id = $2
-                `, [slot.slotId, sessioneId]);
+        SELECT p.id, p.nome, sd.giocatore, sd.sessione_id
+        FROM squadre_draft sd
+        JOIN partecipanti_fantagts p ON sd.partecipante_id = p.id
+        WHERE sd.slot_id = $1 
+          AND sd.sessione_id IN (${placeholders})
+    `, [slot.slotId, ...sessioniIds]);
 
                 console.log(`📊 Trovati ${proprietarioDraftResult.rows.length} proprietari in DRAFT`);
 
@@ -3634,7 +3669,7 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     await inviaNotifichePush({
                         title: `🎾 ${proprietario.giocatore} ha vinto!`,
                         body: `Il tuo giocatore ha guadagnato ${slot.punti} punti! 🏆`,
-                        url: `/?sessione=${sessioneId}&auto_open=true`,
+                        url: `/?sessione=${proprietario.sessione_id}&auto_open=true`,
                         targetUsers: [proprietario.id]
                     });
                 } else {
