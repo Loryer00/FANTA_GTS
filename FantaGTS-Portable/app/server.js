@@ -1214,6 +1214,16 @@ async function inviaNotifichePush(notificationData) {
         console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
 
         // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket) - SEMPRE FUNZIONA
+        // 🆕 DEBUG: Mostra tutti i socket connessi
+        console.log('🔍 DEBUG gameState.connessi:',
+            Array.from(gameState.connessi.entries()).map(([socketId, conn]) => ({
+                socketId: socketId,
+                nome: conn.nome,
+                tipo: conn.tipo,
+                partecipanteId: conn.partecipanteId
+            }))
+        );
+
         let notificheTramiteSocket = 0;
         for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.tipo === 'partecipante' &&

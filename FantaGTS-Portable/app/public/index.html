@@ -1816,6 +1816,7 @@
                 playerData.id = partecipante.id;
                 playerData.credits = partecipante.crediti;
                 playerData.modalita = sessione.modalita;
+                playerData.modalita = sessione.modalita;
                 playerData.sessioneId = sessioneId;  // 🆕 AGGIUNGI QUESTA RIGA
                 playerData.notificationsEnabled = sessionData.notificationsEnabled || false;
 
@@ -2141,10 +2142,11 @@
                 console.log('🔄 Caricamento squadra per:', playerData.id);
 
                 // 🆕 DETERMINA DA QUALE API CARICARE IN BASE ALLA MODALITÀ
-                let modalita = playerData.modalita || 'asta_competitiva'; // Usa modalitÃ  giÃ  caricata
+                // 🔥 USA playerData.modalita se già impostato (evita conflitti con localStorage)
+                let modalita = playerData.modalita || 'asta_competitiva';
                 let sessioneId = playerData.sessioneId || null;
 
-                // Se playerData non ha la modalitÃ , allora leggi da localStorage come fallback
+                // Se playerData non ha la modalità, allora leggi da localStorage come fallback
                 if (!playerData.modalita) {
                     const savedSession = localStorage.getItem('userSession');
                     if (savedSession) {
@@ -2152,7 +2154,7 @@
                         modalita = session.modalita || 'asta_competitiva';
                         sessioneId = session.sessioneId;
 
-                        // ðŸ"„ Aggiorna playerData per evitare riletture future
+                        // 🔄 Aggiorna playerData per evitare riletture future
                         playerData.modalita = modalita;
                         playerData.sessioneId = sessioneId;
                     }
