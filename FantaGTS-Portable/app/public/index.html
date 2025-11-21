@@ -2920,14 +2920,77 @@
                     const result = await response.json();
                     if (result.success) {
                         console.log('✅ Notifiche push attivate con successo!');
+
+                        // 🆕 AVVIA RINNOVO AUTOMATICO PERIODICO
+                        avviaRinnovoAutomaticoSubscription();
+
+                        return { success: true };
                     } else {
                         console.error('❌ Errore attivazione notifiche:', result);
+                        return { success: false };
                     }
                 }
-
             } catch (error) {
                 console.error('❌ Errore setup notifiche push:', error);
+                return { success: false };
             }
+        }
+
+        // 🆕 RINNOVO AUTOMATICO SUBSCRIPTION
+        let intervalRinnovoSubscription = null;
+
+        async function avviaRinnovoAutomaticoSubscription() {
+            // Ferma eventuali intervalli precedenti
+            if (intervalRinnovoSubscription) {
+                clearInterval(intervalRinnovoSubscription);
+            }
+
+            // Rinnova ogni 2 ore (2 * 60 * 60 * 1000 ms)
+            const INTERVALLO_RINNOVO = 2 * 60 * 60 * 1000; // 2 ore
+
+            console.log('🔄 Sistema di rinnovo automatico subscription attivato (ogni 4 ore)');
+
+            intervalRinnovoSubscription = setInterval(async () => {
+                try {
+                    console.log('🔄 Rinnovo automatico subscription in corso...');
+
+                    // Verifica se la subscription è ancora valida
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+
+                    if (!subscription) {
+                        console.log('⚠️ Subscription non trovata, creandone una nuova...');
+                        await setupPushNotifications();
+                    } else {
+                        console.log('✅ Subscription ancora valida, ma la rinnovo comunque per sicurezza');
+
+                        // Rimuovi la vecchia
+                        await subscription.unsubscribe();
+
+                        // Crea una nuova
+                        await setupPushNotifications();
+                    }
+
+                    console.log('✅ Rinnovo automatico completato con successo');
+                } catch (error) {
+                    console.error('❌ Errore rinnovo automatico:', error);
+                }
+            }, INTERVALLO_RINNOVO);
+
+            // Rinnova anche quando la pagina diventa visibile (utente torna sull'app)
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden && playerData && playerData.id) {
+                    console.log('👀 App tornata visibile, verifico subscription...');
+
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+
+                    if (!subscription) {
+                        console.log('⚠️ Subscription persa, ripristinandola...');
+                        await setupPushNotifications();
+                    }
+                }
+            });
         }
 
         // ========================================
@@ -3673,8 +3736,19 @@
                 if (playerData && playerData.registered && playerData.notificationsEnabled) {
                     console.log('🔔 Ri-attivazione notifiche push...');
                     try {
-                        await setupPushNotifications();
-                        console.log('✅ Notifiche push ri-attivate con successo');
+                        // Verifica prima se esiste già una subscription valida
+                        if ('serviceWorker' in navigator && 'PushManager' in window) {
+                            const registration = await navigator.serviceWorker.ready;
+                            const existingSubscription = await registration.pushManager.getSubscription();
+
+                            if (!existingSubscription) {
+                                console.log('⚠️ Subscription non trovata, creandone una nuova...');
+                                await setupPushNotifications();
+                            } else {
+                                console.log('✅ Subscription già esistente, avvio sistema di rinnovo automatico');
+                                avviaRinnovoAutomaticoSubscription();
+                            }
+                        }
                     } catch (error) {
                         console.error('❌ Errore ri-attivazione notifiche push:', error);
                     }
