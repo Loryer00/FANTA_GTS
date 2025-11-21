@@ -1339,8 +1339,8 @@ async function inviaNotifichePush(notificationData) {
 
         // Invia notifiche push con gestione errori migliorata
         const payload = JSON.stringify({
-            title: `🎾 ${title}`, // AGGIUNTO: emoji per visibilità
-            body: `⚡ ${body}`, // AGGIUNTO: emoji per urgenza
+            title: title, // 🆕 Titolo pulito senza emoji extra
+            body: body, // 🆕 Body pulito senza emoji extra
             icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
             badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
             image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"%3E%3Crect width="200" height="100" fill="%234299e1"/%3E%3Ctext x="100" y="60" font-size="40" text-anchor="middle" fill="white"%3E🎾 ASTA!%3C/text%3E%3C/svg%3E', // AGGIUNTO: immagine grande per lockscreen
