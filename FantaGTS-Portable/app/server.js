@@ -4956,6 +4956,27 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
                 WHERE partecipante_id = $2 AND sessione_id = $3
             `, [r.costoFinale, r.partecipante, gameState.sessioneCorrente]);
 
+            // INVIA AGGIORNAMENTO CREDITI IMMEDIATO al partecipante
+            const creditiAggiornatiResult = await db.query(`
+                SELECT crediti FROM partecipanti_sessioni_accesso 
+                WHERE partecipante_id = $1 AND sessione_id = $2
+            `, [r.partecipante, gameState.sessioneCorrente]);
+
+            if (creditiAggiornatiResult.rows.length > 0) {
+                const creditiRimasti = creditiAggiornatiResult.rows[0].crediti;
+
+                // Trova il socket del partecipante e invia aggiornamento
+                for (let [socketId, connesso] of gameState.connessi.entries()) {
+                    if (connesso.partecipanteId === r.partecipante) {
+                        io.to(socketId).emit('crediti_aggiornati', {
+                            crediti: creditiRimasti
+                        });
+                        console.log(`Crediti aggiornati per ${r.partecipante}: ${creditiRimasti}`);
+                        break;
+                    }
+                }
+            }
+
             const simbolo = r.condiviso ? '🔁' : '✅';
             const dettaglio = r.condiviso
                 ? `(pos. ${r.posizione}, premium ${Math.round(r.premium * 100)}%)`
