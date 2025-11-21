@@ -5434,10 +5434,10 @@ io.on('connection', (socket) => {
         // Verifica crediti disponibili nel database
         try {
             const result = await db.query(`
-                SELECT psa.crediti 
-                FROM partecipanti_sessioni_accesso psa
-                WHERE psa.partecipante_id = $1 AND psa.sessione_id = $2
-            `, [data.id, gameState.sessioneCorrente]);
+            SELECT psa.crediti 
+            FROM partecipanti_sessioni_accesso psa
+            WHERE psa.partecipante_id = $1 AND psa.sessione_id = $2
+        `, [connesso.partecipanteId, gameState.sessioneCorrente]);
 
             if (result.rows.length === 0) {
                 socket.emit('bid_error', { message: 'Partecipante non trovato nella sessione' });
