@@ -1342,9 +1342,7 @@ async function inviaNotifichePush(notificationData) {
             title: title, // 🆕 Titolo pulito senza emoji extra
             body: body, // 🆕 Body pulito senza emoji extra
             icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"%3E%3Crect width="200" height="100" fill="%234299e1"/%3E%3Ctext x="100" y="60" font-size="40" text-anchor="middle" fill="white"%3E🎾 ASTA!%3C/text%3E%3C/svg%3E', // AGGIUNTO: immagine grande per lockscreen
-            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
+            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
             requireInteraction: true, // CAMBIATO: torna true per persistenza
             tag: 'fantagts-urgent',
             renotify: true,
@@ -2948,7 +2946,10 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             ORDER BY s.posizione`, [partecipanteId, sessioneId]); // ✅ USA sessioneId invece di sessioneCorrente
 
         // Ottieni crediti aggiornati
-        const creditiResult = await db.query(`SELECT crediti FROM partecipanti_fantagts WHERE id = $1 AND sessione_id = $2`, [partecipanteId, sessioneId]); // ✅ AGGIUNGI filtro sessione
+        const creditiResult = await db.query(
+            `SELECT crediti FROM partecipanti_fantagts WHERE id = $1`,
+            [partecipanteId]
+        );
 
         res.json({
             squadra: squadraResult.rows,
