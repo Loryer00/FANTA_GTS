@@ -14,110 +14,90 @@ self.addEventListener('activate', (event) => {
 });
 
 // Gestione Push Notifications - VERSIONE MIGLIORATA
-self.addEventListener('push', (event) => {
-    console.log('📨 Service Worker: Push notification ricevuta');
-    console.log('📱 Dati push ricevuti:', event.data ? event.data.text() : 'Nessun dato');
+self.addEventListener('push', async (event) => {
+    console.log('📨 Service Worker: Notifica push ricevuta');
 
-    let notificationData = {
-        title: 'FantaGTS',
-        body: 'Nuovo evento nel FantaGTS!',
-        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-        badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-        vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO
-        requireInteraction: true,
-        tag: 'fantagts-urgent',
-        renotify: true,
-        silent: false,
-        // AGGIUNTO: configurazioni avanzate per lockscreen
-        sticky: true, // Notifica persistente
-        noscreen: false, // NON nascondere quando schermo spento
-        data: {
-            url: '/',
-            timestamp: Date.now(),
-            action: 'open_app',
-            lockscreen: true,
-            wakeup: true
-        },
-        actions: [
-            {
-                action: 'open',
-                title: '🚀 Apri FantaGTS'
-            },
-            {
-                action: 'remind',
-                title: '⏰ Ricorda'
-            }
-        ]
-    };
-
-    // NUOVO: Gestione dati push migliorata
-    if (event.data) {
-        try {
-            const pushData = event.data.json();
-            console.log('📋 Dati push parsati:', pushData);
-
-            notificationData.title = pushData.title || notificationData.title;
-            notificationData.body = pushData.body || notificationData.body;
-
-            // AGGIUNTO: Applica configurazioni Android se presenti
-            if (pushData.android) {
-                Object.assign(notificationData, pushData.android);
-            }
-
-            if (pushData.data) {
-                notificationData.data = { ...notificationData.data, ...pushData.data };
-            }
-
-            // NUOVO: Se è una notifica urgente, massimizza impatto
-            if (pushData.data && pushData.data.urgent) {
-                notificationData.requireInteraction = true;
-                notificationData.vibrate = [500, 300, 500, 300, 500, 300, 500];
-                notificationData.tag = `fantagts-urgent-${Date.now()}`; // Tag unico per evitare sovrascrittura
-            }
-
-        } catch (error) {
-            console.error('❌ Errore parsing dati push:', error);
-        }
-    }
-
-    console.log('🔔 Mostrando notifica con dati:', notificationData);
-
-    // NUOVO: Tentativo di "risveglio" tramite multiple notifiche
+    // 🆕 VERIFICA E RICREA SUBSCRIPTION SE NECESSARIA
     event.waitUntil(
-        Promise.all([
-            // Notifica principale
-            self.registration.showNotification(notificationData.title, notificationData),
+        (async () => {
+            try {
+                // 1. Verifica subscription corrente
+                const registration = await self.registration;
+                const currentSubscription = await registration.pushManager.getSubscription();
 
-            // AGGIUNTO: Tentativo risveglio con notifica silenziosa immediata
-            new Promise(resolve => {
-                setTimeout(() => {
-                    if (notificationData.data && notificationData.data.wakeup) {
-                        self.registration.showNotification('', {
-                            tag: 'wakeup-helper',
-                            silent: true,
-                            // vibrate: [100], // RIMOSSO: le notifiche silenziose non possono vibrare
-                            actions: [],
-                            data: { helper: true }
-                        }).then(() => {
-                            // Chiudi immediatamente la notifica helper
-                            setTimeout(() => {
-                                self.registration.getNotifications({ tag: 'wakeup-helper' })
-                                    .then(notifications => {
-                                        notifications.forEach(n => n.close());
-                                    });
-                            }, 100);
+                if (!currentSubscription) {
+                    console.log('⚠️ SW: Subscription persa! Tento di ricrearla...');
+
+                    // 2. Ottieni chiavi VAPID
+                    try {
+                        const vapidResponse = await fetch('/api/vapid-public-key');
+                        const vapidData = await vapidResponse.json();
+
+                        // 3. Crea nuova subscription
+                        const newSubscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
                         });
+
+                        console.log('✅ SW: Nuova subscription creata');
+
+                        // 4. Salva nel database (tentativo best-effort)
+                        // Non possiamo sapere il partecipanteId qui, quindi il server dovrà gestirlo
+                        fetch('/api/resubscribe-push', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ subscription: newSubscription })
+                        }).catch(err => console.log('⚠️ Impossibile salvare subscription:', err));
+
+                    } catch (err) {
+                        console.error('❌ SW: Impossibile ricreare subscription:', err);
                     }
-                    resolve();
-                }, 100);
-            })
-        ]).then(() => {
-            console.log('✅ Notifica mostrata con successo (con tentativo risveglio)');
-        }).catch(error => {
-            console.error('❌ Errore mostrando notifica:', error);
-        })
+                }
+
+                // 5. Mostra la notifica comunque
+                if (!event.data) {
+                    console.log('⚠️ Nessun dato nella notifica');
+                    return;
+                }
+
+                const data = event.data.json();
+                console.log('📦 Dati notifica:', data);
+
+                const options = {
+                    body: data.body,
+                    icon: data.icon || '/icon-192.png',
+                    badge: data.badge || '/badge-72.png',
+                    vibrate: data.vibrate || [200, 100, 200],
+                    data: data.data || {},
+                    actions: data.actions || [],
+                    requireInteraction: data.requireInteraction || false,
+                    tag: data.tag || 'fantagts-notification',
+                    renotify: data.renotify || false,
+                    silent: data.silent || false,
+                    image: data.image
+                };
+
+                await self.registration.showNotification(data.title, options);
+                console.log('✅ Notifica mostrata con successo');
+
+            } catch (error) {
+                console.error('❌ Errore gestione notifica:', error);
+            }
+        })()
     );
 });
+
+// Funzione helper per convertire VAPID key
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
 
 // Click su notifica - VERSIONE MIGLIORATA
 self.addEventListener('notificationclick', (event) => {

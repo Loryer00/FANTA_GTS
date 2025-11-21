@@ -4037,6 +4037,51 @@ app.post('/api/subscribe-notifications', async (req, res) => {
     }
 });
 
+// API per ri-sottoscrizione automatica dal Service Worker
+app.post('/api/resubscribe-push', async (req, res) => {
+    try {
+        const { subscription } = req.body;
+
+        if (!subscription || !subscription.endpoint) {
+            return res.status(400).json({ error: 'Subscription non valida' });
+        }
+
+        const endpoint = subscription.endpoint;
+        const keys = subscription.keys;
+
+        console.log('🔄 Tentativo ri-sottoscrizione automatica SW');
+
+        // Cerca subscription esistente con questo endpoint
+        const existingResult = await db.query(
+            'SELECT partecipante_id, sessione_id FROM push_subscriptions WHERE endpoint = $1 LIMIT 1',
+            [endpoint]
+        );
+
+        if (existingResult.rows.length > 0) {
+            // Aggiorna quella esistente
+            const old = existingResult.rows[0];
+            await db.query(`
+                UPDATE push_subscriptions 
+                SET p256dh_key = $1, 
+                    auth_key = $2, 
+                    attiva = true, 
+                    last_seen = CURRENT_TIMESTAMP 
+                WHERE endpoint = $3
+            `, [keys.p256dh, keys.auth, endpoint]);
+
+            console.log(`✅ Subscription aggiornata per ${old.partecipante_id}`);
+            res.json({ success: true, message: 'Subscription aggiornata' });
+        } else {
+            console.log('⚠️ Endpoint non trovato - subscription nuova da dispositivo sconosciuto');
+            res.json({ success: false, message: 'Endpoint sconosciuto' });
+        }
+
+    } catch (error) {
+        console.error('❌ Errore re-subscribe:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Test notifica push
 app.post('/api/test-notification', async (req, res) => {
     try {
