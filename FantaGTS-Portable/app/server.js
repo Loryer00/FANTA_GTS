@@ -6080,11 +6080,15 @@ app.put('/api/sessioni/:sessioneId/crediti', async (req, res) => {
         // Notifica tutti i partecipanti connessi
         if (result.rows.length > 0) {
             result.rows.forEach(row => {
-                const socketId = gameState.connessi.find(c => c.id === row.partecipante_id)?.socketId;
-                if (socketId) {
-                    io.to(socketId).emit('crediti_aggiornati', {
-                        crediti: creditiIniziali
-                    });
+                // 🔍 Cerca il socket del partecipante nella Map
+                for (let [socketId, connesso] of gameState.connessi.entries()) {
+                    if (connesso.partecipanteId === row.partecipante_id) {
+                        io.to(socketId).emit('crediti_aggiornati', {
+                            crediti: creditiIniziali
+                        });
+                        console.log(`💰 Crediti aggiornati inviati a ${connesso.nome}: ${creditiIniziali}`);
+                        break;
+                    }
                 }
             });
         }
