@@ -2761,7 +2761,7 @@ app.get('/api/sessioni/:sessionId/partecipante/:nome', async (req, res) => {
 
         // 🆕 CERCA nella tabella degli accessi, poi prendi i dati del partecipante
         const result = await db.query(
-            `SELECT p.id, p.nome, p.crediti 
+            `SELECT p.id, p.nome, psa.crediti 
              FROM partecipanti_sessioni_accesso psa
              JOIN partecipanti_fantagts p ON psa.partecipante_id = p.id
              WHERE psa.sessione_id = $1 AND LOWER(p.nome) = LOWER($2)`,
