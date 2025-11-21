@@ -1866,6 +1866,26 @@
                             // 🆕 REGISTRA IL SOCKET DOPO AVER RIPRISTINATO I DATI
                             registerSocketWhenReady();
 
+                            // 🆕 VERIFICA E ATTIVA AUTOMATICAMENTE LE NOTIFICHE PUSH
+                            setTimeout(async () => {
+                                try {
+                                    if ('Notification' in window && 'serviceWorker' in navigator) {
+                                        const registration = await navigator.serviceWorker.ready;
+                                        const subscription = await registration.pushManager.getSubscription();
+
+                                        if (!subscription && Notification.permission === 'granted') {
+                                            console.log('🔔 Nessuna subscription trovata ma permesso già dato - Creo subscription automaticamente');
+                                            await setupPushNotifications();
+                                        } else if (!subscription && Notification.permission === 'default') {
+                                            console.log('🔔 Nessuna subscription e nessun permesso - Chiedo permesso automaticamente');
+                                            await setupPushNotifications();
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.log('⚠️ Errore auto-attivazione notifiche:', err);
+                                }
+                            }, 2000); // Aspetta 2 secondi dopo il caricamento
+
                             mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
                         } else {
