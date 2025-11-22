@@ -1660,7 +1660,6 @@ F3 Brunelli E</pre>
             squadreWizard = []; // Reset squadre
 
             // Mostra/nascondi container CORRETTI
-            document.getElementById('configurazioniContainer').style.display = 'none';
             document.getElementById('sezNuovaConfig').style.display = 'block';
             document.getElementById('sezConfigEsistente').style.display = 'none';
 
@@ -1881,7 +1880,7 @@ F3 Brunelli E</pre>
 
         async function creaSessione() {
             try {
-                showLoading(true);
+                showLoading();
 
                 let configurazioneId;
 
@@ -1977,7 +1976,7 @@ F3 Brunelli E</pre>
                 console.error('❌ Errore:', error);
                 showError('Errore durante la creazione della sessione: ' + error.message);
             } finally {
-                showLoading(false);
+                hideLoading();
             }
         }
 
