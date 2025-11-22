@@ -1934,7 +1934,7 @@ F3 Brunelli E</pre>
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            configurazione: configurazioneId
+                            configurazione_id: configurazioneId
                         })
                     });
 
@@ -1968,16 +1968,10 @@ F3 Brunelli E</pre>
 
                 showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                console.log('🎯 DEBUG - Sessione creata con successo:', sessioneCreata);
-                console.log('🎯 DEBUG - ConfigurazioneId:', configurazioneId);
-                console.log('🎯 DEBUG - Redirect disabilitato per debug');
-
-                // 3️⃣ Redirect al master - TEMPORANEAMENTE DISABILITATO
-                /*
+                // 3️⃣ Redirect al master
                 setTimeout(() => {
                     window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
                 }, 1500);
-                */
 
             } catch (error) {
                 console.error('❌ Errore:', error);
