@@ -1791,7 +1791,11 @@ F3 Brunelli E</pre>
                         })
                     });
 
-                    if (!configResponse.ok) throw new Error('Errore creazione configurazione');
+                    if (!configResponse.ok) {
+                        const errorData = await configResponse.json();
+                        console.error('❌ Errore dal server:', errorData);
+                        throw new Error(errorData.error || 'Errore creazione configurazione');
+                    }
 
                     const configData = await configResponse.json();
                     configurazioneId = configData.id;
