@@ -1,0 +1,11 @@
+Squadra Verde
+M1 Montaldo F
+M2 Toso
+M3 Benasso
+M4 Scalise
+M5 Brandi
+M6 Califano
+M7 Migliasso
+F1 Vinelli V
+F2 Sormani
+F3 Aiachini

@@ -4570,6 +4570,15 @@ app.delete('/api/configurazioni/:id', async (req, res) => {
         `, [id]);
         console.log('✅ Eliminati scontri_squadre');
 
+        // ✨ NUOVO: 4.5. Elimina accoppiamenti_posizioni collegati ai turni di questa configurazione
+        await db.query(`
+            DELETE FROM accoppiamenti_posizioni 
+            WHERE turno_id IN (
+                SELECT id FROM turni_configurazione WHERE configurazione_id = $1
+            )
+        `, [id]);
+        console.log('✅ Eliminati accoppiamenti_posizioni');
+
         // 5. Elimina turni_configurazione
         await db.query('DELETE FROM turni_configurazione WHERE configurazione_id = $1', [id]);
         console.log('✅ Eliminati turni_configurazione');
