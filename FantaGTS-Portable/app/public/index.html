@@ -2264,7 +2264,11 @@
                     const data = await response.json();
                     squadra = data.squadra || data;
 
+                    // 🔍 DEBUG: Mostra i punti ricevuti dal server
+                    console.log('🔍 DEBUG PUNTI - Dati ricevuti:', squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
+
                     // Aggiorna crediti se presenti
+
                     if (data.crediti !== undefined) {
                         playerData.credits = data.crediti;
                         updateCreditsDisplay();
