@@ -4852,15 +4852,19 @@ async function elaboraRisultatiAste() {
 
     // Elabora con o senza condivisione
     if (condivisioneAttiva && sessioneAttiva) {
-        console.log('\n🔄 === MODALITÀ CONDIVISIONE ATTIVA ===');
+        console.log('\nðŸ"„ === MODALITÃ€ CONDIVISIONE ATTIVA ===');
 
         const categoria = gameState.roundAttivo;
-        const numeroPartecipanti = sessioneAttiva.numero_partecipanti_previsti;
+
+        // ✅ USA IL NUMERO REALE DI PARTECIPANTI CONNESSI/ISCRITTI
+        const numeroPartecipantiReali = gameState.partecipantiInAttesa.length + gameState.partecipantiAssegnati.size;
+        console.log(`ðŸ'¥ Partecipanti REALI nella sessione: ${numeroPartecipantiReali} (previsti: ${sessioneAttiva.numero_partecipanti_previsti})`);
+
         const numeroSquadre = sessioneAttiva.numero_squadre;
 
         const risultatoCondivisione = elaboraCondivisioneGiocatori(
             tutteLeOfferte,
-            numeroPartecipanti,
+            numeroPartecipantiReali,  // ✅ USA IL NUMERO REALE
             numeroSquadre,
             categoria
         );
