@@ -1967,10 +1967,16 @@ F3 Brunelli E</pre>
 
                 showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                // 3️⃣ Redirect al master
+                console.log('🎯 DEBUG - Sessione creata con successo:', sessioneCreata);
+                console.log('🎯 DEBUG - ConfigurazioneId:', configurazioneId);
+                console.log('🎯 DEBUG - Redirect disabilitato per debug');
+
+                // 3️⃣ Redirect al master - TEMPORANEAMENTE DISABILITATO
+                /*
                 setTimeout(() => {
                     window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
                 }, 1500);
+                */
 
             } catch (error) {
                 console.error('❌ Errore:', error);
