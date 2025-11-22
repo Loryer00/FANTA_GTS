@@ -3571,10 +3571,17 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
 
                     console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
 
-                    // Aggiorna i punti dello slot specifico (lo slotId è univoco per configurazione)
+                    // 🔍 DEBUG: Verifica esistenza slot
+                    const checkSlot = await db.query(
+                        "SELECT id, configurazione_id, punti_totali FROM slots WHERE id = $1",
+                        [slotId]
+                    );
+                    console.log(`🔍 Slot trovati con id ${slotId}:`, checkSlot.rows);
+
+                    // Aggiorna i punti dello slot specifico filtrando ANCHE per configurazione
                     const updateResult = await db.query(
-                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 RETURNING punti_totali",
-                        [risultato.punti_assegnati, slotId]
+                        "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND configurazione_id = $3 RETURNING punti_totali, configurazione_id",
+                        [risultato.punti_assegnati, slotId, configurazioneId]
                     );
 
                     if (updateResult.rows.length === 0) {
