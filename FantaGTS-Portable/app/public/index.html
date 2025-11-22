@@ -2038,29 +2038,41 @@
         }
 
         function resetBiddingInterface() {
+            console.log('🔄 Reset completo interfaccia asta');
+
+            // Reset campo importo
             const bidAmount = document.getElementById('bidAmount');
             if (bidAmount) {
                 bidAmount.value = '';
                 bidAmount.disabled = false;
             }
 
+            // 🆕 CRITICO: Re-abilita TUTTI i giocatori per la nuova asta
             document.querySelectorAll('.player-card').forEach(card => {
-                card.style.pointerEvents = 'auto';
-                card.style.opacity = '1';
-                card.classList.remove('selected');
+                card.style.pointerEvents = 'auto';  // Permetti click
+                card.style.opacity = '1';            // Rimuovi opacità
+                card.classList.remove('selected');    // Rimuovi selezione
             });
 
+            // Reset pulsante conferma
             const confirmBtn = document.getElementById('confirmBidBtn');
             if (confirmBtn) {
                 confirmBtn.disabled = true;
                 confirmBtn.textContent = 'Conferma Puntata';
                 confirmBtn.style.background = '#f56565';
+                confirmBtn.style.cursor = 'not-allowed';
             }
 
+            // Nascondi sezione offerta
             const bidSection = document.getElementById('bidSection');
             if (bidSection) bidSection.style.display = 'none';
 
+            // 🆕 Reset giocatore selezionato
+            window.selectedPlayer = null;
+
             updateCreditsDisplay();
+
+            console.log('✅ Interfaccia resettata - pronta per nuova asta');
         }
 
         // ========================================
@@ -3357,6 +3369,25 @@
                 // Reset interfaccia
                 resetBiddingInterface();
 
+                // 🆕 VERIFICA che il reset sia avvenuto correttamente
+                setTimeout(() => {
+                    const cards = document.querySelectorAll('.player-card');
+                    console.log(`🔍 Verifica post-reset: ${cards.length} giocatori trovati`);
+                    cards.forEach((card, index) => {
+                        console.log(`   Card ${index}: pointerEvents=${card.style.pointerEvents}, opacity=${card.style.opacity}`);
+                    });
+
+                    if (cards.length > 0 && cards[0].style.pointerEvents !== 'auto') {
+                        console.warn('⚠️ ATTENZIONE: I giocatori non sono cliccabili dopo il reset!');
+                        // Forza il reset
+                        cards.forEach(card => {
+                            card.style.pointerEvents = 'auto';
+                            card.style.opacity = '1';
+                        });
+                        console.log('✅ Forzata ri-abilitazione giocatori');
+                    }
+                }, 100);
+
                 // Nascondi fase attesa
                 const waitingPhase = document.getElementById('waiting-phase');
                 if (waitingPhase) {
@@ -3629,6 +3660,7 @@
         }
 
         function selectPlayer(player) {
+            console.log('🎯 Giocatore selezionato:', player.giocatore_attuale);
             document.querySelectorAll('.player-card').forEach(card => {
                 card.classList.remove('selected');
             });
