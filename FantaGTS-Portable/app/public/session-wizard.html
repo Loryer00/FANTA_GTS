@@ -726,10 +726,6 @@
                     <!-- Le configurazioni verranno caricate qui -->
                 </div>
             </div>
-
-            <div id="condivisionePreview" class="alert-box alert-warning" style="display: none;">
-                <!-- Preview condivisione -->
-            </div>
         </div>
 
             <!-- STEP 5: Riepilogo -->
@@ -810,7 +806,6 @@
                 🚀 Crea Sessione
             </button>
         </div>
-    </div>
 
     <script>
         // Stato del wizard
@@ -994,6 +989,7 @@
 
                 case 4:
                     if (configurazioneTipo === 'nuova') {
+                        // Verifica campi nuova configurazione
                         const nomeConfig = document.getElementById('nomeConfigurazione').value.trim();
                         const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value);
 
@@ -1001,14 +997,18 @@
                             showError('Inserisci un nome per la configurazione');
                             return false;
                         }
+
                         if (!numSquadre || numSquadre < 2) {
                             showError('Inserisci un numero valido di squadre (minimo 2)');
                             return false;
                         }
 
-                        sessionData.nomeConfigurazione = nomeConfig;
                         sessionData.numeroSquadre = numSquadre;
+                        sessionData.nomeConfigurazione = nomeConfig;
+                        calcolaCondivisione();
+
                     } else if (configurazioneTipo === 'esistente') {
+                        // Verifica che sia stata selezionata una configurazione
                         if (!configurazioneSelezionataId) {
                             showError('Seleziona una configurazione dalla lista');
                             return false;
@@ -1254,9 +1254,9 @@
             configurazioneSelezionataId = null;
 
             // Mostra/nascondi container CORRETTI
-            document.getElementById('nuovaConfigContainer').style.display = 'none';
+            document.getElementById('nuovaConfigContainer').style.display = 'none'; // ❌ Vecchio container deprecato
             document.getElementById('configurazioniContainer').style.display = 'none';
-            document.getElementById('sezNuovaConfig').style.display = 'block';
+            document.getElementById('sezNuovaConfig').style.display = 'block'; // ✅ Mostra il container giusto
             document.getElementById('sezConfigEsistente').style.display = 'none';
 
             // Nascondi preview condivisione finché non viene inserito il numero squadre
