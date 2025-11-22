@@ -646,11 +646,12 @@
                 </div>
             </div>
 
-            <!-- STEP 4: Squadre Circolo -->
+            <!-- STEP 4: Squadre Circolo CON GESTIONE INTEGRATA -->
             <div class="step-content" id="step4">
                 <h2 class="step-title">🏆 Configurazione Squadre</h2>
-                <p class="step-description">Scegli come configurare le squadre per questa sessione</p>
+                <p class="step-description">Configura le squadre del circolo per questa sessione</p>
 
+                <!-- Scelta tipo configurazione -->
                 <div class="form-group">
                     <label>Vuoi usare una configurazione esistente?</label>
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -663,67 +664,159 @@
                     </div>
                 </div>
 
-                <!-- Lista configurazioni esistenti -->
-                <div id="configurazioniContainer" style="display: none;">
-                    <h3>📋 Seleziona Configurazione</h3>
-                    <p style="color: #cbd5e0; margin-bottom: 15px;">
-                        Usa una configurazione già esistente (Squadre e giocatori già configurati)
-                    </p>
-                    <div id="configurazioniList">
-                        <!-- Le configurazioni verranno caricate qui dinamicamente -->
-                    </div>
-                </div>
+                <!-- Sezione: Nuova Configurazione -->
+                <div id="sezNuovaConfig" style="display: none; margin-top: 25px;">
+                    <h3>✨ Nuova Configurazione</h3>
 
-                <!-- Opzione nuova configurazione -->
-                <div id="nuovaConfigContainer" style="display: none;">
                     <div class="form-group">
-                        <label>Numero Squadre *</label>
-                        <input type="number" id="numeroSquadre" min="2" max="20" value="10"
-                               onchange="calcolaCondivisionePreview()">
-                        <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
+                        <label>Nome Configurazione *</label>
+                        <input type="text" id="nomeConfigurazione" placeholder="es: Campionato 2025">
+                        <div class="form-hint">Questo nome identifica il set di squadre</div>
                     </div>
 
-                    <div class="alert-box alert-info">
-                        <strong>ℹ️ Nota:</strong> Dopo la creazione della sessione, potrai configurare in dettaglio
-                        ogni squadra con i suoi giocatori utilizzando l'interfaccia di setup.
+                    <div class="alert-box alert-info" style="margin-bottom: 20px;">
+                        <strong>📌 Aggiungi le squadre del circolo</strong><br>
+                        Puoi aggiungere le squadre caricando i file .txt o inserendole manualmente.
+                        Il numero di squadre verrà calcolato automaticamente.
+                    </div>
+
+                    <!-- GESTIONE SQUADRE INTEGRATA -->
+                    <div style="margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <h4 style="margin-bottom: 15px;">🏟️ Squadre Configurate: <span id="contatoreSquadre">0</span></h4>
+
+                        <!-- Bottone aggiungi squadra -->
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <button class="btn btn-primary" onclick="mostraOpzioniAggiuntaWizard()" id="btnAggiungiSquadraWizard">
+                                ➕ Aggiungi Squadra
+                            </button>
+                        </div>
+
+                        <!-- Opzioni di aggiunta -->
+                        <div id="opzioniAggiuntaWizard" style="display: none; text-align: center; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                            <h4>Come vuoi aggiungere la squadra?</h4>
+                            <div style="margin-top: 15px;">
+                                <button class="btn btn-primary" onclick="mostraUploadFileWizard()" style="margin: 0 10px;">
+                                    📄 Da File (.txt)
+                                </button>
+                                <button class="btn btn-primary" onclick="mostraFormManualeWizard()" style="margin: 0 10px;">
+                                    ✏️ Inserimento Manuale
+                                </button>
+                            </div>
+                            <button class="btn btn-secondary" onclick="nascondiOpzioniWizard()" style="margin-top: 10px;">
+                                ❌ Annulla
+                            </button>
+                        </div>
+
+                        <!-- Upload da file -->
+                        <div id="uploadSectionWizard" style="display: none; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                            <h4>📄 Upload Squadre da File</h4>
+                            <div class="alert-box alert-info" style="margin-bottom: 15px; font-size: 0.9em;">
+                                <h5>Formato file .txt richiesto:</h5>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 0.85em;">Squadra Gialla
+M1 Spano
+M2 Cavo A
+M3 Paqualetto
+M4 Cosini
+M5 Cassanello
+M6 Paladino
+M7 Ferrari P
+F1 Tambroni B
+F2 Frojo F
+F3 Brunelli E</pre>
+                                <p style="margin-top: 10px; font-size: 0.9em;">💡 <strong>Tip:</strong> Puoi selezionare più file tenendo premuto Ctrl (o Cmd su Mac).</p>
+                            </div>
+                            <input type="file" id="fileSquadraWizard" accept=".txt" multiple style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.9); border-radius: 5px; width: 100%;">
+                            <div>
+                                <button class="btn btn-primary" onclick="caricaSquadraDaFileWizard()">
+                                    🚀 Carica Squadre
+                                </button>
+                                <button class="btn btn-secondary" onclick="annullaUploadWizard()">
+                                    ❌ Annulla
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Form manuale -->
+                        <div id="formManualeSectionWizard" style="display: none; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                            <h4>✏️ Inserimento Manuale</h4>
+
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label>Colore Squadra *</label>
+                                <input type="text" id="coloreSquadraManualeWizard" placeholder="es: rosso, verde, azzurro..." style="width: 100%; padding: 10px; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); color: #333;">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>M1:</label>
+                                    <input type="text" id="m1_wizard" placeholder="Nome giocatore M1">
+                                </div>
+                                <div class="form-group">
+                                    <label>M2:</label>
+                                    <input type="text" id="m2_wizard" placeholder="Nome giocatore M2">
+                                </div>
+                                <div class="form-group">
+                                    <label>M3:</label>
+                                    <input type="text" id="m3_wizard" placeholder="Nome giocatore M3">
+                                </div>
+                                <div class="form-group">
+                                    <label>M4:</label>
+                                    <input type="text" id="m4_wizard" placeholder="Nome giocatore M4">
+                                </div>
+                                <div class="form-group">
+                                    <label>M5:</label>
+                                    <input type="text" id="m5_wizard" placeholder="Nome giocatore M5">
+                                </div>
+                                <div class="form-group">
+                                    <label>M6:</label>
+                                    <input type="text" id="m6_wizard" placeholder="Nome giocatore M6">
+                                </div>
+                                <div class="form-group">
+                                    <label>M7:</label>
+                                    <input type="text" id="m7_wizard" placeholder="Nome giocatore M7">
+                                </div>
+                                <div class="form-group">
+                                    <label>F1:</label>
+                                    <input type="text" id="f1_wizard" placeholder="Nome giocatrice F1">
+                                </div>
+                                <div class="form-group">
+                                    <label>F2:</label>
+                                    <input type="text" id="f2_wizard" placeholder="Nome giocatrice F2">
+                                </div>
+                                <div class="form-group">
+                                    <label>F3:</label>
+                                    <input type="text" id="f3_wizard" placeholder="Nome giocatrice F3">
+                                </div>
+                            </div>
+
+                            <div>
+                                <button class="btn btn-primary" onclick="aggiungiSquadraManualeWizard()">
+                                    ➕ Aggiungi Squadra
+                                </button>
+                                <button class="btn btn-secondary" onclick="clearFormManualeEChiudiWizard()">
+                                    ❌ Annulla
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista squadre configurate -->
+                        <div id="squadreListWizard" class="squadre-grid" style="margin-top: 20px;">
+                            <p style="text-align: center; color: #cbd5e0;">Nessuna squadra configurata</p>
+                        </div>
                     </div>
                 </div>
 
-                <div id="condivisionePreview" class="alert-box alert-warning" style="display: none;">
+                <!-- Sezione: Configurazione Esistente -->
+                <div id="sezConfigEsistente" style="display: none; margin-top: 25px;">
+                    <h3>📋 Seleziona Configurazione</h3>
+                    <p>Usa una configurazione già esistente (squadre e giocatori già configurati)</p>
+
+                    <div id="listaConfigurazioni" style="margin-top: 15px;">
+                        <!-- Le configurazioni verranno caricate qui -->
+                    </div>
+                </div>
+
+                <div id="condivisionePreview" class="alert-box alert-warning" style="display: none; margin-top: 20px;">
                     <!-- Preview condivisione -->
-                </div>
-            </div>
-
-            <!-- Sezione: Nuova Configurazione -->
-            <div id="sezNuovaConfig" style="display: none; margin-top: 25px;">
-                <h3>✨ Nuova Configurazione</h3>
-                <p>Crea una nuova configurazione di squadre che potrai riutilizzare in altre sessioni</p>
-
-                <div class="form-group">
-                    <label>Nome Configurazione *</label>
-                    <input type="text" id="nomeConfigurazione" placeholder="es: Campionato 2025">
-                    <div class="form-hint">Questo nome identifica il set di squadre</div>
-                </div>
-
-                <div class="form-group">
-                    <label>Numero Squadre *</label>
-                    <input type="number" id="numeroSquadreConfig" min="2" max="20" value="10">
-                    <div class="form-hint">Quante squadre del circolo parteciperanno?</div>
-                </div>
-
-                <div class="alert-box alert-info">
-                    <strong>ℹ️ Nota:</strong> Dopo aver creato la sessione, potrai configurare nel dettaglio
-                    ogni squadra con i suoi giocatori tramite la pagina di Setup.
-                </div>
-            </div>
-
-            <!-- Sezione: Configurazione Esistente -->
-            <div id="sezConfigEsistente" style="display: none; margin-top: 25px;">
-                <h3>📋 Seleziona Configurazione</h3>
-                <p>Usa una configurazione già esistente (squadre e giocatori già configurati)</p>
-
-                <div id="listaConfigurazioni" style="margin-top: 15px;">
-                    <!-- Le configurazioni verranno caricate qui -->
                 </div>
             </div>
         </div>
