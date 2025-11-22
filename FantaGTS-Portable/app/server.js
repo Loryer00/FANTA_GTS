@@ -1037,11 +1037,33 @@ async function generaSlots(configurazioneId = 'default') {
                 const slotId = `${pos}_SQ${squadra.numero}_${squadra.colore.toUpperCase()}`;
                 const giocatore = squadra[pos.toLowerCase()];
 
+                // Calcola i punti già esistenti per questo slot dai risultati precedenti
+                const puntiEsistenti = await db.query(`
+                    SELECT COALESCE(SUM(rd.punti_assegnati), 0) as punti_totali
+                    FROM risultati_dettaglio rd
+                    JOIN incontri i ON rd.incontro_id = i.id
+                    JOIN squadre_circolo sc ON (
+                        (rd.vincitore = 1 AND i.squadra1 = sc.numero) OR
+                        (rd.vincitore = 2 AND i.squadra2 = sc.numero)
+                    )
+                    WHERE rd.posizione = $1
+                    AND sc.numero = $2
+                    AND sc.configurazione_id = $3
+                    AND i.configurazione_id = $3
+                    AND i.completato = true
+                `, [pos, squadra.numero, configurazioneId]);
+
+                const puntiIniziali = parseInt(puntiEsistenti.rows[0]?.punti_totali || 0);
+
                 await db.query(
-                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, configurazione_id) VALUES ($1, $2, $3, $4, $5, $6)",
-                    [slotId, squadra.numero, squadra.colore, pos, giocatore, configurazioneId]
+                    "INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale, configurazione_id, punti_totali) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                    [slotId, squadra.numero, squadra.colore, pos, giocatore, configurazioneId, puntiIniziali]
                 );
                 inserimenti++;
+
+                if (puntiIniziali > 0) {
+                    console.log(`  ✅ Slot ${slotId} creato con ${puntiIniziali} punti pre-esistenti`);
+                }
             }
         }
 
@@ -3684,27 +3706,13 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                         );
                         console.log(`🔍 Slot simili (case insensitive):`, checkSlotSimilar.rows);
 
-                        console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
-
-                        // Aggiorna i punti dello slot specifico filtrando ANCHE per configurazione
-                        const updateResult = await db.query(
-                            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND configurazione_id = $3 RETURNING punti_totali, configurazione_id",
-                            [risultato.punti_assegnati, slotId, configurazioneId]
-                        );
-
-                        if (updateResult.rows.length === 0) {
-                            console.error(`❌ SLOT NON TROVATO O NON AGGIORNATO!`);
-                            console.error(`   Cercavo: id='${slotId}' AND configurazione_id='${configurazioneId}'`);
-
-                            // 🔍 DEBUG: Mostra tutti gli slot di quella posizione
-                            const allSlotsPos = await db.query(
-                                "SELECT id, configurazione_id, punti_totali FROM slots WHERE posizione = $1",
-                                [risultato.posizione]
-                            );
-                            console.error(`   Slot esistenti per posizione ${risultato.posizione}:`, allSlotsPos.rows);
-                        } else {
-                            console.log(`✅ Slot ${slotId} aggiornato. Punti totali: ${updateResult.rows[0].punti_totali}`);
-                        }
+                        // ⚠️ NON AGGIORNARE QUI I PUNTI - già aggiornati nel ciclo principale sopra (righe 3576-3612)
+                        // Salviamo solo le informazioni dello slot per le notifiche
+                        slotsAggiornati.push({
+                            slotId: slotId,
+                            punti: risultato.punti_assegnati,
+                            giocatore: null // Verrà popolato dopo
+                        });
                     }
                 }
             }
