@@ -1137,11 +1137,19 @@ F3 Brunelli E</pre>
                     break;
 
                 case 4:
-                    // RIMOZIONE DELLA RIGA ERRATA.
-                    // Il dato sessionData.numeroSquadre e calcolaCondivisione() sono gestiti in:
-                    // - validateCurrentStep() (per la Nuova Configurazione)
-                    // - selezionaConfigurazione() (per la Configurazione Esistente)
-                    // - scegliNuovaConfigurazione() / scegliConfigurazioneEsistente()
+                    // Salva dati configurazione
+                    if (configurazioneTipo === 'nuova') {
+                        const nomeConfig = document.getElementById('nomeConfigurazione').value.trim();
+                        sessionData.nomeConfigurazione = nomeConfig;
+                        sessionData.numeroSquadre = squadreWizard.length;
+                        console.log('✅ STEP 4 - Salvati dati configurazione in saveCurrentStepData:', {
+                            nomeConfigurazione: sessionData.nomeConfigurazione,
+                            numeroSquadre: sessionData.numeroSquadre,
+                            squadre: squadreWizard.length
+                        });
+                    } else if (configurazioneTipo === 'esistente' && configurazioneSelezionataId) {
+                        console.log('✅ STEP 4 - Configurazione esistente selezionata:', configurazioneSelezionataId);
+                    }
                     break;
             }
         }
