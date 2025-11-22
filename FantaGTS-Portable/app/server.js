@@ -2277,9 +2277,9 @@ app.post('/api/squadre', async (req, res) => {
             // Inserisci la nuova squadra
             await db.query(`
                 INSERT INTO squadre_circolo 
-                (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazione_id) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-                [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazioneId]
+                (numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazione_id, attiva) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+                            [numero, colore, m1, m2, m3, m4, m5, m6, m7, f1, f2, f3, configurazioneId, true]
             );
 
             await db.query('COMMIT');
