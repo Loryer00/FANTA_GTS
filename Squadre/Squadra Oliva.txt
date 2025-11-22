@@ -1,0 +1,11 @@
+Squadra Verde
+M1 Scuto
+M2 Timossi C
+M3 Novella
+M4 Cavo V
+M5 Borghi F
+M6 Salati
+M7 Allavena
+F1 Balestrero
+F2 Guarrera
+F3 Wissiak

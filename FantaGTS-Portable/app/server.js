@@ -1166,9 +1166,21 @@ function avviaAstaSuccessiva() {
     }
 
     // 📤 Invia stato asta SOLO ai partecipanti in attesa
+    console.log(`📡 DEBUG INVIO ASTA_STARTED:`);
+    console.log(`   Partecipanti in attesa (${gameState.partecipantiInAttesa.length}):`, gameState.partecipantiInAttesa);
+    console.log(`   Socket connessi (${gameState.connessi.size}):`);
+    for (let [sid, conn] of gameState.connessi.entries()) {
+        console.log(`      - Socket ${sid.substring(0, 8)}: ${conn.nome} (tipo: ${conn.tipo}, partecipanteId: ${conn.partecipanteId})`);
+    }
+
+    let notificheInviate = 0;
     gameState.partecipantiInAttesa.forEach(partecipanteId => {
+        console.log(`\n🔍 Cercando socket per partecipante ID: "${partecipanteId}"`);
+        let socketTrovato = false;
+
         for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.partecipanteId === partecipanteId) {
+                console.log(`   ✅ TROVATO! Socket: ${socketId.substring(0, 8)}, Nome: ${connesso.nome}`);
                 io.to(socketId).emit('asta_started', {
                     round: gameState.roundAttivo,
                     astaNumero: gameState.astaCorrente,
@@ -1177,10 +1189,18 @@ function avviaAstaSuccessiva() {
                     sistema: 'multi-asta',
                     slotsDisponibili: gameState.slotsRimasti.map(s => s.id)
                 });
+                notificheInviate++;
+                socketTrovato = true;
                 break;
             }
         }
+
+        if (!socketTrovato) {
+            console.log(`   ❌ SOCKET NON TROVATO per partecipante "${partecipanteId}"`);
+        }
     });
+
+    console.log(`\n📊 RIEPILOGO: ${notificheInviate}/${gameState.partecipantiInAttesa.length} notifiche asta_started inviate con successo\n`);
 
     // Invia anche ai master per monitoraggio
     for (let [socketId, connesso] of gameState.connessi.entries()) {
@@ -5450,6 +5470,12 @@ io.on('connection', (socket) => {
                             biddingActive: gameState.asteAttive
                         }
                     });
+                    console.log(`✅ Socket registrato con successo:`);
+                    console.log(`   Socket ID: ${socket.id}`);
+                    console.log(`   Nome: ${data.nome}`);
+                    console.log(`   Tipo: ${data.tipo}`);
+                    console.log(`   Partecipante ID: ${data.partecipanteId}`);
+                    console.log(`   Verificato DB: true`);
 
                     // 🆕 SE C'È UN'ASTA ATTIVA, invia anche asta_started al client appena connesso
                     if (gameState.asteAttive && gameState.roundAttivo && gameState.partecipantiInAttesa.includes(data.partecipanteId)) {

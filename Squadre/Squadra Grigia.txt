@@ -1,0 +1,11 @@
+Squadra Verde
+M1 Dogliotti
+M2 Pisano
+M3 Spina
+M4 Ganci
+M5 Verrina
+M6 Balbo
+M7 Tanganelli
+F1 Gifuni
+F2 Di Carlo
+F3 Zvir

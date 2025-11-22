@@ -2049,6 +2049,14 @@
                 return;
             }
 
+            // ⬇️ AGGIUNGI QUESTE 5 RIGHE QUI ⬇️
+            console.log(`🎯 Avvio round ${round} per sessione: ${sessioneCorrente}`);
+            if (!sessioneCorrente) {
+                showNotification('❌ Errore: Sessione non identificata!', 'error');
+                return;
+            }
+            // ⬆️ FINE AGGIUNTA ⬆️
+
             try {
                 const response = await fetch(`/api/avvia-round/${round}`, {
                     method: 'POST',
@@ -2056,7 +2064,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sessioneId: sessioneCorrente  // 🆕 INVIA sessioneId
+                        sessioneId: sessioneCorrente
                     })
                 });
 
