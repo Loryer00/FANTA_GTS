@@ -1506,10 +1506,10 @@
             }
         }
 
-        // Creazione sessione
         async function creaSessione() {
             try {
                 showLoading(true);
+
                 let configurazioneId;
 
                 // 1️⃣ Gestisci configurazione
@@ -1534,17 +1534,6 @@
                     console.log('✅ Configurazione creata:', configurazioneId);
                 } else {
                     // Usa configurazione esistente
-                    console.log('🔍 DEBUG - configurazioneTipo:', configurazioneTipo);
-                    console.log('🔍 DEBUG - configurazioneSelezionataId:', configurazioneSelezionataId);
-
-                    if (!configurazioneSelezionataId) {
-                        throw new Error('Devi selezionare una configurazione esistente cliccando su una delle configurazioni dalla lista!');
-                    }
-
-                    if (configurazioneSelezionataId === 'default') {
-                        throw new Error('Non puoi usare la configurazione "default". Seleziona o crea una configurazione specifica per la tua sessione.');
-                    }
-
                     configurazioneId = configurazioneSelezionataId;
                     console.log('✅ Configurazione esistente selezionata:', configurazioneId);
                 }
@@ -1564,35 +1553,21 @@
                 const sessioneCreata = await sessionResponse.json();
                 console.log('✅ Sessione creata:', sessioneCreata);
 
-                // 🆕 3️⃣ GENERA AUTOMATICAMENTE GLI SLOTS
-                console.log('🎯 Generazione automatica slots per configurazione:', configurazioneId);
+                // ❌ RIMOSSO: Generazione automatica slots
+                // Gli slots verranno generati DOPO che l'utente avrà configurato le squadre tramite Setup
 
-                try {
-                    const slotsResponse = await fetch('/api/genera-slots', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            configurazione_id: configurazioneId
-                        })
-                    });
+                showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                    if (slotsResponse.ok) {
-                        const slotsData = await slotsResponse.json();
-                        console.log('✅ Slots generati automaticamente:', slotsData.count);
-                        showSuccess(`Sessione "${sessioneCreata.nome}" creata con ${slotsData.count} slot!`);
-                    } else {
-                        console.warn('⚠️ Errore generazione slots');
-                        showSuccess(`Sessione "${sessioneCreata.nome}" creata! (Verifica gli slot)`);
-                    }
-                } catch (slotError) {
-                    console.error('❌ Errore generazione slots:', slotError);
-                    showSuccess(`Sessione "${sessioneCreata.nome}" creata! (Slot non generati)`);
-                }
-
-                // 4️⃣ Redirect appropriato
+                // 3️⃣ Redirect appropriato
                 setTimeout(() => {
-                    window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
-                }, 2000);
+                    // 🆕 Reindirizza a Setup se è una nuova configurazione
+                    if (configurazioneTipo === 'nuova') {
+                        window.location.href = `/setup.html?configurazione=${configurazioneId}`;
+                    } else {
+                        // Se usa configurazione esistente, va direttamente al master
+                        window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
+                    }
+                }, 1500);
 
             } catch (error) {
                 console.error('❌ Errore:', error);
