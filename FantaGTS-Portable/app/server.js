@@ -3626,6 +3626,8 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
             for (const risultato of risultati) {
                 if (risultato.vincitore > 0 && risultato.punti_assegnati > 0) {
                     const squadraVincitrice = risultato.vincitore === 1 ? incontro.squadra1 : incontro.squadra2;
+
+                    // Trova i dettagli della squadra vincitrice (filtrata per configurazione!)
                     const squadreResult = await db.query(
                         "SELECT colore FROM squadre_circolo WHERE numero = $1 AND configurazione_id = $2",
                         [squadraVincitrice, configurazioneId]
@@ -3634,12 +3636,57 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
                     if (squadreResult.rows.length > 0) {
                         const coloreSquadra = squadreResult.rows[0].colore;
                         const slotId = `${risultato.posizione}_SQ${squadraVincitrice}_${coloreSquadra.toUpperCase()}`;
-                        slotsAggiornati.push({
-                            slotId: slotId,
-                            punti: risultato.punti_assegnati,
-                            posizione: risultato.posizione
-                        });
-                        console.log(`✅ Slot aggiunto per notifica: ${slotId} (+${risultato.punti_assegnati} pt)`);
+
+                        console.log(`🎯 === DEBUG SLOT ===`);
+                        console.log(`   Posizione: ${risultato.posizione}`);
+                        console.log(`   Squadra vincitrice: ${squadraVincitrice}`);
+                        console.log(`   Colore squadra: ${coloreSquadra}`);
+                        console.log(`   Slot ID generato: ${slotId}`);
+                        console.log(`   Configurazione: ${configurazioneId}`);
+                        console.log(`   Punti da assegnare: ${risultato.punti_assegnati}`);
+
+                        // 🔍 DEBUG: Verifica esistenza slot
+                        const checkSlot = await db.query(
+                            "SELECT id, configurazione_id, punti_totali, colore FROM slots WHERE id = $1",
+                            [slotId]
+                        );
+                        console.log(`🔍 Slot trovati con id ${slotId}:`, checkSlot.rows);
+
+                        // 🔍 DEBUG: Verifica slot con configurazione
+                        const checkSlotConfig = await db.query(
+                            "SELECT id, configurazione_id, punti_totali, colore FROM slots WHERE id = $1 AND configurazione_id = $2",
+                            [slotId, configurazioneId]
+                        );
+                        console.log(`🔍 Slot con configurazione ${configurazioneId}:`, checkSlotConfig.rows);
+
+                        // 🔍 DEBUG: Cerca slot simili (case insensitive)
+                        const checkSlotSimilar = await db.query(
+                            "SELECT id, configurazione_id, punti_totali, colore FROM slots WHERE LOWER(id) = LOWER($1) AND configurazione_id = $2",
+                            [slotId, configurazioneId]
+                        );
+                        console.log(`🔍 Slot simili (case insensitive):`, checkSlotSimilar.rows);
+
+                        console.log(`Aggiornando punti per slot ${slotId}: +${risultato.punti_assegnati} punti`);
+
+                        // Aggiorna i punti dello slot specifico filtrando ANCHE per configurazione
+                        const updateResult = await db.query(
+                            "UPDATE slots SET punti_totali = punti_totali + $1 WHERE id = $2 AND configurazione_id = $3 RETURNING punti_totali, configurazione_id",
+                            [risultato.punti_assegnati, slotId, configurazioneId]
+                        );
+
+                        if (updateResult.rows.length === 0) {
+                            console.error(`❌ SLOT NON TROVATO O NON AGGIORNATO!`);
+                            console.error(`   Cercavo: id='${slotId}' AND configurazione_id='${configurazioneId}'`);
+
+                            // 🔍 DEBUG: Mostra tutti gli slot di quella posizione
+                            const allSlotsPos = await db.query(
+                                "SELECT id, configurazione_id, punti_totali FROM slots WHERE posizione = $1",
+                                [risultato.posizione]
+                            );
+                            console.error(`   Slot esistenti per posizione ${risultato.posizione}:`, allSlotsPos.rows);
+                        } else {
+                            console.log(`✅ Slot ${slotId} aggiornato. Punti totali: ${updateResult.rows[0].punti_totali}`);
+                        }
                     }
                 }
             }
