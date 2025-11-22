@@ -1089,6 +1089,11 @@ F3 Brunelli E</pre>
                         sessionData.numeroSquadre = squadreWizard.length;
                         sessionData.nomeConfigurazione = nomeConfig;
 
+                        console.log('✅ SALVATO nomeConfigurazione:', sessionData.nomeConfigurazione);
+                        console.log('✅ sessionData dopo salvataggio:', JSON.stringify(sessionData));
+
+                        // ✅ calcolaCondivisione() rimossa - calcolo dinamico durante l'asta
+
                         console.log('✅ STEP 4 - Salvato in sessionData:', {
                             nomeConfigurazione: sessionData.nomeConfigurazione,
                             numeroSquadre: sessionData.numeroSquadre
