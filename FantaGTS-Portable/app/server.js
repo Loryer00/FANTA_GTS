@@ -4462,27 +4462,70 @@ app.put('/api/configurazioni/:id', async (req, res) => {
     }
 });
 
-// DELETE: Elimina configurazione (solo se non ha sessioni attive)
+// DELETE: Elimina configurazione
 app.delete('/api/configurazioni/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        
+
+        console.log(`🗑️ Richiesta eliminazione configurazione: ${id}`);
+
         // Verifica se ci sono sessioni attive che usano questa configurazione
         const sessioniAttive = await db.query(
             'SELECT COUNT(*) as count FROM sessioni_fantagts WHERE configurazione_id = $1 AND attiva = true',
             [id]
         );
-        
+
         if (parseInt(sessioniAttive.rows[0].count) > 0) {
-            return res.status(400).json({ 
-                error: 'Impossibile eliminare: ci sono sessioni attive che usano questa configurazione' 
+            return res.status(400).json({
+                error: 'Impossibile eliminare: ci sono sessioni attive che usano questa configurazione'
             });
         }
-        
+
+        // 🆕 ELIMINAZIONE A CASCATA
+        // 1. Elimina risultati_dettaglio collegati agli incontri di questa configurazione
+        await db.query(`
+            DELETE FROM risultati_dettaglio 
+            WHERE incontro_id IN (
+                SELECT id FROM incontri WHERE configurazione_id = $1
+            )
+        `, [id]);
+        console.log('✅ Eliminati risultati_dettaglio');
+
+        // 2. Elimina incontri
+        await db.query('DELETE FROM incontri WHERE configurazione_id = $1', [id]);
+        console.log('✅ Eliminati incontri');
+
+        // 3. Elimina coppie_turno collegate ai turni di questa configurazione
+        await db.query(`
+            DELETE FROM coppie_turno 
+            WHERE turno_id IN (
+                SELECT id FROM turni_configurazione WHERE configurazione_id = $1
+            )
+        `, [id]);
+        console.log('✅ Eliminate coppie_turno');
+
+        // 4. Elimina scontri_squadre collegati ai turni di questa configurazione
+        await db.query(`
+            DELETE FROM scontri_squadre 
+            WHERE turno_id IN (
+                SELECT id FROM turni_configurazione WHERE configurazione_id = $1
+            )
+        `, [id]);
+        console.log('✅ Eliminati scontri_squadre');
+
+        // 5. Elimina turni_configurazione
+        await db.query('DELETE FROM turni_configurazione WHERE configurazione_id = $1', [id]);
+        console.log('✅ Eliminati turni_configurazione');
+
+        // 6. Elimina squadre_circolo
+        await db.query('DELETE FROM squadre_circolo WHERE configurazione_id = $1', [id]);
+        console.log('✅ Eliminate squadre_circolo');
+
+        // 7. Infine elimina la configurazione
         await db.query('DELETE FROM configurazioni WHERE id = $1', [id]);
-        
-        console.log('✅ Configurazione eliminata:', id);
-        res.json({ message: 'Configurazione eliminata con successo' });
+
+        console.log('✅ Configurazione eliminata con successo:', id);
+        res.json({ message: 'Configurazione e tutti i dati collegati eliminati con successo' });
     } catch (err) {
         console.error('❌ Errore eliminazione configurazione:', err);
         res.status(500).json({ error: err.message });
