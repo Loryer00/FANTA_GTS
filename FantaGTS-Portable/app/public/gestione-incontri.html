@@ -1585,12 +1585,15 @@
                         turno_numero: configTurno.numero,
                         nome_turno: `Turno ${configTurno.numero}`,
                         descrizione: configTurno.descrizione,
-                        punti_vittoria: configTurno.punti
+                        punti_vittoria: configTurno.punti,
+                        configurazione_id: configurazioneCorrente,
+                        sessione_id: sessioneCorrente || null
                     })
                 });
 
                 if (!turnoResponse.ok) {
-                    throw new Error('Errore creazione turno');
+                    const errorData = await turnoResponse.json();
+                    throw new Error(errorData.error || 'Errore creazione turno');
                 }
 
                 const turnoData = await turnoResponse.json();

@@ -1741,12 +1741,14 @@ app.get('/api/squadre-complete', async (req, res) => {
 // API per turni
 app.get('/api/turni', async (req, res) => {
     try {
-        // I turni sono globali, non legati a sessioni specifiche
+        const configurazione = req.query.configurazione || 'default';
+
         const result = await db.query(
-            `SELECT id, turno_numero, nome_turno, descrizione, punti_vittoria 
+            `SELECT id, turno_numero, nome_turno, descrizione, punti_vittoria, configurazione_id, sessione_id
              FROM turni_configurazione 
-             WHERE attivo = true 
-             ORDER BY turno_numero ASC`
+             WHERE attivo = true AND configurazione_id = $1
+             ORDER BY turno_numero ASC`,
+            [configurazione]
         );
 
         res.json(result.rows);
@@ -1758,18 +1760,22 @@ app.get('/api/turni', async (req, res) => {
 
 app.post('/api/turni', async (req, res) => {
     try {
-        const { turno_numero, nome_turno, descrizione, punti_vittoria } = req.body;
+        const { turno_numero, nome_turno, descrizione, punti_vittoria, configurazione_id, sessione_id } = req.body;
 
-        // Verifica che il numero turno non esista già
-        const existing = await db.query("SELECT id FROM turni_configurazione WHERE turno_numero = $1 AND attivo = true", [turno_numero]);
+        // Verifica che il numero turno non esista già PER QUESTA CONFIGURAZIONE
+        const existing = await db.query(
+            "SELECT id FROM turni_configurazione WHERE turno_numero = $1 AND configurazione_id = $2 AND attivo = true",
+            [turno_numero, configurazione_id || 'default']
+        );
+
         if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Numero turno già esistente' });
+            return res.status(400).json({ error: `Numero turno ${turno_numero} già esistente per questa configurazione` });
         }
 
         const result = await db.query(`INSERT INTO turni_configurazione 
-            (turno_numero, nome_turno, descrizione, punti_vittoria) 
-            VALUES ($1, $2, $3, $4) RETURNING id`,
-            [turno_numero, nome_turno, descrizione, punti_vittoria]);
+            (turno_numero, nome_turno, descrizione, punti_vittoria, configurazione_id, sessione_id) 
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [turno_numero, nome_turno, descrizione, punti_vittoria, configurazione_id || 'default', sessione_id]);
 
         res.json({ message: 'Turno creato con successo', id: result.rows[0].id });
     } catch (err) {
