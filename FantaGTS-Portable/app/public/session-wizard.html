@@ -1084,19 +1084,18 @@ F3 Brunelli E</pre>
                     if (configurazioneTipo === 'nuova') {
                         // Verifica campi nuova configurazione
                         const nomeConfig = document.getElementById('nomeConfigurazione').value.trim();
-                        const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value);
 
                         if (!nomeConfig) {
                             showError('Inserisci un nome per la configurazione');
                             return false;
                         }
 
-                        if (!numSquadre || numSquadre < 2) {
-                            showError('Inserisci un numero valido di squadre (minimo 2)');
+                        if (squadreWizard.length < 2) {
+                            showError('Devi configurare almeno 2 squadre');
                             return false;
                         }
 
-                        sessionData.numeroSquadre = numSquadre;
+                        sessionData.numeroSquadre = squadreWizard.length;
                         sessionData.nomeConfigurazione = nomeConfig;
                         calcolaCondivisione();
 
@@ -1345,15 +1344,19 @@ F3 Brunelli E</pre>
         function mostraOpzioneNuova() {
             configurazioneTipo = 'nuova';
             configurazioneSelezionataId = null;
+            squadreWizard = []; // Reset squadre
 
             // Mostra/nascondi container CORRETTI
-            document.getElementById('nuovaConfigContainer').style.display = 'none'; // ❌ Vecchio container deprecato
-            document.getElementById('configurazioniContainer').style.display = 'none';
-            document.getElementById('sezNuovaConfig').style.display = 'block'; // ✅ Mostra il container giusto
+            document.getElementById('sezNuovaConfig').style.display = 'block';
             document.getElementById('sezConfigEsistente').style.display = 'none';
 
-            // Nascondi preview condivisione finché non viene inserito il numero squadre
-            document.getElementById('condivisionePreview').style.display = 'none';
+            // Nascondi preview condivisione
+            if (document.getElementById('condivisionePreview')) {
+                document.getElementById('condivisionePreview').style.display = 'none';
+            }
+
+            // Reset visualizzazione squadre
+            renderSquadreWizard();
 
             console.log('✅ Modalità: Nuova Configurazione');
         }
@@ -1368,13 +1371,13 @@ F3 Brunelli E</pre>
             }
 
             // Mostra/nascondi container CORRETTI
-            document.getElementById('nuovaConfigContainer').style.display = 'none';
-            document.getElementById('configurazioniContainer').style.display = 'none';
             document.getElementById('sezNuovaConfig').style.display = 'none';
             document.getElementById('sezConfigEsistente').style.display = 'block';
 
-            // Nascondi preview condivisione finché non viene selezionata una configurazione
-            document.getElementById('condivisionePreview').style.display = 'none';
+            // Nascondi preview condivisione
+            if (document.getElementById('condivisionePreview')) {
+                document.getElementById('condivisionePreview').style.display = 'none';
+            }
 
             // Renderizza lista configurazioni usando il container corretto
             const container = document.getElementById('listaConfigurazioni');
@@ -1391,6 +1394,283 @@ F3 Brunelli E</pre>
             }
 
             console.log('✅ Modalità: Configurazione Esistente');
+        }
+
+        // ========================================
+        // GESTIONE SQUADRE INTEGRATA NELLO STEP 4
+        // ========================================
+
+        // Array per memorizzare le squadre configurate temporaneamente
+        let squadreWizard = [];
+
+        // Mostra/nascondi opzioni aggiunta
+        function mostraOpzioniAggiuntaWizard() {
+            document.getElementById('opzioniAggiuntaWizard').style.display = 'block';
+            document.getElementById('btnAggiungiSquadraWizard').style.display = 'none';
+        }
+
+        function nascondiOpzioniWizard() {
+            document.getElementById('opzioniAggiuntaWizard').style.display = 'none';
+            document.getElementById('uploadSectionWizard').style.display = 'none';
+            document.getElementById('formManualeSectionWizard').style.display = 'none';
+            document.getElementById('btnAggiungiSquadraWizard').style.display = 'block';
+        }
+
+        function mostraUploadFileWizard() {
+            document.getElementById('uploadSectionWizard').style.display = 'block';
+            document.getElementById('formManualeSectionWizard').style.display = 'none';
+            document.getElementById('opzioniAggiuntaWizard').style.display = 'none';
+        }
+
+        function mostraFormManualeWizard() {
+            document.getElementById('formManualeSectionWizard').style.display = 'block';
+            document.getElementById('uploadSectionWizard').style.display = 'none';
+            document.getElementById('opzioniAggiuntaWizard').style.display = 'none';
+        }
+
+        function annullaUploadWizard() {
+            document.getElementById('fileSquadraWizard').value = '';
+            nascondiOpzioniWizard();
+        }
+
+        function clearFormManualeEChiudiWizard() {
+            // Pulisci form
+            document.getElementById('coloreSquadraManualeWizard').value = '';
+            ['m1_wizard', 'm2_wizard', 'm3_wizard', 'm4_wizard', 'm5_wizard', 'm6_wizard', 'm7_wizard', 'f1_wizard', 'f2_wizard', 'f3_wizard']
+                .forEach(id => document.getElementById(id).value = '');
+            nascondiOpzioniWizard();
+        }
+
+        // Carica squadre da file
+        async function caricaSquadraDaFileWizard() {
+            const fileInput = document.getElementById('fileSquadraWizard');
+            const files = fileInput.files;
+
+            if (files.length === 0) {
+                showError('Seleziona almeno un file .txt');
+                return;
+            }
+
+            // Verifica che tutti i file siano .txt
+            for (let file of files) {
+                if (!file.name.endsWith('.txt')) {
+                    showError(`Il file "${file.name}" deve avere estensione .txt`);
+                    return;
+                }
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            try {
+                showNotification(`Caricamento di ${files.length} file in corso...`, 'info');
+
+                let numeroSequenziale = squadreWizard.length + 1;
+
+                for (let file of files) {
+                    try {
+                        const text = await file.text();
+                        const squadra = parseFileSquadraWizard(text, file.name, numeroSequenziale);
+
+                        if (squadra) {
+                            squadreWizard.push(squadra);
+                            successCount++;
+                            numeroSequenziale++;
+                        } else {
+                            errorCount++;
+                            errors.push(`${file.name}: formato non valido`);
+                        }
+                    } catch (error) {
+                        console.error(`Errore lettura file ${file.name}:`, error);
+                        errorCount++;
+                        errors.push(`${file.name}: ${error.message}`);
+                    }
+                }
+
+                // Aggiorna la visualizzazione
+                renderSquadreWizard();
+
+                // Mostra risultato finale
+                if (successCount > 0 && errorCount === 0) {
+                    showSuccess(`✅ Caricate con successo ${successCount} squadre!`);
+                } else if (successCount > 0 && errorCount > 0) {
+                    showNotification(`⚠️ Caricate ${successCount} squadre. ${errorCount} errori: ${errors.join(', ')}`, 'warning');
+                } else {
+                    showError(`❌ Nessuna squadra caricata. Errori: ${errors.join(', ')}`);
+                }
+
+                if (successCount > 0) {
+                    annullaUploadWizard();
+                }
+
+            } catch (error) {
+                console.error('Errore generale caricamento file:', error);
+                showError('Errore generale nel caricamento dei file');
+            }
+        }
+
+        // Parse file squadra
+        function parseFileSquadraWizard(text, fileName = '', numeroForzato = null) {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            if (lines.length < 1) {
+                console.error(`File ${fileName}: vuoto o non valido`);
+                return null;
+            }
+
+            // Prima riga: nome squadra (es: "Squadra Gialla")
+            const nomeCompleto = lines[0];
+            const colore = nomeCompleto.replace(/^squadra\s+/i, '').trim();
+
+            if (!colore) {
+                console.error(`File ${fileName}: Nome squadra non valido. Formato richiesto: "Squadra Colore"`);
+                return null;
+            }
+
+            const squadra = {
+                numero: numeroForzato || (squadreWizard.length + 1),
+                colore: colore.toLowerCase(),
+                m1: '', m2: '', m3: '', m4: '', m5: '', m6: '', m7: '',
+                f1: '', f2: '', f3: ''
+            };
+
+            // Parse giocatori
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                const match = line.match(/^([MF]\d+)\s+(.+)$/);
+
+                if (match) {
+                    const posizione = match[1].toLowerCase();
+                    const nome = match[2].trim();
+
+                    if (squadra.hasOwnProperty(posizione)) {
+                        squadra[posizione] = nome;
+                    } else {
+                        console.warn(`Posizione non riconosciuta: ${posizione}`);
+                    }
+                } else {
+                    console.warn(`Riga non valida: ${line}`);
+                }
+            }
+
+            return squadra;
+        }
+
+        // Aggiungi squadra manualmente
+        function aggiungiSquadraManualeWizard() {
+            const colore = document.getElementById('coloreSquadraManualeWizard').value.trim();
+
+            if (!colore) {
+                showError('Inserisci il colore della squadra');
+                return;
+            }
+
+            const squadra = {
+                numero: squadreWizard.length + 1,
+                colore: colore.toLowerCase(),
+                m1: document.getElementById('m1_wizard').value.trim(),
+                m2: document.getElementById('m2_wizard').value.trim(),
+                m3: document.getElementById('m3_wizard').value.trim(),
+                m4: document.getElementById('m4_wizard').value.trim(),
+                m5: document.getElementById('m5_wizard').value.trim(),
+                m6: document.getElementById('m6_wizard').value.trim(),
+                m7: document.getElementById('m7_wizard').value.trim(),
+                f1: document.getElementById('f1_wizard').value.trim(),
+                f2: document.getElementById('f2_wizard').value.trim(),
+                f3: document.getElementById('f3_wizard').value.trim()
+            };
+
+            squadreWizard.push(squadra);
+            renderSquadreWizard();
+            clearFormManualeEChiudiWizard();
+            showSuccess('Squadra aggiunta con successo!');
+        }
+
+        // Elimina squadra
+        function eliminaSquadraWizard(numero) {
+            if (!confirm(`Eliminare la squadra ${numero}?`)) return;
+
+            squadreWizard = squadreWizard.filter(s => s.numero !== numero);
+
+            // Rinumera le squadre
+            squadreWizard.forEach((s, index) => {
+                s.numero = index + 1;
+            });
+
+            renderSquadreWizard();
+            showSuccess('Squadra eliminata');
+        }
+
+        // Renderizza squadre
+        function renderSquadreWizard() {
+            const container = document.getElementById('squadreListWizard');
+            const contatore = document.getElementById('contatoreSquadre');
+
+            contatore.textContent = squadreWizard.length;
+
+            if (squadreWizard.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #cbd5e0;">Nessuna squadra configurata</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            squadreWizard.forEach(squadra => {
+                const card = document.createElement('div');
+                card.className = 'squadra-card-wizard';
+                card.style.cssText = `
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 2px solid #4299e1;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        `;
+
+                card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: #4299e1;">Squadra ${squadra.numero} - ${squadra.colore.toUpperCase()}</h4>
+                <button onclick="eliminaSquadraWizard(${squadra.numero})" 
+                        style="background: #e53e3e; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                    🗑️
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 0.9em;">
+                <div><strong>M1:</strong> ${squadra.m1 || '-'}</div>
+                <div><strong>M2:</strong> ${squadra.m2 || '-'}</div>
+                <div><strong>M3:</strong> ${squadra.m3 || '-'}</div>
+                <div><strong>M4:</strong> ${squadra.m4 || '-'}</div>
+                <div><strong>M5:</strong> ${squadra.m5 || '-'}</div>
+                <div><strong>M6:</strong> ${squadra.m6 || '-'}</div>
+                <div><strong>M7:</strong> ${squadra.m7 || '-'}</div>
+                <div><strong>F1:</strong> ${squadra.f1 || '-'}</div>
+                <div><strong>F2:</strong> ${squadra.f2 || '-'}</div>
+                <div><strong>F3:</strong> ${squadra.f3 || '-'}</div>
+            </div>
+        `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Modifica alla funzione mostraOpzioneNuova per inizializzare l'array
+        function mostraOpzioneNuova() {
+            configurazioneTipo = 'nuova';
+            configurazioneSelezionataId = null;
+            squadreWizard = []; // Reset squadre
+
+            // Mostra/nascondi container CORRETTI
+            document.getElementById('configurazioniContainer').style.display = 'none';
+            document.getElementById('sezNuovaConfig').style.display = 'block';
+            document.getElementById('sezConfigEsistente').style.display = 'none';
+
+            // Nascondi preview condivisione
+            document.getElementById('condivisionePreview').style.display = 'none';
+
+            // Reset visualizzazione squadre
+            renderSquadreWizard();
+
+            console.log('✅ Modalità: Nuova Configurazione');
         }
 
         // Scelta: Nuova configurazione
@@ -1625,6 +1905,46 @@ F3 Brunelli E</pre>
                     configurazioneId = configData.id;
 
                     console.log('✅ Configurazione creata:', configurazioneId);
+
+                    // 🆕 Salva tutte le squadre configurate
+                    console.log(`💾 Salvataggio di ${squadreWizard.length} squadre...`);
+
+                    for (const squadra of squadreWizard) {
+                        const squadraData = {
+                            ...squadra,
+                            configurazione_id: configurazioneId
+                        };
+
+                        const squadraResponse = await fetch('/api/squadre', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(squadraData)
+                        });
+
+                        if (!squadraResponse.ok) {
+                            console.error(`Errore salvataggio squadra ${squadra.numero}`);
+                        }
+                    }
+
+                    console.log('✅ Squadre salvate nel database');
+
+                    // 🆕 Genera gli slots automaticamente DOPO aver salvato le squadre
+                    console.log('🎯 Generazione automatica slots...');
+                    const slotsResponse = await fetch('/api/genera-slots', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            configurazione: configurazioneId
+                        })
+                    });
+
+                    if (!slotsResponse.ok) {
+                        console.warn('⚠️ Errore generazione slots');
+                    } else {
+                        const slotsData = await slotsResponse.json();
+                        console.log('✅ Slots generati:', slotsData.count);
+                    }
+
                 } else {
                     // Usa configurazione esistente
                     configurazioneId = configurazioneSelezionataId;
@@ -1646,20 +1966,11 @@ F3 Brunelli E</pre>
                 const sessioneCreata = await sessionResponse.json();
                 console.log('✅ Sessione creata:', sessioneCreata);
 
-                // ❌ RIMOSSO: Generazione automatica slots
-                // Gli slots verranno generati DOPO che l'utente avrà configurato le squadre tramite Setup
-
                 showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                // 3️⃣ Redirect appropriato
+                // 3️⃣ Redirect al master
                 setTimeout(() => {
-                    // 🆕 Reindirizza a Setup se è una nuova configurazione
-                    if (configurazioneTipo === 'nuova') {
-                        window.location.href = `/setup.html?configurazione=${configurazioneId}`;
-                    } else {
-                        // Se usa configurazione esistente, va direttamente al master
-                        window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
-                    }
+                    window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
                 }, 1500);
 
             } catch (error) {
