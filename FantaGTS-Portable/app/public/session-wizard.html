@@ -1073,6 +1073,9 @@ F3 Brunelli E</pre>
                         // Verifica campi nuova configurazione
                         const nomeConfig = document.getElementById('nomeConfigurazione').value.trim();
 
+                        console.log('🔍 STEP 4 - nomeConfig dal campo:', nomeConfig);
+                        console.log('🔍 STEP 4 - squadreWizard.length:', squadreWizard.length);
+
                         if (!nomeConfig) {
                             showError('Inserisci un nome per la configurazione');
                             return false;
@@ -1085,6 +1088,11 @@ F3 Brunelli E</pre>
 
                         sessionData.numeroSquadre = squadreWizard.length;
                         sessionData.nomeConfigurazione = nomeConfig;
+
+                        console.log('✅ STEP 4 - Salvato in sessionData:', {
+                            nomeConfigurazione: sessionData.nomeConfigurazione,
+                            numeroSquadre: sessionData.numeroSquadre
+                        });
 
                     } else if (configurazioneTipo === 'esistente') {
                         // Verifica che sia stata selezionata una configurazione
