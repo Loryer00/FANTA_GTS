@@ -898,7 +898,7 @@ F3 Brunelli E</pre>
     <script>
         // Stato del wizard
         let currentStep = 1;
-        const totalSteps = 4;
+        const totalSteps = 5;
 
         let sessionData = {
             nome: '',
@@ -1795,8 +1795,19 @@ F3 Brunelli E</pre>
 
         async function creaSessione() {
             try {
+                // Assicurati che i dati siano aggiornati
+                if (configurazioneTipo === 'nuova') {
+                    const nomeConfig = document.getElementById('nomeConfigurazione')?.value?.trim();
+                    if (nomeConfig) {
+                        sessionData.nomeConfigurazione = nomeConfig;
+                        sessionData.numeroSquadre = squadreWizard.length;
+                    }
+                }
+
                 console.log('🔍 DEBUG sessionData prima di creare:', sessionData);
                 console.log('🔍 configurazioneTipo:', configurazioneTipo);
+                console.log('🔍 nomeConfigurazione:', sessionData.nomeConfigurazione);
+                console.log('🔍 squadreWizard.length:', squadreWizard.length);
                 showLoading();
 
                 let configurazioneId;
