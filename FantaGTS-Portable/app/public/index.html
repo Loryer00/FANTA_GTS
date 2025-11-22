@@ -1529,6 +1529,7 @@
 
                 // 🆕 SALVA MODALITÀ NELLA VARIABILE GLOBALE
                 playerData.modalita = sessioneData.modalita;
+                playerData.sessioneId = sessioneId;
                 console.log('📊 Modalità sessione:', playerData.modalita);
 
                 saveSession();
@@ -3455,10 +3456,35 @@
                 }, 5000);
             });
 
-            socket.on('round_ended', (data) => {
+            socket.on('round_ended', async (data) => {
                 console.log('🏁 Round terminato:', data);
-                loadPlayerTeam();
+
+                // Ricarica la squadra
+                await loadPlayerTeam();
                 resetBiddingInterface();
+
+                // 🔍 Verifica se l'asta è completamente finita (10 giocatori)
+                try {
+                    const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneCorrente}`);
+                    if (response.ok) {
+                        const squadraData = await response.json();
+                        const squadra = Array.isArray(squadraData) ? squadraData : (squadraData.squadra || []);
+
+                        if (squadra.length >= 10) {
+                            console.log('✅ Asta completata! Tutte le 10 posizioni sono occupate');
+                            // Mostra la squadra invece della waiting phase
+                            document.getElementById('bidding-phase').style.display = 'none';
+                            document.getElementById('waiting-phase').style.display = 'none';
+                            switchSection('squadra');
+                            mostraMessaggio('🎉 Asta completata! La tua squadra è pronta!', 'success');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ Errore verifica completamento asta:', error);
+                }
+
+                // Se non è finita, mostra waiting phase
                 showWaitingPhase();
             });
 
