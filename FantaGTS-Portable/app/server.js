@@ -2929,20 +2929,38 @@ app.get('/api/squadra-partecipante/:partecipanteId', async (req, res) => {
             return res.status(400).json({ error: 'sessione_id è richiesto come parametro query' });
         }
 
-        // Ottieni squadra 
-        const squadraResult = await db.query(`SELECT 
-            a.slot_id,
-            a.costo_finale,
-            s.posizione,
-            s.giocatore_attuale,
-            s.colore,
-            s.punti_totali
+        // 🔍 Ottieni la configurazione dalla sessione
+        const configResult = await db.query(
+            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+            [sessioneId]
+        );
+        const configurazioneId = configResult.rows[0]?.configurazione_id || 'default';
+
+        console.log(`📊 Caricamento squadra per ${partecipanteId} in sessione ${sessioneId}, config: ${configurazioneId}`);
+
+        // Ottieni squadra con JOIN che filtra anche per configurazione
+        const squadraResult = await db.query(`
+            SELECT 
+                a.slot_id,
+                a.costo_finale,
+                s.posizione,
+                s.giocatore_attuale,
+                s.colore,
+                s.punti_totali,
+                s.configurazione_id
             FROM aste a 
-            JOIN slots s ON a.slot_id = s.id 
+            JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $3
             WHERE a.partecipante_id = $1 
             AND a.vincitore = true 
             AND a.sessione_id = $2
-            ORDER BY s.posizione`, [partecipanteId, sessioneId]);
+            ORDER BY s.posizione`,
+            [partecipanteId, sessioneId, configurazioneId]
+        );
+
+        console.log(`✅ Trovati ${squadraResult.rows.length} giocatori per ${partecipanteId}`);
+        if (squadraResult.rows.length > 0) {
+            console.log(`🔍 Punti giocatori:`, squadraResult.rows.map(r => `${r.posizione}=${r.punti_totali}pt`).join(', '));
+        }
 
         // ✅ NUOVA QUERY: Ottieni crediti dalla tabella partecipanti_sessioni_accesso
         const creditiResult = await db.query(`
