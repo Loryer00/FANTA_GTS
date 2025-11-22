@@ -1889,6 +1889,7 @@ F3 Brunelli E</pre>
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...sessionData,
+                        numeroPartecipanti: sessionData.numeroSquadre, // Numero partecipanti = numero squadre
                         configurazione_id: configurazioneId
                     })
                 });
