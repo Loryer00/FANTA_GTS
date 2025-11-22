@@ -1911,7 +1911,8 @@ F3 Brunelli E</pre>
                     for (const squadra of squadreWizard) {
                         const squadraData = {
                             ...squadra,
-                            configurazione_id: configurazioneId
+                            configurazione_id: configurazioneId,
+                            attiva: true  // ✅ AGGIUNGI QUESTA RIGA
                         };
 
                         const squadraResponse = await fetch('/api/squadre', {
@@ -1967,16 +1968,10 @@ F3 Brunelli E</pre>
 
                 showSuccess(`Sessione "${sessioneCreata.nome}" creata con successo!`);
 
-                console.log('🎯 DEBUG - Sessione creata con successo:', sessioneCreata);
-                console.log('🎯 DEBUG - ConfigurazioneId:', configurazioneId);
-                console.log('🎯 DEBUG - Redirect disabilitato per debug');
-
-                // 3️⃣ Redirect al master - TEMPORANEAMENTE DISABILITATO
-                /*
+                // 3️⃣ Redirect al master
                 setTimeout(() => {
                     window.location.href = `/master.html?sessione=${sessioneCreata.id}`;
                 }, 1500);
-                */
 
             } catch (error) {
                 console.error('❌ Errore:', error);
