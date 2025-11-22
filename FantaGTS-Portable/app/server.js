@@ -4289,7 +4289,25 @@ function avviaMonitoraggioOfferte() {
                 gameState.lastOfferteCount !== offerteRicevute; // O quando cambiano le offerte
 
             if (shouldLog) {
-                console.log(`📊 ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
+                console.log(`\n📊 === STATO MONITORAGGIO OFFERTE ===`);
+                console.log(`Round attivo: ${gameState.roundAttivo}`);
+                console.log(`Asta corrente: ${gameState.astaCorrente}`);
+                console.log(`Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
+                console.log(`Partecipanti in attesa: ${gameState.partecipantiInAttesa.length} → [${gameState.partecipantiInAttesa.join(', ')}]`);
+
+                console.log(`\n🔍 ANALISI OFFERTE:`);
+                gameState.offerteTemporanee.forEach((offerta, socketId) => {
+                    const connesso = gameState.connessi.get(socketId);
+                    console.log(`   Socket ${socketId.substring(0, 8)}:`);
+                    console.log(`      - Nome: ${connesso?.nome || 'SCONOSCIUTO'}`);
+                    console.log(`      - Partecipante ID: ${connesso?.partecipanteId || 'NESSUNO'}`);
+                    console.log(`      - Offerta round: ${offerta.round}`);
+                    console.log(`      - Match round? ${offerta.round === gameState.roundAttivo ? 'SÌ' : 'NO'}`);
+                    console.log(`      - In attesa? ${connesso?.partecipanteId && gameState.partecipantiInAttesa.includes(connesso.partecipanteId) ? 'SÌ' : 'NO'}`);
+                    console.log(`      - Conteggiato? ${connesso?.partecipanteId && partecipantiCheHannoOfferto.has(connesso.partecipanteId) ? 'SÌ' : 'NO'}`);
+                });
+
+                console.log(`\n📊 ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
 
                 // Solo se mancano offerte, mostra chi aspettiamo
                 if (mancano > 0) {
@@ -5656,6 +5674,18 @@ io.on('connection', (socket) => {
             });
 
             console.log(`💰 Offerta ricevuta e salvata: ${connesso.nome} (${connesso.partecipanteId}) punta ${data.importo} su ${data.slot}`);
+            console.log(`🔍 DEBUG OFFERTA SALVATA:`);
+            console.log(`   - Socket ID: ${socket.id.substring(0, 8)}`);
+            console.log(`   - Round: ${gameState.roundAttivo}`);
+            console.log(`   - Asta Numero: ${gameState.astaCorrente}`);
+            console.log(`   - Offerta salvata in offerteTemporanee: ${gameState.offerteTemporanee.has(socket.id) ? 'SÌ' : 'NO'}`);
+            console.log(`   - Partecipante in attesa: ${gameState.partecipantiInAttesa.includes(connesso.partecipanteId) ? 'SÌ' : 'NO'}`);
+
+            // Mostra TUTTE le offerte temporanee
+            console.log(`📋 TUTTE LE OFFERTE TEMPORANEE (${gameState.offerteTemporanee.size}):`);
+            gameState.offerteTemporanee.forEach((off, sid) => {
+                console.log(`   - Socket ${sid.substring(0, 8)}: ${gameState.connessi.get(sid)?.nome || '???'} → ${off.slot} (${off.importo}, round: ${off.round})`);
+            });
             console.log(`📊 Totale offerte ora: ${gameState.offerteTemporanee.size}`);
             console.log(`🎯 Asta corrente: ${gameState.astaCorrente}, Round: ${gameState.roundAttivo}`);
 
