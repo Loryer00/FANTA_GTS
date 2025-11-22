@@ -616,17 +616,10 @@
                 </div>
             </div>
 
-            <!-- STEP 3: Partecipanti e Crediti -->
+            <!-- STEP 3: Crediti (solo per Asta Competitiva) -->
             <div class="step-content" id="step3">
-                <h2 class="step-title">👥 Configurazione Partecipanti</h2>
-                <p class="step-description">Imposta il numero di partecipanti e i crediti iniziali</p>
-
-                <div class="form-group">
-                    <label>Numero Partecipanti Previsti *</label>
-                    <input type="number" id="numeroPartecipanti" min="2" max="100" value="10"
-                           onchange="calcolaCondivisionePreview()">
-                    <div class="form-hint">Quanti giocatori parteciperanno? (minimo 2)</div>
-                </div>
+                <h2 class="step-title">💰 Configurazione Crediti</h2>
+                <p class="step-description">Imposta i crediti iniziali per ogni partecipante</p>
 
                 <!-- Solo per modalità Asta -->
                 <div id="creditiSection" style="display: none;">
@@ -635,7 +628,6 @@
                         <input type="number" id="creditiIniziali" min="100" max="100000" step="100" value="2000">
                         <div class="form-hint">Crediti che ogni partecipante avrà per le aste (100 - 100.000)</div>
                     </div>
-
                     <div class="quick-select">
                         <button class="quick-btn" onclick="setCreditiQuick(100)">100</button>
                         <button class="quick-btn" onclick="setCreditiQuick(1000)">1.000</button>
@@ -643,6 +635,13 @@
                         <button class="quick-btn" onclick="setCreditiQuick(5000)">5.000</button>
                         <button class="quick-btn" onclick="setCreditiQuick(10000)">10.000</button>
                     </div>
+                </div>
+
+                <div class="alert-box alert-info">
+                    <strong>ℹ️ Condivisione Giocatori Automatica</strong><br>
+                    Il sistema attiverà automaticamente la condivisione durante l'asta se il numero di partecipanti iscritti
+                    supera il numero di squadre disponibili.<br>
+                    <strong>Non serve configurare nulla in anticipo!</strong> Il calcolo viene fatto dinamicamente all'avvio di ogni round.
                 </div>
             </div>
 
@@ -849,10 +848,6 @@ F3 Brunelli E</pre>
                         <span class="summary-value" id="summaryModalita">-</span>
                     </div>
                     <div class="summary-row">
-                        <span class="summary-label">Partecipanti:</span>
-                        <span class="summary-value" id="summaryPartecipanti">-</span>
-                    </div>
-                    <div class="summary-row">
                         <span class="summary-label">Squadre:</span>
                         <span class="summary-value" id="summarySquadre">-</span>
                     </div>
@@ -903,18 +898,16 @@ F3 Brunelli E</pre>
     <script>
         // Stato del wizard
         let currentStep = 1;
-        const totalSteps = 5;
+        const totalSteps = 4;
 
         let sessionData = {
             nome: '',
             anno: null,
             descrizione: '',
             modalita: '',
-            numeroPartecipanti: 10,
             creditiIniziali: 2000,
-            numeroSquadre: 10,
-            condivisioneAttiva: false,
-            ripetizioniNecessarie: 0
+            numeroSquadre: 10
+            // ✅ Rimossi: numeroPartecipanti, condivisioneAttiva, ripetizioniNecessarie
         };
 
         let configurazioniDisponibili = [];
@@ -1065,12 +1058,7 @@ F3 Brunelli E</pre>
                     return true;
 
                 case 3:
-                    const numPart = parseInt(document.getElementById('numeroPartecipanti').value);
-                    if (!numPart || numPart < 2) {
-                        showError('Inserisci un numero valido di partecipanti (minimo 2)');
-                        return false;
-                    }
-
+                    // Solo validazione crediti per modalità asta
                     if (sessionData.modalita === 'asta_competitiva') {
                         const crediti = parseInt(document.getElementById('creditiIniziali').value);
                         if (!crediti || crediti < 100 || crediti > 100000) {
@@ -1097,7 +1085,6 @@ F3 Brunelli E</pre>
 
                         sessionData.numeroSquadre = squadreWizard.length;
                         sessionData.nomeConfigurazione = nomeConfig;
-                        calcolaCondivisione();
 
                     } else if (configurazioneTipo === 'esistente') {
                         // Verifica che sia stata selezionata una configurazione
@@ -1130,7 +1117,7 @@ F3 Brunelli E</pre>
                     break;
 
                 case 3:
-                    sessionData.numeroPartecipanti = parseInt(document.getElementById('numeroPartecipanti').value);
+                    // Salva solo crediti
                     if (sessionData.modalita === 'asta_competitiva') {
                         sessionData.creditiIniziali = parseInt(document.getElementById('creditiIniziali').value);
                     }
@@ -1202,62 +1189,7 @@ F3 Brunelli E</pre>
             });
             event.target.classList.add('active');
         }
-
-        // Step 4: Calcolo condivisione
-        function calcolaCondivisionePreview() {
-            const numPart = parseInt(document.getElementById('numeroPartecipanti').value) || 0;
-            const numSquadre = parseInt(document.getElementById('numeroSquadre').value) || 0;
-
-            if (numPart > 0 && numSquadre > 0) {
-                const giocatoriNecessari = numPart * 10;
-                const giocatoriDisponibili = numSquadre * 10;
-                const ripetizioniNecessarie = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
-
-                const previewBox = document.getElementById('condivisionePreview');
-
-                if (ripetizioniNecessarie > 0) {
-                    previewBox.style.display = 'block';
-                    previewBox.className = 'alert-box alert-warning';
-                    previewBox.innerHTML = `
-                            <strong>⚠️ Condivisione Necessaria</strong><br>
-                            Con ${numPart} partecipanti e ${numSquadre} squadre:<br>
-                            • Giocatori necessari: <strong>${giocatoriNecessari}</strong><br>
-                            • Giocatori disponibili: <strong>${giocatoriDisponibili}</strong><br>
-                            • <strong>${ripetizioniNecessarie} giocatori</strong> dovranno essere condivisi<br>
-                            ${sessionData.modalita === 'asta_competitiva' ?
-                            '• I giocatori condivisi costeranno il +10% dal 2° in poi' :
-                            '• Modalità Draft: condivisione sempre attiva per tutti'
-                        }
-                        `;
-                } else if (sessionData.modalita === 'draft_libero') {
-                    previewBox.style.display = 'block';
-                    previewBox.className = 'alert-box alert-info';
-                    previewBox.innerHTML = `
-                            <strong>ℹ️ Modalità Draft Libero</strong><br>
-                            Tutti i giocatori sono sempre condivisibili, indipendentemente dal numero di partecipanti.
-                        `;
-                } else {
-                    previewBox.style.display = 'block';
-                    previewBox.className = 'alert-box alert-success';
-                    previewBox.innerHTML = `
-                            <strong>✅ Condivisione Non Necessaria</strong><br>
-                            Ci sono abbastanza giocatori per tutti i partecipanti!<br>
-                            • Giocatori necessari: <strong>${giocatoriNecessari}</strong><br>
-                            • Giocatori disponibili: <strong>${giocatoriDisponibili}</strong>
-                        `;
-                }
-            }
-        }
-
-        function calcolaCondivisione() {
-            const giocatoriNecessari = sessionData.numeroPartecipanti * 10;
-            const giocatoriDisponibili = sessionData.numeroSquadre * 10;
-            const ripetizioniNecessarie = Math.max(0, giocatoriNecessari - giocatoriDisponibili);
-
-            sessionData.condivisioneAttiva = ripetizioniNecessarie > 0 || sessionData.modalita === 'draft_libero';
-            sessionData.ripetizioniNecessarie = ripetizioniNecessarie;
-        }
-
+       
         // Step 5: Riepilogo
         function updateSummary() {
             document.getElementById('summaryNome').textContent = sessionData.nome;
@@ -1268,7 +1200,7 @@ F3 Brunelli E</pre>
                 '💰 Asta Competitiva' : '🎯 Draft Libero';
             document.getElementById('summaryModalita').textContent = modalitaText;
 
-            document.getElementById('summaryPartecipanti').textContent = sessionData.numeroPartecipanti;
+            // ✅ Rimuovi riga partecipanti
             document.getElementById('summarySquadre').textContent = sessionData.numeroSquadre;
 
             // Crediti solo per modalità asta
@@ -1280,50 +1212,18 @@ F3 Brunelli E</pre>
                 creditiRow.style.display = 'none';
             }
 
-            // Condivisione
-            const condivisioneText = sessionData.condivisioneAttiva ?
-                (sessionData.modalita === 'draft_libero' ? '✅ Sempre Attiva (Draft)' : '✅ Attiva') :
-                '❌ Non Necessaria';
-            document.getElementById('summaryCondivisione').textContent = condivisioneText;
+            // ✅ Rimuovi tutta la sezione condivisione - ora è automatica
+            document.getElementById('summaryRipetizioniRow').style.display = 'none';
+            document.getElementById('summaryPremiumRow').style.display = 'none';
 
-            const ripetizioniRow = document.getElementById('summaryRipetizioniRow');
-            const premiumRow = document.getElementById('summaryPremiumRow');
-
-            if (sessionData.ripetizioniNecessarie > 0) {
-                ripetizioniRow.style.display = 'flex';
-                document.getElementById('summaryRipetizioni').textContent = sessionData.ripetizioniNecessarie;
-
-                if (sessionData.modalita === 'asta_competitiva') {
-                    premiumRow.style.display = 'flex';
-                } else {
-                    premiumRow.style.display = 'none';
-                }
-            } else {
-                ripetizioniRow.style.display = 'none';
-                premiumRow.style.display = 'none';
-            }
-
-            // Alert finale
+            // Alert finale semplificato
             const finalAlert = document.getElementById('finalAlert');
             finalAlert.style.display = 'block';
-
-            if (sessionData.condivisioneAttiva && sessionData.ripetizioniNecessarie > 0) {
-                finalAlert.className = 'alert-box alert-warning';
-                finalAlert.innerHTML = `
-                        <strong>⚠️ Attenzione:</strong> Questa sessione richiede la condivisione di
-                        <strong>${sessionData.ripetizioniNecessarie} giocatori</strong>.
-                        ${sessionData.modalita === 'asta_competitiva' ?
-                        'Il sistema selezionerà automaticamente i giocatori più richiesti per la condivisione.' :
-                        'In modalità Draft, tutti i giocatori sono sempre condivisibili.'
-                    }
-                    `;
-            } else {
-                finalAlert.className = 'alert-box alert-success';
-                finalAlert.innerHTML = `
-                        <strong>✅ Tutto pronto!</strong> La sessione è configurata correttamente.
-                        Dopo la creazione, potrai configurare le squadre del circolo in dettaglio.
-                    `;
-            }
+            finalAlert.className = 'alert-box alert-success';
+            finalAlert.innerHTML = `
+                <strong>✅ Tutto pronto!</strong> La sessione è configurata correttamente.<br>
+                Il sistema attiverà automaticamente la condivisione giocatori se necessario durante le aste.
+            `;
         }
 
          // Carica configurazioni disponibili
@@ -1685,12 +1585,9 @@ F3 Brunelli E</pre>
             document.getElementById('btnNuovaConfig').classList.add('active');
             document.getElementById('btnConfigEsistente').classList.remove('active');
 
-            // Aggiorna anteprima condivisione se modalità è asta
-            if (sessionData.modalita === 'asta_competitiva') {
-                const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value) || 10;
-                sessionData.numeroSquadre = numSquadre;
-                calcolaCondivisione();
-            }
+            // ✅ Anteprima condivisione rimossa - calcolo dinamico durante l'asta
+            const numSquadre = parseInt(document.getElementById('numeroSquadreConfig').value) || 10;
+            sessionData.numeroSquadre = numSquadre;
         }
 
         // Scelta: Configurazione esistente
@@ -1776,11 +1673,7 @@ F3 Brunelli E</pre>
             const config = configurazioniDisponibili.find(c => c.id === configId);
             if (config) {
                 sessionData.numeroSquadre = config.numero_squadre;
-
-                // Aggiorna anteprima condivisione se modalità è asta
-                if (sessionData.modalita === 'asta_competitiva') {
-                    calcolaCondivisione();
-                }
+                // ✅ calcolaCondivisione() rimossa - calcolo dinamico durante l'asta
             }
 
             renderListaConfigurazioni();

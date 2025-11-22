@@ -913,20 +913,33 @@ function elaboraCondivisioneGiocatori(tutteLeOfferte, numeroPartecipanti, numero
 
     Object.entries(gruppiGiocatori).forEach(([nomeGiocatore, dati]) => {
         const deveEssereReplicato = giocatoriDaReplicare.includes(nomeGiocatore);
+        const offerteSuGiocatore = dati.offerte.length;
 
-        if (deveEssereReplicato) {
-            // Giocatore condiviso: applica premium e assegna a tutti
+        // ✅ SE C'È UNA SOLA OFFERTA, ASSEGNA SEMPRE (no competizione)
+        if (offerteSuGiocatore === 1) {
+            const risultato = {
+                ...dati.offerte[0],
+                costoFinale: dati.offerte[0].offerta,
+                premium: 0,
+                posizione: 1,
+                condiviso: false
+            };
+            risultatiFinali.push(risultato);
+            stats.senzaCondivisione++;
+            console.log(`✅ ${nomeGiocatore} assegnato DIRETTAMENTE a ${risultato.nome} (unica offerta)`);
+
+        } else if (deveEssereReplicato) {
+            // Più offerte sullo stesso giocatore: applica premium e condividi
             const risultatiConPremium = calcolaCostiConPremium(dati.offerte);
             risultatiFinali.push(...risultatiConPremium);
             stats.conCondivisione += risultatiConPremium.length;
-
             console.log(`🔁 ${nomeGiocatore} CONDIVISO tra ${risultatiConPremium.length} partecipanti`);
+
         } else {
             // Giocatore unico: vince solo l'offerta più alta
             const vincitore = elaboraVincitoreUnico(dati.offerte);
             risultatiFinali.push(vincitore);
             stats.senzaCondivisione++;
-
             console.log(`✅ ${nomeGiocatore} assegnato UNICO a ${vincitore.nome}`);
         }
     });
@@ -4806,9 +4819,10 @@ async function elaboraRisultatiAste() {
 
         if (sessione.rows.length > 0) {
             sessioneAttiva = sessione.rows[0];
-            condivisioneAttiva = sessioneAttiva.condivisione_attiva;
+            // ✅ CONDIVISIONE SEMPRE ATTIVA - calcolo dinamico in base ai partecipanti reali
+            condivisioneAttiva = true;
             console.log(`🎮 Sessione attiva: ${sessioneAttiva.nome}`);
-            console.log(`🔄 Condivisione: ${condivisioneAttiva ? 'ATTIVA' : 'DISATTIVATA'}`);
+            console.log(`🔄 Condivisione: DINAMICA (si attiva se necessario)`);
         }
     } catch (error) {
         console.error('⚠️ Errore recupero sessione:', error);
@@ -4850,17 +4864,18 @@ async function elaboraRisultatiAste() {
     let giocatoriReplicati = [];
     let statsCondivisione = null;
 
-    // Elabora con o senza condivisione
+    // Elabora con o senza condivisione - CALCOLO DINAMICO
     if (condivisioneAttiva && sessioneAttiva) {
-        console.log('\nðŸ"„ === MODALITÃ€ CONDIVISIONE ATTIVA ===');
+        console.log('\n🔄 === MODALITÀ CONDIVISIONE ATTIVA ===');
 
         const categoria = gameState.roundAttivo;
 
-        // ✅ USA IL NUMERO REALE DI PARTECIPANTI CONNESSI/ISCRITTI
+        // ✅ CALCOLO DINAMICO: conta partecipanti REALI
         const numeroPartecipantiReali = gameState.partecipantiInAttesa.length + gameState.partecipantiAssegnati.size;
-        console.log(`ðŸ'¥ Partecipanti REALI nella sessione: ${numeroPartecipantiReali} (previsti: ${sessioneAttiva.numero_partecipanti_previsti})`);
-
         const numeroSquadre = sessioneAttiva.numero_squadre;
+
+        console.log(`👥 Partecipanti REALI: ${numeroPartecipantiReali}`);
+        console.log(`🎯 Squadre disponibili: ${numeroSquadre}`);
 
         const risultatoCondivisione = elaboraCondivisioneGiocatori(
             tutteLeOfferte,
