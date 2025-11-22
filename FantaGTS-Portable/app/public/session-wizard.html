@@ -1192,6 +1192,7 @@ F3 Brunelli E</pre>
        
         // Step 5: Riepilogo
         function updateSummary() {
+            console.log('🔍 DEBUG sessionData:', sessionData);
             document.getElementById('summaryNome').textContent = sessionData.nome;
             document.getElementById('summaryAnno').textContent = sessionData.anno || 'Non specificato';
             document.getElementById('summaryDescrizione').textContent = sessionData.descrizione || 'Nessuna';
@@ -1773,6 +1774,8 @@ F3 Brunelli E</pre>
 
         async function creaSessione() {
             try {
+                console.log('🔍 DEBUG sessionData prima di creare:', sessionData);
+                console.log('🔍 configurazioneTipo:', configurazioneTipo);
                 showLoading();
 
                 let configurazioneId;
