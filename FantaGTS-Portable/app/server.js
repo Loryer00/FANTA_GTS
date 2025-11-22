@@ -5093,17 +5093,42 @@ async function elaboraRisultatiAste() {
 
     gameState.offerteTemporanee.clear();
 
+    gameState.offerteTemporanee.clear();
+
     setTimeout(() => {
-        const deveTerminare = condivisioneAttiva
-            ? gameState.slotsRimasti.length === 0
-            : (gameState.partecipantiInAttesa.length === 0 || gameState.slotsRimasti.length === 0);
+        // 🔧 FIX: Calcola quanti partecipanti hanno già vinto in questo round
+        const partecipantiCheHannoVinto = gameState.partecipantiAssegnati.size;
+        const totalePartecipanti = gameState.partecipantiInAttesa.length + partecipantiCheHannoVinto;
+
+        console.log(`\n📊 VERIFICA CONTINUAZIONE ASTA:`);
+        console.log(`   Partecipanti totali: ${totalePartecipanti}`);
+        console.log(`   Hanno già vinto: ${partecipantiCheHannoVinto}`);
+        console.log(`   Ancora in attesa: ${gameState.partecipantiInAttesa.length}`);
+        console.log(`   Slots rimasti: ${gameState.slotsRimasti.length}`);
+        console.log(`   Modalità condivisione: ${condivisioneAttiva ? 'SÌ' : 'NO'}`);
+
+        // 🆕 LOGICA CORRETTA: Termina quando tutti i partecipanti hanno vinto
+        // In modalità normale: partecipantiInAttesa.length === 0 (vengono rimossi dopo la vittoria)
+        // In modalità condivisione: partecipantiInAttesa.length NON cambia, quindi usa sempre la lista originale
+        const tuttiHannoVinto = condivisioneAttiva
+            ? gameState.astaCorrente >= totalePartecipanti  // Ogni partecipante ha fatto almeno 1 asta
+            : gameState.partecipantiInAttesa.length === 0;   // Lista vuota = tutti hanno vinto
+
+        const noSlots = gameState.slotsRimasti.length === 0;
+
+        const deveTerminare = tuttiHannoVinto || noSlots;
+
+        console.log(`   → Tutti hanno vinto? ${tuttiHannoVinto ? 'SÌ' : 'NO'}`);
+        console.log(`   → Slots esauriti? ${noSlots ? 'SÌ' : 'NO'}`);
+        console.log(`   → Deve terminare? ${deveTerminare ? 'SÌ' : 'NO'}`);
 
         if (!deveTerminare && gameState.slotsRimasti.length > 0) {
             gameState.astaCorrente++;
             console.log(`\n➡️ PASSAGGIO AD ASTA ${gameState.astaCorrente}`);
             avviaAstaSuccessiva();
         } else {
-            console.log(`🏁 ROUND COMPLETATO`);
+            const motivo = tuttiHannoVinto ? 'Tutti hanno vinto' : 'Slots esauriti';
+            console.log(`\n🏁 ROUND COMPLETATO - Motivo: ${motivo}`);
             terminaRoundCompleto();
         }
     }, 3000);
