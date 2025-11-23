@@ -4902,7 +4902,10 @@ async function elaboraRisultatiAste() {
     }
 
     // Raggruppa offerte valide
-    // Offerta valida (log ridotto)
+    gameState.offerteTemporanee.forEach((offerta, socketId) => {
+        const connesso = gameState.connessi.get(socketId);
+        if (connesso && offerta.round === gameState.roundAttivo) {
+            if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
 
                 tutteLeOfferte.push({
                     partecipante: connesso.partecipanteId,
