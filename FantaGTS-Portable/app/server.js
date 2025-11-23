@@ -4928,8 +4928,7 @@ async function elaboraRisultatiAste() {
 
     // Elabora con o senza condivisione - CALCOLO DINAMICO
     if (condivisioneAttiva && sessioneAttiva) {
-        console.log('\n🔄 === MODALITÀ CONDIVISIONE ATTIVA ===');
-
+        console.log('\n🔄 === MODALITÀ CONDIVISIONE (se necessaria) ===');
         const categoria = gameState.roundAttivo;
 
         // ✅ CALCOLO DINAMICO: conta partecipanti REALI
@@ -4941,7 +4940,7 @@ async function elaboraRisultatiAste() {
 
         const risultatoCondivisione = elaboraCondivisioneGiocatori(
             tutteLeOfferte,
-            numeroPartecipantiReali,  // ✅ USA IL NUMERO REALE
+            numeroPartecipantiReali,
             numeroSquadre,
             categoria
         );
@@ -4950,11 +4949,17 @@ async function elaboraRisultatiAste() {
         giocatoriReplicati = risultatoCondivisione.giocatoriReplicati;
         statsCondivisione = risultatoCondivisione.stats;
 
-        console.log(`\n✅ Elaborazione condivisione completata:`);
-        console.log(`   - Totale assegnazioni: ${risultatiAsta.length}`);
-        console.log(`   - Giocatori condivisi: ${giocatoriReplicati.length}`);
+        // 🆕 SE NON CI SONO RIPETIZIONI NECESSARIE, USA MODALITÀ NORMALE
+        if (risultatoCondivisione.stats.ripetizioniNecessarie === 0) {
+            console.log('ℹ️ Nessuna ripetizione necessaria → Uso logica normale per pareggi');
+            risultatiAsta = []; // Resetta per usare logica normale
+        } else {
+            console.log(`✅ Condivisione: ${risultatiAsta.length} assegnazioni, ${giocatoriReplicati.length} giocatori condivisi`);
+        }
+    }
 
-    } else {
+    // 🔄 Modalità normale: usata quando condivisione=false O quando non servono ripetizioni
+    if (!condivisioneAttiva || (statsCondivisione && statsCondivisione.ripetizioniNecessarie === 0) || risultatiAsta.length === 0) {
         console.log('\n📌 === MODALITÀ NORMALE (senza condivisione) ===');
 
         const offertePerSlot = {};
