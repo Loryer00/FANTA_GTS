@@ -5090,11 +5090,34 @@ async function elaboraRisultatiAste() {
             }
         }
     } else {
-        // In modalità condivisione: aggiorna solo gli slot rimasti
+        // In modalità condivisione: gestione intelligente
         const slotsAssegnati = new Set(risultatiAsta.map(r => r.slot));
         gameState.slotsRimasti = gameState.slotsRimasti.filter(
             s => !slotsAssegnati.has(s.id)
         );
+
+        // ✨ NUOVO: Rimuovi i partecipanti che hanno vinto da partecipantiInAttesa
+        // Solo se hanno vinto in modalità condivisione SINGOLA (non replicata)
+        const partecipantiCheHannoVinto = new Set();
+        risultatiAsta.forEach(risultato => {
+            // Se il giocatore NON è condiviso (nessun altro lo voleva), rimuovi il partecipante
+            if (!risultato.condiviso || risultato.posizione === 1) {
+                partecipantiCheHannoVinto.add(risultato.partecipante);
+            }
+        });
+
+        // Rimuovi i vincitori dalla lista in attesa SOLO se hanno vinto un giocatore non condiviso
+        if (partecipantiCheHannoVinto.size > 0) {
+            console.log(`🎯 Rimozione ${partecipantiCheHannoVinto.size} partecipanti che hanno vinto giocatori non condivisi`);
+            gameState.partecipantiInAttesa = gameState.partecipantiInAttesa.filter(
+                p => !partecipantiCheHannoVinto.has(p)
+            );
+
+            // Aggiungi ai partecipanti assegnati
+            partecipantiCheHannoVinto.forEach(p => {
+                gameState.partecipantiAssegnati.add(p);
+            });
+        }
 
         // Notifica tutti i vincitori
         risultatiAsta.forEach(risultato => {
@@ -5116,7 +5139,7 @@ async function elaboraRisultatiAste() {
             }
         });
 
-        console.log(`📊 Modalità condivisione: TUTTI i partecipanti continuano`);
+        console.log(`📊 Modalità condivisione: Rimossi ${partecipantiCheHannoVinto.size} partecipanti con giocatori non condivisi`);
     }
 
     console.log(`\n📊 STATO AGGIORNATO:`);
