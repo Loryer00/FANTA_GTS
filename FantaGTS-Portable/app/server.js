@@ -4237,6 +4237,15 @@ app.post('/api/test-notification', async (req, res) => {
 
 // Monitoraggio automatico offerte - VERSIONE CORRETTA
 function avviaMonitoraggioOfferte() {
+    // ✨ NUOVO: Timeout di sicurezza - chiudi automaticamente dopo 60 secondi
+    const timeoutSicurezza = setTimeout(async () => {
+        if (gameState.asteAttive) {
+            console.log('⏰ TIMEOUT SICUREZZA - Chiusura forzata asta dopo 60 secondi');
+            clearInterval(monitorInterval);
+            await terminaRound(true);
+        }
+    }, 60000); // 60 secondi
+
     const monitorInterval = setInterval(async () => {
         if (!gameState.asteAttive) {
             clearInterval(monitorInterval);
@@ -4962,13 +4971,10 @@ async function elaboraRisultatiAste() {
 
         Object.keys(offertePerSlot).forEach(slotId => {
             const offerte = offertePerSlot[slotId];
-
             if (offerte.length > 0) {
                 offerte.sort((a, b) => b.offerta - a.offerta);
-
                 const offertaMassima = offerte[0].offerta;
                 const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
-
                 let vincitore;
                 if (offerteVincenti.length === 1) {
                     vincitore = offerteVincenti[0];
@@ -4976,11 +4982,11 @@ async function elaboraRisultatiAste() {
                     const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
                     vincitore = offerteVincenti[randomIndex];
                     console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
-                    
+
                     // 📢 Notifica i perdenti del pareggio
                     const perdenti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante);
                     console.log(`⚔️ Notificando ${perdenti.length} perdenti per pareggio su ${slotId}`);
-                    
+
                     perdenti.forEach(perdente => {
                         for (let [socketId, connesso] of gameState.connessi.entries()) {
                             if (connesso.partecipanteId === perdente.partecipante) {
@@ -4990,7 +4996,7 @@ async function elaboraRisultatiAste() {
                                     url: '/'
                                 });
                                 console.log(`📢 Notifica pareggio inviata a: ${perdente.nome}`);
-                                
+
                                 // Invio anche notifica push se disponibile
                                 inviaNotifichePush({
                                     title: '⚔️ Pareggio perso',
@@ -4998,11 +5004,15 @@ async function elaboraRisultatiAste() {
                                     url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
                                     targetUsers: [perdente.partecipante]
                                 }).catch(err => console.log('⚠️ Errore notifica push pareggio:', err));
-                                
+
                                 break;
                             }
                         }
                     });
+
+                    // ✨ NUOVO: I perdenti del pareggio RIMANGONO nella lista "in attesa"
+                    // NON vengono rimossi, così possono partecipare all'asta successiva
+                    console.log(`🔄 ${perdenti.length} partecipanti rimangono in attesa dopo pareggio`);
                 }
 
                 risultatiAsta.push({
@@ -5025,6 +5035,20 @@ async function elaboraRisultatiAste() {
 
     if (risultatiAsta.length > 0) {
         await salvaRisultatiAsta(gameState.roundAttivo, risultatiAsta, giocatoriReplicati, statsCondivisione);
+    }
+
+    // ✨ NUOVO: Gestione partecipanti che NON hanno fatto offerta o NON hanno vinto
+    const partecipantiCheHannoVinto = new Set(risultatiAsta.map(r => r.partecipante));
+    const partecipantiSenzaGiocatore = gameState.partecipantiInAttesa.filter(
+        p => !partecipantiCheHannoVinto.has(p) || !partecipantiCheHannoOfferto.has(p)
+    );
+
+    if (partecipantiSenzaGiocatore.length > 0) {
+        console.log(`⚠️ ${partecipantiSenzaGiocatore.length} partecipanti senza giocatore assegnato:`);
+        partecipantiSenzaGiocatore.forEach(p => {
+            console.log(`   - ${p} (${partecipantiCheHannoOfferto.has(p) ? 'ha offerto ma non ha vinto' : 'non ha fatto offerta'})`);
+        });
+        console.log(`🔄 Questi partecipanti parteciperanno all'asta successiva`);
     }
 
     // Aggiorna stato partecipanti SOLO in modalità normale
