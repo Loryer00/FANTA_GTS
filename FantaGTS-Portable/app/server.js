@@ -4894,11 +4894,16 @@ async function elaboraRisultatiAste() {
     const tutteLeOfferte = [];
     const partecipantiCheHannoOfferto = new Set();
 
-    console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
-    gameState.offerteTemporanee.forEach((offerta, socketId) => {
-        const connesso = gameState.connessi.get(socketId);
-        console.log(`   Socket ${socketId}: ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo})`);
-    });
+    // 🔍 Log ridotto per performance
+    if (gameState.offerteTemporanee.size <= 5) {
+        console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
+        gameState.offerteTemporanee.forEach((offerta, socketId) => {
+            const connesso = gameState.connessi.get(socketId);
+            console.log(`   ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo})`);
+        });
+    } else {
+        console.log(`🔍 Ricevute ${gameState.offerteTemporanee.size} offerte temporanee`);
+    }
 
     // Raggruppa offerte valide
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
@@ -4958,6 +4963,8 @@ async function elaboraRisultatiAste() {
         console.log('\n📌 === MODALITÀ NORMALE (senza condivisione) ===');
 
         const offertePerSlot = {};
+        const perdentiDaNotificare = new Set(); // 🆕 Tiene traccia di chi non ha vinto
+
         tutteLeOfferte.forEach(offerta => {
             if (!offertePerSlot[offerta.slot]) {
                 offertePerSlot[offerta.slot] = [];
@@ -4972,49 +4979,33 @@ async function elaboraRisultatiAste() {
         Object.keys(offertePerSlot).forEach(slotId => {
             const offerte = offertePerSlot[slotId];
             if (offerte.length > 0) {
+                // Ordina per offerta decrescente
                 offerte.sort((a, b) => b.offerta - a.offerta);
                 const offertaMassima = offerte[0].offerta;
                 const offerteVincenti = offerte.filter(o => o.offerta === offertaMassima);
+
                 let vincitore;
+                let perdenti = [];
+
                 if (offerteVincenti.length === 1) {
+                    // ✅ Un solo vincitore
                     vincitore = offerteVincenti[0];
+                    // 🆕 Tutti gli altri che hanno offerto meno sono perdenti
+                    perdenti = offerte.filter(o => o.partecipante !== vincitore.partecipante);
+
                 } else {
+                    // ⚖️ Pareggio - sorteggio casuale
                     const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
                     vincitore = offerteVincenti[randomIndex];
                     console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
 
-                    // 📢 Notifica i perdenti del pareggio
-                    const perdenti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante);
-                    console.log(`⚔️ Notificando ${perdenti.length} perdenti per pareggio su ${slotId}`);
-
-                    perdenti.forEach(perdente => {
-                        for (let [socketId, connesso] of gameState.connessi.entries()) {
-                            if (connesso.partecipanteId === perdente.partecipante) {
-                                io.to(socketId).emit('show_notification', {
-                                    title: '⚔️ Pareggio - Non hai vinto',
-                                    body: `Pareggio su ${slotId} con ${vincitore.nome}. Entrambi ${offertaMassima} crediti, ma vince ${vincitore.nome} al sorteggio.`,
-                                    url: '/'
-                                });
-                                console.log(`📢 Notifica pareggio inviata a: ${perdente.nome}`);
-
-                                // Invio anche notifica push se disponibile
-                                inviaNotifichePush({
-                                    title: '⚔️ Pareggio perso',
-                                    body: `Non hai vinto ${slotId}. Pareggio con ${vincitore.nome} (${offertaMassima} crediti), sorteggio favorevole a lui.`,
-                                    url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
-                                    targetUsers: [perdente.partecipante]
-                                }).catch(err => console.log('⚠️ Errore notifica push pareggio:', err));
-
-                                break;
-                            }
-                        }
-                    });
-
-                    // ✨ NUOVO: I perdenti del pareggio RIMANGONO nella lista "in attesa"
-                    // NON vengono rimossi, così possono partecipare all'asta successiva
-                    console.log(`🔄 ${perdenti.length} partecipanti rimangono in attesa dopo pareggio`);
+                    // 🆕 Tutti quelli in pareggio che non hanno vinto sono perdenti
+                    perdenti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante);
+                    // 🆕 + tutti quelli con offerte minori
+                    perdenti.push(...offerte.filter(o => o.offerta < offertaMassima));
                 }
 
+                // 🆕 Aggiungi risultato vincitore
                 risultatiAsta.push({
                     partecipante: vincitore.partecipante,
                     nome: vincitore.nome,
@@ -5027,8 +5018,50 @@ async function elaboraRisultatiAste() {
                 });
 
                 console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
+
+                // 🆕 Notifica tutti i perdenti
+                if (perdenti.length > 0) {
+                    console.log(`📢 Notificando ${perdenti.length} perdenti su ${slotId}`);
+
+                    perdenti.forEach(perdente => {
+                        perdentiDaNotificare.add(perdente.partecipante);
+
+                        for (let [socketId, connesso] of gameState.connessi.entries()) {
+                            if (connesso.partecipanteId === perdente.partecipante) {
+                                // Determina il messaggio in base al tipo di perdita
+                                const isPareggioPerso = perdente.offerta === offertaMassima;
+                                const messaggioDettaglio = isPareggioPerso
+                                    ? `Pareggio con ${vincitore.nome} (entrambi ${offertaMassima} crediti), sorteggio favorevole a lui.`
+                                    : `${vincitore.nome} ha offerto ${offertaMassima} crediti (tu: ${perdente.offerta}).`;
+
+                                io.to(socketId).emit('show_notification', {
+                                    title: isPareggioPerso ? '⚖️ Pareggio perso' : '❌ Offerta superata',
+                                    body: `Non hai vinto ${slotId}. ${messaggioDettaglio} Fai una nuova offerta nell'asta successiva.`,
+                                    url: '/'
+                                });
+                                console.log(`📨 Notifica inviata a: ${perdente.nome}`);
+
+                                // Invia anche notifica push
+                                inviaNotifichePush({
+                                    title: isPareggioPerso ? '⚖️ Pareggio perso' : '❌ Offerta superata',
+                                    body: `Non hai vinto ${slotId}. ${messaggioDettaglio}`,
+                                    url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
+                                    targetUsers: [perdente.partecipante]
+                                }).catch(err => console.log('⚠️ Errore notifica push:', err));
+
+                                break;
+                            }
+                        }
+                    });
+                }
             }
         });
+
+        // 🆕 Log riepilogo perdenti
+        if (perdentiDaNotificare.size > 0) {
+            console.log(`\n📊 Riepilogo perdenti che parteciperanno all'asta successiva:`);
+            perdentiDaNotificare.forEach(p => console.log(`   - ${p}`));
+        }
     }
 
     console.log(`\n🎉 Risultati Asta ${gameState.astaCorrente}:`, risultatiAsta.length, 'assegnazioni');
