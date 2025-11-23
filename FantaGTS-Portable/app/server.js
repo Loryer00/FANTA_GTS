@@ -4896,21 +4896,13 @@ async function elaboraRisultatiAste() {
 
     // 🔍 Log ridotto per performance
     if (gameState.offerteTemporanee.size <= 5) {
-        console.log('🔍 TUTTE LE OFFERTE TEMPORANEE:');
-        gameState.offerteTemporanee.forEach((offerta, socketId) => {
-            const connesso = gameState.connessi.get(socketId);
-            console.log(`   ${connesso?.nome || 'Sconosciuto'} → ${offerta.slot} (${offerta.importo})`);
-        });
+        console.log(`🔍 Offerte ricevute: ${gameState.offerteTemporanee.size} totali`);
     } else {
         console.log(`🔍 Ricevute ${gameState.offerteTemporanee.size} offerte temporanee`);
     }
 
     // Raggruppa offerte valide
-    gameState.offerteTemporanee.forEach((offerta, socketId) => {
-        const connesso = gameState.connessi.get(socketId);
-        if (connesso && offerta.round === gameState.roundAttivo) {
-            if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-                console.log(`✅ Offerta valida: ${connesso.nome} → ${offerta.slot} (${offerta.importo} crediti)`);
+    // Offerta valida (log ridotto)
 
                 tutteLeOfferte.push({
                     partecipante: connesso.partecipanteId,
@@ -4972,9 +4964,7 @@ async function elaboraRisultatiAste() {
             offertePerSlot[offerta.slot].push(offerta);
         });
 
-        console.log('🎯 Offerte valide per slot:', Object.keys(offertePerSlot).map(slot =>
-            `${slot}: ${offertePerSlot[slot].length} offerte`
-        ));
+        console.log(`🎯 Offerte distribuite su ${Object.keys(offertePerSlot).length} slot differenti`);
 
         Object.keys(offertePerSlot).forEach(slotId => {
             const offerte = offertePerSlot[slotId];
@@ -4990,22 +4980,25 @@ async function elaboraRisultatiAste() {
                 if (offerteVincenti.length === 1) {
                     // ✅ Un solo vincitore
                     vincitore = offerteVincenti[0];
-                    // 🆕 Tutti gli altri che hanno offerto meno sono perdenti
                     perdenti = offerte.filter(o => o.partecipante !== vincitore.partecipante);
+                    console.log(`✅ ${vincitore.nome} vince ${slotId} (${offertaMassima} crediti)`);
 
                 } else {
                     // ⚖️ Pareggio - sorteggio casuale
                     const randomIndex = Math.floor(Math.random() * offerteVincenti.length);
                     vincitore = offerteVincenti[randomIndex];
-                    console.log(`🎲 PAREGGIO su ${slotId}! Estratto: ${vincitore.nome}`);
+                    const altriPartecipanti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante).map(o => o.nome).join(', ');
 
-                    // 🆕 Tutti quelli in pareggio che non hanno vinto sono perdenti
+                    console.log(`🎲 PAREGGIO su ${slotId}! ${offerteVincenti.length} offerte a ${offertaMassima} crediti`);
+                    console.log(`   Estratto: ${vincitore.nome} | Perdenti: ${altriPartecipanti}`);
+
+                    // Tutti quelli in pareggio che non hanno vinto sono perdenti
                     perdenti = offerteVincenti.filter(o => o.partecipante !== vincitore.partecipante);
-                    // 🆕 + tutti quelli con offerte minori
+                    // + tutti quelli con offerte minori
                     perdenti.push(...offerte.filter(o => o.offerta < offertaMassima));
                 }
 
-                // 🆕 Aggiungi risultato vincitore
+                // Aggiungi risultato vincitore
                 risultatiAsta.push({
                     partecipante: vincitore.partecipante,
                     nome: vincitore.nome,
@@ -5021,7 +5014,7 @@ async function elaboraRisultatiAste() {
 
                 // 🆕 Notifica tutti i perdenti
                 if (perdenti.length > 0) {
-                    console.log(`📢 Notificando ${perdenti.length} perdenti su ${slotId}`);
+                    console.log(`📢 ${perdenti.length} perdenti notificati su ${slotId}`);
 
                     perdenti.forEach(perdente => {
                         perdentiDaNotificare.add(perdente.partecipante);
@@ -5039,7 +5032,7 @@ async function elaboraRisultatiAste() {
                                     body: `Non hai vinto ${slotId}. ${messaggioDettaglio} Fai una nuova offerta nell'asta successiva.`,
                                     url: '/'
                                 });
-                                console.log(`📨 Notifica inviata a: ${perdente.nome}`);
+                                console.log(`📢 ${perdenti.length} perdenti notificati su ${slotId}`);
 
                                 // Invia anche notifica push
                                 inviaNotifichePush({
@@ -5175,10 +5168,7 @@ async function elaboraRisultatiAste() {
         console.log(`📊 Modalità condivisione: Rimossi ${partecipantiCheHannoVinto.size} partecipanti con giocatori non condivisi`);
     }
 
-    console.log(`\n📊 STATO AGGIORNATO:`);
-    console.log(`   ✅ Assegnati: ${Array.from(gameState.partecipantiAssegnati).length}`);
-    console.log(`   ⏳ In attesa: ${gameState.partecipantiInAttesa.length}`);
-    console.log(`   🎯 Slots rimasti: ${gameState.slotsRimasti.length}`);
+console.log(`📊 Stato: ${Array.from(gameState.partecipantiAssegnati).length} assegnati, ${gameState.partecipantiInAttesa.length} in attesa, ${gameState.slotsRimasti.length} slots`);
 
     gameState.offerteTemporanee.clear();
 
