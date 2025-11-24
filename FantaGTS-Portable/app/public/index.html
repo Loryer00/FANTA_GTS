@@ -3488,7 +3488,7 @@
                         notification.remove();
                         console.log('🗑️ Notifica rimossa');
                     }, 300);
-                }, 5000);
+                }, 2500);
             });
 
             socket.on('round_ended', async (data) => {
@@ -3565,19 +3565,16 @@
             // 📢 LISTENER: Notifiche generali (pareggi, avvisi, ecc.)
             socket.on('show_notification', (data) => {
                 console.log('📢 Notifica ricevuta:', data);
-                
+
                 // Determina il colore in base al tipo di notifica
                 let backgroundColor = 'rgba(239, 68, 68, 0.95)'; // Rosso per default (perdita)
-                let emoji = '⚔️';
-                
+
                 if (data.title.includes('vinto') || data.title.includes('COMPLIMENTI')) {
                     backgroundColor = 'rgba(16, 185, 129, 0.95)'; // Verde per vittoria
-                    emoji = '🏆';
                 } else if (data.title.includes('Pareggio')) {
                     backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Arancione per pareggio
-                    emoji = '⚔️';
                 }
-                
+
                 const notification = document.createElement('div');
                 notification.style.cssText = `
                     position: fixed; 
@@ -3598,20 +3595,19 @@
                     max-width: 90%;
                     animation: slideIn 0.3s ease-out;
                 `;
-                
-                notification.innerHTML = `
-                    <div style="font-size: 2em; margin-bottom: 10px;">${emoji}</div>
+
+                            notification.innerHTML = `
                     <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
                     <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.4;">${data.body}</div>
                 `;
-                
+
                 document.body.appendChild(notification);
-                
-                // Rimuovi dopo 4 secondi (più tempo per leggere il messaggio di pareggio)
+
+                // Rimuovi dopo 2.5 secondi (più veloce)
                 setTimeout(() => {
                     notification.style.animation = 'slideOut 0.3s ease-in';
                     setTimeout(() => notification.remove(), 300);
-                }, 4000);
+                }, 2500);
             });
 
             socket.on('bid_confirmed', (data) => {
