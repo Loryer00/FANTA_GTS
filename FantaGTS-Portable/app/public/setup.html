@@ -594,14 +594,18 @@ F3 Brunelli E</pre>
         function updateButtons() {
             const btnGenera = document.getElementById('btnGeneraSlots');
             const btnMaster = document.getElementById('btnVaiMaster');
-            
-            btnGenera.disabled = squadre.length === 0;
-            btnMaster.disabled = !systemReady;
+
+            // Verifica che gli elementi esistano prima di usarli
+            if (btnGenera) btnGenera.disabled = squadre.length === 0;
+            if (btnMaster) btnMaster.disabled = !systemReady;
         }
 
         function updateSummary() {
-            document.getElementById('countSquadre').textContent = squadre.length;
-            document.getElementById('countSlots').textContent = squadre.length * 10;
+            const countSquadre = document.getElementById('countSquadre');
+            const countSlots = document.getElementById('countSlots');
+
+            if (countSquadre) countSquadre.textContent = squadre.length;
+            if (countSlots) countSlots.textContent = squadre.length * 10;
         }
 
         // Gestione squadre
