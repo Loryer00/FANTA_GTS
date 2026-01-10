@@ -1276,9 +1276,24 @@
                 const select1 = document.getElementById('squadra1Select');
                 const select2 = document.getElementById('squadra2Select');
 
-                // Reset options - RIMUOVI i placeholder
+                // Reset options
                 select1.innerHTML = '';
                 select2.innerHTML = '';
+
+                // ✅ Aggiungi placeholder iniziale
+                const placeholder1 = document.createElement('option');
+                placeholder1.value = '';
+                placeholder1.textContent = 'Seleziona squadra...';
+                placeholder1.disabled = true;
+                placeholder1.selected = true;
+                select1.appendChild(placeholder1);
+
+                const placeholder2 = document.createElement('option');
+                placeholder2.value = '';
+                placeholder2.textContent = 'Seleziona squadra...';
+                placeholder2.disabled = true;
+                placeholder2.selected = true;
+                select2.appendChild(placeholder2);
 
                 // Ottieni squadre già utilizzate negli scontri
                 const squadreUtilizzate = new Set();
@@ -1287,19 +1302,31 @@
                     squadreUtilizzate.add(scontro.squadra2);
                 });
 
-                squadre.forEach(squadra => {
-                    if (!squadreUtilizzate.has(squadra.numero)) {
-                        const option1 = document.createElement('option');
-                        option1.value = squadra.numero;
-                        option1.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
-                        select1.appendChild(option1);
+                // Filtra e aggiungi solo squadre disponibili
+                const squadreDisponibili = squadre.filter(squadra => !squadreUtilizzate.has(squadra.numero));
 
-                        const option2 = document.createElement('option');
-                        option2.value = squadra.numero;
-                        option2.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
-                        select2.appendChild(option2);
-                    }
+                squadreDisponibili.forEach(squadra => {
+                    const option1 = document.createElement('option');
+                    option1.value = squadra.numero;
+                    option1.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                    select1.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = squadra.numero;
+                    option2.textContent = `Squadra ${squadra.colore.toUpperCase()}`;
+                    select2.appendChild(option2);
                 });
+
+                // ✅ Se non ci sono squadre disponibili, disabilita i select
+                if (squadreDisponibili.length === 0) {
+                    select1.disabled = true;
+                    select2.disabled = true;
+                    placeholder1.textContent = '✅ Tutte le squadre utilizzate';
+                    placeholder2.textContent = '✅ Tutte le squadre utilizzate';
+                } else {
+                    select1.disabled = false;
+                    select2.disabled = false;
+                }
 
             } catch (error) {
                 console.error('Errore caricamento squadre:', error);
@@ -1310,7 +1337,7 @@
         function aggiornaPosizioniDisponibili() {
             console.log('🔄 Aggiornamento posizioni disponibili...');
             console.log('   - Accoppiamenti attuali:', configTurno.accoppiamenti);
-            
+
             const pos1Select = document.getElementById('pos1Select');
             const pos2Select = document.getElementById('pos2Select');
 
@@ -1319,7 +1346,7 @@
                 return;
             }
 
-            // Reset options - RIMUOVI i placeholder
+            // Reset options
             pos1Select.innerHTML = '';
             pos2Select.innerHTML = '';
 
@@ -1347,24 +1374,34 @@
                 posizioniUtilizzate.add(acc.pos2);
             });
 
-            let posizioniAggiunte = 0;
-            posizioni.forEach(pos => {
-                if (!posizioniUtilizzate.has(pos)) {
-                    const option1 = document.createElement('option');
-                    option1.value = pos;
-                    option1.textContent = pos;
-                    pos1Select.appendChild(option1);
+            // Filtra posizioni disponibili
+            const posizioniDisponibili = posizioni.filter(pos => !posizioniUtilizzate.has(pos));
 
-                    const option2 = document.createElement('option');
-                    option2.value = pos;
-                    option2.textContent = pos;
-                    pos2Select.appendChild(option2);
-                    
-                    posizioniAggiunte++;
-                }
+            // Aggiungi posizioni disponibili ai select
+            posizioniDisponibili.forEach(pos => {
+                const option1 = document.createElement('option');
+                option1.value = pos;
+                option1.textContent = pos;
+                pos1Select.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = pos;
+                option2.textContent = pos;
+                pos2Select.appendChild(option2);
             });
 
-            console.log(`✅ Aggiunte ${posizioniAggiunte} posizioni ai menu`);
+            // ✅ Se non ci sono posizioni disponibili, disabilita i select
+            if (posizioniDisponibili.length === 0) {
+                pos1Select.disabled = true;
+                pos2Select.disabled = true;
+                placeholderOption1.textContent = '✅ Tutte le posizioni utilizzate';
+                placeholderOption2.textContent = '✅ Tutte le posizioni utilizzate';
+            } else {
+                pos1Select.disabled = false;
+                pos2Select.disabled = false;
+            }
+
+            console.log(`✅ Aggiunte ${posizioniDisponibili.length} posizioni ai menu`);
         }
 
         function aggiungiScontro() {
