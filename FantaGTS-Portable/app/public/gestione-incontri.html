@@ -1241,11 +1241,12 @@
                 return;
             }
 
-            // MODIFICA: prima mostra lo step, POI aggiorna i select
+            aggiornaPosizioniDisponibili(); // ✅ ORA VIENE ESEGUITO
+
             nascondiTuttiGliStep();
             document.getElementById('step3').style.display = 'block';
             document.getElementById('step3').classList.add('active');
-            aggiornaPosizioniDisponibili();
+        }
 
         function tornaStep2() {
             nascondiTuttiGliStep();
