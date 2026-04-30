@@ -512,7 +512,7 @@
 
                 // Carica le selezioni precedenti
                 appState.squadraSelezionata = data.squadra;
-                console.log(`✅ Squadra recuperata: ${data.posizioniCompilate}/10 posizioni`);
+                console.log(`✅ Squadra recuperata: ${data.posizioniCompilate}/${data.posizioniTotali || '?'} posizioni`);
             } catch (err) {
                 console.error('⚠️ Errore caricamento squadra:', err);
             }
@@ -670,22 +670,24 @@
         // Aggiorna progress bar
         function aggiornaProgress() {
             const completate = Object.keys(appState.squadraSelezionata).length;
-            const percentuale = (completate / 10) * 100;
+            const totale = appState.posizioniRichieste.length;
+            const percentuale = (completate / totale) * 100;
 
             document.getElementById('progressFill').style.width = percentuale + '%';
-            document.getElementById('progressText').textContent = `${completate}/10`;
+            document.getElementById('progressText').textContent = `${completate}/${totale}`;
 
             const btnSalva = document.getElementById('btnSalva');
-            btnSalva.textContent = `💾 Salva Squadra (${completate}/10)`;
-            btnSalva.disabled = completate < 10;
+            btnSalva.textContent = `💾 Salva Squadra (${completate}/${totale})`;
+            btnSalva.disabled = completate < totale;
         }
 
         // Salva squadra
         async function salvaSquadra() {
             const completate = Object.keys(appState.squadraSelezionata).length;
 
-            if (completate < 10) {
-                showAlert('Completa tutte le 10 posizioni prima di salvare!', 'error');
+            const totale = appState.posizioniRichieste.length;
+            if (completate < totale) {
+                showAlert(`Completa tutte le ${totale} posizioni prima di salvare!`, 'error');
                 return;
             }
 

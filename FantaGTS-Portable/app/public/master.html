@@ -1665,7 +1665,7 @@
                         ">
                             <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
 							<div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
-								${giocatoriAcquistati}/10 giocatori ${isDraft ? '' : `| 💰 ${creditiRimasti}`} | 🏆 ${puntiTotali}pt
+								${giocatoriAcquistati} giocatori ${isDraft ? '' : `| 💰 ${creditiRimasti}`} | 🏆 ${puntiTotali}pt
 							</div>
                         </div>
 
@@ -2448,7 +2448,7 @@
 					html += `<tr>
 						<td><strong>${index + 1}°</strong></td>
 						<td>${p.nome}</td>
-						<td>${p.giocatori_totali}/10</td>
+						<td>${p.giocatori_totali}</td>
 						<td>${p.punti_totali}</td>
 					</tr>`;
 				});
@@ -2762,15 +2762,16 @@
                     const squadraData = await squadraResponse.json();
 
                     const progresso = squadraData.posizioniCompilate || 0;
-                    const completato = progresso === 10;
-                    const percentuale = (progresso / 10) * 100;
+                    const totPosizioni = squadraData.posizioniTotali || progresso;
+                    const completato = totPosizioni > 0 && progresso >= totPosizioni;
+                    const percentuale = totPosizioni > 0 ? (progresso / totPosizioni) * 100 : 0;
 
                     html += `
                 <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border-left: 4px solid ${completato ? '#48bb78' : '#667eea'};">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <strong style="font-size: 1.1em;">${partecipante.nome}</strong>
                         <span style="background: ${completato ? '#48bb78' : '#667eea'}; padding: 5px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold;">
-                            ${progresso}/10 ${completato ? '✅' : '⏳'}
+                            ${progresso}/${totPosizioni} ${completato ? '✅' : '⏳'}
                         </span>
                     </div>
                     <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden;">

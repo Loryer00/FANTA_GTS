@@ -6615,34 +6615,27 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             };
         });
 
-        const posizioniRichieste = Object.keys(squadra);
-        // Se la squadra e' vuota, prendi le posizioni dagli slot attivi della sessione
-        let completata = false;
-        if (posizioniRichieste.length > 0) {
-            completata = true;
-        } else {
-            // Recupera le posizioni reali dalla configurazione
-            const posizioniResult = await db.query(
-                "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = (SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1) AND attivo = true AND giocatore_attuale IS NOT NULL AND giocatore_attuale != ''",
-                [sessione_id]
-            );
-            const posizioniReali = posizioniResult.rows.map(r => r.posizione);
-            completata = posizioniReali.every(pos => squadra[pos]);
-        }
+        // Recupera SEMPRE le posizioni reali dalla configurazione
+        const posizioniResult = await db.query(
+            "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = (SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1) AND attivo = true AND giocatore_attuale IS NOT NULL AND giocatore_attuale != ''",
+            [sessione_id]
+        );
+        const posizioniReali = posizioniResult.rows.map(r => r.posizione);
+        const completata = posizioniReali.length > 0 && posizioniReali.every(pos => squadra[pos]);
 
         res.json({
             partecipante_id: partecipanteId,
             sessione_id,
             squadra,
             completata,
-            posizioniCompilate: result.rows.length
+            posizioniCompilate: result.rows.length,
+            posizioniTotali: posizioniReali.length
         });
     } catch (err) {
         console.error('❌ Errore recupero squadra Draft:', err);
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // POST: Salva squadra completa Draft (finale e bloccata)
 
