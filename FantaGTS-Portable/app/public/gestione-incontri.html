@@ -442,17 +442,17 @@
             font-weight: bold;
         }
 
-        .incontro-mini.completato {
-            background: rgba(72, 187, 120, 0.2);
-            color: #48bb78;
-            border: 1px solid rgba(72, 187, 120, 0.3);
-        }
+            .incontro-mini.completato {
+                background: rgba(72, 187, 120, 0.2);
+                color: #48bb78;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+            }
 
-        .incontro-mini.attesa {
-            background: rgba(255, 255, 255, 0.08);
-            color: #a0aec0;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
+            .incontro-mini.attesa {
+                background: rgba(255, 255, 255, 0.08);
+                color: #a0aec0;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+            }
 
         /* CSS per layout compatto */
         .scontro-divider-header-compatto {
@@ -529,17 +529,17 @@
             font-weight: bold;
         }
 
-        .stato-badge-compatto.completato {
-            background: rgba(72, 187, 120, 0.2);
-            color: #48bb78;
-            border: 1px solid rgba(72, 187, 120, 0.3);
-        }
+            .stato-badge-compatto.completato {
+                background: rgba(72, 187, 120, 0.2);
+                color: #48bb78;
+                border: 1px solid rgba(72, 187, 120, 0.3);
+            }
 
-        .stato-badge-compatto.attesa {
-            background: rgba(255, 255, 255, 0.08);
-            color: #a0aec0;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
+            .stato-badge-compatto.attesa {
+                background: rgba(255, 255, 255, 0.08);
+                color: #a0aec0;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+            }
 
         .giocatori-line {
             display: grid;
@@ -793,7 +793,7 @@
                         <label>Punti per Vittoria:</label>
                         <input type="number" id="puntiVittoria" placeholder="1" min="1" value="1">
                     </div>
-                </div>             
+                </div>
                 <button class="btn btn-primary" onclick="proseguiStep2()">
                     ➡️ Configura Scontri Squadre
                 </button>
@@ -967,14 +967,14 @@
         async function caricaSessioneAttiva() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                
+
                 // 🎯 PRIORITÀ 1: Configurazione nell'URL
                 const configUrl = urlParams.get('configurazione');
                 if (configUrl) {
                     console.log('🎯 Configurazione specificata nell\'URL:', configUrl);
                     configurazioneCorrente = configUrl;
                     sessioneCorrente = null;
-                    
+
                     // Carica info configurazione per mostrare il nome
                     try {
                         const response = await fetch(`/api/configurazioni/${configUrl}`);
@@ -988,11 +988,11 @@
                     } catch (e) {
                         console.warn('⚠️ Non riesco a caricare il nome della configurazione');
                     }
-                    
+
                     console.log('✅ Configurazione caricata:', configurazioneCorrente);
                     return;
                 }
-                
+
                 // 📋 PRIORITÀ 2: Sessione nell'URL
                 const sessioneUrl = urlParams.get('sessione');
                 if (sessioneUrl) {
@@ -1018,18 +1018,18 @@
                     }
                     return;
                 }
-                
+
                 // 🔍 PRIORITÀ 3: Cerca sessione attiva come fallback
                 console.log('🔍 Nessun parametro nell\'URL, cerco sessione attiva...');
-                
+
                 const response = await fetch('/api/sessione-attiva');
-                
+
                 if (!response.ok) {
                     throw new Error('Errore nel caricamento della sessione attiva');
                 }
 
                 const data = await response.json();
-                
+
                 if (data && data.id) {
                     // ✅ Trovata sessione attiva
                     sessioneCorrente = data.id;
@@ -1038,7 +1038,7 @@
                     console.log('✅ Sessione attiva caricata:', sessioneCorrente);
                     console.log('✅ Configurazione:', configurazioneCorrente);
                     console.log('📋 Modalità sessione:', data.modalita);
-                    
+
                     const header = document.querySelector('.header h1');
                     if (header) {
                         header.textContent = `FantaGTS - Gestione Incontri - ${data.nome}`;
@@ -1048,7 +1048,7 @@
                     console.warn('⚠️ Nessuna sessione attiva trovata, uso configurazione default');
                     sessioneCorrente = null;
                     configurazioneCorrente = 'default';
-                    
+
                     showNotification('⚠️ Nessuna sessione attiva. Usando configurazione default.', 'warning');
                 }
 
@@ -1171,19 +1171,19 @@
                     const card = document.createElement('div');
                     card.className = turno.completato ? 'turno-card completato' : 'turno-card';
                     card.innerHTML = `
-                        <h3>Turno ${turno.turno_numero}</h3>
-                        <p><strong>${turno.nome_turno}</strong></p>
-                        <p>Punti vittoria: ${turno.punti_vittoria || 1}</p>
-                        ${turno.descrizione ? `<p>${turno.descrizione}</p>` : ''}
-                        <div style="margin-top: 10px;">
-                             <button class="btn btn-primary" onclick="mostraGestioneCoppie(${turno.id}, ${turno.turno_numero}, '${turno.nome_turno}')">
-                                📋 Gestisci Coppie
-                            </button>
-                            <button class="btn btn-secondary" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')">
-                                🗑️ Elimina
-                            </button>
-                        </div>
-                    `;
+                            <h3>Turno ${turno.turno_numero}</h3>
+                            <p><strong>${turno.nome_turno}</strong></p>
+                            <p>Punti vittoria: ${turno.punti_vittoria || 1}</p>
+                            ${turno.descrizione ? `<p>${turno.descrizione}</p>` : ''}
+                            <div style="margin-top: 10px;">
+                                 <button class="btn btn-primary" onclick="mostraGestioneCoppie(${turno.id}, ${turno.turno_numero}, '${turno.nome_turno}')">
+                                    📋 Gestisci Coppie
+                                </button>
+                                <button class="btn btn-secondary" onclick="eliminaTurno(${turno.id}, '${turno.nome_turno}')">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
+                        `;
                     grid.appendChild(card);
                 });
 
@@ -1241,11 +1241,12 @@
                 return;
             }
 
-            // MODIFICA: prima mostra lo step, POI aggiorna i select
+            aggiornaPosizioniDisponibili(); // ✅ ORA VIENE ESEGUITO
+
             nascondiTuttiGliStep();
             document.getElementById('step3').style.display = 'block';
             document.getElementById('step3').classList.add('active');
-            aggiornaPosizioniDisponibili();
+        }
 
         function tornaStep2() {
             nascondiTuttiGliStep();
@@ -1482,15 +1483,15 @@
                 const div = document.createElement('div');
                 div.className = 'scontro-item';
                 div.innerHTML = `
-            <span>
-                <strong>${scontro.nomeSquadra1}</strong> 
-                <span class="scontro-vs">VS</span> 
-                <strong>${scontro.nomeSquadra2}</strong>
-            </span>
-            <button class="btn btn-danger btn-sm" onclick="rimuoviScontro(${index})">
-                🗑️ Rimuovi
-            </button>
-        `;
+                <span>
+                    <strong>${scontro.nomeSquadra1}</strong>
+                    <span class="scontro-vs">VS</span>
+                    <strong>${scontro.nomeSquadra2}</strong>
+                </span>
+                <button class="btn btn-danger btn-sm" onclick="rimuoviScontro(${index})">
+                    🗑️ Rimuovi
+                </button>
+            `;
                 container.appendChild(div);
             });
         }
@@ -1561,15 +1562,15 @@
                 const div = document.createElement('div');
                 div.className = 'accoppiamento-item';
                 div.innerHTML = `
-            <span>
-                <strong>${acc.pos1}</strong> 
-                <span class="accoppiamento-plus">+</span> 
-                <strong>${acc.pos2}</strong>
-            </span>
-            <button class="btn btn-danger btn-sm" onclick="rimuoviAccoppiamento(${index})">
-                🗑️ Rimuovi
-            </button>
-        `;
+                <span>
+                    <strong>${acc.pos1}</strong>
+                    <span class="accoppiamento-plus">+</span>
+                    <strong>${acc.pos2}</strong>
+                </span>
+                <button class="btn btn-danger btn-sm" onclick="rimuoviAccoppiamento(${index})">
+                    🗑️ Rimuovi
+                </button>
+            `;
                 container.appendChild(div);
             });
 
@@ -1593,9 +1594,9 @@
         function generaRiepilogo() {
             // Riepilogo turno
             document.getElementById('riepilogoTurno').innerHTML = `
-        <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
-        <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
-    `;
+            <p><strong>Nome:</strong> Turno ${configTurno.numero}</p>
+            <p><strong>Punti per vittoria:</strong> ${configTurno.punti}</p>
+        `;
 
             // Riepilogo scontri
             const scontriHtml = configTurno.scontri.map(scontro =>
@@ -1612,11 +1613,11 @@
             // Calcolo incontri totali
             const totaleIncontri = configTurno.scontri.length * configTurno.accoppiamenti.length;
             document.getElementById('riepilogoIncontri').innerHTML = `
-        <p><strong>Totale incontri:</strong> ${totaleIncontri}</p>
-        <p class="text-info">
-            ${configTurno.scontri.length} scontri × ${configTurno.accoppiamenti.length} accoppiamenti = ${totaleIncontri} incontri
-        </p>
-    `;
+            <p><strong>Totale incontri:</strong> ${totaleIncontri}</p>
+            <p class="text-info">
+                ${configTurno.scontri.length} scontri × ${configTurno.accoppiamenti.length} accoppiamenti = ${totaleIncontri} incontri
+            </p>
+        `;
         }
 
         // ==================== CREAZIONE TURNO COMPLETO ====================
@@ -1723,7 +1724,7 @@
 
             // Reset form
             document.getElementById('numeroTurno').value = '';
-            document.getElementById('puntiVittoria').value = '1'; 
+            document.getElementById('puntiVittoria').value = '1';
 
             // Torna al primo step
             nascondiTuttiGliStep();
@@ -1769,15 +1770,15 @@
         function mostraGestioneCoppie(turnoId, turnoNumero, nomeTurno) {
             // Costruisci URL con configurazione e turno
             const params = new URLSearchParams();
-            
+
             if (configurazioneCorrente) {
                 params.append('configurazione', configurazioneCorrente);
             } else if (sessioneCorrente) {
                 params.append('sessione', sessioneCorrente);
             }
-            
+
             params.append('turno', turnoId);
-            
+
             // Reindirizza alla pagina incontri
             window.location.href = `/incontri.html?${params.toString()}`;
         }
@@ -1804,15 +1805,15 @@
                     const squadra2 = squadreDisponibili.find(s => s.numero === coppia.squadra2);
 
                     row.innerHTML = `
-                            <div><strong>${coppia.pos1}</strong></div>
-                            <div><strong>${coppia.pos2}</strong></div>
-                            <div class="coppia-vs">VS</div>
-                            <div>${squadra1 ? squadra1.colore : 'N/A'}</div>
-                            <div>${squadra2 ? squadra2.colore : 'N/A'}</div>
-                            <button class="btn btn-danger" onclick="eliminaCoppia(${coppia.id})" style="padding: 5px 10px;">
-                                🗑️
-                            </button>
-                        `;
+                                <div><strong>${coppia.pos1}</strong></div>
+                                <div><strong>${coppia.pos2}</strong></div>
+                                <div class="coppia-vs">VS</div>
+                                <div>${squadra1 ? squadra1.colore : 'N/A'}</div>
+                                <div>${squadra2 ? squadra2.colore : 'N/A'}</div>
+                                <button class="btn btn-danger" onclick="eliminaCoppia(${coppia.id})" style="padding: 5px 10px;">
+                                    🗑️
+                                </button>
+                            `;
 
                     container.appendChild(row);
                 });
@@ -2060,9 +2061,9 @@
                 const container = document.getElementById('incontriGenerati');
                 if (container) {
                     container.innerHTML = `<p style="color: #f56565; text-align: center; padding: 20px;">
-                ❌ Errore nel caricamento degli incontri<br>
-                <small>${error.message}</small>
-            </p>`;
+                    ❌ Errore nel caricamento degli incontri<br>
+                    <small>${error.message}</small>
+                </p>`;
                 }
             }
         }
@@ -2159,13 +2160,13 @@
             }
 
             headerOverview.innerHTML = `
-    <h3>📊 Overview Compatto per Pagina "Incontri Generati"</h3>
-    <div class="turno-info" style="background: rgba(66, 153, 225, 0.2); padding: 8px 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #4299e1;">
-        <strong>🎯 ${infoTurno}</strong>
-    </div>
-    <div class="caratteristiche">
-        ✨ <strong>Caratteristiche:</strong> Vista d'insieme compatta, progress bar, stato a colpo d'occhio
-    </div>
+        <h3>📊 Overview Compatto per Pagina "Incontri Generati"</h3>
+        <div class="turno-info" style="background: rgba(66, 153, 225, 0.2); padding: 8px 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #4299e1;">
+            <strong>🎯 ${infoTurno}</strong>
+        </div>
+        <div class="caratteristiche">
+            ✨ <strong>Caratteristiche:</strong> Vista d'insieme compatta, progress bar, stato a colpo d'occhio
+        </div>
 `;
             overviewContainer.appendChild(headerOverview);
 
@@ -2188,27 +2189,27 @@
 
                 const squadra1Color = getTeamColor(gruppo.squadra1?.colore);
                 const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
-                
+
                 scontroBox.innerHTML = `
-            <div class="scontro-header-mini">
-                <div class="squadra-mini" style="background: ${squadra1Color};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
-                <span class="vs-mini">vs</span>
-                <div class="squadra-mini" style="background: ${squadra2Color};">${gruppo.squadra2?.colore?.toUpperCase()}</div>
-            </div>
-            
-            <div class="stats-line">
-                ${totaleIncontri} incontri • ${completati} completati
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${percentualeCompletamento}%; background: ${percentualeCompletamento === 100 ? '#48bb78' : '#4299e1'};"></div>
+                <div class="scontro-header-mini">
+                    <div class="squadra-mini" style="background: ${squadra1Color};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
+                    <span class="vs-mini">vs</span>
+                    <div class="squadra-mini" style="background: ${squadra2Color};">${gruppo.squadra2?.colore?.toUpperCase()}</div>
                 </div>
-                <div class="progress-text">${percentualeCompletamento}%</div>
-            </div>
-            
-            <div class="incontri-mini-grid">
-                ${gruppo.incontri.map((incontro) => {
+
+                <div class="stats-line">
+                    ${totaleIncontri} incontri • ${completati} completati
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentualeCompletamento}%; background: ${percentualeCompletamento === 100 ? '#48bb78' : '#4299e1'};"></div>
+                    </div>
+                    <div class="progress-text">${percentualeCompletamento}%</div>
+                </div>
+
+                <div class="incontri-mini-grid">
+                    ${gruppo.incontri.map((incontro) => {
                     // Determina il colore di sfondo in base al vincitore
                     let sfondoColore = 'rgba(255, 255, 255, 0.08)';
                     let bordoColore = 'rgba(255, 255, 255, 0.15)';
@@ -2222,7 +2223,7 @@
                             bordoColore = squadra1Color + '80';
                             testoColore = squadra1Color;
                         } else if (incontro.risultato_coppia2 === 'Vittoria') {
-                            // Squadra 2 ha vinto  
+                            // Squadra 2 ha vinto
                             sfondoColore = squadra2Color + '40';
                             bordoColore = squadra2Color + '80';
                             testoColore = squadra2Color;
@@ -2235,19 +2236,19 @@
                     }
 
                     return `
-    <div class="incontro-mini-migliorato clickable-incontro" 
-         title="Clicca per andare all'incontro ${incontro.pos1} + ${incontro.pos2}"
-         style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore}; cursor: pointer; transition: all 0.2s ease;"
-         data-incontro-id="${incontro.id}"
-         onclick="vaiAIncontroSpecifico(${incontro.id})"
-         onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='0.8';"
-         onmouseout="this.style.transform='scale(1)'; this.style.opacity='1';">
-        ${incontro.pos1}+${incontro.pos2}
-    </div>
+        <div class="incontro-mini-migliorato clickable-incontro"
+             title="Clicca per andare all'incontro ${incontro.pos1} + ${incontro.pos2}"
+             style="background: ${sfondoColore}; border: 1px solid ${bordoColore}; color: ${testoColore}; cursor: pointer; transition: all 0.2s ease;"
+             data-incontro-id="${incontro.id}"
+             onclick="vaiAIncontroSpecifico(${incontro.id})"
+             onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='0.8';"
+             onmouseout="this.style.transform='scale(1)'; this.style.opacity='1';">
+            ${incontro.pos1}+${incontro.pos2}
+        </div>
 `;
                 }).join('')}
-            </div>
-        `;
+                </div>
+            `;
 
                 boxContainer.appendChild(scontroBox);
             });
@@ -2449,41 +2450,41 @@
             return new Promise((resolve) => {
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-        `;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10001;
+            `;
 
                 const box = document.createElement('div');
                 box.style.cssText = `
-            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 450px;
-            text-align: center;
-            color: white;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        `;
+                background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 450px;
+                text-align: center;
+                color: white;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                border: 1px solid rgba(255,255,255,0.1);
+            `;
 
                 box.innerHTML = `
-            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" 
-                    style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                ✅ Sì
-            </button>
-            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" 
-                    style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                ❌ No
-            </button>
-        `;
+                <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)"
+                        style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                    ✅ Sì
+                </button>
+                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)"
+                        style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                    ❌ No
+                </button>
+            `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
