@@ -1,0 +1,9 @@
+Squadra Royal
+M1 Tortori R
+M2 Petrelli N
+M3 Castorina V
+M4 Brunelli F
+M5 Caracausa A
+F1 Galluzzo P
+F2 Guarrera C
+F3 Pancotto E

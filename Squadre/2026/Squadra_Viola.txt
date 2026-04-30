@@ -1,0 +1,9 @@
+Squadra Viola
+M1 Castagnasso S
+M2 Micheli F
+M3 Cavo E
+M4 Califano A
+M5 Grotti P
+F1 Esposito B
+F2 Urbini P
+F3 Timossi V

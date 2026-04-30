@@ -1,0 +1,9 @@
+Squadra Rosso
+M1 Cavo A
+M2 Clavarino A
+M3 Stagno P
+M4 Gollo A
+M5 De Simone M
+F1 Lore S
+F2 Mussino M
+F3 Brunelli E

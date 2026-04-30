@@ -1,0 +1,9 @@
+Squadra Blu
+M1 Ciurlo L
+M2 Venzano M
+M3 Trucco P
+M4 Vinelli L
+M5 Cortella P
+F1 Ferrari G
+F2 Neffelli C
+F3 Usai M

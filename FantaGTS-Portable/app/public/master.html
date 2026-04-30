@@ -565,16 +565,7 @@
                 </div>
 
                 <div class="rounds-grid">
-                    <button class="round-btn available" data-round="M1">M1</button>
-                    <button class="round-btn available" data-round="M2">M2</button>
-                    <button class="round-btn available" data-round="M3">M3</button>
-                    <button class="round-btn available" data-round="M4">M4</button>
-                    <button class="round-btn available" data-round="M5">M5</button>
-                    <button class="round-btn available" data-round="M6">M6</button>
-                    <button class="round-btn available" data-round="M7">M7</button>
-                    <button class="round-btn available" data-round="F1">F1</button>
-                    <button class="round-btn available" data-round="F2">F2</button>
-                    <button class="round-btn available" data-round="F3">F3</button>
+                    <!-- I bottoni round vengono generati dinamicamente -->
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -738,6 +729,7 @@
         let sessioneCorrente = null;
         let sessioneInfo = null;
         let configurazioneCorrente = null;
+        let posizioniDisponibili = ['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2', 'F3']; // Default, verra' sovrascritto
 
         // Apri pagina sostituzioni passando la configurazione corrente
         function apriSostituzioni() {
@@ -751,6 +743,7 @@
         // Carica sessione all'avvio
         window.addEventListener('DOMContentLoaded', async () => {
             await caricaSessioneAttiva();
+            await caricaPosizioniRounds();
             inizializzaMaster();
         });
 
@@ -994,6 +987,39 @@
             setupEventListeners();
         }
 
+        // Carica posizioni disponibili dal server e genera bottoni round
+        async function caricaPosizioniRounds() {
+            try {
+                const configId = configurazioneCorrente || 'default';
+                const response = await fetch('/api/posizioni?configurazione=' + configId);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        posizioniDisponibili = data;
+                    }
+                }
+            } catch (e) {
+                console.log('Posizioni non caricate, uso default');
+            }
+
+            // Genera i bottoni round nella griglia
+            const grid = document.querySelector('.rounds-grid');
+            if (grid) {
+                grid.innerHTML = posizioniDisponibili.map(function (p) {
+                    return '<button class="round-btn available" data-round="' + p + '">' + p + '</button>';
+                }).join('');
+
+                // Riattacca gli event listener ai bottoni appena creati
+                grid.querySelectorAll('.round-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        if (!this.classList.contains('completed')) {
+                            selectRound(this.dataset.round);
+                        }
+                    });
+                });
+            }
+        }
+
         // ========================================
         // FINE GESTIONE SESSIONI
         // ========================================
@@ -1013,7 +1039,7 @@
                 ]);
 
                 // Ottieni tutti i risultati delle aste per round
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const rounds = posizioniDisponibili;
                 const astePerRound = {};
 
                 for (const round of rounds) {
@@ -1241,7 +1267,7 @@
                 }
 
                 // NUOVO: Seleziona automaticamente il prossimo round disponibile
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const rounds = posizioniDisponibili;
                 const currentIndex = rounds.indexOf(data.round);
                 let nextRoundSelected = false;
 
@@ -1668,7 +1694,7 @@
 
                 // Popola i slots delle posizioni
                 const slotsContainer = card.querySelector(`#squadra-slots-${partecipante.id}`);
-                const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const posizioni = posizioniDisponibili;
 
                 posizioni.forEach(pos => {
                     const giocatore = squadra.find(g => g.posizione === pos);
@@ -2263,7 +2289,7 @@
         // NUOVA FUNZIONE: Ottieni round completati dal database
         async function getRoundsCompletati() {
             try {
-                const rounds = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                const rounds = posizioniDisponibili;
                 const completati = [];
 
                 // 🆕 USA LA SESSIONE CORRENTE

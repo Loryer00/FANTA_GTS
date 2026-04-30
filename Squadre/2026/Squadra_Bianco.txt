@@ -1,0 +1,9 @@
+Squadra Bianco
+M1 Givri P
+M2 Gualco F
+M3 Marasciuolo M
+M4 Ravera G
+M5 Polidori G
+F1 Frojo F
+F2 Sormani B
+F3 Aiachini A

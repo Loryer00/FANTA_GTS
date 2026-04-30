@@ -1013,6 +1013,26 @@ function elaboraVincitoreUnico(offerte) {
 // FINE FASE 3: SISTEMA CONDIVISIONE GIOCATORI
 // =====================================================
 
+// Helper: determina le posizioni effettive leggendo i dati della prima squadra
+function calcolaPosizioniDaSquadre(squadre) {
+    const posizioni = [];
+    // Prendi la prima squadra come riferimento
+    const ref = squadre[0];
+    for (let i = 1; i <= 7; i++) {
+        const val = ref[`m${i}`];
+        if (val && val.trim() !== '') {
+            posizioni.push(`M${i}`);
+        }
+    }
+    for (let i = 1; i <= 3; i++) {
+        const val = ref[`f${i}`];
+        if (val && val.trim() !== '') {
+            posizioni.push(`F${i}`);
+        }
+    }
+    return posizioni;
+}
+
 async function generaSlots(configurazioneId = 'default') {
     try {
         console.log('🎯 Inizio generazione slots...');
@@ -1032,7 +1052,8 @@ async function generaSlots(configurazioneId = 'default') {
             throw new Error(`Nessuna squadra trovata per la configurazione ${configurazioneId}`);
         }
 
-        const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+        const posizioni = calcolaPosizioniDaSquadre(squadre);
+        console.log('Posizioni rilevate:', posizioni);
 
         // CANCELLA SLOTS ESISTENTI per questa configurazione
         console.log('🗑️ Cancellazione slots esistenti per configurazione...');
@@ -2954,6 +2975,22 @@ app.get('/api/slot-info/:slotId', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error('Errore slot-info:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Posizioni effettive per una configurazione (dinamico)
+app.get('/api/posizioni', async (req, res) => {
+    try {
+        const configurazioneId = req.query.configurazione || 'default';
+        const result = await db.query(
+            "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = $1 AND attivo = true AND giocatore_attuale IS NOT NULL AND TRIM(giocatore_attuale) != '' ORDER BY CASE posizione WHEN 'M1' THEN 1 WHEN 'M2' THEN 2 WHEN 'M3' THEN 3 WHEN 'M4' THEN 4 WHEN 'M5' THEN 5 WHEN 'M6' THEN 6 WHEN 'M7' THEN 7 WHEN 'F1' THEN 8 WHEN 'F2' THEN 9 WHEN 'F3' THEN 10 END",
+            [configurazioneId]
+        );
+        const posizioni = result.rows.map(r => r.posizione);
+        res.json(posizioni);
+    } catch (err) {
+        console.error('Errore API posizioni:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -6490,10 +6527,12 @@ WHERE s.configurazione_id = $1 AND s.attivo = true
 `, [configurazioneId]);
 
         // Raggruppa giocatori per posizione
-        const giocatoriPerPosizione = {
-            M1: [], M2: [], M3: [], M4: [], M5: [], M6: [], M7: [],
-            F1: [], F2: [], F3: []
-        };
+        const giocatoriPerPosizione = {};
+        result.rows.forEach(slot => {
+            if (!giocatoriPerPosizione[slot.posizione]) {
+                giocatoriPerPosizione[slot.posizione] = [];
+            }
+        });
 
         result.rows.forEach(slot => {
             giocatoriPerPosizione[slot.posizione].push({
@@ -6576,8 +6615,20 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             };
         });
 
-        const posizioniRichieste = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-        const completata = posizioniRichieste.every(pos => squadra[pos]);
+        const posizioniRichieste = Object.keys(squadra);
+        // Se la squadra e' vuota, prendi le posizioni dagli slot attivi della sessione
+        let completata = false;
+        if (posizioniRichieste.length > 0) {
+            completata = true;
+        } else {
+            // Recupera le posizioni reali dalla configurazione
+            const posizioniResult = await db.query(
+                "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = (SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1) AND attivo = true AND giocatore_attuale IS NOT NULL AND giocatore_attuale != ''",
+                [sessione_id]
+            );
+            const posizioniReali = posizioniResult.rows.map(r => r.posizione);
+            completata = posizioniReali.every(pos => squadra[pos]);
+        }
 
         res.json({
             partecipante_id: partecipanteId,

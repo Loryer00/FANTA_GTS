@@ -1,0 +1,9 @@
+Squadra Lilla
+M1 Ansaldo P
+M2 Consigliere P
+M3 Barbieri G
+M4 Borghi F
+M5 Brandi C
+F1 Pongiglione M
+F2 Capurro E
+F3 Lo Vetere M

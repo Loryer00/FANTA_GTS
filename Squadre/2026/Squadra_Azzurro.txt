@@ -1,0 +1,9 @@
+Squadra Azzurro
+M1 Faso P
+M2 Accarigi F
+M3 Ferri S
+M4 Buselli L
+M5 Balbo M
+F1 Uccelli S
+F2 Odone G
+F3 Wissiak E

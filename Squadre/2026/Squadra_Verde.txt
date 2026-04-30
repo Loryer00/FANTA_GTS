@@ -1,0 +1,9 @@
+Squadra Verde
+M1 Pagliani L
+M2 Novella G
+M3 Ganci S
+M4 Barbieri S
+M5 Frojo G
+F1 Baccelli B
+F2 Di Carlo S
+F3 Musante E

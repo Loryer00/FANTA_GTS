@@ -1,0 +1,9 @@
+Squadra Giallo
+M1 Beneventi A
+M2 Pedrini G
+M3 Piccardo A
+M4 Allegretti F
+M5 Borghi G
+F1 Ferretti R
+F2 Vinelli V
+F3 Zvir O

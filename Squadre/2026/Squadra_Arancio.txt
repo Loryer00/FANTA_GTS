@@ -1,0 +1,9 @@
+Squadra Arancio
+M1 Scuto M
+M2 Beltrami A
+M3 Cresta C
+M4 Baracchini F
+M5 Berti M
+F1 Marre Brunenghi F
+F2 Bozano E
+F3 Bardi S

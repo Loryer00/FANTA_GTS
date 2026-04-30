@@ -189,25 +189,40 @@ class FantaGTSDatabase {
     async generaSlots() {
         return new Promise((resolve, reject) => {
             this.getSquadre().then(squadre => {
-                const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-                
+                // Calcola posizioni dinamicamente dalla prima squadra
+                const posizioni = [];
+                if (squadre.length > 0) {
+                    const ref = squadre[0];
+                    for (let i = 1; i <= 7; i++) {
+                        if (ref['m' + i] && ref['m' + i].trim() !== '') posizioni.push('M' + i);
+                    }
+                    for (let i = 1; i <= 3; i++) {
+                        if (ref['f' + i] && ref['f' + i].trim() !== '') posizioni.push('F' + i);
+                    }
+                }
+
                 // Cancella slots esistenti
                 this.db.run("DELETE FROM slots", (err) => {
                     if (err) return reject(err);
 
                     const stmt = this.db.prepare("INSERT INTO slots (id, squadra_numero, colore, posizione, giocatore_attuale) VALUES (?, ?, ?, ?, ?)");
-                    
+
                     let inserimenti = 0;
                     const totaleInserimenti = squadre.length * posizioni.length;
+
+                    if (totaleInserimenti === 0) {
+                        stmt.finalize();
+                        return resolve(0);
+                    }
 
                     squadre.forEach(squadra => {
                         posizioni.forEach(pos => {
                             const slotId = `${pos}_${squadra.colore.toUpperCase()}`;
                             const giocatore = squadra[pos.toLowerCase()];
-                            
+
                             stmt.run(slotId, squadra.numero, squadra.colore, pos, giocatore, (err) => {
                                 if (err) return reject(err);
-                                
+
                                 inserimenti++;
                                 if (inserimenti === totaleInserimenti) {
                                     stmt.finalize();

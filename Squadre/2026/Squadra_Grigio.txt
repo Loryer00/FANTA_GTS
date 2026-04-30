@@ -1,0 +1,9 @@
+Squadra Grigio
+M1 Gallo M
+M2 Scarpa L
+M3 Scorza A
+M4 Paladino F
+M5 Franchini R
+F1 Vassallo M
+F2 Di Somma A
+F3 Galletta D

@@ -1,0 +1,9 @@
+Squadra Bordeaux
+M1 Lavagnino P
+M2 Franceschi L
+M3 Cassanello P
+M4 Trombetta P
+M5 Cali G
+F1 Gifuni E
+F2 Dapelo E
+F3 Gabbiadini R

@@ -1,0 +1,9 @@
+Squadra Lime
+M1 Cevasco L
+M2 Bilanci C
+M3 Airenti F
+M4 Di Liberto M
+M5 Allavena V
+F1 Manzone V
+F2 Carbone S
+F3 Carassale I

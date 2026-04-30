@@ -406,7 +406,7 @@
             nomePartecipante: '',
             giocatoriDisponibili: {},
             squadraSelezionata: {},
-            posizioniRichieste: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3']
+            posizioniRichieste: [] // Verra' popolato dinamicamente dal server
         };
 
         // Inizializzazione
@@ -485,6 +485,7 @@
                 }
 
                 appState.giocatoriDisponibili = data.giocatoriPerPosizione;
+                appState.posizioniRichieste = Object.keys(data.giocatoriPerPosizione);
                 document.getElementById('sessionName').textContent = data.sessione_nome;
 
                 console.log('✅ Giocatori disponibili caricati:', data.totale);

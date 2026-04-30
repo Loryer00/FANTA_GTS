@@ -806,12 +806,12 @@
 
                 <div class="scontri-configurator">
                     <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
-                        <select id="squadra1Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                            <option value="">Seleziona Squadra 1</option>
+                        <select id="pos1Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <!-- Opzioni generate dinamicamente -->
                         </select>
-                        <span style="font-weight: bold; color: #f56565; font-size: 1.2em;">VS</span>
-                        <select id="squadra2Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                            <option value="">Seleziona Squadra 2</option>
+                        <span style="font-weight: bold; color: #4299e1; font-size: 1.2em;">+</span>
+                        <select id="pos2Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                            <!-- Opzioni generate dinamicamente -->
                         </select>
                         <button class="btn btn-success" onclick="aggiungiScontro()">
                             ➕ Aggiungi
@@ -958,6 +958,7 @@
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', async () => {
             await caricaSessioneAttiva();
+            await popolaSelectPosizioni();
             caricaSquadre();
             caricaTurni();
         });
@@ -1056,6 +1057,29 @@
                 showNotification(`Errore: ${error.message}`, 'error');
                 sessioneCorrente = null;
                 configurazioneCorrente = 'default';
+            }
+        }
+
+        // Popola le select degli accoppiamenti con le posizioni reali
+        async function popolaSelectPosizioni() {
+            try {
+                const configId = configurazioneCorrente || 'default';
+                const response = await fetch('/api/posizioni?configurazione=' + configId);
+                let posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2', 'F3'];
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) posizioni = data;
+                }
+                ['pos1Select', 'pos2Select'].forEach(selId => {
+                    const sel = document.getElementById(selId);
+                    if (sel) {
+                        sel.innerHTML = posizioni.map(p =>
+                            '<option value="' + p + '">' + p + '</option>'
+                        ).join('');
+                    }
+                });
+            } catch (e) {
+                console.log('Errore caricamento posizioni per select');
             }
         }
 

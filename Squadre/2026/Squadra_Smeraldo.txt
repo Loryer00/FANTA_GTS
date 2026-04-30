@@ -1,0 +1,9 @@
+Squadra Smeraldo
+M1 Toso E
+M2 Gattorno M
+M3 Carpaneto M
+M4 Barra Caracciolo F
+M5 Tanganelli R
+F1 Pongiglione C
+F2 De Simone C
+F3 Gadeddu A

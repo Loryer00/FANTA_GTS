@@ -1,0 +1,9 @@
+Squadra Crema
+M1 Pisano P
+M2 Bozano P
+M3 Pongiglione G
+M4 Fresco L
+M5 Conte P
+F1 Cuni I
+F2 Brigo C
+F3 Briolis S

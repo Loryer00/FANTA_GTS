@@ -1,0 +1,9 @@
+Squadra Rosa
+M1 Spano V
+M2 Dagnino M
+M3 Alessi B
+M4 Mori L
+M5 Azzarita C
+F1 Naso A
+F2 Gerli F
+F3 Maltese L
