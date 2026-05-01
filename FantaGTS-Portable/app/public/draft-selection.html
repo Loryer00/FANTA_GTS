@@ -362,7 +362,7 @@
         <div class="progress-container">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill" style="width: 0%;">
-                    <span id="progressText">0/10</span>
+                    <span id="progressText">0/0</span>
                 </div>
             </div>
         </div>
@@ -388,7 +388,7 @@
                 </div>
                 <div class="save-button-container">
                     <button class="btn-save" id="btnSalva" disabled onclick="salvaSquadra()">
-                        💾 Salva Squadra (0/10)
+                        💾 Salva Squadra (0/0)
                     </button>
                 </div>
             </div>
@@ -731,7 +731,8 @@
                 console.error('❌ Errore salvataggio:', err);
                 showAlert('Errore: ' + err.message, 'error');
                 btnSalva.disabled = false;
-                btnSalva.textContent = `💾 Salva Squadra (10/10)`;
+                const totale = appState.posizioniRichieste.length;
+                btnSalva.textContent = `💾 Salva Squadra (${totale}/${totale})`;
             }
         }
 

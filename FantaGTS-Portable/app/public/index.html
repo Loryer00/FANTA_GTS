@@ -1978,7 +1978,7 @@
             if (creditsElement) creditsElement.textContent = playerData.credits;
             if (creditsDisplay) creditsDisplay.textContent = playerData.credits;
 
-            // Controlla se l'asta è terminata (tutti i 10 giocatori acquistati)
+            // Controlla se l'asta è terminata (tutti i giocatori acquistati)
             try {
                 const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneCorrente}`);
                 if (response.ok) {
@@ -1987,7 +1987,9 @@
                     const giocatoriTotali = squadra.length;
 
                     // Se ha acquistato tutti i 10 giocatori, mostra il punteggio invece dei crediti
-                    if (giocatoriTotali === 10 && statsDisplay) {
+                    // Confronta con il numero di slot generati nel DOM
+                    const slotTotali = document.querySelectorAll('#teamSlots .team-slot').length || 10;
+                    if (giocatoriTotali >= slotTotali && statsDisplay) {
                         const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
                         statsDisplay.innerHTML = `🏆 <span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
                     } else if (statsDisplay) {
@@ -2578,14 +2580,18 @@
                                 <div class="partecipante-name">${partecipante.nome}</div>
                                 <div class="partecipante-stats">
                                     <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
-                                    <span style="color: #4299e1;">👤 ${giocatoriVinti}/10</span>
+                                    <span style="color: #4299e1;">👤 ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
                                 </div>
                             </div>
                             <div class="partecipante-team-grid">
                     `;
 
-                // Mostra tutti gli slot (M1-M7, F1-F3)
-                const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+                // Mostra tutti gli slot dinamicamente in base alle posizioni reali
+                // Prende le posizioni dagli slot gia generati nel DOM
+                const slotElements = document.querySelectorAll('#teamSlots .team-slot');
+                const posizioni = slotElements.length > 0
+                    ? Array.from(slotElements).map(el => el.dataset.position)
+                    : Object.keys(squadra.reduce((acc, g) => { acc[g.posizione] = true; return acc; }, {}));
 
                 posizioni.forEach(pos => {
                     const giocatore = squadra.find(g => g.posizione === pos);
@@ -3539,8 +3545,9 @@
                         const squadraData = await response.json();
                         const squadra = Array.isArray(squadraData) ? squadraData : (squadraData.squadra || []);
 
-                        if (squadra.length >= 10) {
-                            console.log('✅ Asta completata! Tutte le 10 posizioni sono occupate');
+                        const slotTotali = document.querySelectorAll('#teamSlots .team-slot').length || 10;
+                        if (squadra.length >= slotTotali) {
+                            console.log('Asta completata! Tutte le posizioni sono occupate');
                             // Mostra la squadra invece della waiting phase
                             document.getElementById('bidding-phase').style.display = 'none';
                             document.getElementById('waiting-phase').style.display = 'none';
