@@ -718,6 +718,9 @@ let gameState = {
     lastOfferteCount: 0
 };
 
+let monitorIntervalGlobal = null;
+let timeoutSicurezzaGlobal = null;
+
 // Genera codice sessione univoco (5 caratteri)
 function generaCodiceSessione() {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Esclusi 0,O,1,I per chiarezza
@@ -2990,7 +2993,19 @@ app.get('/api/slot-info/:slotId', async (req, res) => {
 // GET: Posizioni effettive per una configurazione (dinamico)
 app.get('/api/posizioni', async (req, res) => {
     try {
-        const configurazioneId = req.query.configurazione || 'default';
+        let configurazioneId = req.query.configurazione || 'default';
+
+        // Se viene passato sessione_id, ricava la configurazione dalla sessione
+        if (req.query.sessione_id) {
+            const sessResult = await db.query(
+                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
+                [req.query.sessione_id]
+            );
+            if (sessResult.rows.length > 0 && sessResult.rows[0].configurazione_id) {
+                configurazioneId = sessResult.rows[0].configurazione_id;
+            }
+        }
+
         const result = await db.query(
             "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = $1 AND attivo = true AND giocatore_attuale IS NOT NULL AND TRIM(giocatore_attuale) != '' ORDER BY CASE posizione WHEN 'M1' THEN 1 WHEN 'M2' THEN 2 WHEN 'M3' THEN 3 WHEN 'M4' THEN 4 WHEN 'M5' THEN 5 WHEN 'M6' THEN 6 WHEN 'M7' THEN 7 WHEN 'F1' THEN 8 WHEN 'F2' THEN 9 WHEN 'F3' THEN 10 END",
             [configurazioneId]
@@ -4268,49 +4283,73 @@ app.post('/api/test-notification', async (req, res) => {
 
 // Monitoraggio automatico offerte - VERSIONE CORRETTA
 function avviaMonitoraggioOfferte() {
-    // ✨ NUOVO: Timeout di sicurezza - chiudi automaticamente dopo 60 secondi
-    const timeoutSicurezza = setTimeout(async () => {
-        if (gameState.asteAttive) {
-            console.log('⏰ TIMEOUT SICUREZZA - Chiusura forzata asta dopo 60 secondi');
-            clearInterval(monitorInterval);
+    // PULISCI eventuali monitoraggi precedenti
+    if (monitorIntervalGlobal) {
+        clearInterval(monitorIntervalGlobal);
+        monitorIntervalGlobal = null;
+    }
+    if (timeoutSicurezzaGlobal) {
+        clearTimeout(timeoutSicurezzaGlobal);
+        timeoutSicurezzaGlobal = null;
+    }
+
+    // Salva il numero di asta corrente per evitare race condition
+    const astaAlAvvio = gameState.astaCorrente;
+    const roundAlAvvio = gameState.roundAttivo;
+
+    // Timeout di sicurezza - chiudi automaticamente dopo 60 secondi
+    timeoutSicurezzaGlobal = setTimeout(async () => {
+        // Verifica che sia ancora la stessa asta
+        if (gameState.asteAttive && gameState.astaCorrente === astaAlAvvio && gameState.roundAttivo === roundAlAvvio) {
+            console.log('TIMEOUT SICUREZZA - Chiusura forzata asta dopo 60 secondi');
+            if (monitorIntervalGlobal) {
+                clearInterval(monitorIntervalGlobal);
+                monitorIntervalGlobal = null;
+            }
             await terminaRound(true);
         }
-    }, 60000); // 60 secondi
+    }, 60000);
 
-    const monitorInterval = setInterval(async () => {
+    monitorIntervalGlobal = setInterval(async () => {
         if (!gameState.asteAttive) {
-            clearInterval(monitorInterval);
+            clearInterval(monitorIntervalGlobal);
+            monitorIntervalGlobal = null;
+            if (timeoutSicurezzaGlobal) {
+                clearTimeout(timeoutSicurezzaGlobal);
+                timeoutSicurezzaGlobal = null;
+            }
+            return;
+        }
+
+        // Verifica che sia ancora la stessa asta (anti race-condition)
+        if (gameState.astaCorrente !== astaAlAvvio || gameState.roundAttivo !== roundAlAvvio) {
+            console.log(`Monitoraggio obsoleto (asta ${astaAlAvvio} vs ${gameState.astaCorrente}) - stop`);
+            clearInterval(monitorIntervalGlobal);
+            monitorIntervalGlobal = null;
             return;
         }
 
         try {
-            // 🆕 USA la sessione dal gameState se disponibile
             const sessione = gameState.sessioneCorrente || sessioneCorrente;
 
-            // NUOVO: Ottieni TUTTI i partecipanti dal database
             const partecipantiResult = await db.query(`
                 SELECT DISTINCT p.id, p.nome 
                 FROM partecipanti_fantagts p
                 INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
                 WHERE p.attivo = true 
                 AND psa.sessione_id = $1
-            `, [sessione]);  // 🔧 USA sessione invece di sessioneCorrente
+            `, [sessione]);
 
             const tuttiPartecipanti = partecipantiResult.rows;
             const totalePartecipanti = tuttiPartecipanti.length;
 
             if (totalePartecipanti === 0) {
-                console.log('⚠️ Nessun partecipante registrato nel database');
+                console.log('Nessun partecipante registrato nel database');
                 return;
             }
 
-            // 🔍 Conta le offerte ricevute per questo round
-            const offerteRound = Array.from(gameState.offerteTemporanee.values())
-                .filter(o => o.round === gameState.roundAttivo);
-
             const partecipantiCheHannoOfferto = new Set();
 
-            // Identifica CHI ha fatto offerte
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
                 if (connesso && connesso.partecipanteId && offerta.round === gameState.roundAttivo) {
@@ -4322,47 +4361,27 @@ function avviaMonitoraggioOfferte() {
             const mancano = totalePartecipanti - offerteRicevute;
             const tuttiHannoOfferto = offerteRicevute >= totalePartecipanti;
 
-            // 📊 Log ridotto - solo ogni 10 secondi o quando cambia stato
+            // Log ridotto
             const currentTime = Date.now();
             const shouldLog = !gameState.lastMonitorLog ||
-                (currentTime - gameState.lastMonitorLog) > 10000 || // Ogni 10 secondi
-                gameState.lastOfferteCount !== offerteRicevute; // O quando cambiano le offerte
+                (currentTime - gameState.lastMonitorLog) > 10000 ||
+                gameState.lastOfferteCount !== offerteRicevute;
 
             if (shouldLog) {
-                console.log(`\n📊 === STATO MONITORAGGIO OFFERTE ===`);
-                console.log(`Round attivo: ${gameState.roundAttivo}`);
-                console.log(`Asta corrente: ${gameState.astaCorrente}`);
-                console.log(`Offerte temporanee totali: ${gameState.offerteTemporanee.size}`);
-                console.log(`Partecipanti in attesa: ${gameState.partecipantiInAttesa.length} → [${gameState.partecipantiInAttesa.join(', ')}]`);
+                console.log(`\nSTATO MONITORAGGIO - Round: ${gameState.roundAttivo}, Asta: ${gameState.astaCorrente}`);
+                console.log(`Offerte: ${offerteRicevute}/${totalePartecipanti} | In attesa: ${gameState.partecipantiInAttesa.length}`);
 
-                console.log(`\n🔍 ANALISI OFFERTE:`);
-                gameState.offerteTemporanee.forEach((offerta, socketId) => {
-                    const connesso = gameState.connessi.get(socketId);
-                    console.log(`   Socket ${socketId.substring(0, 8)}:`);
-                    console.log(`      - Nome: ${connesso?.nome || 'SCONOSCIUTO'}`);
-                    console.log(`      - Partecipante ID: ${connesso?.partecipanteId || 'NESSUNO'}`);
-                    console.log(`      - Offerta round: ${offerta.round}`);
-                    console.log(`      - Match round? ${offerta.round === gameState.roundAttivo ? 'SÌ' : 'NO'}`);
-                    console.log(`      - In attesa? ${connesso?.partecipanteId && gameState.partecipantiInAttesa.includes(connesso.partecipanteId) ? 'SÌ' : 'NO'}`);
-                    console.log(`      - Conteggiato? ${connesso?.partecipanteId && partecipantiCheHannoOfferto.has(connesso.partecipanteId) ? 'SÌ' : 'NO'}`);
-                });
-
-                console.log(`\n📊 ROUND ${gameState.roundAttivo}: ${offerteRicevute}/${totalePartecipanti} offerte ricevute`);
-
-                // Solo se mancano offerte, mostra chi aspettiamo
                 if (mancano > 0) {
                     const nonHannoOfferto = tuttiPartecipanti
                         .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                         .map(p => p.nome);
-                    console.log(`   ⏳ Aspettando: ${nonHannoOfferto.join(', ')}`);
+                    console.log(`Aspettando: ${nonHannoOfferto.join(', ')}`);
                 }
 
-                // Aggiorna stato per prossimo log
                 gameState.lastMonitorLog = currentTime;
                 gameState.lastOfferteCount = offerteRicevute;
             }
 
-            // Lista completa per elaborazione (mantieni questa parte)
             const hannoOfferto = Array.from(partecipantiCheHannoOfferto);
             const nonHannoOfferto = tuttiPartecipanti
                 .filter(p => !partecipantiCheHannoOfferto.has(p.id))
@@ -4382,10 +4401,9 @@ function avviaMonitoraggioOfferte() {
                 }))
             };
 
-            // 📤 Invia aggiornamento a tutti i client
             io.emit('offerte_update', statoOfferte);
 
-            // 🏁 CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
+            // CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
             const partecipantiInAttesaCheHannoOfferto = new Set();
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
@@ -4398,20 +4416,26 @@ function avviaMonitoraggioOfferte() {
 
             const tuttiInAttesaHannoOfferto = partecipantiInAttesaCheHannoOfferto.size >= gameState.partecipantiInAttesa.length;
 
-            if (tuttiInAttesaHannoOfferto && gameState.partecipantiInAttesa.length > 0) {
-                console.log(`🎉 TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
-                clearInterval(monitorInterval);
+            // SAFEGUARD: verifica che ci siano effettivamente offerte (non chiudere su mappa vuota)
+            if (tuttiInAttesaHannoOfferto && gameState.partecipantiInAttesa.length > 0 && gameState.offerteTemporanee.size > 0) {
+                console.log(`TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
+                clearInterval(monitorIntervalGlobal);
+                monitorIntervalGlobal = null;
+                if (timeoutSicurezzaGlobal) {
+                    clearTimeout(timeoutSicurezzaGlobal);
+                    timeoutSicurezzaGlobal = null;
+                }
 
                 if (gameState.asteAttive) {
-                    console.log('🔄 Avviando elaborazione risultati asta...');
+                    console.log('Avviando elaborazione risultati asta...');
                     terminaRound();
                 }
             }
 
         } catch (error) {
-            console.error('❌ Errore monitoraggio offerte:', error);
+            console.error('Errore monitoraggio offerte:', error);
         }
-    }, 1000); // Controlla ogni secondo
+    }, 1000);
 }
 
 // API per forzare fine round

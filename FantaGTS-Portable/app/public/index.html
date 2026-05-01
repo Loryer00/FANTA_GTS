@@ -2285,10 +2285,25 @@
                     console.log('Squadra Draft caricata:', squadra.length, 'giocatori');
 
                 } else {
+                    // Recupera posizioni reali dal server anche per le aste
+                    try {
+                        const posizioniResponse = await fetch(`/api/posizioni-round?sessione_id=${sessioneId}`);
+                        if (posizioniResponse.ok) {
+                            posizioniDaServer = await posizioniResponse.json();
+                            console.log('Posizioni reali da server (asta):', posizioniDaServer);
+                        }
+                    } catch (err) {
+                        console.error('Errore recupero posizioni:', err);
+                    }
+
                     const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneId}`);
 
                     if (!response.ok) {
                         console.log('Squadra Aste non ancora formata');
+                        // Genera comunque gli slot corretti se abbiamo le posizioni
+                        if (posizioniDaServer && posizioniDaServer.length > 0) {
+                            generaSlotDinamici(posizioniDaServer);
+                        }
                         resetTeamUI();
                         return;
                     }
