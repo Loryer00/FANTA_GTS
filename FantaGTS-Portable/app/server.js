@@ -1294,12 +1294,11 @@ async function terminaRoundCompleto() {
 // Notifiche Push
 async function inviaNotifichePush(notificationData) {
     try {
-        const { title, body, url, targetUsers } = notificationData;
-        console.log('📨 INVIO NOTIFICHE PUSH:', { title, body, targetUsers });
+        const { title, body, url, targetUsers, sessioneId } = notificationData;
+        console.log('INVIO NOTIFICHE PUSH:', { title, body, targetUsers, sessioneId });
 
         // 1. NOTIFICHE AI CLIENT CONNESSI (tramite WebSocket) - SEMPRE FUNZIONA
-        // 🆕 DEBUG: Mostra tutti i socket connessi
-        console.log('🔍 DEBUG gameState.connessi:',
+        console.log('DEBUG gameState.connessi:',
             Array.from(gameState.connessi.entries()).map(([socketId, conn]) => ({
                 socketId: socketId,
                 nome: conn.nome,
@@ -1313,7 +1312,7 @@ async function inviaNotifichePush(notificationData) {
             if (connesso.tipo === 'partecipante' &&
                 (!targetUsers || targetUsers.includes(connesso.partecipanteId))) {
 
-                console.log(`📨 Invio notifica WebSocket a: ${connesso.nome}`);
+                console.log(`Invio notifica WebSocket a: ${connesso.nome}`);
                 io.to(socketId).emit('show_notification', {
                     title: title,
                     body: body,
@@ -1329,7 +1328,7 @@ async function inviaNotifichePush(notificationData) {
         let subscriptions = [];
 
         if (!webPushConfigured) {
-            console.log('⚠️ Web Push non configurato - saltando notifiche push');
+            console.log('Web Push non configurato - saltando notifiche push');
             return {
                 success: true,
                 websocket: notificheTramiteSocket,
@@ -1340,19 +1339,25 @@ async function inviaNotifichePush(notificationData) {
             };
         }
 
-        // Cerca subscription nel database - Recupera la sessione attiva dinamicamente
+        // Cerca subscription nel database
         try {
-            // 🔍 Recupera la sessione attiva corrente
-            const sessioneAttivaQuery = await db.query(
-                'SELECT id FROM sessioni_fantagts WHERE attiva = true LIMIT 1'
-            );
-            
-            const sessioneAttiva = sessioneAttivaQuery.rows.length > 0 
-                ? sessioneAttivaQuery.rows[0].id 
-                : null;
-            
-            if (!sessioneAttiva) {
-                console.log('⚠️ Nessuna sessione attiva trovata per le notifiche push');
+            // Determina la/le sessioni da usare
+            let sessioniAttive = [];
+
+            if (sessioneId) {
+                // Sessione specifica passata dal chiamante
+                sessioniAttive = [sessioneId];
+                console.log(`Usando sessione specifica: ${sessioneId}`);
+            } else {
+                // Recupera TUTTE le sessioni attive
+                const sessioneAttivaQuery = await db.query(
+                    'SELECT id FROM sessioni_fantagts WHERE attiva = true'
+                );
+                sessioniAttive = sessioneAttivaQuery.rows.map(r => r.id);
+            }
+
+            if (sessioniAttive.length === 0) {
+                console.log('Nessuna sessione attiva trovata per le notifiche push');
                 return {
                     success: true,
                     websocket: notificheTramiteSocket,
@@ -1361,57 +1366,60 @@ async function inviaNotifichePush(notificationData) {
                     message: 'Notifiche WebSocket inviate, nessuna sessione attiva per push'
                 };
             }
-            
-            console.log(`🎮 Usando sessione attiva: ${sessioneAttiva} per notifiche push`);
 
-            // 🆕 RIATTIVA SUBSCRIPTION PRIMA DI INVIARE
+            console.log(`Sessioni attive per notifiche push: ${sessioniAttive.join(', ')}`);
+
+            // Riattiva subscription per utenti target
             if (targetUsers && targetUsers.length > 0) {
-                console.log('🔄 Riattivazione subscription per utenti:', targetUsers);
                 for (const userId of targetUsers) {
-                    // Cerca subscription esistenti per questo utente
                     const existingSub = await db.query(
                         'SELECT * FROM push_subscriptions WHERE partecipante_id = $1 ORDER BY created_at DESC LIMIT 1',
                         [userId]
                     );
 
                     if (existingSub.rows.length > 0) {
-                        // Riattiva e aggiorna sessione
                         await db.query(`
                             UPDATE push_subscriptions 
                             SET attiva = true, 
-                                sessione_id = $1, 
                                 last_seen = CURRENT_TIMESTAMP 
-                            WHERE partecipante_id = $2
-                        `, [sessioneAttiva, userId]);
-                        console.log(`✅ Subscription riattivata per ${userId} in sessione ${sessioneAttiva}`);
-                    } else {
-                        console.log(`⚠️ Nessuna subscription trovata per ${userId} - dovrà attivarle manualmente`);
+                            WHERE partecipante_id = $1
+                        `, [userId]);
+                        console.log(`Subscription riattivata per ${userId}`);
                     }
                 }
             }
 
+            // Cerca subscription filtrando per TUTTE le sessioni attive
+            const sessionPlaceholders = sessioniAttive.map((_, i) => `$${i + 1}`).join(',');
+
             let query, params;
             if (targetUsers && targetUsers.length > 0) {
-                const placeholders = targetUsers.map((_, i) => `$${i + 2}`).join(',');
-                query = `SELECT * FROM push_subscriptions 
-            WHERE partecipante_id IN (${placeholders}) 
-            AND partecipante_id IN (
-                SELECT id FROM partecipanti_fantagts 
-                WHERE sessione_id = $1 AND attivo = true
-            ) AND attiva = true`;
-                params = [sessioneAttiva, ...targetUsers];
+                const userPlaceholders = targetUsers.map((_, i) => `$${sessioniAttive.length + i + 1}`).join(',');
+                query = `SELECT DISTINCT ON (endpoint) * FROM push_subscriptions 
+                    WHERE partecipante_id IN (${userPlaceholders}) 
+                    AND partecipante_id IN (
+                        SELECT id FROM partecipanti_fantagts 
+                        WHERE attivo = true
+                    ) 
+                    AND sessione_id IN (${sessionPlaceholders})
+                    AND attiva = true
+                    ORDER BY endpoint, last_seen DESC`;
+                params = [...sessioniAttive, ...targetUsers];
             } else {
-                query = `SELECT * FROM push_subscriptions 
-            WHERE partecipante_id IN (
-                SELECT id FROM partecipanti_fantagts 
-                WHERE sessione_id = $1 AND attivo = true
-            ) AND attiva = true`;
-                params = [sessioneAttiva];
+                query = `SELECT DISTINCT ON (endpoint) * FROM push_subscriptions 
+                    WHERE partecipante_id IN (
+                        SELECT id FROM partecipanti_fantagts 
+                        WHERE attivo = true
+                    ) 
+                    AND sessione_id IN (${sessionPlaceholders})
+                    AND attiva = true
+                    ORDER BY endpoint, last_seen DESC`;
+                params = [...sessioniAttive];
             }
 
             const result = await db.query(query, params);
             subscriptions = result.rows;
-            console.log(`📱 SUBSCRIPTION TROVATE: ${subscriptions.length} per sessione ${sessioneAttiva}`);
+            console.log(`SUBSCRIPTION TROVATE: ${subscriptions.length} per ${sessioniAttive.length} sessioni`);
         } catch (dbError) {
             console.error('❌ ERRORE QUERY SUBSCRIPTIONS:', dbError);
             return {
@@ -3150,7 +3158,8 @@ app.post('/api/avvia-round/:round', async (req, res) => {
                 title: `FantaGTS - Round ${round}`,
                 body: `È iniziato il round ${round}! Fai la tua offerta!`,
                 url: `/?sessione=${sessione}&auto_open=true`,
-                targetUsers: partecipantiIds
+                targetUsers: partecipantiIds,
+                sessioneId: sessione
             });
         } catch (error) {
             console.error('❌ ERRORE INVIO NOTIFICHE:', error);
@@ -4110,21 +4119,6 @@ app.get('/api/slots-round/:round', async (req, res) => {
     }
 });
 
-// Endpoint per fornire la chiave pubblica VAPID ai client
-app.get('/api/vapid-public-key', (req, res) => {
-    if (!webPushConfigured || !currentVapidKeys) {
-        return res.status(503).json({
-            error: 'Web Push non configurato',
-            publicKey: null
-        });
-    }
-
-    res.json({
-        publicKey: currentVapidKeys.publicKey,
-        configured: true
-    });
-});
-
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
@@ -4253,12 +4247,12 @@ app.post('/api/test-notification', async (req, res) => {
         console.log('🧪 Test notifica richiesto per:', partecipanteId);
 
         // Invia notifica di test
-        const result = await inviaNotifiche(
-            '🧪 Test Notifica',
-            'Questa è una notifica di test. Se la vedi, le notifiche funzionano correttamente! 🎉',
-            '/',
-            [partecipanteId]
-        );
+        const result = await inviaNotifichePush({
+            title: 'Test Notifica',
+            body: 'Questa e una notifica di test. Se la vedi, le notifiche funzionano correttamente!',
+            url: '/',
+            targetUsers: [partecipanteId]
+        });
 
         res.json({
             success: true,
@@ -5504,33 +5498,6 @@ app.post('/api/reset/:livello', async (req, res) => {
         }
     } catch (error) {
         console.error('Errore reset:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// API per test notifiche push
-app.post('/api/test-notification/:partecipanteId', async (req, res) => {
-    try {
-        const partecipanteId = req.params.partecipanteId;
-        const { title, body } = req.body;
-
-        console.log(`🧪 TEST NOTIFICA per: ${partecipanteId}`);
-
-        const result = await inviaNotifichePush({
-            title: title || 'Test FantaGTS',
-            body: body || 'Questa è una notifica di test dal Master!',
-            url: '/',
-            targetUsers: [partecipanteId]
-        });
-
-        res.json({
-            success: true,
-            result: result,
-            message: 'Notifica di test inviata'
-        });
-
-    } catch (error) {
-        console.error('❌ Errore test notifica:', error);
         res.status(500).json({ error: error.message });
     }
 });
