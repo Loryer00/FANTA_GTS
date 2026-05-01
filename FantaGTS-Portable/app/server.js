@@ -6629,7 +6629,8 @@ app.get('/api/draft/squadra/:partecipanteId', async (req, res) => {
             squadra,
             completata,
             posizioniCompilate: result.rows.length,
-            posizioniTotali: posizioniReali.length
+            posizioniTotali: posizioniReali.length,
+            posizioni: posizioniReali
         });
     } catch (err) {
         console.error('❌ Errore recupero squadra Draft:', err);

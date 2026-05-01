@@ -1091,16 +1091,7 @@
                 <div class="section">
                     <h2>🏆 La Mia Squadra</h2>
                     <div class="team-slots" id="teamSlots">
-                        <div class="team-slot empty" data-position="M1"><strong>M1</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M2"><strong>M2</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M3"><strong>M3</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M4"><strong>M4</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M5"><strong>M5</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M6"><strong>M6</strong><br>-</div>
-                        <div class="team-slot empty" data-position="M7"><strong>M7</strong><br>-</div>
-                        <div class="team-slot empty" data-position="F1"><strong>F1</strong><br>-</div>
-                        <div class="team-slot empty" data-position="F2"><strong>F2</strong><br>-</div>
-                        <div class="team-slot empty" data-position="F3"><strong>F3</strong><br>-</div>
+                        <!-- Popolato dinamicamente da loadPlayerTeam -->
                     </div>
                 </div>
             </div>
@@ -2020,21 +2011,48 @@
         }
 
         function resetTeamUI() {
-            const positions = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
-            positions.forEach(pos => {
-                const slot = document.querySelector(`[data-position="${pos}"]`);
-                if (slot) {
-                    slot.classList.remove('filled');
-                    slot.classList.add('empty');
-                    slot.innerHTML = `<strong>${pos}</strong><br>-`;
-
-                    // 🆕 RESET COMPLETO DEGLI STILI
-                    slot.style.background = '';
-                    slot.style.border = '';
-                    slot.style.color = '';
-                    slot.style.boxShadow = '';
-                }
+            // Dinamico: resetta tutti gli slot presenti nel DOM
+            const allSlots = document.querySelectorAll('#teamSlots .team-slot');
+            allSlots.forEach(slot => {
+                const pos = slot.dataset.position;
+                slot.classList.remove('filled');
+                slot.classList.add('empty');
+                slot.innerHTML = `<strong>${pos}</strong><br>-`;
+                slot.style.background = '';
+                slot.style.border = '';
+                slot.style.color = '';
+                slot.style.boxShadow = '';
             });
+        }
+
+        // Genera dinamicamente gli slot della squadra in base alle posizioni reali
+        function generaSlotDinamici(posizioni) {
+            const container = document.getElementById('teamSlots');
+            if (!container) return;
+
+            // Ordina le posizioni: prima M in ordine numerico, poi F
+            const ordinate = posizioni.sort((a, b) => {
+                const tipoA = a.charAt(0);
+                const tipoB = b.charAt(0);
+                if (tipoA !== tipoB) return tipoA === 'M' ? -1 : 1;
+                const numA = parseInt(a.substring(1)) || 0;
+                const numB = parseInt(b.substring(1)) || 0;
+                return numA - numB;
+            });
+
+            // Svuota il contenitore
+            container.innerHTML = '';
+
+            // Crea gli slot
+            ordinate.forEach(pos => {
+                const slot = document.createElement('div');
+                slot.className = 'team-slot empty';
+                slot.dataset.position = pos;
+                slot.innerHTML = `<strong>${pos}</strong><br>-`;
+                container.appendChild(slot);
+            });
+
+            console.log('Slot generati dinamicamente:', ordinate.join(', '));
         }
 
         function resetBiddingInterface() {
@@ -2203,35 +2221,30 @@
         // ========================================
         async function loadPlayerTeam() {
             try {
-                console.log('🔄 Caricamento squadra per:', playerData.id);
+                console.log('Caricamento squadra per:', playerData.id);
 
-                // 🆕 DETERMINA DA QUALE API CARICARE IN BASE ALLA MODALITÀ
-                // 🔥 USA playerData.modalita se già impostato (evita conflitti con localStorage)
                 let modalita = playerData.modalita || 'asta_competitiva';
                 let sessioneId = playerData.sessioneId || null;
 
-                // Se playerData non ha la modalità, allora leggi da localStorage come fallback
                 if (!playerData.modalita) {
                     const savedSession = localStorage.getItem('userSession');
                     if (savedSession) {
                         const session = JSON.parse(savedSession);
                         modalita = session.modalita || 'asta_competitiva';
                         sessioneId = session.sessioneId;
-
-                        // 🔄 Aggiorna playerData per evitare riletture future
                         playerData.modalita = modalita;
                         playerData.sessioneId = sessioneId;
                     }
                 }
 
-                console.log('🎯 Modalità rilevata:', modalita);
+                console.log('Modalita rilevata:', modalita);
 
                 let squadra = [];
+                let posizioniDaServer = null;
 
                 if (modalita === 'draft_libero') {
-                    // 🆕 CARICA SQUADRA DRAFT
                     if (!sessioneId) {
-                        console.error('❌ Nessun sessioneId trovato per il draft');
+                        console.error('Nessun sessioneId trovato per il draft');
                         resetTeamUI();
                         return;
                     }
@@ -2239,36 +2252,41 @@
                     const response = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneId}`);
 
                     if (!response.ok) {
-                        console.log('⚠️ Squadra Draft non ancora formata');
+                        console.log('Squadra Draft non ancora formata');
                         resetTeamUI();
                         return;
                     }
 
                     const data = await response.json();
 
+                    // Recupera le posizioni reali dal server
+                    posizioniDaServer = data.posizioni || null;
+
                     if (!data.squadra || Object.keys(data.squadra).length === 0) {
-                        console.log('⚠️ Squadra Draft vuota');
+                        console.log('Squadra Draft vuota');
+                        // Genera comunque gli slot vuoti se abbiamo le posizioni
+                        if (posizioniDaServer && posizioniDaServer.length > 0) {
+                            generaSlotDinamici(posizioniDaServer);
+                        }
                         resetTeamUI();
                         return;
                     }
 
-                    // Trasforma il formato draft in formato compatibile
                     squadra = Object.entries(data.squadra).map(([posizione, dati]) => ({
                         posizione: posizione,
                         giocatore_attuale: dati.giocatore,
                         colore: dati.coloreSquadra,
-                        costo_finale: 0, // Nel draft non c'è costo
+                        costo_finale: 0,
                         punti_totali: dati.puntiTotali || 0
                     }));
 
-                    console.log('✅ Squadra Draft caricata:', squadra.length, 'giocatori');
+                    console.log('Squadra Draft caricata:', squadra.length, 'giocatori');
 
                 } else {
-                    // ✅ CARICA SQUADRA ASTE (ESISTENTE) - Filtra per sessione!
                     const response = await fetch(`/api/squadra-partecipante/${playerData.id}?sessione_id=${sessioneId}`);
 
                     if (!response.ok) {
-                        console.log('⚠️ Squadra Aste non ancora formata');
+                        console.log('Squadra Aste non ancora formata');
                         resetTeamUI();
                         return;
                     }
@@ -2276,17 +2294,26 @@
                     const data = await response.json();
                     squadra = data.squadra || data;
 
-                    // 🔍 DEBUG: Mostra i punti ricevuti dal server
-                    console.log('🔍 DEBUG PUNTI - Dati ricevuti:', squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
-
-                    // Aggiorna crediti se presenti
+                    console.log('DEBUG PUNTI - Dati ricevuti:', squadra.map(g => `${g.posizione}=${g.punti_totali}pt`).join(', '));
 
                     if (data.crediti !== undefined) {
                         playerData.credits = data.crediti;
                         updateCreditsDisplay();
                     }
 
-                    console.log('✅ Squadra Aste caricata:', squadra.length, 'giocatori');
+                    console.log('Squadra Aste caricata:', squadra.length, 'giocatori');
+                }
+
+                // Genera slot dinamici in base alle posizioni reali
+                if (posizioniDaServer && posizioniDaServer.length > 0) {
+                    generaSlotDinamici(posizioniDaServer);
+                } else if (squadra.length > 0) {
+                    // Fallback: usa le posizioni dalla squadra stessa
+                    const posizioni = squadra.map(g => g.posizione);
+                    generaSlotDinamici(posizioni);
+                } else {
+                    // Fallback finale: posizioni default
+                    generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3']);
                 }
 
                 // Reset UI prima di popolare
@@ -2298,7 +2325,6 @@
                     const slot = document.querySelector(`[data-position="${posizione}"]`);
 
                     if (slot) {
-                        // Ottieni il colore della squadra
                         const coloreSquadra = getTeamColor(giocatore.colore);
 
                         slot.classList.remove('empty');
@@ -2308,7 +2334,6 @@
                         slot.style.color = '#ffffff';
                         slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
 
-                        // 🆕 TEMPLATE DIVERSO PER DRAFT (senza costo)
                         if (modalita === 'draft_libero') {
                             slot.innerHTML = `
                             <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
@@ -2321,11 +2346,10 @@
                                 Squadra ${giocatore.colore}
                             </div>
                             <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                🏆 ${giocatore.punti_totali || 0}
+                                ${giocatore.punti_totali || 0}
                             </div>
                         `;
                         } else {
-                            // Template per ASTE (con costo)
                             slot.innerHTML = `
                             <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
                                 ${giocatore.giocatore_attuale}
@@ -2337,25 +2361,23 @@
                                 Squadra ${giocatore.colore}
                             </div>
                             <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                                💰 ${giocatore.costo_finale}
+                                ${giocatore.costo_finale}
                             </div>
                             <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                🏆 ${giocatore.punti_totali || 0}
+                                ${giocatore.punti_totali || 0}
                             </div>
                         `;
                         }
 
-                        console.log(`✅ Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
+                        console.log(`Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
                     }
                 });
 
-                // Carica anche la classifica se siamo nella sezione classifica
                 const sectionClassifica = document.getElementById('section-classifica');
                 if (sectionClassifica && sectionClassifica.classList.contains('active')) {
                     caricaClassifica();
                 }
 
-                // 🆕 NASCONDI CREDITI SE DRAFT
                 const creditsDisplay = document.getElementById('creditsDisplay');
                 if (creditsDisplay) {
                     if (modalita === 'draft_libero') {
@@ -2367,7 +2389,7 @@
                 }
 
             } catch (error) {
-                console.error('❌ Errore caricamento squadra:', error);
+                console.error('Errore caricamento squadra:', error);
                 resetTeamUI();
             }
         }
