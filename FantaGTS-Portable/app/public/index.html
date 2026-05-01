@@ -1568,7 +1568,7 @@
                             console.log('📊 Completata:', draftData.completata);
                             console.log('📊 Numero giocatori:', Object.keys(draftData.squadra || {}).length);
 
-                            squadraCompleta = draftData.completata && Object.keys(draftData.squadra).length === 10;
+                            squadraCompleta = draftData.completata;
                         }
                     }
 
@@ -1842,8 +1842,8 @@
                     if (draftResponse.ok) {
                         const draftData = await draftResponse.json();
 
-                        if (draftData.completata && Object.keys(draftData.squadra).length === 10) {
-                            console.log('✅ Squadra draft completa (10/10) - Carico interfaccia user');
+                        if (draftData.completata) {
+                            console.log('✅ Squadra draft completa - Carico interfaccia user');
 
                             // Nascondi tutte le schermate di login
                             document.getElementById('welcome-screen').style.display = 'none';
