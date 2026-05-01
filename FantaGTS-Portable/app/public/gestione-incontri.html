@@ -1235,13 +1235,13 @@
             document.getElementById('step1').classList.add('active');
         }
 
-        function proseguiStep3() {
+        async function proseguiStep3() {
             if (configTurno.scontri.length === 0) {
                 showNotification('Aggiungi almeno uno scontro tra squadre', 'error');
                 return;
             }
 
-            aggiornaPosizioniDisponibili(); // ✅ ORA VIENE ESEGUITO
+            await aggiornaPosizioniDisponibili();
 
             nascondiTuttiGliStep();
             document.getElementById('step3').style.display = 'block';
@@ -1356,15 +1356,15 @@
             }
         }
 
-        function aggiornaPosizioniDisponibili() {
-            console.log('🔄 Aggiornamento posizioni disponibili...');
+        async function aggiornaPosizioniDisponibili() {
+            console.log('Aggiornamento posizioni disponibili...');
             console.log('   - Accoppiamenti attuali:', configTurno.accoppiamenti);
 
             const pos1Select = document.getElementById('pos1Select');
             const pos2Select = document.getElementById('pos2Select');
 
             if (!pos1Select || !pos2Select) {
-                console.error('❌ Select delle posizioni non trovati!');
+                console.error('Select delle posizioni non trovati!');
                 return;
             }
 
@@ -1372,9 +1372,55 @@
             pos1Select.innerHTML = '';
             pos2Select.innerHTML = '';
 
-            const posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3'];
+            // Carica posizioni reali dal server
+            let posizioni = [];
+            try {
+                const configId = configurazioneCorrente || 'default';
+                const response = await fetch('/api/posizioni?configurazione=' + configId);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        posizioni = data;
+                    }
+                }
+            } catch (e) {
+                console.log('Errore caricamento posizioni dal server');
+            }
 
-            // Ottieni posizioni già utilizzate
+            // Fallback: calcola posizioni dalle squadre caricate
+            if (posizioni.length === 0) {
+                try {
+                    const configId = configurazioneCorrente || 'default';
+                    const resp = await fetch('/api/squadre?configurazione=' + configId);
+                    if (resp.ok) {
+                        const squadre = await resp.json();
+                        if (squadre.length > 0) {
+                            const ref = squadre[0];
+                            for (let i = 1; i <= 7; i++) {
+                                if (ref['m' + i] && ref['m' + i].trim() !== '') {
+                                    posizioni.push('M' + i);
+                                }
+                            }
+                            for (let i = 1; i <= 3; i++) {
+                                if (ref['f' + i] && ref['f' + i].trim() !== '') {
+                                    posizioni.push('F' + i);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Errore calcolo posizioni da squadre');
+                }
+            }
+
+            // Ultimo fallback se tutto fallisce
+            if (posizioni.length === 0) {
+                posizioni = ['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2', 'F3'];
+            }
+
+            console.log('Posizioni rilevate:', posizioni);
+
+            // Ottieni posizioni gia utilizzate
             const posizioniUtilizzate = new Set();
             configTurno.accoppiamenti.forEach(acc => {
                 posizioniUtilizzate.add(acc.pos1);
@@ -1384,35 +1430,33 @@
             // Filtra posizioni disponibili
             const posizioniDisponibili = posizioni.filter(pos => !posizioniUtilizzate.has(pos));
 
-            // ✅ Se ci sono posizioni disponibili, aggiungile senza placeholder
             if (posizioniDisponibili.length > 0) {
                 posizioniDisponibili.forEach((pos, index) => {
                     const option1 = document.createElement('option');
                     option1.value = pos;
                     option1.textContent = pos;
-                    if (index === 0) option1.selected = true; // Seleziona la prima automaticamente
+                    if (index === 0) option1.selected = true;
                     pos1Select.appendChild(option1);
 
                     const option2 = document.createElement('option');
                     option2.value = pos;
                     option2.textContent = pos;
-                    if (index === 0) option2.selected = true; // Seleziona la prima automaticamente
+                    if (index === 0) option2.selected = true;
                     pos2Select.appendChild(option2);
                 });
 
                 pos1Select.disabled = false;
                 pos2Select.disabled = false;
             } else {
-                // ✅ Se non ci sono posizioni disponibili, mostra messaggio e disabilita
                 const placeholder1 = document.createElement('option');
                 placeholder1.value = '';
-                placeholder1.textContent = '✅ Tutte le posizioni utilizzate';
+                placeholder1.textContent = 'Tutte le posizioni utilizzate';
                 placeholder1.selected = true;
                 pos1Select.appendChild(placeholder1);
 
                 const placeholder2 = document.createElement('option');
                 placeholder2.value = '';
-                placeholder2.textContent = '✅ Tutte le posizioni utilizzate';
+                placeholder2.textContent = 'Tutte le posizioni utilizzate';
                 placeholder2.selected = true;
                 pos2Select.appendChild(placeholder2);
 
@@ -1420,7 +1464,7 @@
                 pos2Select.disabled = true;
             }
 
-            console.log(`✅ Aggiunte ${posizioniDisponibili.length} posizioni ai menu`);
+            console.log('Aggiunte ' + posizioniDisponibili.length + ' posizioni ai menu');
         }
 
         function aggiungiScontro() {
@@ -1549,7 +1593,7 @@
             abilitaBottoneStep4();
         }
 
-        function visualizzaAccoppiamenti() {
+        async function visualizzaAccoppiamenti() {
             const container = document.getElementById('accoppiamentiConfigurati');
             container.innerHTML = '';
 
@@ -1575,7 +1619,7 @@
             });
 
             // AGGIUNGI QUESTA RIGA per aggiornare i dropdown
-            aggiornaPosizioniDisponibili();
+            await aggiornaPosizioniDisponibili();
         }
 
         function rimuoviAccoppiamento(index) {
