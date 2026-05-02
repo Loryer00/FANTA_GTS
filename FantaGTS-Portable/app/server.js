@@ -4295,28 +4295,17 @@ function avviaMonitoraggioOfferte() {
     // Salva il numero di asta corrente per evitare race condition
     const astaAlAvvio = gameState.astaCorrente;
     const roundAlAvvio = gameState.roundAttivo;
+    const timestampAvvio = Date.now();
 
-    // Timeout di sicurezza - chiudi automaticamente dopo 120 secondi
-    timeoutSicurezzaGlobal = setTimeout(async () => {
-        // Verifica che sia ancora la stessa asta
-        if (gameState.asteAttive && gameState.astaCorrente === astaAlAvvio && gameState.roundAttivo === roundAlAvvio) {
-            console.log('TIMEOUT SICUREZZA - Chiusura forzata asta dopo 120 secondi');
-            if (monitorIntervalGlobal) {
-                clearInterval(monitorIntervalGlobal);
-                monitorIntervalGlobal = null;
-            }
-            await terminaRound(true);
-        }
-    }, 10000);
+    // Contatore per timeout disconnessi: quanti secondi consecutivi TUTTI quelli che mancano sono disconnessi
+    let secondiTuttiDisconnessi = 0;
+    const TIMEOUT_DISCONNESSI_SECONDI = 30; // Chiudi dopo 30s se chi manca e tutto disconnesso
+    const TIMEOUT_ASSOLUTO_SECONDI = 10;   // 5 minuti di sicurezza assoluta
 
     monitorIntervalGlobal = setInterval(async () => {
         if (!gameState.asteAttive) {
             clearInterval(monitorIntervalGlobal);
             monitorIntervalGlobal = null;
-            if (timeoutSicurezzaGlobal) {
-                clearTimeout(timeoutSicurezzaGlobal);
-                timeoutSicurezzaGlobal = null;
-            }
             return;
         }
 
@@ -4347,6 +4336,7 @@ function avviaMonitoraggioOfferte() {
                 return;
             }
 
+            // Raccogli chi ha offerto (leggendo anche da offerte di disconnessi)
             const partecipantiCheHannoOfferto = new Set();
 
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
@@ -4363,12 +4353,13 @@ function avviaMonitoraggioOfferte() {
 
             // Log ridotto
             const currentTime = Date.now();
+            const secondiTrascorsi = Math.floor((currentTime - timestampAvvio) / 1000);
             const shouldLog = !gameState.lastMonitorLog ||
                 (currentTime - gameState.lastMonitorLog) > 10000 ||
                 gameState.lastOfferteCount !== offerteRicevute;
 
             if (shouldLog) {
-                console.log(`\nSTATO MONITORAGGIO - Round: ${gameState.roundAttivo}, Asta: ${gameState.astaCorrente}`);
+                console.log(`\nSTATO MONITORAGGIO - Round: ${gameState.roundAttivo}, Asta: ${gameState.astaCorrente} (${secondiTrascorsi}s)`);
                 console.log(`Offerte: ${offerteRicevute}/${totalePartecipanti} | In attesa: ${gameState.partecipantiInAttesa.length}`);
 
                 if (mancano > 0) {
@@ -4396,7 +4387,7 @@ function avviaMonitoraggioOfferte() {
                 hannoOfferto: hannoOfferto,
                 nonHannoOfferto: nonHannoOfferto,
                 dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                    partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
                     offerta: offerta
                 }))
             };
@@ -4422,15 +4413,67 @@ function avviaMonitoraggioOfferte() {
                 console.log(`TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
                 clearInterval(monitorIntervalGlobal);
                 monitorIntervalGlobal = null;
-                if (timeoutSicurezzaGlobal) {
-                    clearTimeout(timeoutSicurezzaGlobal);
-                    timeoutSicurezzaGlobal = null;
-                }
 
                 if (gameState.asteAttive) {
                     console.log('Avviando elaborazione risultati asta...');
                     terminaRound();
                 }
+                return;
+            }
+
+            // === TIMEOUT INTELLIGENTE ===
+            // Controlla se chi NON ha offerto e ancora connesso o no
+            const partecipantiMancantiInAttesa = gameState.partecipantiInAttesa.filter(
+                pId => !partecipantiInAttesaCheHannoOfferto.has(pId)
+            );
+
+            if (partecipantiMancantiInAttesa.length > 0) {
+                // Verifica se almeno uno di questi e ancora connesso
+                let almenoUnoConnesso = false;
+                for (const pId of partecipantiMancantiInAttesa) {
+                    for (const [, conn] of gameState.connessi.entries()) {
+                        if (conn.partecipanteId === pId && conn.tipo === 'partecipante') {
+                            almenoUnoConnesso = true;
+                            break;
+                        }
+                    }
+                    if (almenoUnoConnesso) break;
+                }
+
+                if (almenoUnoConnesso) {
+                    // Qualcuno sta ancora scegliendo attivamente - resetta il contatore
+                    secondiTuttiDisconnessi = 0;
+                } else {
+                    // TUTTI quelli che mancano sono disconnessi
+                    secondiTuttiDisconnessi++;
+
+                    if (secondiTuttiDisconnessi % 10 === 1) {
+                        console.log(`TIMEOUT DISCONNESSI: ${secondiTuttiDisconnessi}/${TIMEOUT_DISCONNESSI_SECONDI}s - Mancano ${partecipantiMancantiInAttesa.length} partecipanti, tutti disconnessi`);
+                    }
+
+                    if (secondiTuttiDisconnessi >= TIMEOUT_DISCONNESSI_SECONDI) {
+                        console.log(`TIMEOUT DISCONNESSI SCATTATO - ${partecipantiMancantiInAttesa.length} partecipanti disconnessi da ${TIMEOUT_DISCONNESSI_SECONDI}s, chiusura asta`);
+                        clearInterval(monitorIntervalGlobal);
+                        monitorIntervalGlobal = null;
+
+                        if (gameState.asteAttive) {
+                            await terminaRound(true);
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // TIMEOUT ASSOLUTO di sicurezza (5 minuti)
+            if (secondiTrascorsi >= TIMEOUT_ASSOLUTO_SECONDI) {
+                console.log(`TIMEOUT ASSOLUTO - Chiusura forzata asta dopo ${TIMEOUT_ASSOLUTO_SECONDI} secondi`);
+                clearInterval(monitorIntervalGlobal);
+                monitorIntervalGlobal = null;
+
+                if (gameState.asteAttive) {
+                    await terminaRound(true);
+                }
+                return;
             }
 
         } catch (error) {
