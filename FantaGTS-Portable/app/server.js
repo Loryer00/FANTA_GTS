@@ -1176,6 +1176,8 @@ function avviaAstaSuccessiva() {
 
     // 🔄 Reset offerte per nuova asta
     gameState.offerteTemporanee.clear();
+    // Reset rimbalzati: nella nuova asta tutti ripartono da zero
+    gameState.partecipantiRimbalzati = new Set();
 
     // 🆕 NUOVO: Reset stato bid per tutti i socket connessi
     for (let [socketId, connesso] of gameState.connessi.entries()) {
@@ -4375,14 +4377,36 @@ function avviaMonitoraggioOfferte() {
                 .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                 .map(p => p.nome);
 
+            // Calcola lista partecipanti disconnessi
+            const partecipantiConnessi = new Set();
+            for (const [, conn] of gameState.connessi.entries()) {
+                if (conn.tipo === 'partecipante' && conn.partecipanteId) {
+                    partecipantiConnessi.add(conn.partecipanteId);
+                }
+            }
+            const partecipantiDisconnessi = gameState.partecipantiInAttesa.filter(
+                pId => !partecipantiConnessi.has(pId)
+            );
+
+            // Trova i nomi dei rimbalzati
+            const rimbalzatiNomi = [];
+            if (gameState.partecipantiRimbalzati && gameState.partecipantiRimbalzati.size > 0) {
+                gameState.partecipantiRimbalzati.forEach(pId => {
+                    const found = tuttiPartecipanti.find(p => p.id === pId);
+                    if (found) rimbalzatiNomi.push(found.nome);
+                });
+            }
+
             const statoOfferte = {
                 partecipantiTotali: totalePartecipanti,
-                partecipantiConnessi: Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length,
+                partecipantiConnessi: partecipantiConnessi.size,
                 offerteRicevute: offerteRicevute,
                 mancano: mancano,
                 tuttiHannoOfferto: tuttiHannoOfferto,
                 hannoOfferto: hannoOfferto,
                 nonHannoOfferto: nonHannoOfferto,
+                partecipantiDisconnessi: partecipantiDisconnessi,
+                partecipantiRimbalzati: rimbalzatiNomi,
                 dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
                     partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
                     offerta: offerta
@@ -4437,11 +4461,25 @@ function avviaMonitoraggioOfferte() {
                     if (almenoUnoConnesso) break;
                 }
 
-                if (almenoUnoConnesso) {
-                    // Qualcuno sta ancora scegliendo attivamente - resetta il contatore
+                // Controlla se ci sono rimbalzati tra chi manca
+                let ciSonoRimbalzati = false;
+                if (gameState.partecipantiRimbalzati && gameState.partecipantiRimbalzati.size > 0) {
+                    for (const pId of partecipantiMancantiInAttesa) {
+                        if (gameState.partecipantiRimbalzati.has(pId)) {
+                            ciSonoRimbalzati = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (almenoUnoConnesso || ciSonoRimbalzati) {
+                    // Qualcuno sta ancora scegliendo OPPURE ci sono rimbalzati che devono rivotare
                     secondiTuttiDisconnessi = 0;
+                    if (ciSonoRimbalzati && !almenoUnoConnesso && secondiTuttiDisconnessi === 0) {
+                        console.log(`⏸️ Rimbalzati disconnessi in attesa di riconnessione - NON chiudo l'asta`);
+                    }
                 } else {
-                    // TUTTI quelli che mancano sono disconnessi
+                    // TUTTI quelli che mancano sono disconnessi e NESSUNO e' rimbalzato
                     secondiTuttiDisconnessi++;
 
                     if (secondiTuttiDisconnessi % 10 === 1) {
@@ -5164,12 +5202,19 @@ async function elaboraRisultatiAste() {
         p => !partecipantiCheHannoVinto.has(p) || !partecipantiCheHannoOfferto.has(p)
     );
 
+    // Salva i rimbalzati nel gameState per il monitoraggio e il master
+    gameState.partecipantiRimbalzati = new Set();
     if (partecipantiSenzaGiocatore.length > 0) {
         console.log(`⚠️ ${partecipantiSenzaGiocatore.length} partecipanti senza giocatore assegnato:`);
         partecipantiSenzaGiocatore.forEach(p => {
-            console.log(`   - ${p} (${partecipantiCheHannoOfferto.has(p) ? 'ha offerto ma non ha vinto' : 'non ha fatto offerta'})`);
+            const haOfferto = partecipantiCheHannoOfferto.has(p);
+            console.log(`   - ${p} (${haOfferto ? 'ha offerto ma non ha vinto' : 'non ha fatto offerta'})`);
+            if (haOfferto) {
+                gameState.partecipantiRimbalzati.add(p);
+            }
         });
         console.log(`🔄 Questi partecipanti parteciperanno all'asta successiva`);
+        console.log(`🔁 Di cui rimbalzati (hanno offerto ma perso): ${gameState.partecipantiRimbalzati.size}`);
     }
 
     // Aggiorna stato partecipanti SOLO in modalità normale
