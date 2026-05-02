@@ -712,6 +712,7 @@ let gameState = {
     partecipantiAssegnati: new Set(),
     slotsRimasti: [],
     partecipantiInAttesa: [],
+    partecipantiRimbalzati: new Set(),
 
     // Campi per controllo logging
     lastMonitorLog: null,
@@ -4306,6 +4307,10 @@ function avviaMonitoraggioOfferte() {
         if (!gameState.asteAttive) {
             clearInterval(monitorIntervalGlobal);
             monitorIntervalGlobal = null;
+            if (timeoutSicurezzaGlobal) {
+                clearTimeout(timeoutSicurezzaGlobal);
+                timeoutSicurezzaGlobal = null;
+            }
             return;
         }
 
@@ -4362,10 +4367,10 @@ function avviaMonitoraggioOfferte() {
                 console.log(`Offerte: ${offerteRicevute}/${totalePartecipanti} | In attesa: ${gameState.partecipantiInAttesa.length}`);
 
                 if (mancano > 0) {
-                    const nonHannoOfferto = tuttiPartecipanti
+                    const nonHannoOffertoLog = tuttiPartecipanti
                         .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                         .map(p => p.nome);
-                    console.log(`Aspettando: ${nonHannoOfferto.join(', ')}`);
+                    console.log(`Aspettando: ${nonHannoOffertoLog.join(', ')}`);
                 }
 
                 gameState.lastMonitorLog = currentTime;
@@ -4377,55 +4382,52 @@ function avviaMonitoraggioOfferte() {
                 .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                 .map(p => p.nome);
 
-            // Calcola lista partecipanti disconnessi
-            const partecipantiConnessi = new Set();
+            // Calcola partecipanti disconnessi (in attesa ma senza socket connesso)
+            const connectedParticipantIds = new Set();
             for (const [, conn] of gameState.connessi.entries()) {
                 if (conn.tipo === 'partecipante' && conn.partecipanteId) {
-                    partecipantiConnessi.add(conn.partecipanteId);
+                    connectedParticipantIds.add(conn.partecipanteId);
                 }
             }
             const partecipantiDisconnessi = gameState.partecipantiInAttesa.filter(
-                pId => !partecipantiConnessi.has(pId)
+                pId => !connectedParticipantIds.has(pId)
             );
 
-            // Trova i nomi dei rimbalzati
-            const rimbalzatiNomi = [];
-            if (gameState.partecipantiRimbalzati && gameState.partecipantiRimbalzati.size > 0) {
-                gameState.partecipantiRimbalzati.forEach(pId => {
-                    const found = tuttiPartecipanti.find(p => p.id === pId);
-                    if (found) rimbalzatiNomi.push(found.nome);
-                });
-            }
-
-            const statoOfferte = {
-                partecipantiTotali: totalePartecipanti,
-                partecipantiConnessi: partecipantiConnessi.size,
-                offerteRicevute: offerteRicevute,
-                mancano: mancano,
-                tuttiHannoOfferto: tuttiHannoOfferto,
-                hannoOfferto: hannoOfferto,
-                nonHannoOfferto: nonHannoOfferto,
-                partecipantiDisconnessi: partecipantiDisconnessi,
-                partecipantiRimbalzati: rimbalzatiNomi,
-                dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-                    partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
-                    offerta: offerta
-                }))
-            };
-
-            io.emit('offerte_update', statoOfferte);
-
-            // CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
+            // Calcola chi ha gia offerto tra quelli in attesa
             const partecipantiInAttesaCheHannoOfferto = new Set();
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
-                const partecipanteId = connesso?.partecipanteId || offerta.partecipanteId || offerta._partecipanteId;
+                const partecipanteId = connesso?.partecipanteId || offerta._partecipanteId;
                 if (partecipanteId && offerta.round === gameState.roundAttivo) {
                     if (gameState.partecipantiInAttesa.includes(partecipanteId)) {
                         partecipantiInAttesaCheHannoOfferto.add(partecipanteId);
                     }
                 }
             });
+
+            // Calcola chi deve ancora scegliere
+            const deveAncoraScegliere = gameState.partecipantiInAttesa.filter(
+                pId => !partecipantiInAttesaCheHannoOfferto.has(pId)
+            );
+
+            const statoOfferte = {
+                partecipantiTotali: totalePartecipanti,
+                partecipantiConnessi: Array.from(gameState.connessi.values()).filter(p => p.tipo === 'partecipante').length,
+                offerteRicevute: offerteRicevute,
+                mancano: mancano,
+                tuttiHannoOfferto: tuttiHannoOfferto,
+                hannoOfferto: hannoOfferto,
+                nonHannoOfferto: nonHannoOfferto,
+                partecipantiDisconnessi: partecipantiDisconnessi,
+                partecipantiRimbalzati: gameState.partecipantiRimbalzati ? Array.from(gameState.partecipantiRimbalzati) : [],
+                deveAncoraScegliere: deveAncoraScegliere,
+                dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
+                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                    offerta: offerta
+                }))
+            };
+
+            io.emit('offerte_update', statoOfferte);
 
             const tuttiInAttesaHannoOfferto = partecipantiInAttesaCheHannoOfferto.size >= gameState.partecipantiInAttesa.length;
 
@@ -4434,6 +4436,10 @@ function avviaMonitoraggioOfferte() {
                 console.log(`TUTTI i ${gameState.partecipantiInAttesa.length} partecipanti in attesa hanno fatto offerte - chiusura asta`);
                 clearInterval(monitorIntervalGlobal);
                 monitorIntervalGlobal = null;
+                if (timeoutSicurezzaGlobal) {
+                    clearTimeout(timeoutSicurezzaGlobal);
+                    timeoutSicurezzaGlobal = null;
+                }
 
                 if (gameState.asteAttive) {
                     console.log('Avviando elaborazione risultati asta...');
@@ -4473,10 +4479,9 @@ function avviaMonitoraggioOfferte() {
                 }
 
                 if (almenoUnoConnesso || ciSonoRimbalzati) {
-                    // Qualcuno sta ancora scegliendo OPPURE ci sono rimbalzati che devono rivotare
                     secondiTuttiDisconnessi = 0;
-                    if (ciSonoRimbalzati && !almenoUnoConnesso && secondiTuttiDisconnessi === 0) {
-                        console.log(`⏸️ Rimbalzati disconnessi in attesa di riconnessione - NON chiudo l'asta`);
+                    if (ciSonoRimbalzati && !almenoUnoConnesso) {
+                        console.log('Rimbalzati disconnessi in attesa di riconnessione - NON chiudo l\'asta');
                     }
                 } else {
                     // TUTTI quelli che mancano sono disconnessi e NESSUNO e' rimbalzato
@@ -4490,6 +4495,10 @@ function avviaMonitoraggioOfferte() {
                         console.log(`TIMEOUT DISCONNESSI SCATTATO - ${partecipantiMancantiInAttesa.length} partecipanti disconnessi da ${TIMEOUT_DISCONNESSI_SECONDI}s, chiusura asta`);
                         clearInterval(monitorIntervalGlobal);
                         monitorIntervalGlobal = null;
+                        if (timeoutSicurezzaGlobal) {
+                            clearTimeout(timeoutSicurezzaGlobal);
+                            timeoutSicurezzaGlobal = null;
+                        }
 
                         if (gameState.asteAttive) {
                             await terminaRound(true);
@@ -5145,12 +5154,18 @@ async function elaboraRisultatiAste() {
 
                 console.log(`🏆 VINCITORE: ${vincitore.nome} vince ${slotId} per ${vincitore.offerta} crediti`);
 
-                // 🆕 Notifica tutti i perdenti
+                // Notifica tutti i perdenti e segnali come rimbalzati
                 if (perdenti.length > 0) {
-                    console.log(`📢 ${perdenti.length} perdenti notificati su ${slotId}`);
+                    console.log(`${perdenti.length} perdenti notificati su ${slotId}`);
 
                     perdenti.forEach(perdente => {
                         perdentiDaNotificare.add(perdente.partecipante);
+
+                        // Aggiungi ai rimbalzati per il monitoraggio
+                        if (!gameState.partecipantiRimbalzati) {
+                            gameState.partecipantiRimbalzati = new Set();
+                        }
+                        gameState.partecipantiRimbalzati.add(perdente.partecipante);
 
                         for (let [socketId, connesso] of gameState.connessi.entries()) {
                             if (connesso.partecipanteId === perdente.partecipante) {
@@ -5589,7 +5604,14 @@ app.post('/api/reset/:livello', async (req, res) => {
                     roundAttivo: null,
                     asteAttive: false,
                     connessi: new Map(),
-                    offerteTemporanee: new Map()
+                    offerteTemporanee: new Map(),
+                    astaCorrente: 1,
+                    partecipantiAssegnati: new Set(),
+                    slotsRimasti: [],
+                    partecipantiInAttesa: [],
+                    partecipantiRimbalzati: new Set(),
+                    lastMonitorLog: null,
+                    lastOfferteCount: 0
                 };
                 res.json({ message: 'Sistema completamente resettato' });
                 break;

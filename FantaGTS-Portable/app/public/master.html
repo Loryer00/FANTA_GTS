@@ -2404,8 +2404,7 @@
                 let bidClass = 'bid-none';
 
                 if (gameState.asteAttive && participantsBounced.has(p.nome)) {
-                    // Rimbalzato e connesso: deve rivotare
-                    bidStatus = 'Offerta rimbalzata - deve rivotare';
+                    bidStatus = 'RIMBALZATO - Deve rivotare!';
                     bidClass = 'bid-bounced';
                     card.classList.add('bid-bounced');
                 } else if (gameState.asteAttive && participantsBids.has(p.nome)) {
@@ -2413,7 +2412,7 @@
                     bidClass = 'bid-confirmed';
                     card.classList.add('bid-confirmed');
                 } else if (gameState.asteAttive) {
-                    bidStatus = 'In attesa...';
+                    bidStatus = 'DEVE SCEGLIERE';
                     bidClass = 'bid-pending';
                     card.classList.add('bid-pending');
                 }
@@ -2445,11 +2444,13 @@
                             <div class="bid-status bid-bounced">RIMBALZATO + DISCONNESSO</div>
                         `;
                     } else {
+                        // Controlla se ha gia offerto o no
+                        const haOfferto = participantsBids.has(pId);
                         card.className = 'participant-card disconnected';
                         card.innerHTML = `
                             <div><strong>${pId}</strong></div>
                             <div>Stato: disconnesso</div>
-                            <div class="bid-status bid-disconnected">Disconnesso</div>
+                            <div class="bid-status ${haOfferto ? 'bid-disconnected' : 'bid-bounced'}">${haOfferto ? 'Disconnesso (ha offerto)' : 'DISCONNESSO - Deve scegliere!'}</div>
                         `;
                     }
 
