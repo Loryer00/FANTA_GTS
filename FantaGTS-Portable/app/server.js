@@ -4295,12 +4295,10 @@ function avviaMonitoraggioOfferte() {
     // Salva il numero di asta corrente per evitare race condition
     const astaAlAvvio = gameState.astaCorrente;
     const roundAlAvvio = gameState.roundAttivo;
-    const timestampAvvio = Date.now();
 
     // Contatore per timeout disconnessi: quanti secondi consecutivi TUTTI quelli che mancano sono disconnessi
     let secondiTuttiDisconnessi = 0;
     const TIMEOUT_DISCONNESSI_SECONDI = 30; // Chiudi dopo 30s se chi manca e tutto disconnesso
-    const TIMEOUT_ASSOLUTO_SECONDI = 10;   // 5 minuti di sicurezza assoluta
 
     monitorIntervalGlobal = setInterval(async () => {
         if (!gameState.asteAttive) {
@@ -4353,13 +4351,12 @@ function avviaMonitoraggioOfferte() {
 
             // Log ridotto
             const currentTime = Date.now();
-            const secondiTrascorsi = Math.floor((currentTime - timestampAvvio) / 1000);
             const shouldLog = !gameState.lastMonitorLog ||
                 (currentTime - gameState.lastMonitorLog) > 10000 ||
                 gameState.lastOfferteCount !== offerteRicevute;
 
             if (shouldLog) {
-                console.log(`\nSTATO MONITORAGGIO - Round: ${gameState.roundAttivo}, Asta: ${gameState.astaCorrente} (${secondiTrascorsi}s)`);
+                console.log(`\nSTATO MONITORAGGIO - Round: ${gameState.roundAttivo}, Asta: ${gameState.astaCorrente}`);
                 console.log(`Offerte: ${offerteRicevute}/${totalePartecipanti} | In attesa: ${gameState.partecipantiInAttesa.length}`);
 
                 if (mancano > 0) {
@@ -4462,19 +4459,7 @@ function avviaMonitoraggioOfferte() {
                         return;
                     }
                 }
-            }
-
-            // TIMEOUT ASSOLUTO di sicurezza (5 minuti)
-            if (secondiTrascorsi >= TIMEOUT_ASSOLUTO_SECONDI) {
-                console.log(`TIMEOUT ASSOLUTO - Chiusura forzata asta dopo ${TIMEOUT_ASSOLUTO_SECONDI} secondi`);
-                clearInterval(monitorIntervalGlobal);
-                monitorIntervalGlobal = null;
-
-                if (gameState.asteAttive) {
-                    await terminaRound(true);
-                }
-                return;
-            }
+            }            
 
         } catch (error) {
             console.error('Errore monitoraggio offerte:', error);
