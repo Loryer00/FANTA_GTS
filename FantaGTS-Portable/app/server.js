@@ -4307,7 +4307,7 @@ function avviaMonitoraggioOfferte() {
             }
             await terminaRound(true);
         }
-    }, 120000);
+    }, 10000);
 
     monitorIntervalGlobal = setInterval(async () => {
         if (!gameState.asteAttive) {
