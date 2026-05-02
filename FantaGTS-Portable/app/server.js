@@ -4346,7 +4346,7 @@ function avviaMonitoraggioOfferte() {
 
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
-                const partecipanteId = connesso?.partecipanteId || offerta.partecipanteId || offerta._partecipanteId;
+                const partecipanteId = connesso?.partecipanteId || offerta._partecipanteId;
                 if (partecipanteId && offerta.round === gameState.roundAttivo) {
                     partecipantiCheHannoOfferto.add(partecipanteId);
                 }
@@ -4382,33 +4382,39 @@ function avviaMonitoraggioOfferte() {
                 .filter(p => !partecipantiCheHannoOfferto.has(p.id))
                 .map(p => p.nome);
 
-            // Calcola partecipanti disconnessi (in attesa ma senza socket connesso)
-            const connectedParticipantIds = new Set();
-            for (const [, conn] of gameState.connessi.entries()) {
-                if (conn.tipo === 'partecipante' && conn.partecipanteId) {
-                    connectedParticipantIds.add(conn.partecipanteId);
-                }
-            }
-            const partecipantiDisconnessi = gameState.partecipantiInAttesa.filter(
-                pId => !connectedParticipantIds.has(pId)
-            );
-
-            // Calcola chi ha gia offerto tra quelli in attesa
-            const partecipantiInAttesaCheHannoOfferto = new Set();
-            gameState.offerteTemporanee.forEach((offerta, socketId) => {
-                const connesso = gameState.connessi.get(socketId);
-                const partecipanteId = connesso?.partecipanteId || offerta._partecipanteId;
-                if (partecipanteId && offerta.round === gameState.roundAttivo) {
-                    if (gameState.partecipantiInAttesa.includes(partecipanteId)) {
-                        partecipantiInAttesaCheHannoOfferto.add(partecipanteId);
+            // Calcola partecipanti disconnessi
+            const partecipantiDisconnessi = [];
+            if (gameState.partecipantiInAttesa) {
+                gameState.partecipantiInAttesa.forEach(pId => {
+                    let eConnesso = false;
+                    for (const [, conn] of gameState.connessi.entries()) {
+                        if (conn.partecipanteId === pId && conn.tipo === 'partecipante') {
+                            eConnesso = true;
+                            break;
+                        }
                     }
-                }
-            });
+                    if (!eConnesso) {
+                        partecipantiDisconnessi.push(pId);
+                    }
+                });
+            }
 
-            // Calcola chi deve ancora scegliere
-            const deveAncoraScegliere = gameState.partecipantiInAttesa.filter(
-                pId => !partecipantiInAttesaCheHannoOfferto.has(pId)
-            );
+            // Calcola rimbalzati (partecipanti in attesa che NON hanno offerto in QUESTA asta ma hanno offerto nella precedente)
+            const partecipantiRimbalzati = [];
+            if (gameState.partecipantiInAttesa) {
+                gameState.partecipantiInAttesa.forEach(pId => {
+                    // Un rimbalzato e' chi e' ancora in attesa ma NON ha fatto offerta in questa asta
+                    // E non e' perche' non ha mai offerto, ma perche' ha perso nella precedente
+                    const haOffertoOra = partecipantiCheHannoOfferto.has(pId);
+                    if (!haOffertoOra && gameState.astaCorrente > 1) {
+                        // Trova il nome del partecipante
+                        const partecipante = tuttiPartecipanti.find(p => p.id === pId);
+                        if (partecipante) {
+                            partecipantiRimbalzati.push(partecipante.nome);
+                        }
+                    }
+                });
+            }
 
             const statoOfferte = {
                 partecipantiTotali: totalePartecipanti,
@@ -4419,15 +4425,26 @@ function avviaMonitoraggioOfferte() {
                 hannoOfferto: hannoOfferto,
                 nonHannoOfferto: nonHannoOfferto,
                 partecipantiDisconnessi: partecipantiDisconnessi,
-                partecipantiRimbalzati: gameState.partecipantiRimbalzati ? Array.from(gameState.partecipantiRimbalzati) : [],
-                deveAncoraScegliere: deveAncoraScegliere,
+                partecipantiRimbalzati: partecipantiRimbalzati,
                 dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-                    partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
+                    partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
                     offerta: offerta
                 }))
             };
 
             io.emit('offerte_update', statoOfferte);
+
+            // CHIUDI ASTA solo se TUTTI i partecipanti IN ATTESA hanno offerto
+            const partecipantiInAttesaCheHannoOfferto = new Set();
+            gameState.offerteTemporanee.forEach((offerta, socketId) => {
+                const connesso = gameState.connessi.get(socketId);
+                const partecipanteId = connesso?.partecipanteId || offerta._partecipanteId;
+                if (partecipanteId && offerta.round === gameState.roundAttivo) {
+                    if (gameState.partecipantiInAttesa.includes(partecipanteId)) {
+                        partecipantiInAttesaCheHannoOfferto.add(partecipanteId);
+                    }
+                }
+            });
 
             const tuttiInAttesaHannoOfferto = partecipantiInAttesaCheHannoOfferto.size >= gameState.partecipantiInAttesa.length;
 
@@ -5947,24 +5964,16 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         const connesso = gameState.connessi.get(socket.id);
-
-        // NON cancellare le offerte temporanee: l'offerta e valida anche se il socket si disconnette
-        // gameState.offerteTemporanee.delete(socket.id);  ← RIMOSSO
-
-        // Se aveva un'offerta, salva il partecipanteId e nome direttamente nell'offerta
-        // cosi il monitoraggio e l'elaborazione possono leggerli anche senza il socket in connessi
         if (connesso && gameState.offerteTemporanee.has(socket.id)) {
             const offerta = gameState.offerteTemporanee.get(socket.id);
             offerta._partecipanteId = connesso.partecipanteId;
             offerta._nome = connesso.nome;
-            console.log(`Disconnesso ${connesso.nome} (standby?) - offerta preservata su ${offerta.slot}`);
-        } else if (connesso) {
-            console.log(`Disconnesso ${connesso.nome} - nessuna offerta attiva`);
+            console.log(`Disconnesso ${connesso.nome} ma offerta preservata: ${offerta.slot} (${offerta.importo} crediti)`);
         }
-
         gameState.connessi.delete(socket.id);
+        // RIMOSSO: gameState.offerteTemporanee.delete(socket.id);
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
-        console.log('Disconnesso:', socket.id);
+        console.log('Disconnesso:', socket.id, connesso ? `(${connesso.nome})` : '');
     });
 
     socket.on('heartbeat', (data) => {
