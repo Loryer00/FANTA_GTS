@@ -3010,7 +3010,7 @@ app.get('/api/posizioni', async (req, res) => {
         }
 
         const result = await db.query(
-            "SELECT DISTINCT posizione FROM slots WHERE configurazione_id = $1 AND attivo = true AND giocatore_attuale IS NOT NULL AND TRIM(giocatore_attuale) != '' ORDER BY CASE posizione WHEN 'M1' THEN 1 WHEN 'M2' THEN 2 WHEN 'M3' THEN 3 WHEN 'M4' THEN 4 WHEN 'M5' THEN 5 WHEN 'M6' THEN 6 WHEN 'M7' THEN 7 WHEN 'F1' THEN 8 WHEN 'F2' THEN 9 WHEN 'F3' THEN 10 END",
+            "SELECT DISTINCT posizione, CASE posizione WHEN 'M1' THEN 1 WHEN 'M2' THEN 2 WHEN 'M3' THEN 3 WHEN 'M4' THEN 4 WHEN 'M5' THEN 5 WHEN 'M6' THEN 6 WHEN 'M7' THEN 7 WHEN 'F1' THEN 8 WHEN 'F2' THEN 9 WHEN 'F3' THEN 10 END as ordine FROM slots WHERE configurazione_id = $1 AND attivo = true AND giocatore_attuale IS NOT NULL AND TRIM(giocatore_attuale) != '' ORDER BY ordine",
             [configurazioneId]
         );
         const posizioni = result.rows.map(r => r.posizione);
@@ -4426,6 +4426,7 @@ function avviaMonitoraggioOfferte() {
                 nonHannoOfferto: nonHannoOfferto,
                 partecipantiDisconnessi: partecipantiDisconnessi,
                 partecipantiRimbalzati: partecipantiRimbalzati,
+                partecipantiAssegnati: Array.from(gameState.partecipantiAssegnati || []),
                 dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
                     partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
                     offerta: offerta
@@ -4501,26 +4502,11 @@ function avviaMonitoraggioOfferte() {
                         console.log('Rimbalzati disconnessi in attesa di riconnessione - NON chiudo l\'asta');
                     }
                 } else {
-                    // TUTTI quelli che mancano sono disconnessi e NESSUNO e' rimbalzato
+                    // Tutti disconnessi ma devono ancora votare - NON chiudere l'asta
+                    // L'asta resta aperta finche' almeno un partecipante deve ancora votare/rivotare
                     secondiTuttiDisconnessi++;
-
-                    if (secondiTuttiDisconnessi % 10 === 1) {
-                        console.log(`TIMEOUT DISCONNESSI: ${secondiTuttiDisconnessi}/${TIMEOUT_DISCONNESSI_SECONDI}s - Mancano ${partecipantiMancantiInAttesa.length} partecipanti, tutti disconnessi`);
-                    }
-
-                    if (secondiTuttiDisconnessi >= TIMEOUT_DISCONNESSI_SECONDI) {
-                        console.log(`TIMEOUT DISCONNESSI SCATTATO - ${partecipantiMancantiInAttesa.length} partecipanti disconnessi da ${TIMEOUT_DISCONNESSI_SECONDI}s, chiusura asta`);
-                        clearInterval(monitorIntervalGlobal);
-                        monitorIntervalGlobal = null;
-                        if (timeoutSicurezzaGlobal) {
-                            clearTimeout(timeoutSicurezzaGlobal);
-                            timeoutSicurezzaGlobal = null;
-                        }
-
-                        if (gameState.asteAttive) {
-                            await terminaRound(true);
-                        }
-                        return;
+                    if (secondiTuttiDisconnessi % 30 === 1) {
+                        console.log(`ATTESA DISCONNESSI: ${secondiTuttiDisconnessi}s - Mancano ${partecipantiMancantiInAttesa.length} partecipanti, tutti disconnessi. L'asta resta aperta.`);
                     }
                 }
             }            

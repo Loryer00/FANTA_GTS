@@ -745,10 +745,10 @@
             connessi: [],
             ultimiRisultati: null
         };
-        let roundSelezionato = null;
         let participantsBids = new Map(); // Traccia le offerte dei partecipanti
         let participantsDisconnected = new Set(); // Partecipanti disconnessi
         let participantsBounced = new Set();      // Partecipanti con offerta rimbalzata
+        let participantsAssigned = new Set();     // Partecipanti che hanno gia' vinto
 
         // NUOVO: Sistema di persistenza per Master
         const MASTER_STORAGE_KEYS = {
@@ -2258,6 +2258,12 @@
                 data.partecipantiRimbalzati.forEach(nome => participantsBounced.add(nome));
             }
 
+            // Aggiorna partecipanti che hanno gia' vinto (assegnati)
+            participantsAssigned.clear();
+            if (data.partecipantiAssegnati && Array.isArray(data.partecipantiAssegnati)) {
+                data.partecipantiAssegnati.forEach(pId => participantsAssigned.add(pId));
+            }
+
             updatePartecipanti();
         }
 
@@ -2453,6 +2459,28 @@
                             <div class="bid-status ${haOfferto ? 'bid-disconnected' : 'bid-bounced'}">${haOfferto ? 'Disconnesso (ha offerto)' : 'DISCONNESSO - Deve scegliere!'}</div>
                         `;
                     }
+
+                    grid.appendChild(card);
+                });
+            }
+
+            // 3) Mostra partecipanti ASSEGNATI (hanno gia' vinto - solo durante aste attive)
+            if (gameState.asteAttive && participantsAssigned.size > 0) {
+                participantsAssigned.forEach(pId => {
+                    // Evita duplicati: se e' gia' tra i connessi o disconnessi, salta
+                    const giaConnesso = partecipanti.some(p => p.partecipanteId === pId);
+                    const giaDisconnesso = participantsDisconnected.has(pId);
+                    if (giaConnesso || giaDisconnesso) return;
+
+                    const card = document.createElement('div');
+                    card.className = 'participant-card assigned';
+                    card.style.borderColor = '#48bb78';
+                    card.style.opacity = '0.8';
+                    card.innerHTML = `
+                        <div><strong>${pId}</strong></div>
+                        <div>Stato: completato</div>
+                        <div class="bid-status" style="background: #48bb78; color: white;">Ha gia' vinto il suo giocatore</div>
+                    `;
 
                     grid.appendChild(card);
                 });
