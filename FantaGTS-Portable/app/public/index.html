@@ -2287,7 +2287,7 @@
                 } else {
                     // Recupera posizioni reali dal server anche per le aste
                     try {
-                        const posizioniResponse = await fetch(`/api/posizioni-round?sessione_id=${sessioneId}`);
+                        const posizioniResponse = await fetch(`/api/posizioni?sessione_id=${sessioneId}`);
                         if (posizioniResponse.ok) {
                             posizioniDaServer = await posizioniResponse.json();
                             console.log('Posizioni reali da server (asta):', posizioniDaServer);

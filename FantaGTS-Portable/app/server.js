@@ -3224,8 +3224,7 @@ app.get('/api/stato-offerte/:round', async (req, res) => {
             mancano: Math.max(0, totalePartecipanti - offerteRicevute),
             tuttiHannoOfferto: tuttiHannoOfferto,
             dettaglioOfferte: Array.from(gameState.offerteTemporanee.entries()).map(([socketId, offerta]) => ({
-                partecipante: gameState.connessi.get(socketId)?.nome || 'Sconosciuto',
-                partecipanteId: gameState.connessi.get(socketId)?.partecipanteId || null,
+                partecipante: gameState.connessi.get(socketId)?.nome || offerta._nome || 'Sconosciuto',
                 offerta: offerta
             }))
         });
@@ -4297,18 +4296,18 @@ function avviaMonitoraggioOfferte() {
     const astaAlAvvio = gameState.astaCorrente;
     const roundAlAvvio = gameState.roundAttivo;
 
-    // Timeout di sicurezza - chiudi automaticamente dopo 60 secondi
+    // Timeout di sicurezza - chiudi automaticamente dopo 120 secondi
     timeoutSicurezzaGlobal = setTimeout(async () => {
         // Verifica che sia ancora la stessa asta
         if (gameState.asteAttive && gameState.astaCorrente === astaAlAvvio && gameState.roundAttivo === roundAlAvvio) {
-            console.log('TIMEOUT SICUREZZA - Chiusura forzata asta dopo 60 secondi');
+            console.log('TIMEOUT SICUREZZA - Chiusura forzata asta dopo 120 secondi');
             if (monitorIntervalGlobal) {
                 clearInterval(monitorIntervalGlobal);
                 monitorIntervalGlobal = null;
             }
             await terminaRound(true);
         }
-    }, 60000);
+    }, 120000);
 
     monitorIntervalGlobal = setInterval(async () => {
         if (!gameState.asteAttive) {
@@ -4352,8 +4351,9 @@ function avviaMonitoraggioOfferte() {
 
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
-                if (connesso && connesso.partecipanteId && offerta.round === gameState.roundAttivo) {
-                    partecipantiCheHannoOfferto.add(connesso.partecipanteId);
+                const partecipanteId = connesso?.partecipanteId || offerta.partecipanteId || offerta._partecipanteId;
+                if (partecipanteId && offerta.round === gameState.roundAttivo) {
+                    partecipantiCheHannoOfferto.add(partecipanteId);
                 }
             });
 
@@ -4407,9 +4407,10 @@ function avviaMonitoraggioOfferte() {
             const partecipantiInAttesaCheHannoOfferto = new Set();
             gameState.offerteTemporanee.forEach((offerta, socketId) => {
                 const connesso = gameState.connessi.get(socketId);
-                if (connesso && connesso.partecipanteId && offerta.round === gameState.roundAttivo) {
-                    if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
-                        partecipantiInAttesaCheHannoOfferto.add(connesso.partecipanteId);
+                const partecipanteId = connesso?.partecipanteId || offerta.partecipanteId || offerta._partecipanteId;
+                if (partecipanteId && offerta.round === gameState.roundAttivo) {
+                    if (gameState.partecipantiInAttesa.includes(partecipanteId)) {
+                        partecipantiInAttesaCheHannoOfferto.add(partecipanteId);
                     }
                 }
             });
@@ -4959,20 +4960,23 @@ async function elaboraRisultatiAste() {
     // Raggruppa offerte valide
     gameState.offerteTemporanee.forEach((offerta, socketId) => {
         const connesso = gameState.connessi.get(socketId);
-        if (connesso && offerta.round === gameState.roundAttivo) {
-            if (gameState.partecipantiInAttesa.includes(connesso.partecipanteId)) {
+        const partecipanteId = connesso?.partecipanteId || offerta.partecipanteId || offerta._partecipanteId;
+        const nomePartecipante = connesso?.nome || offerta._nome || 'Sconosciuto';
+
+        if (partecipanteId && offerta.round === gameState.roundAttivo) {
+            if (gameState.partecipantiInAttesa.includes(partecipanteId)) {
 
                 tutteLeOfferte.push({
-                    partecipante: connesso.partecipanteId,
-                    nome: connesso.nome,
+                    partecipante: partecipanteId,
+                    nome: nomePartecipante,
                     offerta: offerta.importo,
                     slot: offerta.slot,
                     giocatore: offerta.slot,
                     socketId: socketId
                 });
-                partecipantiCheHannoOfferto.add(connesso.partecipanteId);
+                partecipantiCheHannoOfferto.add(partecipanteId);
             } else {
-                console.log(`⚠️ Offerta ignorata (già assegnato): ${connesso.nome} → ${offerta.slot}`);
+                console.log(`⚠️ Offerta ignorata (gia assegnato): ${nomePartecipante} -> ${offerta.slot}`);
             }
         }
     });
@@ -5847,8 +5851,23 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        const connesso = gameState.connessi.get(socket.id);
+
+        // NON cancellare le offerte temporanee: l'offerta e valida anche se il socket si disconnette
+        // gameState.offerteTemporanee.delete(socket.id);  ← RIMOSSO
+
+        // Se aveva un'offerta, salva il partecipanteId e nome direttamente nell'offerta
+        // cosi il monitoraggio e l'elaborazione possono leggerli anche senza il socket in connessi
+        if (connesso && gameState.offerteTemporanee.has(socket.id)) {
+            const offerta = gameState.offerteTemporanee.get(socket.id);
+            offerta._partecipanteId = connesso.partecipanteId;
+            offerta._nome = connesso.nome;
+            console.log(`Disconnesso ${connesso.nome} (standby?) - offerta preservata su ${offerta.slot}`);
+        } else if (connesso) {
+            console.log(`Disconnesso ${connesso.nome} - nessuna offerta attiva`);
+        }
+
         gameState.connessi.delete(socket.id);
-        gameState.offerteTemporanee.delete(socket.id);
         io.emit('connessi_update', Array.from(gameState.connessi.values()));
         console.log('Disconnesso:', socket.id);
     });
