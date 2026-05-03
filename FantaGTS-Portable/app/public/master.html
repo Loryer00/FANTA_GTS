@@ -656,14 +656,11 @@
         </div>
 
         <!-- Strumenti Amministrazione - SOLO AZIONI -->
-        <div class="section">
-            <h2>🔧 Strumenti Amministrazione</h2>
+        <div class="section strumenti-admin-section">
+            <h2>Strumenti Amministrazione</h2>
             <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                 <button class="btn btn-warning" onclick="resetAste()">
-                    🔄 Reset Aste
-                </button>
-                <button class="btn btn-danger" onclick="resetTotale()">
-                    ⚠️ Reset Totale
+                    Reset Aste
                 </button>
             </div>
         </div>
@@ -2673,26 +2670,6 @@
             console.log('🔄 Pulsanti ripristinati allo stato originale uniforme');
         }
 
-        function resetTotale() {
-            showConfirmModal(
-                'Reset Totale',
-                'ATTENZIONE: Questa azione cancellerà TUTTI i dati del sistema. È irreversibile!',
-                async () => {
-                    try {
-                        const response = await fetch('/api/reset/totale', { method: 'POST' });
-                        if (response.ok) {
-                            showNotification('Sistema resettato completamente', 'success');
-                            setTimeout(() => window.location.href = '/setup', 2000);
-                        } else {
-                            showNotification('Errore durante reset', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('Errore di connessione', 'error');
-                    }
-                }
-            );
-        }
-
         function resetDraft() {
             if (!sessioneCorrente) {
                 showNotification('Nessuna sessione draft attiva', 'error');
@@ -2840,50 +2817,23 @@
             // Nascondi controlli aste
             document.querySelector('.controllo-aste-section')?.style.setProperty('display', 'none', 'important');
 
-            // Nascondi strumenti amministrazione aste (inutili per draft)
-            document.querySelectorAll('.section').forEach(sec => {
-                const titolo = sec.querySelector('h2');
-                if (titolo && titolo.textContent.includes('Strumenti Amministrazione')) {
-                    sec.style.setProperty('display', 'none', 'important');
+            // Trasforma la sezione Strumenti Amministrazione per il draft
+            const adminSection = document.querySelector('.strumenti-admin-section');
+            if (adminSection) {
+                const btnContainer = adminSection.querySelector('div[style]');
+                if (btnContainer) {
+                    btnContainer.innerHTML = `
+                <button class="btn btn-danger" onclick="resetDraft()">
+                    Reset Squadre Draft
+                </button>
+            `;
                 }
-            });
-
-            // Mostra controlli draft
-            let draftSection = document.querySelector('.controllo-draft-section');
-            if (!draftSection) {
-                // Se non esiste, creala
-                draftSection = creaSezioneDraft(sessioneData);
-                document.querySelector('.container')?.appendChild(draftSection);
             }
-            draftSection.style.setProperty('display', 'block', 'important');
 
-            console.log('✅ Interfaccia adattata per modalità DRAFT');
-        }
+            // Nascondi la vecchia sezione draft se esiste
+            document.querySelector('.controllo-draft-section')?.style.setProperty('display', 'none', 'important');
 
-        function creaSezioneDraft(sessioneData) {
-            const section = document.createElement('div');
-            section.className = 'controllo-draft-section';
-            section.style.cssText = 'background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; margin-top: 20px;';
-
-            section.innerHTML = `
-    <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">
-        Gestione Draft Libero
-    </h2>
-
-    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px;">
-        <button onclick="aggiornaStatoDraft()" style="flex: 1; min-width: 140px; background: #4299e1; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-            Aggiorna Stato
-        </button>
-        <button onclick="window.open('/draft-selection.html', '_blank')" style="flex: 1; min-width: 140px; background: #667eea; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-            Preview Selezione
-        </button>
-        <button onclick="resetDraft()" style="flex: 1; min-width: 140px; background: #f56565; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-            Reset Squadre Draft
-        </button>
-    </div>
-`;
-
-            return section;
+            console.log('Interfaccia adattata per modalita DRAFT');
         }
 
         function copiaCodiceDraft(codice) {

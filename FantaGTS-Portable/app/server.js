@@ -5584,9 +5584,22 @@ app.post('/api/reset/:livello', async (req, res) => {
                 break;
 
             case 'aste':
-                await db.query("DELETE FROM aste");
-                await db.query("UPDATE partecipanti_sessioni_accesso SET crediti = 2000");
-                await db.query("UPDATE slots SET punti_totali = 0");
+                // Trova la sessione asta attiva
+                const sessioneAstaAttiva = await db.query(
+                    "SELECT id, crediti_iniziali, configurazione_id FROM sessioni_fantagts WHERE modalita = 'asta_competitiva' AND attiva = true LIMIT 1"
+                );
+
+                if (sessioneAstaAttiva.rows.length === 0) {
+                    return res.status(400).json({ error: 'Nessuna sessione asta attiva trovata' });
+                }
+
+                const sessAstaId = sessioneAstaAttiva.rows[0].id;
+                const creditiDefault = sessioneAstaAttiva.rows[0].crediti_iniziali || 2000;
+                const configAstaId = sessioneAstaAttiva.rows[0].configurazione_id;
+
+                await db.query("DELETE FROM aste WHERE sessione_id = $1", [sessAstaId]);
+                await db.query("UPDATE partecipanti_sessioni_accesso SET crediti = $1 WHERE sessione_id = $2", [creditiDefault, sessAstaId]);
+                await db.query("UPDATE slots SET punti_totali = 0 WHERE configurazione_id = $1", [configAstaId]);
 
                 gameState.asteAttive = false;
                 gameState.roundAttivo = null;
@@ -5607,47 +5620,7 @@ app.post('/api/reset/:livello', async (req, res) => {
                 });
 
                 res.json({ message: 'Tutte le aste resettate' });
-                break;
-
-            case 'totale':
-                // ❌ ELIMINA tabelle inutili (DROP completo)
-                await db.query("DROP TABLE IF EXISTS backup_log CASCADE");
-                await db.query("DROP TABLE IF EXISTS risultati_partite CASCADE");
-
-                // ✅ SVUOTA tabelle utili nell'ORDINE CORRETTO (rispetta FOREIGN KEY)
-                // Prima elimina i record "figli" (che hanno riferimenti), poi i "genitori"
-                await db.query("DELETE FROM risultati_dettaglio");  // Dipende da incontri
-                await db.query("DELETE FROM incontri");             // Dipende da coppie_turno e turni_configurazione
-                await db.query("DELETE FROM coppie_turno");         // Dipende da turni_configurazione
-                await db.query("DELETE FROM scontri_squadre");      // Dipende da turni_configurazione
-                await db.query("DELETE FROM accoppiamenti_posizioni"); // Dipende da turni_configurazione
-                await db.query("DELETE FROM turni_configurazione"); // Tabella "genitore"
-
-                // Altre tabelle senza vincoli particolari
-                await db.query("DELETE FROM aste");
-                await db.query("DELETE FROM partecipanti_fantagts");
-                await db.query("DELETE FROM squadre_circolo");
-                await db.query("DELETE FROM slots");
-                await db.query("DELETE FROM push_subscriptions");
-                await db.query("DELETE FROM sostituzioni");
-                await db.query("DELETE FROM sessioni_fantagts");
-
-                gameState = {
-                    fase: 'setup',
-                    roundAttivo: null,
-                    asteAttive: false,
-                    connessi: new Map(),
-                    offerteTemporanee: new Map(),
-                    astaCorrente: 1,
-                    partecipantiAssegnati: new Set(),
-                    slotsRimasti: [],
-                    partecipantiInAttesa: [],
-                    partecipantiRimbalzati: new Set(),
-                    lastMonitorLog: null,
-                    lastOfferteCount: 0
-                };
-                res.json({ message: 'Sistema completamente resettato' });
-                break;
+                break;            
 
             default:
                 res.status(400).json({ error: 'Livello reset non valido' });
