@@ -2065,6 +2065,8 @@
             if (bidAmount) {
                 bidAmount.value = '';
                 bidAmount.disabled = false;
+                bidAmount.readOnly = false;
+                bidAmount.style.opacity = '1';
             }
 
             // 🆕 CRITICO: Re-abilita TUTTI i giocatori per la nuova asta
@@ -3443,6 +3445,10 @@
 
             socket.on('asta_started', (data) => {
                 console.log('🎪 ASTA_STARTED RICEVUTO!', data);
+
+                // Chiudi eventuali notifiche overlay rimaste aperte (rimbalzo/pareggio)
+                document.querySelectorAll('div[style*="z-index: 1999"], div[style*="z-index: 2000"]').forEach(el => el.remove());
+
                 console.log('📊 Dati:', {
                     round: data.round,
                     astaNumero: data.astaNumero,
@@ -3667,10 +3673,10 @@
                 // Determina il colore in base al tipo di notifica
                 let backgroundColor = 'rgba(239, 68, 68, 0.95)'; // Rosso per default (perdita)
 
-                if (data.title.includes('vinto') || data.title.includes('ingaggiato') || data.title.includes('COMPLIMENTI')) {
-                    backgroundColor = 'rgba(16, 185, 129, 0.95)'; // Verde per vittoria
-                } else if (data.title.includes('Pareggio')) {
-                    backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Arancione per pareggio
+                if (data.title.includes('COMPLIMENTI')) {
+                    backgroundColor = 'rgba(16, 185, 129, 0.95)'; // Verde solo per vittoria
+                } else if (data.title.includes('Pareggio') || data.title.includes('Non ingaggiato')) {
+                    backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Giallo/arancione per rimbalzo
                 }
 
                 const overlay = document.createElement('div');
@@ -3704,7 +3710,7 @@
                 `;
                 notification.innerHTML = `
                     <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
-                    <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.4;">${data.body}</div>
+                    <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
                     <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
                 `;
                 document.body.appendChild(overlay);
@@ -3715,6 +3721,9 @@
                 };
                 overlay.addEventListener('click', chiudiNotifica);
                 notification.addEventListener('click', chiudiNotifica);
+
+                // Auto-chiudi dopo 5 secondi per non bloccare l'interazione con la prossima asta
+                setTimeout(chiudiNotifica, 5000);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -3776,7 +3785,24 @@
             }
 
             document.getElementById('bidSection').style.display = 'block';
-            document.getElementById('bidAmount').focus();
+
+            // Se il partecipante ha 0 crediti, pre-compila automaticamente con 0
+            const bidAmountField = document.getElementById('bidAmount');
+            if (playerData.credits <= 0) {
+                bidAmountField.value = '0';
+                bidAmountField.readOnly = true;
+                bidAmountField.style.opacity = '0.7';
+                // Mostra messaggio informativo
+                const infoCrediti = document.getElementById('selectedPlayerInfo');
+                if (infoCrediti) {
+                    infoCrediti.innerHTML = `<strong>Selezionato: ${player.giocatore_attuale} (Squadra ${player.colore})</strong><br><span style="color: #fbd38d; font-size: 0.9em;">Crediti esauriti - offerta automatica a 0</span>`;
+                }
+            } else {
+                bidAmountField.readOnly = false;
+                bidAmountField.style.opacity = '1';
+                bidAmountField.focus();
+            }
+
             updateBidButton();
 
             window.selectedPlayer = player;

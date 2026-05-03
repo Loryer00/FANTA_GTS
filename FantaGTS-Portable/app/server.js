@@ -5191,11 +5191,11 @@ async function elaboraRisultatiAste() {
                                 const isPareggioPerso = perdente.offerta === offertaMassima;
                                 const messaggioDettaglio = isPareggioPerso
                                     ? `Pareggio con ${vincitore.nome} (entrambi ${offertaMassima} crediti), sorteggio favorevole a lui.`
-                                    : `${vincitore.nome} ha offerto ${offertaMassima} crediti (tu: ${perdente.offerta}).`;
+                                    : `${vincitore.nome} ha offerto ${offertaMassima} crediti!`;
 
                                 io.to(socketId).emit('show_notification', {
                                     title: isPareggioPerso ? '⚖️ Non ingaggiato - Pareggio' : '❌ Non ingaggiato',
-                                    body: `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio} Fai una nuova offerta nell'asta successiva.`,
+                                    body: `Non sei riuscito a ingaggiare ${nomeGiocatorePerPerdenti}.\n\n${messaggioDettaglio}\n\nFai una nuova offerta`,
                                     url: '/'
                                 });
                                 console.log(`📢 ${perdenti.length} perdenti notificati su ${nomeGiocatorePerPerdenti}`);
