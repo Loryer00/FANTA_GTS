@@ -3705,11 +3705,23 @@
                     animation: slideIn 0.3s ease-out;
                     cursor: pointer;
                 `;
-                notification.innerHTML = `
-                    <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
-                    <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
-                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                `;
+                let notificationContent = '';
+                if (data.isPareggioPerso && data.playerName) {
+                    notificationContent = `
+                        <div style="font-size: 1.2em; margin-bottom: 5px;">${data.title}</div>
+                        <div style="font-size: 0.85em; opacity: 0.9; margin-bottom: 8px;">Non sei riuscito a ingaggiare</div>
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">${data.playerName}</div>
+                        <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                        <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                    `;
+                                } else {
+                                    notificationContent = `
+                        <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
+                        <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                        <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                    `;
+                }
+                notification.innerHTML = notificationContent;
                 document.body.appendChild(overlay);
                 document.body.appendChild(notification);
                 const chiudiNotifica = () => {

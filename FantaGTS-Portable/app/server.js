@@ -5200,19 +5200,25 @@ async function elaboraRisultatiAste() {
                             if (connesso.partecipanteId === perdente.partecipante) {
                                 const isPareggioPerso = perdente.offerta === offertaMassima;
                                 const messaggioDettaglio = isPareggioPerso
-                                    ? `Pareggio con ${vincitore.nome} (entrambi ${offertaMassima} crediti), sorteggio favorevole a lui.`
+                                    ? `${vincitore.nome} ha offerto quanto te\nsorteggio favorevole per lui`
                                     : `${vincitore.nome} ha offerto ${offertaMassima} crediti!`;
 
                                 io.to(socketId).emit('show_notification', {
-                                    title: isPareggioPerso ? '⚖️ Non ingaggiato - Pareggio' : '❌ Non ingaggiato',
-                                    body: `Non sei riuscito a ingaggiare ${nomeGiocatorePerPerdenti}.\n\n${messaggioDettaglio}\n\nFai una nuova offerta`,
+                                    title: isPareggioPerso ? 'Pareggio' : 'Non ingaggiato',
+                                    playerName: nomeGiocatorePerPerdenti,
+                                    body: isPareggioPerso
+                                        ? `${messaggioDettaglio}\n\nFai una nuova offerta`
+                                        : `Non sei riuscito a ingaggiare ${nomeGiocatorePerPerdenti}.\n\n${messaggioDettaglio}\n\nFai una nuova offerta`,
+                                    isPareggioPerso: isPareggioPerso,
                                     url: '/'
                                 });
                                 console.log(`📢 ${perdenti.length} perdenti notificati su ${nomeGiocatorePerPerdenti}`);
 
                                 inviaNotifichePush({
-                                    title: isPareggioPerso ? '⚖️ Non ingaggiato - Pareggio' : '❌ Non ingaggiato',
-                                    body: `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio}`,
+                                    title: isPareggioPerso ? 'Pareggio' : 'Non ingaggiato',
+                                    body: isPareggioPerso
+                                        ? `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio}`
+                                        : `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio}`,
                                     url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
                                     targetUsers: [perdente.partecipante]
                                 }, true).catch(err => console.log('⚠️ Errore notifica push:', err));
