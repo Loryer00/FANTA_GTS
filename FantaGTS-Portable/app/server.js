@@ -1298,7 +1298,7 @@ async function terminaRoundCompleto() {
 }
 
 // Notifiche Push
-async function inviaNotifichePush(notificationData) {
+async function inviaNotifichePush(notificationData, skipWebSocket = false) {
     try {
         const { title, body, url, targetUsers, sessioneId } = notificationData;
         console.log('INVIO NOTIFICHE PUSH:', { title, body, targetUsers, sessioneId });
@@ -1314,7 +1314,10 @@ async function inviaNotifichePush(notificationData) {
         );
 
         let notificheTramiteSocket = 0;
-        for (let [socketId, connesso] of gameState.connessi.entries()) {
+        if (skipWebSocket) {
+            console.log('Skip notifica WebSocket (già inviata direttamente)');
+        } else
+            for (let [socketId, connesso] of gameState.connessi.entries()) {
             if (connesso.tipo === 'partecipante' &&
                 (!targetUsers || targetUsers.includes(connesso.partecipanteId))) {
 
@@ -5185,13 +5188,12 @@ async function elaboraRisultatiAste() {
                                 });
                                 console.log(`📢 ${perdenti.length} perdenti notificati su ${slotId}`);
 
-                                // Invia anche notifica push
                                 inviaNotifichePush({
                                     title: isPareggioPerso ? '⚖️ Pareggio perso' : '❌ Offerta superata',
                                     body: `Non hai vinto ${slotId}. ${messaggioDettaglio}`,
                                     url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
                                     targetUsers: [perdente.partecipante]
-                                }).catch(err => console.log('⚠️ Errore notifica push:', err));
+                                }, true).catch(err => console.log('⚠️ Errore notifica push:', err));
 
                                 break;
                             }
