@@ -2693,6 +2693,32 @@
             );
         }
 
+        function resetDraft() {
+            if (!sessioneCorrente) {
+                showNotification('Nessuna sessione draft attiva', 'error');
+                return;
+            }
+            showConfirmModal(
+                'Reset Squadre Draft',
+                'ATTENZIONE: Questa azione cancellera tutte le squadre formate dai partecipanti nel Draft. Dovranno rifare la selezione giocatori. Procedere?',
+                async () => {
+                    try {
+                        const response = await fetch(`/api/draft/reset/${sessioneCorrente}`, { method: 'POST' });
+                        if (response.ok) {
+                            const data = await response.json();
+                            showNotification(`${data.squadreCancellate} squadre draft cancellate con successo`, 'success');
+                            caricaSquadreInFormazione();
+                        } else {
+                            const errData = await response.json();
+                            showNotification(errData.error || 'Errore durante reset draft', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('Errore di connessione', 'error');
+                    }
+                }
+            );
+        }
+
         // Carica info sessione corrente
         async function caricaInfoSessione() {
             try {
@@ -2814,6 +2840,14 @@
             // Nascondi controlli aste
             document.querySelector('.controllo-aste-section')?.style.setProperty('display', 'none', 'important');
 
+            // Nascondi strumenti amministrazione aste (inutili per draft)
+            document.querySelectorAll('.section').forEach(sec => {
+                const titolo = sec.querySelector('h2');
+                if (titolo && titolo.textContent.includes('Strumenti Amministrazione')) {
+                    sec.style.setProperty('display', 'none', 'important');
+                }
+            });
+
             // Mostra controlli draft
             let draftSection = document.querySelector('.controllo-draft-section');
             if (!draftSection) {
@@ -2832,39 +2866,22 @@
             section.style.cssText = 'background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; margin-top: 20px;';
 
             section.innerHTML = `
-        <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">
-            🎯 Gestione Draft Libero
-        </h2>
-        
-        <div style="background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #667eea;">
-            <h3 style="margin-bottom: 10px; color: #667eea;">📋 Codice Accesso Sessione</h3>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <code style="font-size: 2em; font-weight: bold; letter-spacing: 5px; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px;">${sessioneData.codice_accesso || 'N/A'}</code>
-                <button onclick="copiaCodiceDraft('${sessioneData.codice_accesso}')" style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                    📋 Copia Codice
-                </button>
-            </div>
-            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                I partecipanti devono inserire questo codice su <strong>index.html</strong> per accedere alla selezione giocatori
-            </p>
-        </div>
+    <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">
+        Gestione Draft Libero
+    </h2>
 
-        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h3 style="margin-bottom: 15px; color: #667eea;">👥 Partecipanti Registrati</h3>
-            <div id="draftPartecipantiList">
-                <p style="opacity: 0.7;">Caricamento...</p>
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 15px; margin-top: 20px;">
-            <button onclick="aggiornaStatoDraft()" style="flex: 1; background: #4299e1; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                🔄 Aggiorna Stato
-            </button>
-            <button onclick="window.open('/draft-selection.html', '_blank')" style="flex: 1; background: #667eea; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                👁️ Preview Selezione
-            </button>
-        </div>
-    `;
+    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 20px;">
+        <button onclick="aggiornaStatoDraft()" style="flex: 1; min-width: 140px; background: #4299e1; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+            Aggiorna Stato
+        </button>
+        <button onclick="window.open('/draft-selection.html', '_blank')" style="flex: 1; min-width: 140px; background: #667eea; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+            Preview Selezione
+        </button>
+        <button onclick="resetDraft()" style="flex: 1; min-width: 140px; background: #f56565; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+            Reset Squadre Draft
+        </button>
+    </div>
+`;
 
             return section;
         }

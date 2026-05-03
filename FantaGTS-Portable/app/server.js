@@ -6450,6 +6450,50 @@ app.post('/api/sessioni/:id/reset', async (req, res) => {
     }
 });
 
+// POST: Reset solo squadre draft di una sessione
+app.post('/api/draft/reset/:sessioneId', async (req, res) => {
+    try {
+        const sessioneId = req.params.sessioneId;
+
+        // Verifica che la sessione esista e sia draft
+        const check = await db.query(
+            'SELECT * FROM sessioni_fantagts WHERE id = $1',
+            [sessioneId]
+        );
+        if (check.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+        if (check.rows[0].modalita !== 'draft_libero') {
+            return res.status(400).json({ error: 'Questa sessione non e\' di tipo draft' });
+        }
+
+        await db.query('BEGIN');
+
+        // Conta quante squadre verranno cancellate
+        const countResult = await db.query(
+            'SELECT COUNT(DISTINCT partecipante_id) as totale FROM squadre_draft WHERE sessione_id = $1',
+            [sessioneId]
+        );
+        const squadreCancellate = parseInt(countResult.rows[0].totale);
+
+        // Cancella tutte le squadre draft della sessione
+        await db.query('DELETE FROM squadre_draft WHERE sessione_id = $1', [sessioneId]);
+
+        await db.query('COMMIT');
+
+        console.log(`🔄 Reset Draft completato - Sessione: ${sessioneId} - ${squadreCancellate} squadre cancellate`);
+        res.json({
+            success: true,
+            message: `${squadreCancellate} squadre draft cancellate`,
+            squadreCancellate: squadreCancellate
+        });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('❌ Errore reset draft:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // DELETE: Elimina sessione completamente
 app.delete('/api/sessioni/:id', async (req, res) => {
     try {
