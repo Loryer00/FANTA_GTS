@@ -2489,7 +2489,8 @@ app.get('/api/partecipanti', async (req, res) => {
         // Per le sessioni con partecipanti_sessioni_accesso (draft), fa JOIN
         // Per le vecchie sessioni con sessione_id diretto, usa quello
         const result = await db.query(`
-            SELECT p.id, p.nome, p.pin, psa.crediti
+            SELECT p.id, p.nome, p.pin, psa.crediti, psa.primo_accesso,
+                (SELECT COUNT(*) FROM push_subscriptions ps WHERE ps.partecipante_id = p.id AND ps.attiva = true) as notifiche_attive
             FROM partecipanti_fantagts p
             INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
             WHERE psa.sessione_id = $1 AND p.attivo = true

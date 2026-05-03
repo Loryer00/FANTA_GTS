@@ -1536,42 +1536,42 @@
                 }
 
                 let html = `
-                                <div style="margin-bottom: 15px;">
-                                    <strong>Totale partecipanti: ${partecipanti.length}</strong> |
-                                    <strong>Sessione: ${sessioneId}</strong>
-                                </div>
-                                <table class="results-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Nome</th>
-                                            <th>Crediti</th>
-                                            <th>Giocatori</th>
-                                            <th>Notifiche</th>
-                                            <th>Registrato</th>
-                                            <th>Azioni</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                            `;
+                    <div style="margin-bottom: 15px;">
+                        <strong>Totale partecipanti: ${partecipanti.length}</strong> |
+                        <strong>Sessione: ${sessioneId}</strong>
+                    </div>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Crediti</th>
+                                <th>Notifiche</th>
+                                <th>Registrato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
 
                 partecipanti.forEach(p => {
-                    const dataRegistrazione = new Date(p.created_at).toLocaleDateString('it-IT');
+                    const dataRaw = p.primo_accesso;
+                    const dataRegistrazione = dataRaw ? new Date(dataRaw).toLocaleDateString('it-IT') : 'N/D';
+                    const notificheOk = parseInt(p.notifiche_attive) > 0;
                     html += `
-                                    <tr id="partecipante-${p.id}">
-                                        <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
-                                        <td>${p.crediti}</td>
-                                        <td>-</td>
-                                        <td>❌</td>
-                                        <td>${dataRegistrazione}</td>
-                                        <td>
-                                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
-                                                    onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
-                                                    title="Elimina partecipante">
-                                                🗑️ Elimina
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `;
+                        <tr id="partecipante-${p.id}">
+                            <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                            <td>${p.crediti}</td>
+                            <td style="text-align: center;">${notificheOk ? '<span style="color: #48bb78;">Attive</span>' : '<span style="color: #f56565;">No</span>'}</td>
+                            <td>${dataRegistrazione}</td>
+                            <td>
+                                <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
+                                        onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
+                                        title="Elimina partecipante">
+                                    Elimina
+                                </button>
+                            </td>
+                        </tr>
+                    `;
                 });
 
                 html += '</tbody></table>';
