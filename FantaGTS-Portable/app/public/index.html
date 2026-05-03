@@ -1079,7 +1079,7 @@
                             <strong>💰 Crediti disponibili: <span id="creditsDisplay">--</span></strong>
                         </div>
 
-                        <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="1" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
+                        <input type="number" id="bidAmount" placeholder="Inserisci la tua puntata" min="0" style="width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 1.1em;">
 
                         <button id="confirmBidBtn" onclick="confirmBid()" disabled style="width: 100%; padding: 15px; background: #f56565; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: not-allowed;">
                             Conferma Puntata
@@ -3590,6 +3590,14 @@
                 const [posizione, coloreSquadra] = data.slotWon.split('_');
                 const coloreSfondo = getTeamColor(data.teamColor);
 
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.6);
+                    z-index: 1999;
+                    cursor: pointer;
+                `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
                     position: fixed; 
@@ -3607,15 +3615,20 @@
                     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
                     backdrop-filter: blur(10px);
                     border: 2px solid rgba(255,255,255,0.2);
+                    cursor: pointer;
                 `;
                 notification.innerHTML = `
                     <div>🏆 COMPLIMENTI!</div>
                     <div style="margin: 10px 0;">Hai vinto:</div>
                     <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
                     <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
                 `;
+                document.body.appendChild(overlay);
                 document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 2000);
+                const chiudiNotifica = () => { overlay.remove(); notification.remove(); };
+                overlay.addEventListener('click', chiudiNotifica);
+                notification.addEventListener('click', chiudiNotifica);
             });
 
             // 📢 LISTENER: Notifiche generali (pareggi, avvisi, ecc.)
@@ -3631,6 +3644,14 @@
                     backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Arancione per pareggio
                 }
 
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.6);
+                    z-index: 1999;
+                    cursor: pointer;
+                `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
                     position: fixed; 
@@ -3650,20 +3671,21 @@
                     border: 2px solid rgba(255,255,255,0.3);
                     max-width: 90%;
                     animation: slideIn 0.3s ease-out;
+                    cursor: pointer;
                 `;
-
-                            notification.innerHTML = `
+                notification.innerHTML = `
                     <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
                     <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.4;">${data.body}</div>
+                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
                 `;
-
+                document.body.appendChild(overlay);
                 document.body.appendChild(notification);
-
-                // Rimuovi dopo 2.5 secondi (più veloce)
-                setTimeout(() => {
+                const chiudiNotifica = () => {
                     notification.style.animation = 'slideOut 0.3s ease-in';
-                    setTimeout(() => notification.remove(), 300);
-                }, 2500);
+                    setTimeout(() => { overlay.remove(); notification.remove(); }, 300);
+                };
+                overlay.addEventListener('click', chiudiNotifica);
+                notification.addEventListener('click', chiudiNotifica);
             });
 
             socket.on('bid_confirmed', (data) => {
@@ -3749,7 +3771,7 @@
         async function confirmBid() {
             const bidAmount = parseInt(document.getElementById('bidAmount').value);
 
-            if (!window.selectedPlayer || !bidAmount) {
+            if (!window.selectedPlayer || bidAmount === null || isNaN(bidAmount) || bidAmount < 0) {
                 mostraMessaggio('⚠️ Seleziona un giocatore e inserisci una puntata!', 'warning');
                 return;
             }

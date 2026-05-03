@@ -5870,7 +5870,7 @@ io.on('connection', (socket) => {
         // }
 
         // Verifica validità dati offerta
-        if (!data.slot || !data.importo || data.importo <= 0) {
+        if (!data.slot || data.importo === undefined || data.importo === null || data.importo < 0) {
             console.log(`❌ Dati offerta non validi:`, data);
             socket.emit('bid_error', { message: 'Dati offerta non validi' });
             return;
