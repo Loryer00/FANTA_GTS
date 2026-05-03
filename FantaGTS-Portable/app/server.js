@@ -1446,8 +1446,8 @@ async function inviaNotifichePush(notificationData, skipWebSocket = false) {
         const payload = JSON.stringify({
             title: title, // 🆕 Titolo pulito senza emoji extra
             body: body, // 🆕 Body pulito senza emoji extra
-            icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',
-            badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E',            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
+            icon: 'https://fantagts-production.up.railway.app/icons/icon-192x192.png',
+            badge: 'https://fantagts-production.up.railway.app/icons/icon-96x96.png',            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
             requireInteraction: true, // CAMBIATO: torna true per persistenza
             tag: 'fantagts-urgent',
             renotify: true,
@@ -1477,7 +1477,7 @@ async function inviaNotifichePush(notificationData, skipWebSocket = false) {
                 {
                     action: 'open',
                     title: '🚀 Apri FantaGTS',
-                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ctext y=".9em" font-size="90"%3E🎾%3C/text%3E%3C/svg%3E'
+                    icon: 'https://fantagts-production.up.railway.app/icons/icon-96x96.png'
                 },
                 {
                     action: 'remind',
