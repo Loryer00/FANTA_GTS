@@ -5114,7 +5114,7 @@ async function elaboraRisultatiAste() {
 
         console.log(`🎯 Offerte distribuite su ${Object.keys(offertePerSlot).length} slot differenti`);
 
-        Object.keys(offertePerSlot).forEach(slotId => {
+        for (const slotId of Object.keys(offertePerSlot)) {
             const offerte = offertePerSlot[slotId];
             if (offerte.length > 0) {
                 // Ordina per offerta decrescente
@@ -5164,10 +5164,23 @@ async function elaboraRisultatiAste() {
                 if (perdenti.length > 0) {
                     console.log(`${perdenti.length} perdenti notificati su ${slotId}`);
 
-                    perdenti.forEach(perdente => {
+                    // Recupera il nome reale del giocatore per i messaggi ai perdenti
+                    let nomeGiocatorePerPerdenti = slotId;
+                    try {
+                        const slotInfoPerdenti = await db.query(
+                            'SELECT giocatore_attuale FROM slots WHERE id = $1',
+                            [slotId]
+                        );
+                        if (slotInfoPerdenti.rows.length > 0 && slotInfoPerdenti.rows[0].giocatore_attuale) {
+                            nomeGiocatorePerPerdenti = slotInfoPerdenti.rows[0].giocatore_attuale;
+                        }
+                    } catch (err) {
+                        console.log('Errore recupero nome giocatore per perdenti:', err);
+                    }
+
+                    for (const perdente of perdenti) {
                         perdentiDaNotificare.add(perdente.partecipante);
 
-                        // Aggiungi ai rimbalzati per il monitoraggio
                         if (!gameState.partecipantiRimbalzati) {
                             gameState.partecipantiRimbalzati = new Set();
                         }
@@ -5175,22 +5188,21 @@ async function elaboraRisultatiAste() {
 
                         for (let [socketId, connesso] of gameState.connessi.entries()) {
                             if (connesso.partecipanteId === perdente.partecipante) {
-                                // Determina il messaggio in base al tipo di perdita
                                 const isPareggioPerso = perdente.offerta === offertaMassima;
                                 const messaggioDettaglio = isPareggioPerso
                                     ? `Pareggio con ${vincitore.nome} (entrambi ${offertaMassima} crediti), sorteggio favorevole a lui.`
                                     : `${vincitore.nome} ha offerto ${offertaMassima} crediti (tu: ${perdente.offerta}).`;
 
                                 io.to(socketId).emit('show_notification', {
-                                    title: isPareggioPerso ? '⚖️ Pareggio perso' : '❌ Offerta superata',
-                                    body: `Non hai vinto ${slotId}. ${messaggioDettaglio} Fai una nuova offerta nell'asta successiva.`,
+                                    title: isPareggioPerso ? '⚖️ Non ingaggiato - Pareggio' : '❌ Non ingaggiato',
+                                    body: `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio} Fai una nuova offerta nell'asta successiva.`,
                                     url: '/'
                                 });
-                                console.log(`📢 ${perdenti.length} perdenti notificati su ${slotId}`);
+                                console.log(`📢 ${perdenti.length} perdenti notificati su ${nomeGiocatorePerPerdenti}`);
 
                                 inviaNotifichePush({
-                                    title: isPareggioPerso ? '⚖️ Pareggio perso' : '❌ Offerta superata',
-                                    body: `Non hai vinto ${slotId}. ${messaggioDettaglio}`,
+                                    title: isPareggioPerso ? '⚖️ Non ingaggiato - Pareggio' : '❌ Non ingaggiato',
+                                    body: `Non hai ingaggiato ${nomeGiocatorePerPerdenti}. ${messaggioDettaglio}`,
                                     url: `/?sessione=${gameState.sessioneCorrente || sessioneCorrente}&auto_open=true`,
                                     targetUsers: [perdente.partecipante]
                                 }, true).catch(err => console.log('⚠️ Errore notifica push:', err));
@@ -5198,10 +5210,10 @@ async function elaboraRisultatiAste() {
                                 break;
                             }
                         }
-                    });
+                    }
                 }
             }
-        });
+        }
 
         // 🆕 Log riepilogo perdenti
         if (perdentiDaNotificare.size > 0) {
@@ -5268,8 +5280,8 @@ async function elaboraRisultatiAste() {
                         shared: risultato.condiviso,
                         premium: risultato.premium,
                         message: risultato.condiviso
-                            ? `Hai vinto ${nomeGiocatoreReale} (condiviso) per ${risultato.costoFinale} crediti!`
-                            : `Hai vinto ${nomeGiocatoreReale}! La tua asta è terminata.`
+                            ? `Hai ingaggiato ${nomeGiocatoreReale} (condiviso) per ${risultato.costoFinale} crediti!`
+                            : `Hai ingaggiato ${nomeGiocatoreReale}! La tua asta e' terminata.`
                     });
                     break;
                 }
@@ -5318,8 +5330,8 @@ async function elaboraRisultatiAste() {
                         position: risultato.posizione,
                         shared: risultato.condiviso,
                         message: risultato.condiviso && risultato.posizione > 1
-                            ? `Hai vinto ${risultato.slot} (condiviso - ${risultato.posizione}° posto) per ${risultato.costoFinale} crediti (premium +${Math.round(risultato.premium * 100)}%)`
-                            : `Hai vinto ${risultato.slot} per ${risultato.costoFinale} crediti!`
+                            ? `Hai ingaggiato ${risultato.slot} (condiviso - ${risultato.posizione} posto) per ${risultato.costoFinale} crediti (premium +${Math.round(risultato.premium * 100)}%)`
+                            : `Hai ingaggiato ${risultato.slot} per ${risultato.costoFinale} crediti!`
                     });
                 }
             }

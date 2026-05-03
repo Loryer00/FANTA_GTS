@@ -3648,7 +3648,7 @@
                 `;
                 notification.innerHTML = `
                     <div>🏆 COMPLIMENTI!</div>
-                    <div style="margin: 10px 0;">Hai vinto:</div>
+                    <div style="margin: 10px 0;">Hai ingaggiato:</div>
                     <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
                     <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
                     <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
@@ -3667,7 +3667,7 @@
                 // Determina il colore in base al tipo di notifica
                 let backgroundColor = 'rgba(239, 68, 68, 0.95)'; // Rosso per default (perdita)
 
-                if (data.title.includes('vinto') || data.title.includes('COMPLIMENTI')) {
+                if (data.title.includes('vinto') || data.title.includes('ingaggiato') || data.title.includes('COMPLIMENTI')) {
                     backgroundColor = 'rgba(16, 185, 129, 0.95)'; // Verde per vittoria
                 } else if (data.title.includes('Pareggio')) {
                     backgroundColor = 'rgba(245, 158, 11, 0.95)'; // Arancione per pareggio
