@@ -3757,7 +3757,7 @@
             const bidAmount = document.getElementById('bidAmount').value;
             const confirmBtn = document.getElementById('confirmBidBtn');
 
-            if (bidAmount && parseInt(bidAmount) > 0 && parseInt(bidAmount) <= playerData.credits) {
+            if (bidAmount !== '' && parseInt(bidAmount) >= 0 && parseInt(bidAmount) <= playerData.credits) {
                 confirmBtn.disabled = false;
                 confirmBtn.style.cursor = 'pointer';
                 confirmBtn.style.background = '#48bb78';
