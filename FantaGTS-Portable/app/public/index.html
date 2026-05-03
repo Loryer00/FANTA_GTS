@@ -2329,8 +2329,37 @@
                     const posizioni = squadra.map(g => g.posizione);
                     generaSlotDinamici(posizioni);
                 } else {
-                    // Fallback finale: posizioni default
-                    generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'F1', 'F2', 'F3']);
+                    // Fallback finale: recupera posizioni dalla configurazione delle squadre
+                    try {
+                        const configId = window.sessioneOggetto?.configurazione_id || 'default';
+                        const fallbackResp = await fetch('/api/squadre?configurazione=' + configId);
+                        if (fallbackResp.ok) {
+                            const squadreFallback = await fallbackResp.json();
+                            if (squadreFallback.length > 0) {
+                                const ref = squadreFallback[0];
+                                const posCalcolate = [];
+                                for (let i = 1; i <= 7; i++) {
+                                    if (ref['m' + i] && ref['m' + i].trim() !== '') posCalcolate.push('M' + i);
+                                }
+                                for (let i = 1; i <= 3; i++) {
+                                    if (ref['f' + i] && ref['f' + i].trim() !== '') posCalcolate.push('F' + i);
+                                }
+                                if (posCalcolate.length > 0) {
+                                    generaSlotDinamici(posCalcolate);
+                                } else {
+                                    generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2']);
+                                }
+                            } else {
+                                generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2']);
+                            }
+                        } else {
+                            generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2']);
+                        }
+                    } catch (fallbackErr) {
+                        console.error('Errore fallback posizioni:', fallbackErr);
+                        generaSlotDinamici(['M1', 'M2', 'M3', 'M4', 'M5', 'F1', 'F2']);
+                    }
+
                 }
 
                 // Reset UI prima di popolare
