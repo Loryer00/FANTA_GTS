@@ -3444,10 +3444,7 @@
             });
 
             socket.on('asta_started', (data) => {
-                console.log('🎪 ASTA_STARTED RICEVUTO!', data);
-
-                // Chiudi eventuali notifiche overlay rimaste aperte (rimbalzo/pareggio)
-                document.querySelectorAll('div[style*="z-index: 1999"], div[style*="z-index: 2000"]').forEach(el => el.remove());
+                console.log('🎪 ASTA_STARTED RICEVUTO!', data); 
 
                 console.log('📊 Dati:', {
                     round: data.round,

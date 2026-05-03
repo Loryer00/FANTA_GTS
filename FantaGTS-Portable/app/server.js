@@ -4523,10 +4523,20 @@ function avviaMonitoraggioOfferte() {
 // API per forzare fine round
 app.post('/api/forza-fine-round', async (req, res) => {
     if (!gameState.asteAttive) {
-        return res.status(400).json({ error: 'Nessun round attivo' });
+        console.log('Forza fine round: aste non attive, forzatura stato e pulizia');
+        // Forza comunque il reset completo dello stato
+        gameState.asteAttive = false;
+        gameState.roundAttivo = null;
+        gameState.offerteTemporanee.clear();
+        gameState.gamePhase = 'idle';
+
+        // Notifica tutti i client
+        io.emit('round_ended', { round: 'forzato', forced: true });
+
+        return res.json({ message: 'Stato forzatamente resettato' });
     }
 
-    await terminaRound(true);  // Passa true per forzare la chiusura
+    await terminaRound(true);
     res.json({ message: 'Round terminato forzatamente' });
 });
 
@@ -5404,7 +5414,7 @@ async function salvaRisultatiAsta(round, risultati, giocatoriReplicati = [], sta
                     round,
                     r.partecipante,
                     r.slot,
-                    r.offerta || r.offertaOriginale,
+                    r.offerta !== undefined && r.offerta !== null ? r.offerta : (r.offertaOriginale || 0),
                     r.costoFinale,
                     r.premium,
                     r.condiviso,

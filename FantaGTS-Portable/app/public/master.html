@@ -1395,6 +1395,18 @@
                 // PULIZIA LOCALSTORAGE
                 clearMasterState();
 
+                // RESET STATO GIOCO
+                gameState.asteAttive = false;
+                gameState.roundAttivo = null;
+                participantsBids.clear();
+                participantsBounced.clear();
+                participantsDisconnected.clear();
+                participantsAssigned.clear();
+
+                // Aggiorna la UI dei partecipanti (rimuove "DEVE SCEGLIERE")
+                updatePartecipanti();
+                updateStats();
+
                 showNotification('🔄 Interfaccia Master resettata!', 'success');
             });
         }
