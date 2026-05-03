@@ -86,7 +86,11 @@ const db = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log('🔍 Connessione PostgreSQL...');
+// Modulo editing squadre partecipanti
+const editSquadraRoutes = require('./routes/edit-squadra')(db);
+app.use(editSquadraRoutes);
+
+console.log('Connessione PostgreSQL...');
 
 // Inizializza database
 async function initializeDatabase() {
