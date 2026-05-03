@@ -10,11 +10,11 @@ let editSquadraState = {
     creditiIniziali: 0,
     posizioni: [],
     squadra: {},
-    giocatoriCaricati: {}
+    posizioneCorrente: null
 };
 
 // =====================================================
-// APERTURA / CHIUSURA MODAL
+// APERTURA / CHIUSURA MODAL PRINCIPALE
 // =====================================================
 
 async function apriEditSquadra(partecipanteId, partecipanteNome) {
@@ -35,7 +35,6 @@ async function apriEditSquadra(partecipanteId, partecipanteNome) {
     document.getElementById('editSquadraTitolo').textContent = 'Modifica Squadra - ' + partecipanteNome;
 
     try {
-        // Carica dettaglio completo
         const response = await fetch(`/api/edit-squadra/dettaglio/${partecipanteId}?sessione_id=${sessioneId}`);
 
         if (!response.ok) {
@@ -60,7 +59,6 @@ async function apriEditSquadra(partecipanteId, partecipanteNome) {
 
 function chiudiEditSquadra() {
     document.getElementById('editSquadraModal').style.display = 'none';
-    editSquadraState.giocatoriCaricati = {};
 
     // Ricarica le squadre nel master per riflettere le modifiche
     if (typeof caricaSquadreInFormazione === 'function') {
@@ -69,7 +67,7 @@ function chiudiEditSquadra() {
 }
 
 // =====================================================
-// RENDER DEL MODAL
+// RENDER DEL MODAL PRINCIPALE
 // =====================================================
 
 function renderEditSquadra() {
@@ -127,7 +125,7 @@ function renderEditSquadra() {
                         <div style="font-size: 0.8em; opacity: 0.7;">Squadra ${giocatore.colore}${!isDraft ? ' | Costo: ' + giocatore.costo : ''}</div>
                     </div>
                     <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                        <button onclick="apriSelezioneGiocatore('${pos}')" style="
+                        <button onclick="apriSelezioneGiocatoreModal('${pos}')" style="
                             background: #f59e0b; color: #000; border: none; border-radius: 6px;
                             padding: 6px 10px; cursor: pointer; font-size: 0.8em; font-weight: bold;
                         ">Cambia</button>
@@ -155,7 +153,7 @@ function renderEditSquadra() {
                         <div style="font-weight: bold; font-size: 0.85em; color: #a0aec0;">${pos}</div>
                     </div>
                     <div style="flex: 1; opacity: 0.5; font-style: italic;">- vuoto -</div>
-                    <button onclick="apriSelezioneGiocatore('${pos}')" style="
+                    <button onclick="apriSelezioneGiocatoreModal('${pos}')" style="
                         background: #48bb78; color: white; border: none; border-radius: 6px;
                         padding: 6px 12px; cursor: pointer; font-size: 0.8em; font-weight: bold;
                     ">Aggiungi</button>
@@ -166,44 +164,20 @@ function renderEditSquadra() {
 
     html += '</div>';
 
-    // Panel selezione giocatore (nascosto inizialmente)
-    html += `
-        <div id="editSelezionePanel" style="display: none; margin-top: 15px;">
-            <div style="
-                background: rgba(66, 153, 225, 0.1);
-                border: 2px solid #4299e1;
-                border-radius: 12px;
-                padding: 15px;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h4 id="editSelezioneTitolo" style="margin: 0; color: #4299e1;">Seleziona giocatore</h4>
-                    <button onclick="chiudiSelezioneGiocatore()" style="
-                        background: transparent; border: 1px solid #a0aec0; color: #a0aec0;
-                        border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85em;
-                    ">Chiudi</button>
-                </div>
-                <div id="editGiocatoriLista" style="max-height: 300px; overflow-y: auto;">
-                    <p style="text-align:center; opacity: 0.6;">Caricamento giocatori...</p>
-                </div>
-            </div>
-        </div>
-    `;
-
     container.innerHTML = html;
 }
 
 // =====================================================
-// SELEZIONE GIOCATORE
+// MODAL SELEZIONE GIOCATORE (seconda finestra)
 // =====================================================
 
-async function apriSelezioneGiocatore(posizione) {
-    const panel = document.getElementById('editSelezionePanel');
-    panel.style.display = 'block';
-    document.getElementById('editSelezioneTitolo').textContent = 'Giocatori disponibili per ' + posizione;
-    document.getElementById('editGiocatoriLista').innerHTML = '<p style="text-align:center; opacity: 0.6;">Caricamento...</p>';
+async function apriSelezioneGiocatoreModal(posizione) {
+    editSquadraState.posizioneCorrente = posizione;
 
-    // Scroll al panel
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Apri la seconda modal
+    document.getElementById('selezioneGiocatoreModal').style.display = 'flex';
+    document.getElementById('selezioneGiocatoreTitolo').textContent = 'Giocatori disponibili per ' + posizione;
+    document.getElementById('selezioneGiocatoreContent').innerHTML = '<p style="text-align:center; padding: 30px;">Caricamento...</p>';
 
     try {
         const response = await fetch(
@@ -218,7 +192,7 @@ async function apriSelezioneGiocatore(posizione) {
         let html = '';
 
         if (data.giocatori.length === 0) {
-            html = '<p style="text-align:center; opacity: 0.6;">Nessun giocatore disponibile</p>';
+            html = '<p style="text-align:center; opacity: 0.6; padding: 20px;">Nessun giocatore disponibile</p>';
         } else {
             data.giocatori.forEach(g => {
                 const teamColor = typeof getTeamColorForMaster === 'function'
@@ -230,7 +204,7 @@ async function apriSelezioneGiocatore(posizione) {
 
                 let badgeHtml = '';
                 if (isAssegnatoAMe) {
-                    badgeHtml = '<span style="color: #48bb78; font-size: 0.8em; font-weight: bold;">TUO</span>';
+                    badgeHtml = '<span style="color: #48bb78; font-size: 0.8em; font-weight: bold;">GIA TUO</span>';
                 } else if (isAssegnato) {
                     badgeHtml = `<span style="color: #f59e0b; font-size: 0.75em;">Assegnato a ${g.assegnato_a.nome}</span>`;
                 }
@@ -241,8 +215,8 @@ async function apriSelezioneGiocatore(posizione) {
                     costoInput = `
                         <input type="number" id="costo-${g.slot_id}" value="0" min="0" 
                             placeholder="Costo" style="
-                                width: 65px; padding: 4px 6px; border-radius: 4px; border: 1px solid #4a5568;
-                                background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.85em;
+                                width: 70px; padding: 6px 8px; border-radius: 6px; border: 1px solid #4a5568;
+                                background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.9em;
                                 text-align: center;
                             "
                         />
@@ -251,29 +225,29 @@ async function apriSelezioneGiocatore(posizione) {
 
                 html += `
                     <div style="
-                        display: flex; align-items: center; gap: 10px;
-                        padding: 8px 10px; margin-bottom: 4px;
+                        display: flex; align-items: center; gap: 12px;
+                        padding: 10px 12px; margin-bottom: 6px;
                         background: ${isAssegnatoAMe ? 'rgba(72, 187, 120, 0.15)' : 'rgba(255,255,255,0.05)'};
-                        border-radius: 8px;
+                        border-radius: 10px;
                         border-left: 4px solid ${teamColor};
                         ${isAssegnato && !isAssegnatoAMe ? 'opacity: 0.7;' : ''}
                     ">
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: bold; font-size: 0.95em;">${g.nome}</div>
-                            <div style="font-size: 0.75em; opacity: 0.7;">
-                                Sq. ${g.colore} (#${g.squadra_numero}) | Punti: ${g.punti_totali}
+                            <div style="font-weight: bold; font-size: 1em;">${g.nome}</div>
+                            <div style="font-size: 0.8em; opacity: 0.7; margin-top: 2px;">
+                                Squadra ${g.colore} (#${g.squadra_numero}) | Punti: ${g.punti_totali}
                             </div>
-                            ${badgeHtml}
+                            ${badgeHtml ? '<div style="margin-top: 3px;">' + badgeHtml + '</div>' : ''}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                             ${costoInput}
                             <button onclick="assegnaGiocatoreEdit('${posizione}', '${g.slot_id}')" style="
                                 background: ${isAssegnatoAMe ? '#4a5568' : '#48bb78'}; 
-                                color: white; border: none; border-radius: 6px;
-                                padding: 6px 10px; cursor: pointer; font-size: 0.8em; font-weight: bold;
+                                color: white; border: none; border-radius: 8px;
+                                padding: 8px 14px; cursor: pointer; font-size: 0.85em; font-weight: bold;
                                 ${isAssegnatoAMe ? 'cursor: not-allowed;' : ''}
                             " ${isAssegnatoAMe ? 'disabled' : ''}>
-                                ${isAssegnatoAMe ? 'Gia assegnato' : 'Assegna'}
+                                ${isAssegnatoAMe ? 'Assegnato' : 'Assegna'}
                             </button>
                         </div>
                     </div>
@@ -281,17 +255,17 @@ async function apriSelezioneGiocatore(posizione) {
             });
         }
 
-        document.getElementById('editGiocatoriLista').innerHTML = html;
+        document.getElementById('selezioneGiocatoreContent').innerHTML = html;
 
     } catch (err) {
         console.error('Errore caricamento giocatori:', err);
-        document.getElementById('editGiocatoriLista').innerHTML =
-            '<p style="text-align:center; color: #f56565;">Errore nel caricamento</p>';
+        document.getElementById('selezioneGiocatoreContent').innerHTML =
+            '<p style="text-align:center; color: #f56565; padding: 20px;">Errore nel caricamento</p>';
     }
 }
 
-function chiudiSelezioneGiocatore() {
-    document.getElementById('editSelezionePanel').style.display = 'none';
+function chiudiSelezioneGiocatoreModal() {
+    document.getElementById('selezioneGiocatoreModal').style.display = 'none';
 }
 
 // =====================================================
@@ -313,7 +287,6 @@ async function assegnaGiocatoreEdit(posizione, slotId) {
         }
     }
 
-    // Conferma se il giocatore e' gia' assegnato ad un altro
     try {
         const response = await fetch('/api/edit-squadra/assegna', {
             method: 'POST',
@@ -336,7 +309,10 @@ async function assegnaGiocatoreEdit(posizione, slotId) {
 
         showNotification(data.message, 'success');
 
-        // Ricarica i dati del modal
+        // Chiudi la modal di selezione
+        chiudiSelezioneGiocatoreModal();
+
+        // Ricarica i dati del modal principale
         await ricaricarDatiEdit();
 
     } catch (err) {
@@ -380,7 +356,7 @@ async function rimuoviGiocatoreEdit(posizione) {
         }
         showNotification(msg, 'success');
 
-        // Ricarica i dati del modal
+        // Ricarica i dati del modal principale
         await ricaricarDatiEdit();
 
     } catch (err) {

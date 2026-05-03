@@ -756,6 +756,24 @@
         </div>
     </div>
 
+    <!-- Modal Selezione Giocatore -->
+    <div id="selezioneGiocatoreModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 id="selezioneGiocatoreTitolo" style="margin: 0;">Seleziona giocatore</h3>
+                <button onclick="chiudiSelezioneGiocatoreModal()" style="
+                    background: transparent; border: 1px solid #a0aec0; color: #a0aec0;
+                    border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.9em;
+                ">
+                    Chiudi
+                </button>
+            </div>
+            <div id="selezioneGiocatoreContent">
+                <p>Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Variabili globali
         let socket;
@@ -880,55 +898,55 @@
             // Aggiungi banner sessione
             const sessionBanner = document.createElement('div');
             sessionBanner.style.cssText = `
-                        background: rgba(66, 153, 225, 0.2);
-                        padding: 12px 20px;
-                        border-radius: 10px;
-                        margin-top: 15px;
-                        border: 2px solid #4299e1;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    `;
+                            background: rgba(66, 153, 225, 0.2);
+                            padding: 12px 20px;
+                            border-radius: 10px;
+                            margin-top: 15px;
+                            border: 2px solid #4299e1;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        `;
 
             sessionBanner.innerHTML = `
-                        <div>
-                            <strong style="color: #4299e1; font-size: 1.05em;">📋 ${sessioneInfo.nome}</strong>
-                            <span style="margin-left: 15px; color: #cbd5e0; font-size: 0.95em;">
-                                ${sessioneInfo.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                            </span>
-                            ${sessioneInfo.anno ? `<span style="margin-left: 10px; color: #cbd5e0; font-size: 0.9em;">• ${sessioneInfo.anno}</span>` : ''}
-                            <span style="margin-left: 15px; padding: 4px 12px; background: rgba(72, 187, 120, 0.3); border-radius: 15px; font-size: 0.85em; color: #48bb78; font-weight: bold;">
-                                ✓ ATTIVA
-                            </span>
-                            <span style="margin-left: 15px; padding: 4px 12px; background: rgba(0, 0, 0, 0.4); border-radius: 8px; font-size: 0.9em; color: #ffd700; font-weight: bold; font-family: monospace; letter-spacing: 3px; border: 1px solid rgba(255, 215, 0, 0.3);">
-                                🔑 ${sessioneInfo.codice_accesso || 'N/A'}
-                            </span>
-                            ${sessioneInfo.modalita === 'asta_competitiva' ? `
-                                <span style="margin-left: 15px; padding: 4px 12px; background: rgba(66, 153, 225, 0.2); border-radius: 8px; font-size: 0.9em; color: #4299e1; border: 1px solid rgba(66, 153, 225, 0.3); display: inline-flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 1.1em;">💰</span>
-                                    <input
-                                        type="number"
-                                        id="creditiSessione"
-                                        value="${sessioneInfo.crediti_iniziali || 2000}"
-                                        min="100"
-                                        max="100000"
-                                        step="100"
-                                        onchange="aggiornaCreditiSessione(this.value)"
-                                        style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #4299e1; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-align: center;"
-                                    >
-                                    <span style="font-size: 0.85em; color: #cbd5e0;">crediti</span>
+                            <div>
+                                <strong style="color: #4299e1; font-size: 1.05em;">📋 ${sessioneInfo.nome}</strong>
+                                <span style="margin-left: 15px; color: #cbd5e0; font-size: 0.95em;">
+                                    ${sessioneInfo.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
                                 </span>
-                            ` : ''}
-                        </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="resetSessione()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9em;">
-                                🔄 Reset Sessione
-                            </button>
-                            <a href="/session-manager.html" class="btn btn-primary" style="padding: 8px 16px; text-decoration: none; font-size: 0.9em; background: #4299e1; color: white;">
-                                ← Gestione Sessioni
-                            </a>
-                        </div>
-                    `;
+                                ${sessioneInfo.anno ? `<span style="margin-left: 10px; color: #cbd5e0; font-size: 0.9em;">• ${sessioneInfo.anno}</span>` : ''}
+                                <span style="margin-left: 15px; padding: 4px 12px; background: rgba(72, 187, 120, 0.3); border-radius: 15px; font-size: 0.85em; color: #48bb78; font-weight: bold;">
+                                    ✓ ATTIVA
+                                </span>
+                                <span style="margin-left: 15px; padding: 4px 12px; background: rgba(0, 0, 0, 0.4); border-radius: 8px; font-size: 0.9em; color: #ffd700; font-weight: bold; font-family: monospace; letter-spacing: 3px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                                    🔑 ${sessioneInfo.codice_accesso || 'N/A'}
+                                </span>
+                                ${sessioneInfo.modalita === 'asta_competitiva' ? `
+                                    <span style="margin-left: 15px; padding: 4px 12px; background: rgba(66, 153, 225, 0.2); border-radius: 8px; font-size: 0.9em; color: #4299e1; border: 1px solid rgba(66, 153, 225, 0.3); display: inline-flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 1.1em;">💰</span>
+                                        <input
+                                            type="number"
+                                            id="creditiSessione"
+                                            value="${sessioneInfo.crediti_iniziali || 2000}"
+                                            min="100"
+                                            max="100000"
+                                            step="100"
+                                            onchange="aggiornaCreditiSessione(this.value)"
+                                            style="width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: #4299e1; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-align: center;"
+                                        >
+                                        <span style="font-size: 0.85em; color: #cbd5e0;">crediti</span>
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="resetSessione()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9em;">
+                                    🔄 Reset Sessione
+                                </button>
+                                <a href="/session-manager.html" class="btn btn-primary" style="padding: 8px 16px; text-decoration: none; font-size: 0.9em; background: #4299e1; color: white;">
+                                    ← Gestione Sessioni
+                                </a>
+                            </div>
+                        `;
 
             header.appendChild(sessionBanner);
         }
@@ -938,23 +956,23 @@
 
             const warningBanner = document.createElement('div');
             warningBanner.style.cssText = `
-                        background: rgba(237, 137, 54, 0.2);
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        margin-top: 15px;
-                        border: 2px solid #ed8936;
-                        text-align: center;
-                    `;
+                            background: rgba(237, 137, 54, 0.2);
+                            padding: 15px 20px;
+                            border-radius: 10px;
+                            margin-top: 15px;
+                            border: 2px solid #ed8936;
+                            text-align: center;
+                        `;
 
             warningBanner.innerHTML = `
-                        <strong style="color: #ed8936; font-size: 1.1em;">⚠️ Nessuna Sessione Attiva</strong><br>
-                        <span style="color: #cbd5e0; margin-top: 10px; display: inline-block;">
-                            Crea o attiva una sessione dalla gestione sessioni per iniziare
-                        </span><br>
-                        <a href="/session-manager.html" class="btn btn-primary" style="margin-top: 10px; display: inline-block; text-decoration: none;">
-                            → Vai a Gestione Sessioni
-                        </a>
-                    `;
+                            <strong style="color: #ed8936; font-size: 1.1em;">⚠️ Nessuna Sessione Attiva</strong><br>
+                            <span style="color: #cbd5e0; margin-top: 10px; display: inline-block;">
+                                Crea o attiva una sessione dalla gestione sessioni per iniziare
+                            </span><br>
+                            <a href="/session-manager.html" class="btn btn-primary" style="margin-top: 10px; display: inline-block; text-decoration: none;">
+                                → Vai a Gestione Sessioni
+                            </a>
+                        `;
 
             header.appendChild(warningBanner);
         }
@@ -1234,11 +1252,11 @@
 
             risultati.forEach(r => {
                 html += `<tr>
-                                            <td><strong>${r.slot_id || r.slot}</strong></td>
-                                            <td>${r.partecipante_nome || r.nome}</td>
-                                            <td>${r.offerta || r.offertaOriginale}</td>
-                                            <td>${r.costo_finale}</td>
-                                        </tr>`;
+                                                <td><strong>${r.slot_id || r.slot}</strong></td>
+                                                <td>${r.partecipante_nome || r.nome}</td>
+                                                <td>${r.offerta || r.offertaOriginale}</td>
+                                                <td>${r.costo_finale}</td>
+                                            </tr>`;
             });
 
             html += '</tbody></table>';
@@ -1518,42 +1536,42 @@
                 }
 
                 let html = `
-                            <div style="margin-bottom: 15px;">
-                                <strong>Totale partecipanti: ${partecipanti.length}</strong> |
-                                <strong>Sessione: ${sessioneId}</strong>
-                            </div>
-                            <table class="results-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Crediti</th>
-                                        <th>Giocatori</th>
-                                        <th>Notifiche</th>
-                                        <th>Registrato</th>
-                                        <th>Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
+                                <div style="margin-bottom: 15px;">
+                                    <strong>Totale partecipanti: ${partecipanti.length}</strong> |
+                                    <strong>Sessione: ${sessioneId}</strong>
+                                </div>
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Crediti</th>
+                                            <th>Giocatori</th>
+                                            <th>Notifiche</th>
+                                            <th>Registrato</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
 
                 partecipanti.forEach(p => {
                     const dataRegistrazione = new Date(p.created_at).toLocaleDateString('it-IT');
                     html += `
-                                <tr id="partecipante-${p.id}">
-                                    <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
-                                    <td>${p.crediti}</td>
-                                    <td>-</td>
-                                    <td>❌</td>
-                                    <td>${dataRegistrazione}</td>
-                                    <td>
-                                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
-                                                onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
-                                                title="Elimina partecipante">
-                                            🗑️ Elimina
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
+                                    <tr id="partecipante-${p.id}">
+                                        <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                                        <td>${p.crediti}</td>
+                                        <td>-</td>
+                                        <td>❌</td>
+                                        <td>${dataRegistrazione}</td>
+                                        <td>
+                                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;"
+                                                    onclick="eliminaPartecipante('${p.id}', '${p.nome}')"
+                                                    title="Elimina partecipante">
+                                                🗑️ Elimina
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
                 });
 
                 html += '</tbody></table>';
@@ -1659,14 +1677,14 @@
         async function creaCardSquadra(partecipante) {
             const card = document.createElement('div');
             card.style.cssText = `
-                            background: rgba(255,255,255,0.08);
-                            border-radius: 15px;
-                            padding: 15px;
-                            border: 1px solid rgba(255,255,255,0.1);
-                            min-height: 400px;
-                            display: flex;
-                            flex-direction: column;
-                        `;
+                                background: rgba(255,255,255,0.08);
+                                border-radius: 15px;
+                                padding: 15px;
+                                border: 1px solid rgba(255,255,255,0.1);
+                                min-height: 400px;
+                                display: flex;
+                                flex-direction: column;
+                            `;
 
             try {
                 console.log(`🔍 Caricando squadra per ${partecipante.nome}...`);
@@ -1730,49 +1748,49 @@
 
                 // Header della card
                 card.innerHTML = `
-                        <div style="
-                            text-align: center;
-                            margin-bottom: 15px;
-                            padding-bottom: 10px;
-                            border-bottom: 2px solid #4299e1;
-                            position: relative;
-                        ">
-                            <button onclick="apriEditSquadra('${partecipante.id}', '${partecipante.nome}')" style="
-                                position: absolute; top: 0; right: 0;
-                                background: rgba(245, 158, 11, 0.8); color: #000;
-                                border: none; border-radius: 6px;
-                                padding: 4px 10px; cursor: pointer;
-                                font-size: 0.75em; font-weight: bold;
-                            ">Edit</button>
-                            <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
-								<div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
-									${giocatoriAcquistati} giocatori ${isDraft ? '' : `| 💰 ${creditiRimasti}`} | 🏆 ${puntiTotali}pt
-								</div>
-                        </div>
-                                </div>
-
-                                <div id="squadra-slots-${partecipante.id}" style="
-                                    display: grid;
-                                    grid-template-columns: 1fr;
-                                    gap: 6px;
-                                    flex-grow: 1;
-                                ">
-                                    <!-- I slots verranno popolati dinamicamente -->
-                                </div>
-
-                                ${isDraft ? '' : `
-                                    <div style="
-                                        margin-top: 10px;
-                                        padding-top: 10px;
-                                        border-top: 1px solid rgba(255,255,255,0.2);
-                                        font-size: 0.8em;
-                                        text-align: center;
-                                        opacity: 0.8;
-                                    ">
-                                        💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
+                            <div style="
+                                text-align: center;
+                                margin-bottom: 15px;
+                                padding-bottom: 10px;
+                                border-bottom: 2px solid #4299e1;
+                                position: relative;
+                            ">
+                                <button onclick="apriEditSquadra('${partecipante.id}', '${partecipante.nome}')" style="
+                                    position: absolute; top: 0; right: 0;
+                                    background: rgba(245, 158, 11, 0.8); color: #000;
+                                    border: none; border-radius: 6px;
+                                    padding: 4px 10px; cursor: pointer;
+                                    font-size: 0.75em; font-weight: bold;
+                                ">Modifica</button>
+                                <h3 style="color: #4299e1; margin: 0; font-size: 1.1em;">${partecipante.nome}</h3>
+                                    <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                                        ${giocatoriAcquistati} giocatori ${isDraft ? '' : `| 💰 ${creditiRimasti}`} | 🏆 ${puntiTotali}pt
                                     </div>
-                                `}
-                            `;
+                            </div>
+                                    </div>
+
+                                    <div id="squadra-slots-${partecipante.id}" style="
+                                        display: grid;
+                                        grid-template-columns: 1fr;
+                                        gap: 6px;
+                                        flex-grow: 1;
+                                    ">
+                                        <!-- I slots verranno popolati dinamicamente -->
+                                    </div>
+
+                                    ${isDraft ? '' : `
+                                        <div style="
+                                            margin-top: 10px;
+                                            padding-top: 10px;
+                                            border-top: 1px solid rgba(255,255,255,0.2);
+                                            font-size: 0.8em;
+                                            text-align: center;
+                                            opacity: 0.8;
+                                        ">
+                                            💸 Spesi: ${creditiSpesi} | Rimasti: ${creditiRimasti}
+                                        </div>
+                                    `}
+                                `;
 
                 // Popola i slots delle posizioni
                 const slotsContainer = card.querySelector(`#squadra-slots-${partecipante.id}`);
@@ -1785,53 +1803,53 @@
                         const teamColor = getTeamColorForMaster(giocatore.colore);
                         const textColor = getTextColorForTeamMaster(giocatore.colore);
                         slotDiv.style.cssText = `
-                        background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
-                        border: 2px solid ${teamColor};
-                        padding: 8px;
-                        border-radius: 8px;
-                        text-align: center;
-                        font-size: 0.85em;
-                        color: ${textColor};
-                        font-weight: bold;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                    `;
+                            background: linear-gradient(135deg, ${teamColor}90, ${teamColor}60);
+                            border: 2px solid ${teamColor};
+                            padding: 8px;
+                            border-radius: 8px;
+                            text-align: center;
+                            font-size: 0.85em;
+                            color: ${textColor};
+                            font-weight: bold;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        `;
                         slotDiv.innerHTML = `
-                                <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px;">
-                                    ${giocatore.giocatore_attuale}
-                                </div>
-                                </div>
-                                <div style="font-weight: 600; font-size: 0.90em; margin-bottom: 0px;">
-                                    ${pos}
-                                </div>
-                                <div style="font-weight: 600; font-size: 0.9em; opacity: 0.9; margin-bottom: 2px;">
-                                    Squadra ${giocatore.colore}
-                                </div>
-                                ${isDraft ? '' : `
+                                    <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px;">
+                                        ${giocatore.giocatore_attuale}
+                                    </div>
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.90em; margin-bottom: 0px;">
+                                        ${pos}
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.9em; opacity: 0.9; margin-bottom: 2px;">
+                                        Squadra ${giocatore.colore}
+                                    </div>
                                     ${isDraft ? '' : `
-                                        <div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
-                                            💰 ${giocatore.costo_finale}
-                                        </div>
+                                        ${isDraft ? '' : `
+                                            <div style="font-size: 1em; font-weight: 600; color: #ffd700; margin-bottom: 30px;">
+                                                💰 ${giocatore.costo_finale}
+                                            </div>
+                                        `}
                                     `}
-                                `}
-                                <div style="font-size: 2em; opacity: 0.9; margin-bottom: 0px;">
-                                🏆 ${giocatore.punti_totali || 0}
-                            `;
+                                    <div style="font-size: 2em; opacity: 0.9; margin-bottom: 0px;">
+                                    🏆 ${giocatore.punti_totali || 0}
+                                `;
                     } else {
                         slotDiv.style.cssText = `
-                                        background: rgba(74,85,104,0.2);
-                                        border: 1px dashed #4a5568;
-                                        padding: 8px;
-                                        border-radius: 8px;
-                                        text-align: center;
-                                        font-size: 0.85em;
-                                        opacity: 0.5;
-                                        color: #a0aec0;
-                                    `;
+                                            background: rgba(74,85,104,0.2);
+                                            border: 1px dashed #4a5568;
+                                            padding: 8px;
+                                            border-radius: 8px;
+                                            text-align: center;
+                                            font-size: 0.85em;
+                                            opacity: 0.5;
+                                            color: #a0aec0;
+                                        `;
 
                         slotDiv.innerHTML = `
-                                        <div style="font-weight: bold; margin-bottom: 2px;">${pos}</div>
-                                        <div style="font-size: 0.8em;">- disponibile -</div>
-                                    `;
+                                            <div style="font-weight: bold; margin-bottom: 2px;">${pos}</div>
+                                            <div style="font-size: 0.8em;">- disponibile -</div>
+                                        `;
                     }
 
                     slotsContainer.appendChild(slotDiv);
@@ -1839,14 +1857,14 @@
 
             } catch (error) {
                 card.innerHTML = `
-                                <div style="text-align: center;">
-                                    <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
-                                    <p style="opacity: 0.7; color: #f56565;">Errore caricamento squadra</p>
-                                    <div style="font-size: 0.9em; opacity: 0.9;">
-                                        💰 Crediti: ${partecipante.crediti}
+                                    <div style="text-align: center;">
+                                        <h3 style="color: #4299e1; margin: 0 0 10px 0;">${partecipante.nome}</h3>
+                                        <p style="opacity: 0.7; color: #f56565;">Errore caricamento squadra</p>
+                                        <div style="font-size: 0.9em; opacity: 0.9;">
+                                            💰 Crediti: ${partecipante.crediti}
+                                        </div>
                                     </div>
-                                </div>
-                            `;
+                                `;
             }
 
             return card;
@@ -2470,10 +2488,10 @@
                 }
 
                 card.innerHTML = `
-                            <div><strong>${p.nome}</strong></div>
-                            <div>Stato: connesso</div>
-                            <div class="bid-status ${bidClass}">${bidStatus}</div>
-                        `;
+                                <div><strong>${p.nome}</strong></div>
+                                <div>Stato: connesso</div>
+                                <div class="bid-status ${bidClass}">${bidStatus}</div>
+                            `;
 
                 grid.appendChild(card);
             });
@@ -2491,19 +2509,19 @@
                     if (isRimbalzato) {
                         card.className = 'participant-card disconnected-bounced';
                         card.innerHTML = `
-                                    <div><strong>${pId}</strong></div>
-                                    <div>Stato: disconnesso</div>
-                                    <div class="bid-status bid-bounced">RIMBALZATO + DISCONNESSO</div>
-                                `;
+                                        <div><strong>${pId}</strong></div>
+                                        <div>Stato: disconnesso</div>
+                                        <div class="bid-status bid-bounced">RIMBALZATO + DISCONNESSO</div>
+                                    `;
                     } else {
                         // Controlla se ha gia offerto o no
                         const haOfferto = participantsBids.has(pId);
                         card.className = 'participant-card disconnected';
                         card.innerHTML = `
-                                    <div><strong>${pId}</strong></div>
-                                    <div>Stato: disconnesso</div>
-                                    <div class="bid-status ${haOfferto ? 'bid-disconnected' : 'bid-bounced'}">${haOfferto ? 'Disconnesso (ha offerto)' : 'DISCONNESSO - Deve scegliere!'}</div>
-                                `;
+                                        <div><strong>${pId}</strong></div>
+                                        <div>Stato: disconnesso</div>
+                                        <div class="bid-status ${haOfferto ? 'bid-disconnected' : 'bid-bounced'}">${haOfferto ? 'Disconnesso (ha offerto)' : 'DISCONNESSO - Deve scegliere!'}</div>
+                                    `;
                     }
 
                     grid.appendChild(card);
@@ -2523,10 +2541,10 @@
                     card.style.borderColor = '#48bb78';
                     card.style.opacity = '0.8';
                     card.innerHTML = `
-                                <div><strong>${pId}</strong></div>
-                                <div>Stato: completato</div>
-                                <div class="bid-status" style="background: #48bb78; color: white;">Ha gia' vinto il suo giocatore</div>
-                            `;
+                                    <div><strong>${pId}</strong></div>
+                                    <div>Stato: completato</div>
+                                    <div class="bid-status" style="background: #48bb78; color: white;">Ha gia' vinto il suo giocatore</div>
+                                `;
 
                     grid.appendChild(card);
                 });
@@ -2563,12 +2581,12 @@
             if (risultati && Array.isArray(risultati)) {
                 risultati.forEach(r => {
                     html += `<tr>
-                                    <td><strong>${r.giocatore || r.slot.replace('_', ' ')}</strong></td>
-                                    <td>${r.nome}</td>
-                                    <td>${r.offertaOriginale}</td>
-                                    <td>${r.costoFinale}</td>
-                                    <td>${r.condiviso ? '✅' : '❌'}</td>
-                                </tr>`;
+                                        <td><strong>${r.giocatore || r.slot.replace('_', ' ')}</strong></td>
+                                        <td>${r.nome}</td>
+                                        <td>${r.offertaOriginale}</td>
+                                        <td>${r.costoFinale}</td>
+                                        <td>${r.condiviso ? '✅' : '❌'}</td>
+                                    </tr>`;
                 });
             } else {
                 html += '<tr><td colspan="5">Nessun risultato disponibile</td></tr>';
@@ -2611,11 +2629,11 @@
 
                 classifica.forEach((p, index) => {
                     html += `<tr>
-                                <td><strong>${index + 1}°</strong></td>
-                                <td>${p.nome}</td>
-                                <td>${p.giocatori_totali}</td>
-                                <td>${p.punti_totali}</td>
-                            </tr>`;
+                                    <td><strong>${index + 1}°</strong></td>
+                                    <td>${p.nome}</td>
+                                    <td>${p.giocatori_totali}</td>
+                                    <td>${p.punti_totali}</td>
+                                </tr>`;
                 });
 
                 html += '</tbody></table>';
@@ -2767,41 +2785,41 @@
             return new Promise((resolve) => {
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.7);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 10001;
-                `;
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.7);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10001;
+                    `;
 
                 const box = document.createElement('div');
                 box.style.cssText = `
-                    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-                    padding: 30px;
-                    border-radius: 15px;
-                    max-width: 450px;
-                    text-align: center;
-                    color: white;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-                    border: 1px solid rgba(255,255,255,0.1);
-                `;
+                        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+                        padding: 30px;
+                        border-radius: 15px;
+                        max-width: 450px;
+                        text-align: center;
+                        color: white;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                        border: 1px solid rgba(255,255,255,0.1);
+                    `;
 
                 box.innerHTML = `
-                    <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)"
-                            style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                        ✅ Sì
-                    </button>
-                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)"
-                            style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
-                        ❌ No
-                    </button>
-                `;
+                        <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)"
+                                style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                            ✅ Sì
+                        </button>
+                        <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)"
+                                style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">
+                            ❌ No
+                        </button>
+                    `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
@@ -2856,10 +2874,10 @@
                 const btnContainer = adminSection.querySelector('div[style]');
                 if (btnContainer) {
                     btnContainer.innerHTML = `
-                        <button class="btn btn-danger" onclick="resetDraft()">
-                            Reset Squadre Draft
-                        </button>
-                    `;
+                            <button class="btn btn-danger" onclick="resetDraft()">
+                                Reset Squadre Draft
+                            </button>
+                        `;
                 }
             }
 
@@ -2905,18 +2923,18 @@
                     const percentuale = totPosizioni > 0 ? (progresso / totPosizioni) * 100 : 0;
 
                     html += `
-                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border-left: 4px solid ${completato ? '#48bb78' : '#667eea'};">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <strong style="font-size: 1.1em;">${partecipante.nome}</strong>
-                                <span style="background: ${completato ? '#48bb78' : '#667eea'}; padding: 5px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold;">
-                                    ${progresso}/${totPosizioni} ${completato ? '✅' : '⏳'}
-                                </span>
+                            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border-left: 4px solid ${completato ? '#48bb78' : '#667eea'};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <strong style="font-size: 1.1em;">${partecipante.nome}</strong>
+                                    <span style="background: ${completato ? '#48bb78' : '#667eea'}; padding: 5px 12px; border-radius: 6px; font-size: 0.9em; font-weight: bold;">
+                                        ${progresso}/${totPosizioni} ${completato ? '✅' : '⏳'}
+                                    </span>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden;">
+                                    <div style="background: ${completato ? '#48bb78' : '#667eea'}; height: 100%; width: ${percentuale}%; transition: width 0.3s;"></div>
+                                </div>
                             </div>
-                            <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden;">
-                                <div style="background: ${completato ? '#48bb78' : '#667eea'}; height: 100%; width: ${percentuale}%; transition: width 0.3s;"></div>
-                            </div>
-                        </div>
-                    `;
+                        `;
                 }
 
                 html += '</div>';
