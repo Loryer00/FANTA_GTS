@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FantaGTS - Fantasy Tennis</title>
 
+    <!-- PWA Configuration -->
+    <meta name="theme-color" content="#4299e1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FantaGTS">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%234299e1' rx='24'/%3E%3Ctext x='90' y='115' font-size='70' text-anchor='middle' fill='white'%3E%F0%9F%8E%BE%3C/text%3E%3C/svg%3E">
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎾%3C/text%3E%3C/svg%3E">
 
@@ -872,28 +885,30 @@
                 font-size: 0.6em;
             }
         }
-		
-		@keyframes slideIn {
-			from {
-				transform: translate(-50%, -60%);
-				opacity: 0;
-			}
-			to {
-				transform: translate(-50%, -50%);
-				opacity: 1;
-			}
-		}
 
-		@keyframes slideOut {
-			from {
-				transform: translate(-50%, -50%);
-				opacity: 1;
-			}
-			to {
-				transform: translate(-50%, -40%);
-				opacity: 0;
-			}
-		}
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+
+            to {
+                transform: translate(-50%, -40%);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body class="loading">
@@ -902,10 +917,10 @@
             <h1>🎾 FantaGTS</h1>
             <p>User Panel</p>
             <!-- 🔔 Pulsante Notifiche in alto a destra nell'header -->
-            <button onclick="mostraDialogNotifiche()"
+            <button id="btn-campanella" onclick="mostraDialogNotifiche()"
                     style="position: absolute; top: 15px; right: 15px; background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.3em; width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
                     title="Gestisci Notifiche Push">
-                🔔
+                Notifiche
             </button>
         </div>
 
@@ -1211,10 +1226,10 @@
                 box.style.cssText = `background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); padding: 30px; border-radius: 15px; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);`;
 
                 box.innerHTML = `
-                                    <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
-                                    <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
-                                `;
+                                            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
+                                        `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
@@ -1333,10 +1348,10 @@
             if (!playerData || !playerData.id) {
                 console.error('❌ playerData.id non disponibile:', playerData);
                 sessionsList.innerHTML = `
-                    <p style="text-align: center; color: #fc8181; padding: 20px;">
-                        ❌ Errore: dati utente non validi
-                    </p>
-                `;
+                            <p style="text-align: center; color: #fc8181; padding: 20px;">
+                                ❌ Errore: dati utente non validi
+                            </p>
+                        `;
                 return;
             }
 
@@ -1360,43 +1375,43 @@
 
                     if (sessioniAttive.length === 0) {
                         sessionsList.innerHTML = `
-            <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                📭 Non sei iscritto a nessuna sessione attiva.<br>
-                Usa il codice qui sotto per entrare!
-            </p>
-        `;
+                    <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                        📭 Non sei iscritto a nessuna sessione attiva.<br>
+                        Usa il codice qui sotto per entrare!
+                    </p>
+                `;
                         return;
                     }
 
                     sessionsList.innerHTML = sessioniAttive.map(sessione => `
-        <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-            <div class="session-name">📋 ${sessione.nome}</div>
-            <div class="session-info">
-                ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
-                • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
-            </div>
-            <div class="session-code">Codice: ${sessione.codice_accesso}</div>
-        </div>
-    `).join('');
+                <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+                    <div class="session-name">📋 ${sessione.nome}</div>
+                    <div class="session-info">
+                        ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
+                        • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                        ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                    </div>
+                    <div class="session-code">Codice: ${sessione.codice_accesso}</div>
+                </div>
+            `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
                     console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
-        <p style="text-align: center; color: #a0aec0; padding: 20px;">
-            🔭 Non sei ancora iscritto a nessuna sessione.<br>
-            Usa il codice qui sotto per entrare!
-        </p>
-    `;
+                <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                    🔭 Non sei ancora iscritto a nessuna sessione.<br>
+                    Usa il codice qui sotto per entrare!
+                </p>
+            `;
                 }
             } catch (error) {
                 console.error('❌ Errore caricamento sessioni:', error);
                 sessionsList.innerHTML = `
-                    <p style="text-align: center; color: #fc8181; padding: 20px;">
-                        ❌ Errore caricamento sessioni<br>
-                        <small style="opacity: 0.7;">${error.message}</small>
-                    </p>
-                `;
+                            <p style="text-align: center; color: #fc8181; padding: 20px;">
+                                ❌ Errore caricamento sessioni<br>
+                                <small style="opacity: 0.7;">${error.message}</small>
+                            </p>
+                        `;
             }
         }
 
@@ -1857,7 +1872,7 @@
 
                             // 🆕 REGISTRA IL SOCKET DOPO AVER RIPRISTINATO I DATI
                             registerSocketWhenReady();
-                            
+
                             // 🆕 AUTO-VERIFICA E RICREA SUBSCRIPTION
                             setTimeout(async () => {
                                 try {
@@ -2384,37 +2399,37 @@
 
                         if (modalita === 'draft_libero') {
                             slot.innerHTML = `
-                            <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                                ${giocatore.giocatore_attuale}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                                ${posizione}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
-                                Squadra ${giocatore.colore}
-                            </div>
-                            <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                ${giocatore.punti_totali || 0}
-                            </div>
-                        `;
+                                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                        ${giocatore.giocatore_attuale}
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                        ${posizione}
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
+                                        Squadra ${giocatore.colore}
+                                    </div>
+                                    <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                        ${giocatore.punti_totali || 0}
+                                    </div>
+                                `;
                         } else {
                             slot.innerHTML = `
-                            <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                                ${giocatore.giocatore_attuale}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                                ${posizione}
-                            </div>
-                            <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
-                                Squadra ${giocatore.colore}
-                            </div>
-                            <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                                ${giocatore.costo_finale}
-                            </div>
-                            <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                ${giocatore.punti_totali || 0}
-                            </div>
-                        `;
+                                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                        ${giocatore.giocatore_attuale}
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                        ${posizione}
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
+                                        Squadra ${giocatore.colore}
+                                    </div>
+                                    <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
+                                        ${giocatore.costo_finale}
+                                    </div>
+                                    <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                        ${giocatore.punti_totali || 0}
+                                    </div>
+                                `;
                         }
 
                         console.log(`Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
@@ -2536,19 +2551,19 @@
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
                     html += `
-                            <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
-                                <div class="classifica-position ${positionClass}">
-                                    ${medal} ${index + 1}°
-                                </div>
-                                <div class="classifica-name">
-                                    ${partecipante.nome}
-                                    ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
-                                </div>
-                                <div class="classifica-points">
-                                    ${partecipante.punti_totali} pt
-                                </div>
-                            </div>
-                        `;
+                                    <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
+                                        <div class="classifica-position ${positionClass}">
+                                            ${medal} ${index + 1}°
+                                        </div>
+                                        <div class="classifica-name">
+                                            ${partecipante.nome}
+                                            ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
+                                        </div>
+                                        <div class="classifica-points">
+                                            ${partecipante.punti_totali} pt
+                                        </div>
+                                    </div>
+                                `;
                 });
 
                 html += '</div>';
@@ -2621,16 +2636,16 @@
                 const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
 
                 let html = `
-                        <div class="partecipante-card">
-                            <div class="partecipante-header">
-                                <div class="partecipante-name">${partecipante.nome}</div>
-                                <div class="partecipante-stats">
-                                    <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
-                                    <span style="color: #4299e1;">👤 ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
-                                </div>
-                            </div>
-                            <div class="partecipante-team-grid">
-                    `;
+                                <div class="partecipante-card">
+                                    <div class="partecipante-header">
+                                        <div class="partecipante-name">${partecipante.nome}</div>
+                                        <div class="partecipante-stats">
+                                            <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
+                                            <span style="color: #4299e1;">👤 ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
+                                        </div>
+                                    </div>
+                                    <div class="partecipante-team-grid">
+                            `;
 
                 // Mostra tutti gli slot dinamicamente in base alle posizioni reali
                 // Prende le posizioni dagli slot gia generati nel DOM
@@ -2645,39 +2660,39 @@
                     if (giocatore) {
                         const coloreSquadra = getTeamColor(giocatore.colore);
                         html += `
-                                <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
-                                    <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                    <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                    <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
-                                </div>
-                            `;
+                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
+                                            <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                                            <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
+                                        </div>
+                                    `;
                     } else {
                         html += `
-                                <div class="partecipante-slot partecipante-slot-empty">
-                                    <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
-                                    <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
-                                </div>
-                            `;
+                                        <div class="partecipante-slot partecipante-slot-empty">
+                                            <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
+                                            <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
+                                        </div>
+                                    `;
                     }
                 });
 
                 html += `
-                            </div>
-                        </div>
-                    `;
+                                    </div>
+                                </div>
+                            `;
 
                 return html;
 
             } catch (error) {
                 console.error('❌ Errore caricamento squadra partecipante:', error);
                 return `
-                        <div class="partecipante-card">
-                            <div class="partecipante-header">
-                                <div class="partecipante-name">${partecipante.nome}</div>
-                            </div>
-                            <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
-                        </div>
-                    `;
+                                <div class="partecipante-card">
+                                    <div class="partecipante-header">
+                                        <div class="partecipante-name">${partecipante.nome}</div>
+                                    </div>
+                                    <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
+                                </div>
+                            `;
             }
         }
 
@@ -2854,30 +2869,30 @@
 
                 // Crea box scontro
                 html += `
-                    <div class="scontro-overview-box">
-                        <div class="scontro-header-mini">
-                            <div class="squadra-mini" style="background-color: ${squadra1Color};">
-                                ${gruppo.squadra1.colore.toUpperCase()}
-                            </div>
-                            <div class="vs-mini">VS</div>
-                            <div class="squadra-mini" style="background-color: ${squadra2Color};">
-                                ${gruppo.squadra2.colore.toUpperCase()}
-                            </div>
-                        </div>
-                        <div class="stats-line">
-                            ${completati} incontri • ${completati} completati
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
-                                     style="width: ${percentualeCompletamento}%;"></div>
-                            </div>
-                            <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
-                                ${percentualeCompletamento}%
-                            </div>
-                        </div>
-                        <div class="incontri-mini-grid">
-                `;
+                            <div class="scontro-overview-box">
+                                <div class="scontro-header-mini">
+                                    <div class="squadra-mini" style="background-color: ${squadra1Color};">
+                                        ${gruppo.squadra1.colore.toUpperCase()}
+                                    </div>
+                                    <div class="vs-mini">VS</div>
+                                    <div class="squadra-mini" style="background-color: ${squadra2Color};">
+                                        ${gruppo.squadra2.colore.toUpperCase()}
+                                    </div>
+                                </div>
+                                <div class="stats-line">
+                                    ${completati} incontri • ${completati} completati
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
+                                             style="width: ${percentualeCompletamento}%;"></div>
+                                    </div>
+                                    <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
+                                        ${percentualeCompletamento}%
+                                    </div>
+                                </div>
+                                <div class="incontri-mini-grid">
+                        `;
 
                 // Aggiungi mini card per ogni incontro
                 gruppo.incontri.forEach(incontro => {
@@ -2900,25 +2915,25 @@
                             testoColore = '#9ca3af';
                         }
                         html += `
-                            <div class="incontro-mini completato"
-                                 style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
-                                ${incontro.pos1}+${incontro.pos2}
-                            </div>
-                        `;
+                                    <div class="incontro-mini completato"
+                                         style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
+                                        ${incontro.pos1}+${incontro.pos2}
+                                    </div>
+                                `;
                     } else {
                         // Incontro in attesa - arancione
                         html += `
-                            <div class="incontro-mini attesa">
-                                ${incontro.pos1}+${incontro.pos2}
-                            </div>
-                        `;
+                                    <div class="incontro-mini attesa">
+                                        ${incontro.pos1}+${incontro.pos2}
+                                    </div>
+                                `;
                     }
                 });
 
                 html += `
-                        </div>
-                    </div>
-                `;
+                                </div>
+                            </div>
+                        `;
             });
 
             html += '</div></div>';
@@ -2934,28 +2949,28 @@
             const colore2 = getTeamColor(gruppo.squadra2.colore);
 
             let html = `
-                    <div class="scontro-box">
-                        <div class="scontro-header">
-                            <div class="squadra-badge" style="background-color: ${colore1};">
-                                ${gruppo.squadra1.colore.toUpperCase()}
-                            </div>
-                            <div class="vs-text">VS</div>
-                            <div class="squadra-badge" style="background-color: ${colore2};">
-                                ${gruppo.squadra2.colore.toUpperCase()}
-                            </div>
-                        </div>
-                        <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
-                            ${completati}/${totaleIncontri} incontri completati
-                        </div>
-                        <div class="progress-mini">
-                            <div class="progress-bar-mini">
-                                <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
-                            </div>
-                            <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
-                                ${percentuale}%
-                            </div>
-                        </div>
-                `;
+                            <div class="scontro-box">
+                                <div class="scontro-header">
+                                    <div class="squadra-badge" style="background-color: ${colore1};">
+                                        ${gruppo.squadra1.colore.toUpperCase()}
+                                    </div>
+                                    <div class="vs-text">VS</div>
+                                    <div class="squadra-badge" style="background-color: ${colore2};">
+                                        ${gruppo.squadra2.colore.toUpperCase()}
+                                    </div>
+                                </div>
+                                <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
+                                    ${completati}/${totaleIncontri} incontri completati
+                                </div>
+                                <div class="progress-mini">
+                                    <div class="progress-bar-mini">
+                                        <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                                    </div>
+                                    <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
+                                        ${percentuale}%
+                                    </div>
+                                </div>
+                        `;
 
             // Mostra dettaglio incontri
             if (gruppo.incontri.length > 0) {
@@ -2966,13 +2981,13 @@
                     const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
 
                     html += `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
-                                <div style="color: ${colore1};">${incontro.posizione1}</div>
-                                <div style="color: #a0aec0;">vs</div>
-                                <div style="color: ${colore2};">${incontro.posizione2}</div>
-                                <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
-                            </div>
-                        `;
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
+                                        <div style="color: ${colore1};">${incontro.posizione1}</div>
+                                        <div style="color: #a0aec0;">vs</div>
+                                        <div style="color: ${colore2};">${incontro.posizione2}</div>
+                                        <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
+                                    </div>
+                                `;
                 });
 
                 html += '</div>';
@@ -3020,91 +3035,163 @@
         }
 
         // ========================================
-        // NOTIFICHE
+        // HELPER iOS / PWA
         // ========================================
-        async function setupPushNotifications() {
-            if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-                console.log('⚠️ Notifiche push non supportate');
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        function isInStandaloneMode() {
+            return window.navigator.standalone === true ||
+                window.matchMedia('(display-mode: standalone)').matches;
+        }
+
+        function getIOSVersion() {
+            var match = navigator.userAgent.match(/OS (\d+)_/);
+            return match ? parseInt(match[1], 10) : 0;
+        }
+
+        function aggiornaCampanella() {
+            var btn = document.getElementById('btn-campanella');
+            if (!btn) return;
+
+            if (!('Notification' in window)) {
+                // Non supportato - rosso
+                btn.style.background = 'rgba(245, 101, 101, 0.2)';
+                btn.style.borderColor = 'rgba(245, 101, 101, 0.4)';
+                btn.style.color = '#f56565';
                 return;
             }
 
+            if (Notification.permission === 'granted') {
+                // Attivo - verde
+                btn.style.background = 'rgba(72, 187, 120, 0.2)';
+                btn.style.borderColor = 'rgba(72, 187, 120, 0.4)';
+                btn.style.color = '#48bb78';
+            } else if (Notification.permission === 'denied') {
+                // Bloccato - rosso
+                btn.style.background = 'rgba(245, 101, 101, 0.2)';
+                btn.style.borderColor = 'rgba(245, 101, 101, 0.4)';
+                btn.style.color = '#f56565';
+            }
+            // Se 'default' rimane arancione come gia' impostato
+        }
+
+        // Aggiorna colore campanella al caricamento
+        window.addEventListener('load', function () {
+            setTimeout(aggiornaCampanella, 1000);
+        });
+
+        // ========================================
+        // NOTIFICHE
+        // ========================================
+        async function setupPushNotifications() {
+            // Controllo supporto base
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+                console.log('Notifiche push non supportate su questo browser');
+
+                // Su iOS fuori da standalone, mostra istruzioni
+                if (isIOS() && !isInStandaloneMode()) {
+                    console.log('iOS rilevato fuori da modalita standalone - push non disponibili');
+                }
+                return { success: false, motivo: 'non_supportato' };
+            }
+
+            // Controllo specifico iOS
+            if (isIOS()) {
+                var versione = getIOSVersion();
+                if (versione > 0 && versione < 16) {
+                    console.log('iOS ' + versione + ' rilevato - push non supportate (serve 16.4+)');
+                    return { success: false, motivo: 'ios_vecchio' };
+                }
+                if (!isInStandaloneMode()) {
+                    console.log('iOS rilevato ma non in modalita standalone - push non disponibili');
+                    return { success: false, motivo: 'ios_non_standalone' };
+                }
+            }
+
             try {
-                // 1. Richiedi permesso
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    console.log('⚠️ Permesso notifiche negato');
-                    return;
+                // 0. Assicurati che il Service Worker sia registrato
+                var swRegistration = await navigator.serviceWorker.getRegistration();
+                if (!swRegistration) {
+                    console.log('SW non registrato, lo registro ora...');
+                    swRegistration = await navigator.serviceWorker.register('/sw.js');
+                    await navigator.serviceWorker.ready;
+                    console.log('SW registrato e pronto');
                 }
 
-                console.log('✅ Permesso notifiche concesso');
+                // 1. Richiedi permesso
+                var permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    console.log('Permesso notifiche negato');
+                    return { success: false, motivo: 'permesso_negato' };
+                }
+
+                console.log('Permesso notifiche concesso');
 
                 // 2. Aspetta che il service worker sia pronto
-                const registration = await navigator.serviceWorker.ready;
-                console.log('✅ Service Worker pronto');
+                var registration = await navigator.serviceWorker.ready;
+                console.log('Service Worker pronto');
 
                 // 3. Ottieni la chiave pubblica VAPID dal server
-                const vapidResponse = await fetch('/api/vapid-public-key');
-                const vapidData = await vapidResponse.json();
+                var vapidResponse = await fetch('/api/vapid-public-key');
+                var vapidData = await vapidResponse.json();
 
                 if (!vapidData.publicKey) {
-                    console.log('⚠️ Chiave VAPID non disponibile sul server');
-                    return;
+                    console.log('Chiave VAPID non disponibile sul server');
+                    return { success: false, motivo: 'no_vapid' };
                 }
 
-                console.log('🔑 Chiave VAPID ottenuta');
+                console.log('Chiave VAPID ottenuta');
 
                 // 4. Sottoscrivi alle notifiche push
-                const subscription = await registration.pushManager.subscribe({
+                var subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
                 });
 
-                console.log('📨 Subscription creata:', subscription);
+                console.log('Subscription creata:', subscription);
 
                 // 5. Invia la subscription al server
                 if (playerData.id) {
-                    // 🆕 RECUPERA L'ID DELLA SESSIONE CORRETTO
-                    let sessioneIdDaInviare = sessioneCorrente;
-                    
-                    // Se sessioneCorrente è null, prova a recuperarlo dalla userSession salvata
+                    // Recupera ID sessione
+                    var sessioneIdDaInviare = sessioneCorrente;
+
                     if (!sessioneIdDaInviare) {
-                        const savedSession = localStorage.getItem('userSession');
+                        var savedSession = localStorage.getItem('userSession');
                         if (savedSession) {
-                            const parsed = JSON.parse(savedSession);
+                            var parsed = JSON.parse(savedSession);
                             sessioneIdDaInviare = parsed.sessioneId || parsed.sessione_id;
                         }
                     }
-                    
-                    console.log('🔔 [SETUP PUSH] sessioneCorrente:', sessioneCorrente);
-                    console.log('🔔 [SETUP PUSH] sessioneIdDaInviare:', sessioneIdDaInviare);
-                    console.log('🔔 [SETUP PUSH] playerData:', playerData);
-                    
-                    const response = await fetch('/api/subscribe-notifications', {
+
+                    console.log('[SETUP PUSH] sessioneCorrente:', sessioneCorrente);
+                    console.log('[SETUP PUSH] sessioneIdDaInviare:', sessioneIdDaInviare);
+
+                    var response = await fetch('/api/subscribe-notifications', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             subscription: subscription,
                             partecipanteId: playerData.id,
-                            sessioneId: sessioneIdDaInviare // 🆕 PASSA L'ID DELLA SESSIONE
+                            sessioneId: sessioneIdDaInviare
                         })
                     });
 
-                    const result = await response.json();
+                    var result = await response.json();
                     if (result.success) {
-                        console.log('✅ Notifiche push attivate con successo!');
-
-                        // 🆕 AVVIA RINNOVO AUTOMATICO PERIODICO
+                        console.log('Notifiche push attivate con successo!');
                         avviaRinnovoAutomaticoSubscription();
-
                         return { success: true };
                     } else {
-                        console.error('❌ Errore attivazione notifiche:', result);
-                        return { success: false };
+                        console.error('Errore attivazione notifiche:', result);
+                        return { success: false, motivo: 'errore_server' };
                     }
                 }
             } catch (error) {
-                console.error('❌ Errore setup notifiche push:', error);
-                return { success: false };
+                console.error('Errore setup notifiche push:', error);
+                return { success: false, motivo: 'errore_generico', errore: error.message };
             }
         }
 
@@ -3134,217 +3221,274 @@
         // DIAGNOSTICA E RESET NOTIFICHE
         // ========================================
         async function mostraDialogNotifiche() {
-            // Controlla stato attuale
-            const permesso = Notification.permission;
-            const supportate = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-            
-            let statusHTML = '<div style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">';
-            statusHTML += '<h4 style="margin-bottom: 10px; color: #4299e1;">📊 Stato Notifiche</h4>';
-            
-            // 1. Supporto browser
-            if (!supportate) {
-                statusHTML += '<p style="color: #f56565;">❌ Il tuo browser non supporta le notifiche push</p>';
-            } else {
-                statusHTML += '<p style="color: #48bb78;">✅ Browser supportato</p>';
-            }
-            
-            // 2. Permesso
-            if (permesso === 'granted') {
-                statusHTML += '<p style="color: #48bb78;">✅ Permesso concesso</p>';
-            } else if (permesso === 'denied') {
-                statusHTML += '<p style="color: #f56565;">❌ Permesso bloccato</p>';
-            } else {
-                statusHTML += '<p style="color: #ed8936;">⚠️ Permesso non richiesto</p>';
-            }
-            
-            // 3. Service Worker
-            if ('serviceWorker' in navigator) {
-                const registration = await navigator.serviceWorker.getRegistration();
-                if (registration) {
-                    statusHTML += '<p style="color: #48bb78;">✅ Service Worker registrato</p>';
-                    
-                    // 4. Subscription attiva
-                    const subscription = await registration.pushManager.getSubscription();
-                    if (subscription) {
-                        statusHTML += '<p style="color: #48bb78;">✅ Subscription attiva</p>';
-                    } else {
-                        statusHTML += '<p style="color: #ed8936;">⚠️ Nessuna subscription attiva</p>';
+            try {
+                // Rileva piattaforma
+                var suIOS = isIOS();
+                var inStandalone = isInStandaloneMode();
+                var versioneIOS = suIOS ? getIOSVersion() : 0;
+                var supportate = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+                var permesso = 'Notification' in window ? Notification.permission : 'unsupported';
+
+                // Se il SW non e' registrato, prova a registrarlo ora
+                if ('serviceWorker' in navigator) {
+                    var existingReg = await navigator.serviceWorker.getRegistration();
+                    if (!existingReg) {
+                        try {
+                            await navigator.serviceWorker.register('/sw.js');
+                            await navigator.serviceWorker.ready;
+                            console.log('SW registrato dalla campanella');
+                        } catch (swErr) {
+                            console.error('Errore registrazione SW:', swErr);
+                        }
                     }
-                } else {
-                    statusHTML += '<p style="color: #ed8936;">⚠️ Service Worker non trovato</p>';
                 }
+
+                var statusHTML = '<div style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">';
+                statusHTML += '<h4 style="margin-bottom: 10px; color: #4299e1;">Stato Notifiche</h4>';
+
+                // Info piattaforma
+                if (suIOS) {
+                    statusHTML += '<p style="color: #a0aec0;">Dispositivo: iOS ' + (versioneIOS || '?') + '</p>';
+                    statusHTML += '<p style="color: ' + (inStandalone ? '#48bb78' : '#f56565') + ';">' +
+                        (inStandalone ? 'Modalita App (standalone)' : 'Aperta nel browser (non standalone)') + '</p>';
+                } else {
+                    statusHTML += '<p style="color: #a0aec0;">Dispositivo: Android / Desktop</p>';
+                }
+
+                // Supporto browser
+                if (!supportate) {
+                    statusHTML += '<p style="color: #f56565;">Browser non supportato</p>';
+                } else {
+                    statusHTML += '<p style="color: #48bb78;">Browser supportato</p>';
+                }
+
+                // Permesso
+                if (permesso === 'granted') {
+                    statusHTML += '<p style="color: #48bb78;">Permesso concesso</p>';
+                } else if (permesso === 'denied') {
+                    statusHTML += '<p style="color: #f56565;">Permesso bloccato</p>';
+                } else if (permesso === 'unsupported') {
+                    statusHTML += '<p style="color: #f56565;">Notifiche non disponibili</p>';
+                } else {
+                    statusHTML += '<p style="color: #ed8936;">Permesso non ancora richiesto</p>';
+                }
+
+                // Service Worker
+                if ('serviceWorker' in navigator) {
+                    var registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        statusHTML += '<p style="color: #48bb78;">Service Worker registrato</p>';
+                        try {
+                            var subscription = await registration.pushManager.getSubscription();
+                            if (subscription) {
+                                statusHTML += '<p style="color: #48bb78;">Subscription attiva</p>';
+                            } else {
+                                statusHTML += '<p style="color: #ed8936;">Nessuna subscription attiva</p>';
+                            }
+                        } catch (subErr) {
+                            statusHTML += '<p style="color: #ed8936;">Impossibile verificare subscription</p>';
+                        }
+                    } else {
+                        statusHTML += '<p style="color: #f56565;">Service Worker non trovato</p>';
+                    }
+                }
+
+                statusHTML += '</div>';
+
+                // Istruzioni in base allo stato e piattaforma
+                var istruzioniHTML = '';
+                var azioniHTML = '';
+
+                // CASO iOS NON STANDALONE - serve installare come PWA
+                if (suIOS && !inStandalone) {
+                    istruzioniHTML = '' +
+                        '<div style="background: rgba(237, 137, 54, 0.1); border: 1px solid rgba(237, 137, 54, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">' +
+                        '<p style="color: #f6ad55; margin-bottom: 10px;"><strong>Installazione richiesta su iPhone/iPad</strong></p>' +
+                        '<p style="color: #e2e8f0; font-size: 0.9em; margin-bottom: 10px;">' +
+                        'Su iOS le notifiche push funzionano solo se installi questa app sulla schermata Home. Segui questi passaggi:' +
+                        '</p>' +
+                        '<ol style="text-align: left; color: #cbd5e0; font-size: 0.85em; margin: 10px 0; padding-left: 20px;">' +
+                        '<li style="margin-bottom: 8px;">Tocca il pulsante <strong>Condividi</strong> (il quadrato con la freccia in basso nella barra di Safari)</li>' +
+                        '<li style="margin-bottom: 8px;">Scorri e seleziona <strong>"Aggiungi a Home"</strong></li>' +
+                        '<li style="margin-bottom: 8px;">Conferma toccando <strong>"Aggiungi"</strong></li>' +
+                        '<li style="margin-bottom: 8px;">Apri FantaGTS dalla <strong>icona sulla Home</strong></li>' +
+                        '<li style="margin-bottom: 8px;">Torna qui e tocca la campanella per attivare le notifiche</li>' +
+                        '</ol>' +
+                        '</div>';
+
+                    azioniHTML = '';
+
+                    // CASO iOS VECCHIO
+                } else if (suIOS && versioneIOS > 0 && versioneIOS < 16) {
+                    istruzioniHTML = '' +
+                        '<div style="background: rgba(245, 101, 101, 0.1); border: 1px solid rgba(245, 101, 101, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">' +
+                        '<p style="color: #fc8181; margin-bottom: 10px;"><strong>iOS non compatibile</strong></p>' +
+                        '<p style="color: #e2e8f0; font-size: 0.9em;">' +
+                        'Il tuo iPhone ha iOS ' + versioneIOS + '. Le notifiche push richiedono iOS 16.4 o superiore. ' +
+                        'Aggiorna il tuo dispositivo da Impostazioni > Generali > Aggiornamento Software.' +
+                        '</p>' +
+                        '</div>';
+
+                    azioniHTML = '';
+
+                    // CASO PERMESSO BLOCCATO
+                } else if (permesso === 'denied') {
+                    istruzioniHTML = '' +
+                        '<div style="background: rgba(245, 101, 101, 0.1); border: 1px solid rgba(245, 101, 101, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">' +
+                        '<p style="color: #fc8181; margin-bottom: 10px;"><strong>Notifiche Bloccate</strong></p>' +
+                        '<p style="color: #e2e8f0; font-size: 0.9em; margin-bottom: 10px;">' +
+                        'Le notifiche sono state bloccate.' +
+                        (suIOS ?
+                            ' Per sbloccarle su iOS vai in Impostazioni > FantaGTS > Notifiche > Consenti notifiche.'
+                            :
+                            ' Per sbloccarle:'
+                        ) +
+                        '</p>' +
+                        (suIOS ? '' :
+                            '<ol style="text-align: left; color: #cbd5e0; font-size: 0.85em; margin: 10px 0; padding-left: 20px;">' +
+                            '<li style="margin-bottom: 5px;">Clicca sull\'icona del <strong>lucchetto</strong> o <strong>info</strong> nella barra degli indirizzi</li>' +
+                            '<li style="margin-bottom: 5px;">Cerca la voce <strong>"Notifiche"</strong></li>' +
+                            '<li style="margin-bottom: 5px;">Cambia da <strong>"Blocca"</strong> a <strong>"Consenti"</strong></li>' +
+                            '<li style="margin-bottom: 5px;">Ricarica la pagina</li>' +
+                            '</ol>'
+                        ) +
+                        '</div>';
+
+                    azioniHTML = '' +
+                        '<button onclick="window.location.reload()" class="btn btn-primary" style="margin-right: 10px;">' +
+                        'Ricarica Pagina' +
+                        '</button>';
+
+                    // CASO PERMESSO NON ANCORA RICHIESTO
+                } else if (permesso === 'default') {
+                    istruzioniHTML = '' +
+                        '<div style="background: rgba(237, 137, 54, 0.1); border: 1px solid rgba(237, 137, 54, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">' +
+                        '<p style="color: #f6ad55; margin-bottom: 10px;"><strong>Notifiche Non Attivate</strong></p>' +
+                        '<p style="color: #e2e8f0; font-size: 0.9em;">' +
+                        'Tocca il pulsante qui sotto per attivare le notifiche push.' +
+                        '</p>' +
+                        '</div>';
+
+                    azioniHTML = '' +
+                        '<button onclick="attivaNotifichePush()" class="btn btn-primary" style="margin-right: 10px;">' +
+                        'Attiva Notifiche' +
+                        '</button>';
+
+                    // CASO NOTIFICHE GIA' ATTIVE
+                } else if (permesso === 'granted') {
+                    istruzioniHTML = '' +
+                        '<div style="background: rgba(72, 187, 120, 0.1); border: 1px solid rgba(72, 187, 120, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">' +
+                        '<p style="color: #68d391; margin-bottom: 10px;"><strong>Notifiche Attive</strong></p>' +
+                        '<p style="color: #e2e8f0; font-size: 0.9em;">' +
+                        'Le notifiche push sono configurate. Se non le ricevi, prova il Reset Subscription.' +
+                        '</p>' +
+                        '</div>';
+
+                    azioniHTML = '' +
+                        '<button onclick="resetNotifiche()" class="btn" style="background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936; margin-right: 10px;">' +
+                        'Reset Subscription' +
+                        '</button>' +
+                        '<button onclick="testNotifica()" class="btn btn-primary" style="margin-right: 10px;">' +
+                        'Test Notifica' +
+                        '</button>';
+                }
+
+                // Crea modale
+                var overlay = document.createElement('div');
+                overlay.id = 'notifiche-dialog';
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;';
+
+                var dialog = document.createElement('div');
+                dialog.style.cssText = 'background: #1a202c; padding: 25px; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(66, 153, 225, 0.3);';
+
+                dialog.innerHTML = '' +
+                    '<h3 style="color: #4299e1; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">' +
+                    'Gestione Notifiche Push' +
+                    '</h3>' +
+                    statusHTML +
+                    istruzioniHTML +
+                    '<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">' +
+                    azioniHTML +
+                    '<button onclick="chiudiDialogNotifiche()" class="btn btn-secondary">' +
+                    'Chiudi' +
+                    '</button>' +
+                    '</div>';
+
+                overlay.appendChild(dialog);
+                document.body.appendChild(overlay);
+
+            } catch (errore) {
+                console.error('Errore apertura dialog notifiche:', errore);
+                mostraMessaggio('Errore nella verifica delle notifiche. Riprova.', 'error');
             }
-            
-            statusHTML += '</div>';
-            
-            // Istruzioni in base allo stato
-            let istruzioniHTML = '';
-            let azioniHTML = '';
-            
-            if (permesso === 'denied') {
-                istruzioniHTML = `
-                    <div style="background: rgba(245, 101, 101, 0.1); border: 1px solid rgba(245, 101, 101, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <p style="color: #fc8181; margin-bottom: 10px;"><strong>🚫 Notifiche Bloccate</strong></p>
-                        <p style="color: #e2e8f0; font-size: 0.9em; margin-bottom: 10px;">
-                            Le notifiche sono state bloccate dal browser. Per sbloccarle:
-                        </p>
-                        <ol style="text-align: left; color: #cbd5e0; font-size: 0.85em; margin: 10px 0; padding-left: 20px;">
-                            <li style="margin-bottom: 5px;">Clicca sull'icona del <strong>lucchetto</strong> o <strong>info (ⓘ)</strong> nella barra degli indirizzi</li>
-                            <li style="margin-bottom: 5px;">Cerca la voce <strong>"Notifiche"</strong></li>
-                            <li style="margin-bottom: 5px;">Cambia da <strong>"Blocca"</strong> a <strong>"Consenti"</strong></li>
-                            <li style="margin-bottom: 5px;">Ricarica la pagina</li>
-                        </ol>
-                    </div>
-                `;
-                azioniHTML = `
-                    <button onclick="window.location.reload()" class="btn btn-primary" style="margin-right: 10px;">
-                        🔄 Ricarica Pagina
-                    </button>
-                `;
-            } else if (permesso === 'default') {
-                istruzioniHTML = `
-                    <div style="background: rgba(237, 137, 54, 0.1); border: 1px solid rgba(237, 137, 54, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <p style="color: #f6ad55; margin-bottom: 10px;"><strong>⚠️ Notifiche Non Attivate</strong></p>
-                        <p style="color: #e2e8f0; font-size: 0.9em;">
-                            Clicca sul pulsante qui sotto per attivare le notifiche push.
-                        </p>
-                    </div>
-                `;
-                azioniHTML = `
-                    <button onclick="attivaNotifichePush()" class="btn btn-primary" style="margin-right: 10px;">
-                        ✅ Attiva Notifiche
-                    </button>
-                `;
-            } else if (permesso === 'granted') {
-                istruzioniHTML = `
-                    <div style="background: rgba(72, 187, 120, 0.1); border: 1px solid rgba(72, 187, 120, 0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <p style="color: #68d391; margin-bottom: 10px;"><strong>✅ Notifiche Attive</strong></p>
-                        <p style="color: #e2e8f0; font-size: 0.9em;">
-                            Le notifiche push sono correttamente configurate. Se non le ricevi, prova a ri-registrare la subscription.
-                        </p>
-                    </div>
-                `;
-                azioniHTML = `
-                    <button onclick="resetNotifiche()" class="btn" style="background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936; margin-right: 10px;">
-                        🔄 Reset Subscription
-                    </button>
-                    <button onclick="testNotifica()" class="btn btn-primary" style="margin-right: 10px;">
-                        🧪 Test Notifica
-                    </button>
-                `;
-            }
-            
-            // Crea modale
-            const overlay = document.createElement('div');
-            overlay.id = 'notifiche-dialog';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.8);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                padding: 20px;
-            `;
-            
-            const dialog = document.createElement('div');
-            dialog.style.cssText = `
-                background: #1a202c;
-                padding: 25px;
-                border-radius: 12px;
-                max-width: 500px;
-                width: 100%;
-                max-height: 90vh;
-                overflow-y: auto;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-                border: 1px solid rgba(66, 153, 225, 0.3);
-            `;
-            
-            dialog.innerHTML = `
-                <h3 style="color: #4299e1; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    🔔 Gestione Notifiche Push
-                </h3>
-                ${statusHTML}
-                ${istruzioniHTML}
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                    ${azioniHTML}
-                    <button onclick="chiudiDialogNotifiche()" class="btn btn-secondary">
-                        Chiudi
-                    </button>
-                </div>
-            `;
-            
-            overlay.appendChild(dialog);
-            document.body.appendChild(overlay);
         }
-        
+
         function chiudiDialogNotifiche() {
             const dialog = document.getElementById('notifiche-dialog');
             if (dialog) dialog.remove();
         }
-        
+
         async function attivaNotifichePush() {
             try {
-                mostraMessaggio('🔔 Attivazione notifiche in corso...', 'info');
-                const result = await setupPushNotifications();
-                
+                mostraMessaggio('Attivazione notifiche in corso...', 'info');
+                var result = await setupPushNotifications();
+
                 if (result && result.success) {
-                    mostraMessaggio('✅ Notifiche attivate con successo!', 'success');
+                    mostraMessaggio('Notifiche attivate con successo!', 'success');
                     chiudiDialogNotifiche();
-                    // Riapri per mostrare nuovo stato
-                    setTimeout(() => mostraDialogNotifiche(), 500);
-                } else if (result && result.blocked) {
-                    mostraMessaggio('❌ Notifiche bloccate nel browser. Segui le istruzioni.', 'error');
+                    setTimeout(function () { mostraDialogNotifiche(); }, 500);
+                } else if (result && result.motivo === 'ios_non_standalone') {
+                    mostraMessaggio('Su iPhone devi prima installare l\'app sulla Home. Segui le istruzioni nel pannello.', 'warning');
+                } else if (result && result.motivo === 'ios_vecchio') {
+                    mostraMessaggio('Il tuo iPhone ha una versione iOS troppo vecchia. Serve iOS 16.4 o superiore.', 'error');
+                } else if (result && result.motivo === 'permesso_negato') {
+                    mostraMessaggio('Permesso notifiche negato. Controlla le impostazioni del browser.', 'error');
                 } else {
-                    mostraMessaggio('❌ Errore attivazione notifiche', 'error');
+                    mostraMessaggio('Errore attivazione notifiche. Riprova.', 'error');
                 }
             } catch (error) {
                 console.error('Errore attivazione:', error);
-                mostraMessaggio('❌ Errore: ' + error.message, 'error');
+                mostraMessaggio('Errore: ' + error.message, 'error');
             }
         }
-        
+
         async function resetNotifiche() {
             try {
                 mostraMessaggio('🔄 Reset subscription in corso...', 'info');
-                
+
                 // 1. Cancella subscription esistente
                 if ('serviceWorker' in navigator) {
                     const registration = await navigator.serviceWorker.ready;
                     const subscription = await registration.pushManager.getSubscription();
-                    
+
                     if (subscription) {
                         await subscription.unsubscribe();
                         console.log('✅ Subscription rimossa');
                     }
                 }
-                
+
                 // 2. Ricrea subscription
                 await setupPushNotifications();
-                
+
                 mostraMessaggio('✅ Subscription resettata con successo!', 'success');
                 chiudiDialogNotifiche();
                 setTimeout(() => mostraDialogNotifiche(), 500);
-                
+
             } catch (error) {
                 console.error('Errore reset:', error);
                 mostraMessaggio('❌ Errore reset: ' + error.message, 'error');
             }
         }
-        
+
         async function testNotifica() {
             try {
                 if (!playerData || !playerData.id) {
                     mostraMessaggio('❌ Devi essere loggato per testare', 'error');
                     return;
                 }
-                
+
                 mostraMessaggio('📨 Invio notifica di test...', 'info');
-                
+
                 const response = await fetch('/api/test-notification', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3352,7 +3496,7 @@
                         partecipanteId: playerData.id
                     })
                 });
-                
+
                 if (response.ok) {
                     mostraMessaggio('✅ Notifica di test inviata! Controlla il tuo dispositivo.', 'success');
                 } else {
@@ -3443,7 +3587,7 @@
             });
 
             socket.on('asta_started', (data) => {
-                console.log('🎪 ASTA_STARTED RICEVUTO!', data); 
+                console.log('🎪 ASTA_STARTED RICEVUTO!', data);
 
                 console.log('📊 Dati:', {
                     round: data.round,
@@ -3539,31 +3683,31 @@
 
                 // Mostra notifica all'utente
                 const message = `Il giocatore ${data.nomeVecchio} è stato sostituito con ${data.nomeNuovo}`;
-                
+
                 console.log('📢 Mostrando notifica sostituzione');
 
                 // Crea notifica visiva
                 const notification = document.createElement('div');
                 notification.className = 'notification success';
                 notification.innerHTML = `
-                    <strong>🔄 Sostituzione Effettuata</strong><br>
-                    ${message}
-                `;
+                            <strong>🔄 Sostituzione Effettuata</strong><br>
+                            ${message}
+                        `;
                 notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-                    color: white;
-                    padding: 20px 25px;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-                    z-index: 99999;
-                    max-width: 400px;
-                    font-size: 16px;
-                    animation: slideIn 0.3s ease-out;
-                    border: 2px solid rgba(255,255,255,0.3);
-                `;
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+                            color: white;
+                            padding: 20px 25px;
+                            border-radius: 12px;
+                            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                            z-index: 99999;
+                            max-width: 400px;
+                            font-size: 16px;
+                            animation: slideIn 0.3s ease-out;
+                            border: 2px solid rgba(255,255,255,0.3);
+                        `;
 
                 document.body.appendChild(notification);
                 console.log('✅ Notifica aggiunta al DOM');
@@ -3623,38 +3767,38 @@
 
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-                    position: fixed;
-                    top: 0; left: 0; width: 100%; height: 100%;
-                    background: rgba(0,0,0,0.6);
-                    z-index: 1999;
-                    cursor: pointer;
-                `;
+                            position: fixed;
+                            top: 0; left: 0; width: 100%; height: 100%;
+                            background: rgba(0,0,0,0.6);
+                            z-index: 1999;
+                            cursor: pointer;
+                        `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
-                    position: fixed; 
-                    top: 50%; 
-                    left: 50%; 
-                    transform: translate(-50%, -50%); 
-                    background: rgba(45, 55, 72, 0.95);
-                    color: white; 
-                    padding: 20px; 
-                    border-radius: 15px; 
-                    font-size: 1.2em; 
-                    font-weight: bold; 
-                    z-index: 2000; 
-                    text-align: center; 
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-                    backdrop-filter: blur(10px);
-                    border: 2px solid rgba(255,255,255,0.2);
-                    cursor: pointer;
-                `;
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background: rgba(45, 55, 72, 0.95);
+                            color: white;
+                            padding: 20px;
+                            border-radius: 15px;
+                            font-size: 1.2em;
+                            font-weight: bold;
+                            z-index: 2000;
+                            text-align: center;
+                            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                            backdrop-filter: blur(10px);
+                            border: 2px solid rgba(255,255,255,0.2);
+                            cursor: pointer;
+                        `;
                 notification.innerHTML = `
-                    <div>🏆 COMPLIMENTI!</div>
-                    <div style="margin: 10px 0;">Hai ingaggiato:</div>
-                    <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
-                    <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                `;
+                            <div>🏆 COMPLIMENTI!</div>
+                            <div style="margin: 10px 0;">Hai ingaggiato:</div>
+                            <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
+                            <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                            <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                        `;
                 document.body.appendChild(overlay);
                 document.body.appendChild(notification);
                 const chiudiNotifica = () => { overlay.remove(); notification.remove(); };
@@ -3677,48 +3821,48 @@
 
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-                    position: fixed;
-                    top: 0; left: 0; width: 100%; height: 100%;
-                    background: rgba(0,0,0,0.6);
-                    z-index: 1999;
-                    cursor: pointer;
-                `;
+                            position: fixed;
+                            top: 0; left: 0; width: 100%; height: 100%;
+                            background: rgba(0,0,0,0.6);
+                            z-index: 1999;
+                            cursor: pointer;
+                        `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
-                    position: fixed; 
-                    top: 50%; 
-                    left: 50%; 
-                    transform: translate(-50%, -50%); 
-                    background: ${backgroundColor};
-                    color: white; 
-                    padding: 25px 30px; 
-                    border-radius: 15px; 
-                    font-size: 1.1em; 
-                    font-weight: bold; 
-                    z-index: 2000; 
-                    text-align: center; 
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-                    backdrop-filter: blur(10px);
-                    border: 2px solid rgba(255,255,255,0.3);
-                    max-width: 90%;
-                    animation: slideIn 0.3s ease-out;
-                    cursor: pointer;
-                `;
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background: ${backgroundColor};
+                            color: white;
+                            padding: 25px 30px;
+                            border-radius: 15px;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            z-index: 2000;
+                            text-align: center;
+                            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                            backdrop-filter: blur(10px);
+                            border: 2px solid rgba(255,255,255,0.3);
+                            max-width: 90%;
+                            animation: slideIn 0.3s ease-out;
+                            cursor: pointer;
+                        `;
                 let notificationContent = '';
                 if (data.isPareggioPerso && data.playerName) {
                     notificationContent = `
-                        <div style="font-size: 1.2em; margin-bottom: 5px;">${data.title}</div>
-                        <div style="font-size: 0.85em; opacity: 0.9; margin-bottom: 8px;">Non sei riuscito a ingaggiare</div>
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">${data.playerName}</div>
-                        <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
-                        <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                    `;
-                                } else {
-                                    notificationContent = `
-                        <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
-                        <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
-                        <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                    `;
+                                <div style="font-size: 1.2em; margin-bottom: 5px;">${data.title}</div>
+                                <div style="font-size: 0.85em; opacity: 0.9; margin-bottom: 8px;">Non sei riuscito a ingaggiare</div>
+                                <div style="font-size: 1.2em; margin-bottom: 10px;">${data.playerName}</div>
+                                <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                                <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                            `;
+                } else {
+                    notificationContent = `
+                                <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
+                                <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                                <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                            `;
                 }
                 notification.innerHTML = notificationContent;
                 document.body.appendChild(overlay);
@@ -3768,9 +3912,9 @@
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.innerHTML = `
-                                    <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
-                                    <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
-                                `;
+                                            <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
+                                            <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
+                                        `;
                 card.addEventListener('click', () => selectPlayer(player));
                 grid.appendChild(card);
             });
@@ -3962,7 +4106,7 @@
             const sessionRestored = await loadSavedSession();
             if (sessionRestored) {
                 console.log('✅ Sessione ripristinata automaticamente');
-                
+
                 // 🆕 Ri-attiva notifiche push se erano abilitate
                 if (playerData && playerData.registered && playerData.notificationsEnabled) {
                     console.log('🔔 Ri-attivazione notifiche push...');
@@ -4125,7 +4269,7 @@
             document.body.classList.add('loaded');
         });
 
-        // ======================================== 
+        // ========================================
         // CONTROLLA SESSIONE ESISTENTE
         // ========================================
         async function checkExistingSession() {
@@ -4177,6 +4321,20 @@
                 console.error('Errore ripristino sessione:', error);
                 clearSavedSession();
             }
+        }
+    </script>
+    <!-- Registrazione Service Worker per notifiche push -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function (registration) {
+                        console.log('Service Worker registrato con scope:', registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.error('Errore registrazione Service Worker:', error);
+                    });
+            });
         }
     </script>
 </body>
