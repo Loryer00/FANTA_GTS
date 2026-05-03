@@ -1387,23 +1387,37 @@
         // Utility functions
         function getTeamColor(nomeColore) {
             const colori = {
-                'rosso': '#ef4444', 'rossa': '#ef4444',
-                'blu': '#3b82f6', 'azzurro': '#3b82f6', 'azzurra': '#3b82f6',
+                'rosso': '#ef4444',
+                'rossa': '#ef4444',
+                'blu': '#3b82f6',
                 'verde': '#03ac41',
-                'giallo': '#f59e0b', 'gialla': '#f59e0b',
+                'giallo': '#f59e0b',
+                'gialla': '#f59e0b',
                 'viola': '#8b5cf6',
                 'arancione': '#f97316',
+                'arancio': '#f97316',
                 'rosa': '#ec4899',
+                'azzurro': '#06b6d4',
+                'azzurra': '#06b6d4',
                 'marrone': '#92400e',
-                'nero': '#374151', 'nera': '#374151',
-                'bianco': '#f3f4f6', 'bianca': '#f3f4f6',
-                'grigio': '#6b7280', 'grigia': '#6b7280',
+                'nero': '#374151',
+                'nera': '#374151',
+                'bianco': '#f3f4f6',
+                'bianca': '#f3f4f6',
+                'grigio': '#6b7280',
+                'grigia': '#6b7280',
                 'smeraldo': '#29b98c',
-                'fucsia': '#d946ef'
+                'bordeaux': '#7c2d12',
+                'lime': '#84cc16',
+                'indaco': '#6366f1',
+                'fucsia': '#d946ef',
+                'ciano': '#06b6d4',
+                'royal': '#1e40af',
+                'crema': '#fef3c7',
+                'lilla': '#c4b5fd'
             };
-
-            const coloreKey = nomeColore?.toLowerCase?.() || 'default';
-            return colori[coloreKey] || '#4299e1';
+            const coloreLower = (nomeColore || '').toLowerCase().trim();
+            return colori[coloreLower] || '#6b7280';
         }
 
         function showNotification(message, type = 'success') {

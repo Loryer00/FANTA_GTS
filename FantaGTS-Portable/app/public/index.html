@@ -2986,7 +2986,6 @@
         // Funzione helper per ottenere i colori delle squadre
         function getTeamColor(nomeColore) {
             const colori = {
-                // Colori base
                 'rosso': '#ef4444',
                 'rossa': '#ef4444',
                 'blu': '#3b82f6',
@@ -2995,6 +2994,7 @@
                 'gialla': '#f59e0b',
                 'viola': '#8b5cf6',
                 'arancione': '#f97316',
+                'arancio': '#f97316',
                 'rosa': '#ec4899',
                 'azzurro': '#06b6d4',
                 'azzurra': '#06b6d4',
@@ -3015,9 +3015,8 @@
                 'crema': '#fef3c7',
                 'lilla': '#c4b5fd'
             };
-
             const coloreLower = (nomeColore || '').toLowerCase().trim();
-            return colori[coloreLower] || '#6b7280'; // grigio come fallback
+            return colori[coloreLower] || '#6b7280';
         }
 
         // ========================================
