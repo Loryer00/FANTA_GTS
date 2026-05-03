@@ -3721,9 +3721,6 @@
                 };
                 overlay.addEventListener('click', chiudiNotifica);
                 notification.addEventListener('click', chiudiNotifica);
-
-                // Auto-chiudi dopo 5 secondi per non bloccare l'interazione con la prossima asta
-                setTimeout(chiudiNotifica, 5000);
             });
 
             socket.on('bid_confirmed', (data) => {
