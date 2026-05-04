@@ -1447,7 +1447,7 @@ async function inviaNotifichePush(notificationData, skipWebSocket = false) {
             title: title, // 🆕 Titolo pulito senza emoji extra
             body: body, // 🆕 Body pulito senza emoji extra
             icon: 'https://fantagts-production.up.railway.app/icons/icon-192x192.png',
-            badge: 'https://fantagts-production.up.railway.app/icons/icon-96x96.png',            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
+            badge: 'https://fantagts-production.up.railway.app/icons/badge-96x96.png',            vibrate: [300, 200, 300, 200, 300, 200, 300], // POTENZIATO: vibrazione più lunga e forte
             requireInteraction: true, // CAMBIATO: torna true per persistenza
             tag: 'fantagts-urgent',
             renotify: true,
