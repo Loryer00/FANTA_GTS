@@ -129,7 +129,7 @@
             padding: 8px 16px;
             border-radius: 8px;
             font-weight: bold;
-            color: white;
+            color: inherit;
             text-align: center;
             min-width: 120px;
             font-size: 1em;
@@ -733,11 +733,11 @@
                     const squadra2Color = getTeamColor(gruppo.squadra2?.colore);
 
                     headerSquadre.innerHTML = `
-        <div class="badge-squadra" style="background-color: ${squadra1Color};">
+        <div class="badge-squadra" style="background-color: ${squadra1Color}; color: ${getTextColorForTeam(gruppo.squadra1?.colore)};">
             SQUADRA<br>${gruppo.squadra1?.colore?.toUpperCase() || 'SCONOSCIUTA'}
         </div>
         <div class="vs-text">VS</div>
-        <div class="badge-squadra" style="background-color: ${squadra2Color};">
+        <div class="badge-squadra" style="background-color: ${squadra2Color}; color: ${getTextColorForTeam(gruppo.squadra2?.colore)};">
             SQUADRA<br>${gruppo.squadra2?.colore?.toUpperCase() || 'SCONOSCIUTA'}
         </div>
 `;
@@ -880,7 +880,7 @@
                         <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos1)} (${incontro.pos1})</div>
                         <div class="giocatore">${getNomeGiocatore(squadra1, incontro.pos2)} (${incontro.pos2})</div>
                     </div>
-                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra1.colore)};">
+                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra1.colore)}; color: ${getTextColorForTeam(squadra1.colore)};">
                         ${squadra1.colore.toUpperCase()}
                     </div>
                 </button>
@@ -892,7 +892,7 @@
                         <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos1)} (${incontro.pos1})</div>
                         <div class="giocatore">${getNomeGiocatore(squadra2, incontro.pos2)} (${incontro.pos2})</div>
                     </div>
-                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra2.colore)};">
+                    <div class="squadra-label" style="background-color: ${getTeamColor(squadra2.colore)}; color: ${getTextColorForTeam(squadra2.colore)};">
                         ${squadra2.colore.toUpperCase()}
                     </div>
                 </button>
@@ -1423,9 +1423,12 @@
         function getTextColorForTeam(nomeColore) {
             const coloriChiari = [
                 'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
-                'rosa', 'celeste', 'azzurro chiaro', 'verde chiaro',
-                'arancione chiaro', 'grigio chiaro', 'argento', 'sabbia',
-                'beige', 'lavanda', 'oro', 'dorato', 'lilla', 'menta'
+                'rosa', 'rosa chiaro', 'rosa chiara',
+                'celeste', 'azzurro chiaro', 'azzurra chiara',
+                'verde chiaro', 'verde chiara', 'arancione chiaro', 'arancione chiara',
+                'grigio chiaro', 'grigia chiara', 'argento', 'argentato', 'argentata',
+                'sabbia', 'beige', 'lavanda', 'oro', 'dorato', 'dorata',
+                'lilla', 'menta', 'bianca pura'
             ];
             const coloreLowerCase = (nomeColore || '').toLowerCase().trim();
             const isChiaro = coloriChiari.some(c =>
