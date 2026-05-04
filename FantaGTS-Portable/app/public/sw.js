@@ -69,7 +69,7 @@ self.addEventListener('push', async (event) => {
                 const options = {
                     body: data.body,
                     icon: data.icon || '/icon-192.png',
-                    badge: data.badge || '/badge-72.png',
+                    badge: data.badge || '/icons/badge-96x96.png',
                     vibrate: data.vibrate || [200, 100, 200],
                     data: data.data || {},
                     actions: data.actions || [],
