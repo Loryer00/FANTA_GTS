@@ -515,7 +515,7 @@
         .squadra-badge {
             padding: 8px 12px;
             border-radius: 8px;
-            color: white;
+            color: inherit;
             font-weight: bold;
             font-size: 0.85em;
             text-align: center;
@@ -585,7 +585,7 @@
         .squadra-mini {
             padding: 8px 15px;
             border-radius: 6px;
-            color: white;
+            color: inherit;
             font-weight: bold;
             font-size: 0.85em;
             text-align: center;
@@ -2953,11 +2953,11 @@
             let html = `
                             <div class="scontro-box">
                                 <div class="scontro-header">
-                                    <div class="squadra-badge" style="background-color: ${colore1};">
+                                    <div class="squadra-badge" style="background-color: ${colore1}; color: ${getTextColorForTeam(gruppo.squadra1.colore)};">
                                         ${gruppo.squadra1.colore.toUpperCase()}
                                     </div>
                                     <div class="vs-text">VS</div>
-                                    <div class="squadra-badge" style="background-color: ${colore2};">
+                                    <div class="squadra-badge" style="background-color: ${colore2}; color: ${getTextColorForTeam(gruppo.squadra2.colore)};">
                                         ${gruppo.squadra2.colore.toUpperCase()}
                                     </div>
                                 </div>
@@ -3034,6 +3034,20 @@
             };
             const coloreLower = (nomeColore || '').toLowerCase().trim();
             return colori[coloreLower] || '#6b7280';
+        }
+
+        function getTextColorForTeam(nomeColore) {
+            const coloriChiari = [
+                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'rosa', 'celeste', 'azzurro chiaro', 'verde chiaro',
+                'arancione chiaro', 'grigio chiaro', 'argento', 'sabbia',
+                'beige', 'lavanda', 'oro', 'dorato', 'lilla', 'menta'
+            ];
+            const coloreLowerCase = (nomeColore || '').toLowerCase().trim();
+            const isChiaro = coloriChiari.some(c =>
+                coloreLowerCase === c || coloreLowerCase.includes(c) || c.includes(coloreLowerCase)
+            );
+            return isChiaro ? '#1a202c' : '#ffffff';
         }
 
         // ========================================

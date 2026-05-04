@@ -2236,9 +2236,9 @@
 
                 scontroBox.innerHTML = `
                 <div class="scontro-header-mini">
-                    <div class="squadra-mini" style="background: ${squadra1Color};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
+                    <div class="squadra-mini" style="background: ${squadra1Color}; color: ${getTextColorForTeam(gruppo.squadra1?.colore)};">${gruppo.squadra1?.colore?.toUpperCase()}</div>
                     <span class="vs-mini">vs</span>
-                    <div class="squadra-mini" style="background: ${squadra2Color};">${gruppo.squadra2?.colore?.toUpperCase()}</div>
+                    <div class="squadra-mini" style="background: ${squadra2Color}; color: ${getTextColorForTeam(gruppo.squadra2?.colore)};">${gruppo.squadra2?.colore?.toUpperCase()}</div>
                 </div>
 
                 <div class="stats-line">
@@ -2449,6 +2449,20 @@
             };
             const coloreLower = (nomeColore || '').toLowerCase().trim();
             return colori[coloreLower] || '#6b7280';
+        }
+
+        function getTextColorForTeam(nomeColore) {
+            const coloriChiari = [
+                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'rosa', 'celeste', 'azzurro chiaro', 'verde chiaro',
+                'arancione chiaro', 'grigio chiaro', 'argento', 'sabbia',
+                'beige', 'lavanda', 'oro', 'dorato', 'lilla', 'menta'
+            ];
+            const coloreLowerCase = (nomeColore || '').toLowerCase().trim();
+            const isChiaro = coloriChiari.some(c =>
+                coloreLowerCase === c || coloreLowerCase.includes(c) || c.includes(coloreLowerCase)
+            );
+            return isChiaro ? '#1a202c' : '#ffffff';
         }
 
         // Calcola quale squadra ha vinto uno scontro
