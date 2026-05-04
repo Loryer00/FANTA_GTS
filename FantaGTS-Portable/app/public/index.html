@@ -456,8 +456,8 @@
         }
 
         .partecipante-slot {
-            background: rgba(72, 187, 120, 0.15);
-            border: 1px solid #48bb78;
+            background: rgba(45, 55, 72, 0.6);
+            border: 3px solid #4a5568;
             border-radius: 6px;
             padding: 8px;
             text-align: center;
@@ -2625,12 +2625,30 @@
 
         async function caricaSquadraPartecipante(partecipante) {
             try {
-                const response = await fetch(`/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneCorrente}`);
-
                 let squadra = [];
-                if (response.ok) {
-                    const data = await response.json();
-                    squadra = data.squadra || data || [];
+                const modalita = playerData.modalita || 'asta_competitiva';
+
+                if (modalita === 'draft_libero') {
+                    // Per draft: usa endpoint draft
+                    const response = await fetch(`/api/draft/squadra/${partecipante.id}?sessione_id=${sessioneCorrente}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.squadra && Object.keys(data.squadra).length > 0) {
+                            squadra = Object.entries(data.squadra).map(([posizione, dati]) => ({
+                                posizione: posizione,
+                                giocatore_attuale: dati.giocatore,
+                                colore: dati.coloreSquadra,
+                                punti_totali: dati.puntiTotali || 0
+                            }));
+                        }
+                    }
+                } else {
+                    // Per aste: usa endpoint aste
+                    const response = await fetch(`/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneCorrente}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        squadra = data.squadra || data || [];
+                    }
                 }
 
                 // Calcola statistiche
@@ -2642,15 +2660,14 @@
                                     <div class="partecipante-header">
                                         <div class="partecipante-name">${partecipante.nome}</div>
                                         <div class="partecipante-stats">
-                                            <span style="color: #48bb78;">⚡ ${puntiTotali} pt</span>
-                                            <span style="color: #4299e1;">👤 ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
+                                            <span style="color: #48bb78;">&#9889; ${puntiTotali} pt</span>
+                                            <span style="color: #4299e1;">&#128100; ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
                                         </div>
                                     </div>
                                     <div class="partecipante-team-grid">
                             `;
 
                 // Mostra tutti gli slot dinamicamente in base alle posizioni reali
-                // Prende le posizioni dagli slot gia generati nel DOM
                 const slotElements = document.querySelectorAll('#teamSlots .team-slot');
                 const posizioni = slotElements.length > 0
                     ? Array.from(slotElements).map(el => el.dataset.position)
@@ -2661,11 +2678,12 @@
 
                     if (giocatore) {
                         const coloreSquadra = getTeamColor(giocatore.colore);
+                        const testoColore = getTextColorForTeam(giocatore.colore);
                         html += `
-                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra};">
+                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
                                             <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
                                             <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px;">${giocatore.colore}</div>
+                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
                                         </div>
                                     `;
                     } else {
@@ -2686,7 +2704,7 @@
                 return html;
 
             } catch (error) {
-                console.error('❌ Errore caricamento squadra partecipante:', error);
+                console.error('Errore caricamento squadra partecipante:', error);
                 return `
                                 <div class="partecipante-card">
                                     <div class="partecipante-header">
