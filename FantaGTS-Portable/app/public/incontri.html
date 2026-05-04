@@ -1420,6 +1420,20 @@
             return colori[coloreLower] || '#6b7280';
         }
 
+        function getTextColorForTeam(nomeColore) {
+            const coloriChiari = [
+                'bianco', 'bianca', 'giallo', 'gialla', 'crema', 'lime',
+                'rosa', 'celeste', 'azzurro chiaro', 'verde chiaro',
+                'arancione chiaro', 'grigio chiaro', 'argento', 'sabbia',
+                'beige', 'lavanda', 'oro', 'dorato', 'lilla', 'menta'
+            ];
+            const coloreLowerCase = (nomeColore || '').toLowerCase().trim();
+            const isChiaro = coloriChiari.some(c =>
+                coloreLowerCase === c || coloreLowerCase.includes(c) || c.includes(coloreLowerCase)
+            );
+            return isChiaro ? '#1a202c' : '#ffffff';
+        }
+
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
