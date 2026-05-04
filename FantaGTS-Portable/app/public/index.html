@@ -2586,7 +2586,7 @@
             const container = document.getElementById('altriPartecipantiContainer');
 
             try {
-                console.log('👥 Caricamento altri partecipanti...');
+                console.log('Caricamento altri partecipanti...');
 
                 // Carica lista partecipanti
                 const responsePartecipanti = await fetch('/api/partecipanti');
@@ -2604,32 +2604,39 @@
                     return;
                 }
 
-                let html = '<div class="partecipanti-grid">';
-
-                // Carica squadra di ogni partecipante
+                // Raccogli dati squadra + punti per ogni partecipante
+                const partecipantiConDati = [];
                 for (const partecipante of altriPartecipanti) {
-                    const squadraHtml = await caricaSquadraPartecipante(partecipante);
-                    html += squadraHtml;
+                    const dati = await calcolaDatiPartecipante(partecipante);
+                    partecipantiConDati.push(dati);
                 }
 
+                // Ordina per punti decrescenti (chi ha piu punti in alto)
+                partecipantiConDati.sort((a, b) => b.puntiTotali - a.puntiTotali);
+
+                // Genera HTML ordinato
+                let html = '<div class="partecipanti-grid">';
+                for (const dati of partecipantiConDati) {
+                    html += generaHtmlPartecipante(dati);
+                }
                 html += '</div>';
                 container.innerHTML = html;
 
-                console.log('✅ Altri partecipanti caricati:', altriPartecipanti.length);
+                console.log('Altri partecipanti caricati:', altriPartecipanti.length);
 
             } catch (error) {
-                console.error('❌ Errore caricamento altri partecipanti:', error);
+                console.error('Errore caricamento altri partecipanti:', error);
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento partecipanti</p>';
             }
         }
 
-        async function caricaSquadraPartecipante(partecipante) {
+        // Recupera i dati della squadra di un partecipante (senza generare HTML)
+        async function calcolaDatiPartecipante(partecipante) {
             try {
                 let squadra = [];
                 const modalita = playerData.modalita || 'asta_competitiva';
 
                 if (modalita === 'draft_libero') {
-                    // Per draft: usa endpoint draft
                     const response = await fetch(`/api/draft/squadra/${partecipante.id}?sessione_id=${sessioneCorrente}`);
                     if (response.ok) {
                         const data = await response.json();
@@ -2643,7 +2650,6 @@
                         }
                     }
                 } else {
-                    // Per aste: usa endpoint aste
                     const response = await fetch(`/api/squadra-partecipante/${partecipante.id}?sessione_id=${sessioneCorrente}`);
                     if (response.ok) {
                         const data = await response.json();
@@ -2651,70 +2657,74 @@
                     }
                 }
 
-                // Calcola statistiche
-                const giocatoriVinti = squadra.length;
                 const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
 
-                let html = `
-                                <div class="partecipante-card">
-                                    <div class="partecipante-header">
-                                        <div class="partecipante-name">${partecipante.nome}</div>
-                                        <div class="partecipante-stats">
-                                            <span style="color: #48bb78;">&#9889; ${puntiTotali} pt</span>
-                                            <span style="color: #4299e1;">&#128100; ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
-                                        </div>
-                                    </div>
-                                    <div class="partecipante-team-grid">
-                            `;
-
-                // Mostra tutti gli slot dinamicamente in base alle posizioni reali
-                const slotElements = document.querySelectorAll('#teamSlots .team-slot');
-                const posizioni = slotElements.length > 0
-                    ? Array.from(slotElements).map(el => el.dataset.position)
-                    : Object.keys(squadra.reduce((acc, g) => { acc[g.posizione] = true; return acc; }, {}));
-
-                posizioni.forEach(pos => {
-                    const giocatore = squadra.find(g => g.posizione === pos);
-
-                    if (giocatore) {
-                        const coloreSquadra = getTeamColor(giocatore.colore);
-                        const testoColore = getTextColorForTeam(giocatore.colore);
-                        html += `
-                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
-                                            <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                            <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
-                                        </div>
-                                    `;
-                    } else {
-                        html += `
-                                        <div class="partecipante-slot partecipante-slot-empty">
-                                            <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
-                                            <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
-                                        </div>
-                                    `;
-                    }
-                });
-
-                html += `
-                                    </div>
-                                </div>
-                            `;
-
-                return html;
-
+                return {
+                    partecipante: partecipante,
+                    squadra: squadra,
+                    puntiTotali: puntiTotali,
+                    giocatoriVinti: squadra.length
+                };
             } catch (error) {
-                console.error('Errore caricamento squadra partecipante:', error);
-                return `
-                                <div class="partecipante-card">
-                                    <div class="partecipante-header">
-                                        <div class="partecipante-name">${partecipante.nome}</div>
-                                    </div>
-                                    <p style="text-align: center; opacity: 0.7; font-size: 0.9em;">Squadra non disponibile</p>
-                                </div>
-                            `;
+                console.error('Errore dati partecipante:', partecipante.nome, error);
+                return {
+                    partecipante: partecipante,
+                    squadra: [],
+                    puntiTotali: 0,
+                    giocatoriVinti: 0
+                };
             }
         }
+
+        // Genera l'HTML di una card partecipante a partire dai dati gia calcolati
+        function generaHtmlPartecipante(dati) {
+            const { partecipante, squadra, puntiTotali, giocatoriVinti } = dati;
+
+            let html = `
+                            <div class="partecipante-card">
+                                <div class="partecipante-header">
+                                    <div class="partecipante-name">${partecipante.nome}</div>
+                                    <div class="partecipante-stats">
+                                        <span style="color: #48bb78;">&#9889; ${puntiTotali} pt</span>
+                                        <span style="color: #4299e1;">&#128100; ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
+                                    </div>
+                                </div>
+                                <div class="partecipante-team-grid">
+                        `;
+
+            const slotElements = document.querySelectorAll('#teamSlots .team-slot');
+            const posizioni = slotElements.length > 0
+                ? Array.from(slotElements).map(el => el.dataset.position)
+                : Object.keys(squadra.reduce((acc, g) => { acc[g.posizione] = true; return acc; }, {}));
+
+            posizioni.forEach(pos => {
+                const giocatore = squadra.find(g => g.posizione === pos);
+
+                if (giocatore) {
+                    const coloreSquadra = getTeamColor(giocatore.colore);
+                    html += `
+                                    <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
+                                        <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                                        <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                                        <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
+                                    </div>
+                                `;
+                } else {
+                    html += `
+                                    <div class="partecipante-slot partecipante-slot-empty">
+                                        <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
+                                        <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
+                                    </div>
+                                `;
+                }
+            });
+
+            html += `
+                                </div>
+                            </div>
+                        `;
+            return html;
+        }    
 
         // ========================================
         // SEZIONE INCONTRI
