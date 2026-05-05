@@ -1026,16 +1026,21 @@
                 return;
             }
 
-            const conferma = confirm(
-                `Vuoi resettare la sessione "${sessioneInfo.nome}"?\n\n` +
-                `Questa azione cancellerà:\n` +
-                `• Tutte le aste\n` +
-                `• Tutte le squadre partecipanti\n` +
-                `• Tutti i turni e incontri\n\n` +
-                `La configurazione (nome, modalità, squadre circolo) verrà mantenuta.`
+            const prima = await confermaPersonalizzata(
+                `ATTENZIONE: Stai per resettare la sessione "${sessioneInfo.nome}".<br><br>` +
+                `Questa azione cancellera:<br>` +
+                `- Tutte le aste<br>` +
+                `- Tutte le squadre partecipanti<br>` +
+                `- Tutti i turni e incontri<br><br>` +
+                `La configurazione (nome, modalita, squadre circolo) verra mantenuta.<br><br>` +
+                `Sei sicuro di voler procedere?`
             );
+            if (!prima) return;
 
-            if (!conferma) return;
+            const seconda = await confermaPersonalizzata(
+                `ULTIMA CONFERMA<br><br>Stai per distruggere TUTTI i dati di gioco della sessione "${sessioneInfo.nome}".<br><br>Questa azione e IRREVERSIBILE. Confermi definitivamente?`
+            );
+            if (!seconda) return;
 
             try {
                 const response = await fetch(`/api/sessioni/${sessioneCorrente}/reset`, {
@@ -1044,9 +1049,8 @@
 
                 if (!response.ok) throw new Error('Errore reset sessione');
 
-                showNotification('✅ Sessione resettata con successo', 'success');
+                showNotification('Sessione resettata con successo', 'success');
 
-                // Ricarica pagina dopo 2 secondi
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000);
@@ -2645,26 +2649,29 @@
         }
 
         // Strumenti admin
-        function resetAste() {
-            showConfirmModal(
-                'Reset Aste',
-                'Questa azione cancellerà tutte le aste e ripristinerà i crediti. Procedere?',
-                async () => {
-                    try {
-                        const response = await fetch('/api/reset/aste', { method: 'POST' });
-                        if (response.ok) {
-                            showNotification('Aste resettate con successo', 'success');
-                            // NUOVO: Reset UI senza ricaricare la pagina
-                            resetPulsantiManuale();
-                            caricaSquadreInFormazione(); // Ricarica le squadre
-                        } else {
-                            showNotification('Errore durante reset', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('Errore di connessione', 'error');
-                    }
-                }
+        async function resetAste() {
+            const prima = await confermaPersonalizzata(
+                'ATTENZIONE: Questa azione cancellera TUTTE le aste e ripristinera i crediti di tutti i partecipanti.<br><br>Sei sicuro di voler procedere?'
             );
+            if (!prima) return;
+
+            const seconda = await confermaPersonalizzata(
+                'ULTIMA CONFERMA<br><br>Stai per resettare tutte le aste. Questa azione e IRREVERSIBILE.<br><br>Confermi definitivamente?'
+            );
+            if (!seconda) return;
+
+            try {
+                const response = await fetch('/api/reset/aste', { method: 'POST' });
+                if (response.ok) {
+                    showNotification('Aste resettate con successo', 'success');
+                    resetPulsantiManuale();
+                    caricaSquadreInFormazione();
+                } else {
+                    showNotification('Errore durante reset', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
         }
 
         function resetPulsantiManuale() {
@@ -2721,30 +2728,36 @@
             console.log('🔄 Pulsanti ripristinati allo stato originale uniforme');
         }
 
-        function resetDraft() {
+        async function resetDraft() {
             if (!sessioneCorrente) {
                 showNotification('Nessuna sessione draft attiva', 'error');
                 return;
             }
-            showConfirmModal(
-                'Reset Squadre Draft',
-                'ATTENZIONE: Questa azione cancellera tutte le squadre formate dai partecipanti nel Draft. Dovranno rifare la selezione giocatori. Procedere?',
-                async () => {
-                    try {
-                        const response = await fetch(`/api/draft/reset/${sessioneCorrente}`, { method: 'POST' });
-                        if (response.ok) {
-                            const data = await response.json();
-                            showNotification(`${data.squadreCancellate} squadre draft cancellate con successo`, 'success');
-                            caricaSquadreInFormazione();
-                        } else {
-                            const errData = await response.json();
-                            showNotification(errData.error || 'Errore durante reset draft', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('Errore di connessione', 'error');
-                    }
-                }
+
+            const prima = await confermaPersonalizzata(
+                'ATTENZIONE: Questa azione cancellera TUTTE le squadre formate dai partecipanti nel Draft.<br><br>Tutti i partecipanti dovranno rifare la selezione giocatori da zero.<br><br>Sei sicuro di voler procedere?'
             );
+            if (!prima) return;
+
+            const seconda = await confermaPersonalizzata(
+                'ULTIMA CONFERMA<br><br>Stai per eliminare tutte le squadre draft. Questa azione e IRREVERSIBILE.<br><br>Confermi definitivamente?'
+            );
+            if (!seconda) return;
+
+            try {
+                const response = await fetch(`/api/sessioni/${sessioneCorrente}/reset-draft`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification(`Draft resettato! ${result.squadreCancellate} squadre cancellate`, 'success');
+                    caricaSquadreInFormazione();
+                } else {
+                    showNotification('Errore durante reset draft', 'error');
+                }
+            } catch (error) {
+                showNotification('Errore di connessione', 'error');
+            }
         }
 
         // Carica info sessione corrente
