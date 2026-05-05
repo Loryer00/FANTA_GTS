@@ -2588,11 +2588,10 @@ app.post('/api/check-nickname', async (req, res) => {
         const nicknameClean = nickname.trim();
 
         const result = await db.query(`
-            SELECT id FROM partecipanti_fantagts 
-            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
-            AND attivo = true 
-            AND sessione_id = $2
-        `, [nicknameClean, sessioneCorrente]);
+            SELECT id FROM partecipanti_fantagts
+            WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1))
+            AND attivo = true
+        `, [nicknameClean]);
 
         res.json({
             available: result.rows.length === 0,
@@ -5633,6 +5632,134 @@ app.post('/api/reset/:livello', async (req, res) => {
     } catch (error) {
         console.error('Errore reset:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// =====================================================
+// API: Cerca partecipanti in tutto il sistema (per squadra manuale)
+// =====================================================
+app.get('/api/partecipanti-tutti', async (req, res) => {
+    try {
+        const { search, sessione_id } = req.query;
+
+        if (!search || search.trim().length < 2) {
+            return res.json([]);
+        }
+
+        const searchClean = search.trim();
+
+        // Cerca tra TUTTI i partecipanti attivi
+        const result = await db.query(`
+            SELECT p.id, p.nome,
+                CASE WHEN psa.sessione_id IS NOT NULL THEN true ELSE false END as gia_in_sessione
+            FROM partecipanti_fantagts p
+            LEFT JOIN partecipanti_sessioni_accesso psa 
+                ON p.id = psa.partecipante_id AND psa.sessione_id = $2
+            WHERE p.attivo = true 
+            AND LOWER(p.nome) LIKE LOWER($1)
+            ORDER BY p.nome ASC
+            LIMIT 20
+        `, [`%${searchClean}%`, sessione_id || '']);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore partecipanti-tutti:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// =====================================================
+// API: Crea squadra manuale completa
+// =====================================================
+app.post('/api/squadra-manuale', async (req, res) => {
+    try {
+        const { sessione_id, partecipante_id, assegnazioni } = req.body;
+        // assegnazioni = [{ posizione, slot_id, costo }, ...]
+
+        if (!sessione_id || !partecipante_id || !assegnazioni || !Array.isArray(assegnazioni)) {
+            return res.status(400).json({ error: 'Parametri mancanti: sessione_id, partecipante_id, assegnazioni[]' });
+        }
+
+        // Verifica che il partecipante esista
+        const partCheck = await db.query(
+            'SELECT id, nome FROM partecipanti_fantagts WHERE id = $1 AND attivo = true',
+            [partecipante_id]
+        );
+        if (partCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Partecipante non trovato' });
+        }
+
+        const nomePartecipante = partCheck.rows[0].nome;
+
+        // Verifica sessione e prendi crediti iniziali
+        const sessCheck = await db.query(
+            'SELECT id, nome, crediti_iniziali, configurazione_id FROM sessioni_fantagts WHERE id = $1',
+            [sessione_id]
+        );
+        if (sessCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        const sessione = sessCheck.rows[0];
+        const costoTotale = assegnazioni.reduce((sum, a) => sum + (parseInt(a.costo) || 0), 0);
+
+        await db.query('BEGIN');
+
+        // 1. Iscrivi il partecipante alla sessione se non e gia iscritto
+        await db.query(`
+            INSERT INTO partecipanti_sessioni_accesso (partecipante_id, sessione_id, crediti, primo_accesso, ultimo_accesso)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (partecipante_id, sessione_id) 
+            DO UPDATE SET ultimo_accesso = CURRENT_TIMESTAMP
+        `, [partecipante_id, sessione_id, sessione.crediti_iniziali]);
+
+        // 2. Rimuovi eventuali aste precedenti di questo partecipante in questa sessione
+        await db.query(
+            'DELETE FROM aste WHERE partecipante_id = $1 AND sessione_id = $2 AND vincitore = true',
+            [partecipante_id, sessione_id]
+        );
+
+        // 3. Inserisci le nuove aste per ogni posizione
+        for (const assegnazione of assegnazioni) {
+            const costo = parseInt(assegnazione.costo) || 0;
+
+            await db.query(`
+                INSERT INTO aste (round, partecipante_id, slot_id, offerta, costo_finale, vincitore, sessione_id, timestamp)
+                VALUES ($1, $2, $3, $4, $5, true, $6, NOW())
+            `, [
+                'MANUALE',
+                partecipante_id,
+                assegnazione.slot_id,
+                costo,
+                costo,
+                sessione_id
+            ]);
+        }
+
+        // 4. Scala i crediti
+        if (costoTotale > 0) {
+            await db.query(`
+                UPDATE partecipanti_sessioni_accesso 
+                SET crediti = crediti - $1 
+                WHERE partecipante_id = $2 AND sessione_id = $3
+            `, [costoTotale, partecipante_id, sessione_id]);
+        }
+
+        await db.query('COMMIT');
+
+        console.log(`Squadra manuale creata per ${nomePartecipante} nella sessione ${sessione.nome} - ${assegnazioni.length} giocatori, costo totale: ${costoTotale}`);
+
+        res.json({
+            success: true,
+            message: `Squadra creata per ${nomePartecipante}`,
+            giocatoriAssegnati: assegnazioni.length,
+            costoTotale: costoTotale
+        });
+
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore squadra-manuale:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

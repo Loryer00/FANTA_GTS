@@ -2229,7 +2229,24 @@
 
                     mostraMessaggio(`✅ Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
                 } else {
-                    mostraMessaggio('❌ Errore: ' + (result.error || 'Registrazione fallita'), 'error');
+                    mostraMessaggio('Errore: ' + (result.error || 'Registrazione fallita'), 'error');
+
+                    // Se il nickname e gia in uso, evidenzia il campo in rosso
+                    if (response.status === 409) {
+                        const nicknameInput = document.getElementById('registerNickname');
+                        const nicknameCheck = document.getElementById('nicknameCheck');
+                        nicknameInput.style.borderColor = '#f56565';
+                        nicknameInput.style.boxShadow = '0 0 0 3px rgba(245, 101, 101, 0.3)';
+                        nicknameCheck.textContent = 'Nickname gia in uso, scegline un altro';
+                        nicknameCheck.style.color = '#f56565';
+
+                        // Rimuovi evidenziazione quando l'utente modifica il campo
+                        nicknameInput.addEventListener('input', function ripristina() {
+                            nicknameInput.style.borderColor = '';
+                            nicknameInput.style.boxShadow = '';
+                            nicknameInput.removeEventListener('input', ripristina);
+                        });
+                    }
                 }
             } catch (error) {
                 mostraMessaggio('❌ Errore di connessione al server', 'error');
@@ -4285,11 +4302,15 @@
                         });
                         const result = await response.json();
                         if (result.available) {
-                            checkElement.textContent = '✅ Nickname disponibile';
+                            checkElement.textContent = 'Nickname disponibile';
                             checkElement.style.color = '#48bb78';
+                            e.target.style.borderColor = '#48bb78';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(72, 187, 120, 0.3)';
                         } else {
-                            checkElement.textContent = '❌ Nickname già in uso';
+                            checkElement.textContent = 'Nickname gia in uso, scegline un altro';
                             checkElement.style.color = '#f56565';
+                            e.target.style.borderColor = '#f56565';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(245, 101, 101, 0.3)';
                         }
                     } catch (error) {
                         checkElement.textContent = '';
