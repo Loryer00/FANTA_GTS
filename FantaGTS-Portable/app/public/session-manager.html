@@ -648,10 +648,17 @@
         async function eliminaSessione(id, nome) {
             const conferma = await showConfirm(
                 'Eliminare Sessione',
-                `Sei sicuro di voler eliminare "${nome}"? Questa azione è irreversibile e cancellerà tutti i dati associati.`
+                `Sei sicuro di voler eliminare "${nome}"? Questa azione e' irreversibile e cancellera' tutti i dati associati:\n\n- Partecipanti e squadre\n- Risultati aste/draft\n- Statistiche e punteggi`
             );
 
             if (!conferma) return;
+
+            const doppiaConferma = await showConfirm(
+                'Ultima Conferma',
+                `Confermi di voler eliminare definitivamente "${nome}"?\n\nE' l'ultima occasione per annullare.`
+            );
+
+            if (!doppiaConferma) return;
 
             try {
                 const response = await fetch(`/api/sessioni/${id}`, {

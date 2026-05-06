@@ -2828,13 +2828,38 @@ app.post('/api/join-session-with-code', async (req, res) => {
         res.json({
             success: true,
             sessione: sessione,
-            crediti: creditiSessione,  // 🆕 Aggiungi i crediti nella risposta
+            crediti: creditiSessione,
             message: `Accesso garantito alla sessione "${sessione.nome}"`
         });
 
+        // 🆕 NOTIFICA A TUTTI I PARTECIPANTI GIA' NELLA SESSIONE
+        try {
+            // Recupera tutti i partecipanti della sessione TRANNE quello appena entrato
+            const altriPartecipanti = await db.query(`
+                SELECT psa.partecipante_id 
+                FROM partecipanti_sessioni_accesso psa
+                WHERE psa.sessione_id = $1 AND psa.partecipante_id != $2
+            `, [sessione.id, partecipanteId]);
+
+            if (altriPartecipanti.rows.length > 0) {
+                const targetIds = altriPartecipanti.rows.map(r => r.partecipante_id);
+
+                console.log(`📢 Notifico ${targetIds.length} partecipanti che ${partecipante.nome} si e' unito a ${sessione.nome}`);
+
+                await inviaNotifichePush({
+                    title: 'Nuovo partecipante',
+                    body: `${partecipante.nome} si e' unito al ${sessione.nome}`,
+                    url: '/',
+                    targetUsers: targetIds,
+                    sessioneId: sessione.id
+                });
+            }
+        } catch (notifError) {
+            console.warn('⚠️ Errore invio notifica nuovo partecipante (non bloccante):', notifError.message);
+        }
+
     } catch (err) {
         console.error('Errore join-session-with-code:', err);
-        res.status(500).json({ error: err.message });
     }
 });
 
