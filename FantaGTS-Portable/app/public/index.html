@@ -464,6 +464,116 @@
             font-size: 0.8em;
         }
 
+        /* Galleria Info */
+        .info-gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .info-gallery-item {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+            .info-gallery-item:active {
+                transform: scale(0.97);
+            }
+
+            .info-gallery-item img {
+                width: 100%;
+                height: auto;
+                display: block;
+            }
+
+        .info-gallery-desc {
+            padding: 6px 8px;
+            font-size: 0.75em;
+            color: #a0aec0;
+            background: rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        /* Lightbox fullscreen */
+        .lightbox-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+            .lightbox-overlay.active {
+                display: flex;
+            }
+
+            .lightbox-overlay img {
+                max-width: 95%;
+                max-height: 85vh;
+                object-fit: contain;
+                border-radius: 4px;
+            }
+
+        .lightbox-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 10000;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox-prev {
+            left: 10px;
+        }
+
+        .lightbox-next {
+            right: 10px;
+        }
+
+        .lightbox-counter {
+            color: #a0aec0;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
         .partecipante-slot-empty {
             background: rgba(74, 85, 104, 0.2);
             border-color: #4a5568;
@@ -1155,6 +1265,16 @@
                 </div>
             </div>
 
+            <!-- SEZIONE 5: INFO -->
+            <div id="section-info" class="content-section">
+                <div class="section">
+                    <h2>&#8505; Info Torneo</h2>
+                    <div id="infoImmaginiContainer">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento...</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- BOTTOM NAVIGATION -->
             <div class="bottom-nav">
                 <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
@@ -1173,8 +1293,21 @@
                     <span class="icon">⚽</span>
                     <span class="label">Incontri</span>
                 </button>
+                <button class="bottom-nav-btn" onclick="switchSection('info')">
+                    <span class="icon">&#8505;</span>
+                    <span class="label">Info</span>
+                </button>
             </div>
         </div>
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div class="lightbox-overlay" id="lightboxOverlay" onclick="chiudiLightbox(event)">
+        <button class="lightbox-close" onclick="chiudiLightbox(event)">&times;</button>
+        <button class="lightbox-nav lightbox-prev" onclick="navigaLightbox(event, -1)">&#8249;</button>
+        <img id="lightboxImg" src="" alt="Immagine info">
+        <button class="lightbox-nav lightbox-next" onclick="navigaLightbox(event, 1)">&#8250;</button>
+        <div class="lightbox-counter" id="lightboxCounter"></div>
     </div>
 
     <script>
@@ -1235,10 +1368,10 @@
                 box.style.cssText = `background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); padding: 30px; border-radius: 15px; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);`;
 
                 box.innerHTML = `
-                                            <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
-                                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
-                                            <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
-                                        `;
+                                                <p style="margin-bottom: 20px; font-size: 1.1em; line-height: 1.5;">${testo}</p>
+                                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(true)" style="background: #48bb78; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">✅ Sì</button>
+                                                <button onclick="this.closest('[style*=fixed]').remove(); window.confirmResolve(false)" style="background: #f56565; color: white; border: none; padding: 12px 30px; border-radius: 8px; margin: 0 5px; cursor: pointer; font-size: 1em;">❌ No</button>
+                                            `;
 
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
@@ -1357,10 +1490,10 @@
             if (!playerData || !playerData.id) {
                 console.error('❌ playerData.id non disponibile:', playerData);
                 sessionsList.innerHTML = `
-                            <p style="text-align: center; color: #fc8181; padding: 20px;">
-                                ❌ Errore: dati utente non validi
-                            </p>
-                        `;
+                                <p style="text-align: center; color: #fc8181; padding: 20px;">
+                                    ❌ Errore: dati utente non validi
+                                </p>
+                            `;
                 return;
             }
 
@@ -1384,43 +1517,43 @@
 
                     if (sessioniAttive.length === 0) {
                         sessionsList.innerHTML = `
-                    <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                        📭 Non sei iscritto a nessuna sessione attiva.<br>
-                        Usa il codice qui sotto per entrare!
-                    </p>
-                `;
+                        <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                            📭 Non sei iscritto a nessuna sessione attiva.<br>
+                            Usa il codice qui sotto per entrare!
+                        </p>
+                    `;
                         return;
                     }
 
                     sessionsList.innerHTML = sessioniAttive.map(sessione => `
-                <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
-                    <div class="session-name">📋 ${sessione.nome}</div>
-                    <div class="session-info">
-                        ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
-                        • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
-                        ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                    <div class="session-item" onclick="entraInSessione('${sessione.id}', '${sessione.nome}')">
+                        <div class="session-name">📋 ${sessione.nome}</div>
+                        <div class="session-info">
+                            ${sessione.anno ? `Anno: ${sessione.anno}` : ''}
+                            • ${sessione.modalita === 'asta_competitiva' ? '💰 Asta' : '🎯 Draft'}
+                            ${sessione.attiva ? '<span style="color: #48bb78;">• ✓ Attiva</span>' : '<span style="color: #a0aec0;">• Archiviata</span>'}
+                        </div>
+                        <div class="session-code">Codice: ${sessione.codice_accesso}</div>
                     </div>
-                    <div class="session-code">Codice: ${sessione.codice_accesso}</div>
-                </div>
-            `).join('');
+                `).join('');
                 } else {
                     // Nessuna sessione trovata - mostra messaggio
                     console.log('ℹ️ Nessuna sessione trovata, mostrando messaggio');
                     sessionsList.innerHTML = `
-                <p style="text-align: center; color: #a0aec0; padding: 20px;">
-                    🔭 Non sei ancora iscritto a nessuna sessione.<br>
-                    Usa il codice qui sotto per entrare!
-                </p>
-            `;
+                    <p style="text-align: center; color: #a0aec0; padding: 20px;">
+                        🔭 Non sei ancora iscritto a nessuna sessione.<br>
+                        Usa il codice qui sotto per entrare!
+                    </p>
+                `;
                 }
             } catch (error) {
                 console.error('❌ Errore caricamento sessioni:', error);
                 sessionsList.innerHTML = `
-                            <p style="text-align: center; color: #fc8181; padding: 20px;">
-                                ❌ Errore caricamento sessioni<br>
-                                <small style="opacity: 0.7;">${error.message}</small>
-                            </p>
-                        `;
+                                <p style="text-align: center; color: #fc8181; padding: 20px;">
+                                    ❌ Errore caricamento sessioni<br>
+                                    <small style="opacity: 0.7;">${error.message}</small>
+                                </p>
+                            `;
             }
         }
 
@@ -2425,37 +2558,37 @@
 
                         if (modalita === 'draft_libero') {
                             slot.innerHTML = `
-                                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                                        ${giocatore.giocatore_attuale}
-                                    </div>
-                                    <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                                        ${posizione}
-                                    </div>
-                                    <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
-                                        Squadra ${giocatore.colore}
-                                    </div>
-                                    <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                        ${giocatore.punti_totali || 0}
-                                    </div>
-                                `;
+                                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                            ${giocatore.giocatore_attuale}
+                                        </div>
+                                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                            ${posizione}
+                                        </div>
+                                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 15px;">
+                                            Squadra ${giocatore.colore}
+                                        </div>
+                                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                            ${giocatore.punti_totali || 0}
+                                        </div>
+                                    `;
                         } else {
                             slot.innerHTML = `
-                                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
-                                        ${giocatore.giocatore_attuale}
-                                    </div>
-                                    <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
-                                        ${posizione}
-                                    </div>
-                                    <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
-                                        Squadra ${giocatore.colore}
-                                    </div>
-                                    <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
-                                        ${giocatore.costo_finale}
-                                    </div>
-                                    <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
-                                        ${giocatore.punti_totali || 0}
-                                    </div>
-                                `;
+                                        <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 10px;">
+                                            ${giocatore.giocatore_attuale}
+                                        </div>
+                                        <div style="font-weight: 600; font-size: 0.70em; margin-bottom: 0px;">
+                                            ${posizione}
+                                        </div>
+                                        <div style="font-weight: 600; font-size: 0.65em; opacity: 0.9; margin-bottom: 10px;">
+                                            Squadra ${giocatore.colore}
+                                        </div>
+                                        <div style="font-size: 0.70em; font-weight: 600; color: #ffd700; margin-bottom: 20px;">
+                                            ${giocatore.costo_finale}
+                                        </div>
+                                        <div style="font-size: 1.25em; opacity: 0.9; margin-bottom: 0px;">
+                                            ${giocatore.punti_totali || 0}
+                                        </div>
+                                    `;
                         }
 
                         console.log(`Slot ${posizione} popolato con ${giocatore.giocatore_attuale}`);
@@ -2528,6 +2661,9 @@
                 case 'incontri':
                     caricaTurniDisponibili();
                     break;
+                case 'info':
+                    caricaImmaginiInfo();
+                    break;
             }
         }
 
@@ -2577,19 +2713,19 @@
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
                     html += `
-                                    <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
-                                        <div class="classifica-position ${positionClass}">
-                                            ${medal} ${index + 1}°
+                                        <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
+                                            <div class="classifica-position ${positionClass}">
+                                                ${medal} ${index + 1}°
+                                            </div>
+                                            <div class="classifica-name">
+                                                ${partecipante.nome}
+                                                ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
+                                            </div>
+                                            <div class="classifica-points">
+                                                ${partecipante.punti_totali} pt
+                                            </div>
                                         </div>
-                                        <div class="classifica-name">
-                                            ${partecipante.nome}
-                                            ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
-                                        </div>
-                                        <div class="classifica-points">
-                                            ${partecipante.punti_totali} pt
-                                        </div>
-                                    </div>
-                                `;
+                                    `;
                 });
 
                 html += '</div>';
@@ -2741,16 +2877,16 @@
             const { partecipante, squadra, puntiTotali, giocatoriVinti } = dati;
 
             let html = `
-                            <div class="partecipante-card">
-                                <div class="partecipante-header">
-                                    <div class="partecipante-name">${partecipante.nome}</div>
-                                    <div class="partecipante-stats">
-                                        <span style="color: #48bb78;">&#9889; ${puntiTotali} pt</span>
-                                        <span style="color: #4299e1;">&#128100; ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
+                                <div class="partecipante-card">
+                                    <div class="partecipante-header">
+                                        <div class="partecipante-name">${partecipante.nome}</div>
+                                        <div class="partecipante-stats">
+                                            <span style="color: #48bb78;">&#9889; ${puntiTotali} pt</span>
+                                            <span style="color: #4299e1;">&#128100; ${giocatoriVinti}/${document.querySelectorAll('#teamSlots .team-slot').length || '?'}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="partecipante-team-grid">
-                        `;
+                                    <div class="partecipante-team-grid">
+                            `;
 
             const slotElements = document.querySelectorAll('#teamSlots .team-slot');
             const posizioni = slotElements.length > 0
@@ -2763,28 +2899,102 @@
                 if (giocatore) {
                     const coloreSquadra = getTeamColor(giocatore.colore);
                     html += `
-                                    <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
-                                        <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                        <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                        <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
-                                    </div>
-                                `;
+                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
+                                            <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                                            <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
+                                        </div>
+                                    `;
                 } else {
                     html += `
-                                    <div class="partecipante-slot partecipante-slot-empty">
-                                        <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
-                                        <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
-                                    </div>
-                                `;
+                                        <div class="partecipante-slot partecipante-slot-empty">
+                                            <div style="font-weight: bold; color: #a0aec0; font-size: 0.75em;">${pos}</div>
+                                            <div style="font-size: 0.7em; margin-top: 2px; opacity: 0.5;">-</div>
+                                        </div>
+                                    `;
                 }
             });
 
             html += `
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
             return html;
-        }    
+        }
+
+        // ========================================
+        // SEZIONE INFO TORNEO
+        // ========================================
+        let immaginiInfo = [];
+        let lightboxIndex = 0;
+
+        async function caricaImmaginiInfo() {
+            const container = document.getElementById('infoImmaginiContainer');
+            if (!container) return;
+
+            try {
+                const sid = sessioneCorrente;
+                if (!sid) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna sessione attiva</p>';
+                    return;
+                }
+
+                const response = await fetch(`/api/sessioni/${sid}/immagini`);
+                if (!response.ok) throw new Error('Errore caricamento');
+
+                immaginiInfo = await response.json();
+
+                if (immaginiInfo.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna informazione disponibile per questa sessione</p>';
+                    return;
+                }
+
+                let html = '<div class="info-gallery">';
+                immaginiInfo.forEach((img, index) => {
+                    html += `
+                        <div class="info-gallery-item" onclick="apriLightbox(${index})">
+                            <img src="${img.url}" alt="${img.descrizione || img.nome_originale}" loading="lazy">
+                            ${img.descrizione ? `<div class="info-gallery-desc">${img.descrizione}</div>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Errore caricamento immagini info:', error);
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Immagini non disponibili</p>';
+            }
+        }
+
+        function apriLightbox(index) {
+            lightboxIndex = index;
+            const overlay = document.getElementById('lightboxOverlay');
+            const img = document.getElementById('lightboxImg');
+            const counter = document.getElementById('lightboxCounter');
+
+            img.src = immaginiInfo[index].url;
+            counter.textContent = (index + 1) + ' / ' + immaginiInfo.length;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function chiudiLightbox(event) {
+            if (event.target.id === 'lightboxOverlay' || event.target.classList.contains('lightbox-close')) {
+                document.getElementById('lightboxOverlay').classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function navigaLightbox(event, direzione) {
+            event.stopPropagation();
+            lightboxIndex += direzione;
+            if (lightboxIndex < 0) lightboxIndex = immaginiInfo.length - 1;
+            if (lightboxIndex >= immaginiInfo.length) lightboxIndex = 0;
+
+            document.getElementById('lightboxImg').src = immaginiInfo[lightboxIndex].url;
+            document.getElementById('lightboxCounter').textContent = (lightboxIndex + 1) + ' / ' + immaginiInfo.length;
+        }
 
         // ========================================
         // SEZIONE INCONTRI
@@ -2959,30 +3169,30 @@
 
                 // Crea box scontro
                 html += `
-                            <div class="scontro-overview-box">
-                                <div class="scontro-header-mini">
-                                    <div class="squadra-mini" style="background-color: ${squadra1Color}; color: ${getTextColorForTeam(gruppo.squadra1.colore)};">
-                                        ${gruppo.squadra1.colore.toUpperCase()}
+                                <div class="scontro-overview-box">
+                                    <div class="scontro-header-mini">
+                                        <div class="squadra-mini" style="background-color: ${squadra1Color}; color: ${getTextColorForTeam(gruppo.squadra1.colore)};">
+                                            ${gruppo.squadra1.colore.toUpperCase()}
+                                        </div>
+                                        <div class="vs-mini">VS</div>
+                                        <div class="squadra-mini" style="background-color: ${squadra2Color}; color: ${getTextColorForTeam(gruppo.squadra2.colore)};">
+                                            ${gruppo.squadra2.colore.toUpperCase()}
+                                        </div>
                                     </div>
-                                    <div class="vs-mini">VS</div>
-                                    <div class="squadra-mini" style="background-color: ${squadra2Color}; color: ${getTextColorForTeam(gruppo.squadra2.colore)};">
-                                        ${gruppo.squadra2.colore.toUpperCase()}
+                                    <div class="stats-line">
+                                        ${completati} incontri • ${completati} completati
                                     </div>
-                                </div>
-                                <div class="stats-line">
-                                    ${completati} incontri • ${completati} completati
-                                </div>
-                                <div class="progress-container">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
-                                             style="width: ${percentualeCompletamento}%;"></div>
+                                    <div class="progress-container">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill ${percentualeCompletamento === 100 ? 'completed' : ''}"
+                                                 style="width: ${percentualeCompletamento}%;"></div>
+                                        </div>
+                                        <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
+                                            ${percentualeCompletamento}%
+                                        </div>
                                     </div>
-                                    <div class="progress-text ${percentualeCompletamento === 100 ? 'completed' : ''}">
-                                        ${percentualeCompletamento}%
-                                    </div>
-                                </div>
-                                <div class="incontri-mini-grid">
-                        `;
+                                    <div class="incontri-mini-grid">
+                            `;
 
                 // Aggiungi mini card per ogni incontro
                 gruppo.incontri.forEach(incontro => {
@@ -3005,25 +3215,25 @@
                             testoColore = '#9ca3af';
                         }
                         html += `
-                                    <div class="incontro-mini completato"
-                                         style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
-                                        ${incontro.pos1}+${incontro.pos2}
-                                    </div>
-                                `;
+                                        <div class="incontro-mini completato"
+                                             style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
+                                            ${incontro.pos1}+${incontro.pos2}
+                                        </div>
+                                    `;
                     } else {
                         // Incontro in attesa - arancione
                         html += `
-                                    <div class="incontro-mini attesa">
-                                        ${incontro.pos1}+${incontro.pos2}
-                                    </div>
-                                `;
+                                        <div class="incontro-mini attesa">
+                                            ${incontro.pos1}+${incontro.pos2}
+                                        </div>
+                                    `;
                     }
                 });
 
                 html += `
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
             });
 
             html += '</div></div>';
@@ -3039,28 +3249,28 @@
             const colore2 = getTeamColor(gruppo.squadra2.colore);
 
             let html = `
-                            <div class="scontro-box">
-                                <div class="scontro-header">
-                                    <div class="squadra-badge" style="background-color: ${colore1}; color: ${getTextColorForTeam(gruppo.squadra1.colore)};">
-                                        ${gruppo.squadra1.colore.toUpperCase()}
+                                <div class="scontro-box">
+                                    <div class="scontro-header">
+                                        <div class="squadra-badge" style="background-color: ${colore1}; color: ${getTextColorForTeam(gruppo.squadra1.colore)};">
+                                            ${gruppo.squadra1.colore.toUpperCase()}
+                                        </div>
+                                        <div class="vs-text">VS</div>
+                                        <div class="squadra-badge" style="background-color: ${colore2}; color: ${getTextColorForTeam(gruppo.squadra2.colore)};">
+                                            ${gruppo.squadra2.colore.toUpperCase()}
+                                        </div>
                                     </div>
-                                    <div class="vs-text">VS</div>
-                                    <div class="squadra-badge" style="background-color: ${colore2}; color: ${getTextColorForTeam(gruppo.squadra2.colore)};">
-                                        ${gruppo.squadra2.colore.toUpperCase()}
+                                    <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
+                                        ${completati}/${totaleIncontri} incontri completati
                                     </div>
-                                </div>
-                                <div style="text-align: center; color: #a0aec0; font-size: 0.85em; margin-bottom: 8px;">
-                                    ${completati}/${totaleIncontri} incontri completati
-                                </div>
-                                <div class="progress-mini">
-                                    <div class="progress-bar-mini">
-                                        <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                                    <div class="progress-mini">
+                                        <div class="progress-bar-mini">
+                                            <div class="progress-fill-mini ${percentuale === 100 ? 'completed' : ''}" style="width: ${percentuale}%"></div>
+                                        </div>
+                                        <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
+                                            ${percentuale}%
+                                        </div>
                                     </div>
-                                    <div style="font-size: 0.8em; font-weight: bold; color: ${percentuale === 100 ? '#48bb78' : '#4299e1'}; min-width: 40px; text-align: right;">
-                                        ${percentuale}%
-                                    </div>
-                                </div>
-                        `;
+                            `;
 
             // Mostra dettaglio incontri
             if (gruppo.incontri.length > 0) {
@@ -3071,13 +3281,13 @@
                     const statusColor = incontro.completato ? '#48bb78' : '#a0aec0';
 
                     html += `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
-                                        <div style="color: ${colore1};">${incontro.posizione1}</div>
-                                        <div style="color: #a0aec0;">vs</div>
-                                        <div style="color: ${colore2};">${incontro.posizione2}</div>
-                                        <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
-                                    </div>
-                                `;
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em;">
+                                            <div style="color: ${colore1};">${incontro.posizione1}</div>
+                                            <div style="color: #a0aec0;">vs</div>
+                                            <div style="color: ${colore2};">${incontro.posizione2}</div>
+                                            <div style="color: ${statusColor}; font-weight: bold;">${status}</div>
+                                        </div>
+                                    `;
                 });
 
                 html += '</div>';
@@ -3794,24 +4004,24 @@
                 const notification = document.createElement('div');
                 notification.className = 'notification success';
                 notification.innerHTML = `
-                            <strong>🔄 Sostituzione Effettuata</strong><br>
-                            ${message}
-                        `;
+                                <strong>🔄 Sostituzione Effettuata</strong><br>
+                                ${message}
+                            `;
                 notification.style.cssText = `
-                            position: fixed;
-                            top: 20px;
-                            right: 20px;
-                            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-                            color: white;
-                            padding: 20px 25px;
-                            border-radius: 12px;
-                            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-                            z-index: 99999;
-                            max-width: 400px;
-                            font-size: 16px;
-                            animation: slideIn 0.3s ease-out;
-                            border: 2px solid rgba(255,255,255,0.3);
-                        `;
+                                position: fixed;
+                                top: 20px;
+                                right: 20px;
+                                background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+                                color: white;
+                                padding: 20px 25px;
+                                border-radius: 12px;
+                                box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                                z-index: 99999;
+                                max-width: 400px;
+                                font-size: 16px;
+                                animation: slideIn 0.3s ease-out;
+                                border: 2px solid rgba(255,255,255,0.3);
+                            `;
 
                 document.body.appendChild(notification);
                 console.log('✅ Notifica aggiunta al DOM');
@@ -3871,38 +4081,38 @@
 
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-                            position: fixed;
-                            top: 0; left: 0; width: 100%; height: 100%;
-                            background: rgba(0,0,0,0.6);
-                            z-index: 1999;
-                            cursor: pointer;
-                        `;
+                                position: fixed;
+                                top: 0; left: 0; width: 100%; height: 100%;
+                                background: rgba(0,0,0,0.6);
+                                z-index: 1999;
+                                cursor: pointer;
+                            `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
-                            position: fixed;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            background: rgba(45, 55, 72, 0.95);
-                            color: white;
-                            padding: 20px;
-                            border-radius: 15px;
-                            font-size: 1.2em;
-                            font-weight: bold;
-                            z-index: 2000;
-                            text-align: center;
-                            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-                            backdrop-filter: blur(10px);
-                            border: 2px solid rgba(255,255,255,0.2);
-                            cursor: pointer;
-                        `;
+                                position: fixed;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                background: rgba(45, 55, 72, 0.95);
+                                color: white;
+                                padding: 20px;
+                                border-radius: 15px;
+                                font-size: 1.2em;
+                                font-weight: bold;
+                                z-index: 2000;
+                                text-align: center;
+                                box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                                backdrop-filter: blur(10px);
+                                border: 2px solid rgba(255,255,255,0.2);
+                                cursor: pointer;
+                            `;
                 notification.innerHTML = `
-                            <div>🏆 COMPLIMENTI!</div>
-                            <div style="margin: 10px 0;">Hai ingaggiato:</div>
-                            <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
-                            <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
-                            <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                        `;
+                                <div>🏆 COMPLIMENTI!</div>
+                                <div style="margin: 10px 0;">Hai ingaggiato:</div>
+                                <div style="font-size: 1.3em; color: ${coloreSfondo}; text-shadow: 0 0 10px ${coloreSfondo}80; font-weight: bold;">${data.realPlayerName}</div>
+                                <div style="margin-top: 10px; font-size: 0.9em;">per ${data.amount} crediti</div>
+                                <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                            `;
                 document.body.appendChild(overlay);
                 document.body.appendChild(notification);
                 const chiudiNotifica = () => { overlay.remove(); notification.remove(); };
@@ -3925,48 +4135,48 @@
 
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
-                            position: fixed;
-                            top: 0; left: 0; width: 100%; height: 100%;
-                            background: rgba(0,0,0,0.6);
-                            z-index: 1999;
-                            cursor: pointer;
-                        `;
+                                position: fixed;
+                                top: 0; left: 0; width: 100%; height: 100%;
+                                background: rgba(0,0,0,0.6);
+                                z-index: 1999;
+                                cursor: pointer;
+                            `;
                 const notification = document.createElement('div');
                 notification.style.cssText = `
-                            position: fixed;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            background: ${backgroundColor};
-                            color: white;
-                            padding: 25px 30px;
-                            border-radius: 15px;
-                            font-size: 1.1em;
-                            font-weight: bold;
-                            z-index: 2000;
-                            text-align: center;
-                            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-                            backdrop-filter: blur(10px);
-                            border: 2px solid rgba(255,255,255,0.3);
-                            max-width: 90%;
-                            animation: slideIn 0.3s ease-out;
-                            cursor: pointer;
-                        `;
+                                position: fixed;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                background: ${backgroundColor};
+                                color: white;
+                                padding: 25px 30px;
+                                border-radius: 15px;
+                                font-size: 1.1em;
+                                font-weight: bold;
+                                z-index: 2000;
+                                text-align: center;
+                                box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                                backdrop-filter: blur(10px);
+                                border: 2px solid rgba(255,255,255,0.3);
+                                max-width: 90%;
+                                animation: slideIn 0.3s ease-out;
+                                cursor: pointer;
+                            `;
                 let notificationContent = '';
                 if (data.isPareggioPerso && data.playerName) {
                     notificationContent = `
-                                <div style="font-size: 1.2em; margin-bottom: 5px;">${data.title}</div>
-                                <div style="font-size: 0.85em; opacity: 0.9; margin-bottom: 8px;">Non sei riuscito a ingaggiare</div>
-                                <div style="font-size: 1.2em; margin-bottom: 10px;">${data.playerName}</div>
-                                <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
-                                <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                            `;
+                                    <div style="font-size: 1.2em; margin-bottom: 5px;">${data.title}</div>
+                                    <div style="font-size: 0.85em; opacity: 0.9; margin-bottom: 8px;">Non sei riuscito a ingaggiare</div>
+                                    <div style="font-size: 1.2em; margin-bottom: 10px;">${data.playerName}</div>
+                                    <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                                `;
                 } else {
                     notificationContent = `
-                                <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
-                                <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
-                                <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
-                            `;
+                                    <div style="font-size: 1.2em; margin-bottom: 8px;">${data.title}</div>
+                                    <div style="font-size: 0.9em; opacity: 0.9; line-height: 1.6;">${data.body.replace(/\n/g, '<br>')}</div>
+                                    <div style="margin-top: 15px; font-size: 0.7em; opacity: 0.6;">Tocca per chiudere</div>
+                                `;
                 }
                 notification.innerHTML = notificationContent;
                 document.body.appendChild(overlay);
@@ -4016,9 +4226,9 @@
                 const card = document.createElement('div');
                 card.className = 'player-card';
                 card.innerHTML = `
-                                            <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
-                                            <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
-                                        `;
+                                                <div style="font-weight: bold; margin-bottom: 5px;">${player.giocatore_attuale || 'N/A'}</div>
+                                                <div style="font-size: 0.9em; opacity: 0.8;">Squadra ${player.colore || 'N/A'}</div>
+                                            `;
                 card.addEventListener('click', () => selectPlayer(player));
                 grid.appendChild(card);
             });
