@@ -1127,6 +1127,12 @@
             <div id="section-altri" class="content-section">
                 <div class="section">
                     <h2>👥 Altri Partecipanti</h2>
+                    <div style="margin-bottom: 12px;">
+                        <input type="text" id="searchPartecipanti"
+                               placeholder="Cerca partecipante..."
+                               oninput="filtraPartecipanti()"
+                               style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #e2e8f0; font-size: 0.95em; outline: none;">
+                    </div>
                     <div id="altriPartecipantiContainer">
                         <p style="text-align: center; opacity: 0.7;">Caricamento partecipanti...</p>
                     </div>
@@ -1185,6 +1191,7 @@
         };
 
         let sessioneCorrente = null;
+        let datiPartecipantiCache = [];
         let nomeSessioneCorrente = '';
         let sessioneOggetto = null;
 
@@ -2605,7 +2612,7 @@
             try {
                 console.log('Caricamento altri partecipanti...');
 
-                // Carica lista partecipanti
+                // Carica lista partecipanti CON sessione_id
                 const responsePartecipanti = await fetch(`/api/partecipanti?sessione_id=${sessioneCorrente}`);
                 if (!responsePartecipanti.ok) {
                     throw new Error('Errore caricamento partecipanti');
@@ -2617,6 +2624,7 @@
                 const altriPartecipanti = partecipanti.filter(p => p.id !== playerData.id);
 
                 if (altriPartecipanti.length === 0) {
+                    datiPartecipantiCache = [];
                     container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessun altro partecipante</p>';
                     return;
                 }
@@ -2628,16 +2636,18 @@
                     partecipantiConDati.push(dati);
                 }
 
-                // Ordina per punti decrescenti (chi ha piu punti in alto)
+                // Ordina per punti decrescenti
                 partecipantiConDati.sort((a, b) => b.puntiTotali - a.puntiTotali);
 
-                // Genera HTML ordinato
-                let html = '<div class="partecipanti-grid">';
-                for (const dati of partecipantiConDati) {
-                    html += generaHtmlPartecipante(dati);
-                }
-                html += '</div>';
-                container.innerHTML = html;
+                // Salva in cache per il filtro ricerca
+                datiPartecipantiCache = partecipantiConDati;
+
+                // Resetta il campo di ricerca
+                const searchInput = document.getElementById('searchPartecipanti');
+                if (searchInput) searchInput.value = '';
+
+                // Renderizza tutti
+                renderPartecipantiFiltrati(datiPartecipantiCache);
 
                 console.log('Altri partecipanti caricati:', altriPartecipanti.length);
 
@@ -2645,6 +2655,39 @@
                 console.error('Errore caricamento altri partecipanti:', error);
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento partecipanti</p>';
             }
+        }
+
+        // Filtra partecipanti in base al testo digitato
+        function filtraPartecipanti() {
+            const query = document.getElementById('searchPartecipanti').value.toLowerCase().trim();
+
+            if (!query) {
+                renderPartecipantiFiltrati(datiPartecipantiCache);
+                return;
+            }
+
+            const filtrati = datiPartecipantiCache.filter(d =>
+                d.partecipante.nome.toLowerCase().includes(query)
+            );
+
+            renderPartecipantiFiltrati(filtrati);
+        }
+
+        // Renderizza la griglia dei partecipanti (usata sia dal caricamento che dal filtro)
+        function renderPartecipantiFiltrati(lista) {
+            const container = document.getElementById('altriPartecipantiContainer');
+
+            if (lista.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessun partecipante trovato</p>';
+                return;
+            }
+
+            let html = '<div class="partecipanti-grid">';
+            for (const dati of lista) {
+                html += generaHtmlPartecipante(dati);
+            }
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         // Recupera i dati della squadra di un partecipante (senza generare HTML)
