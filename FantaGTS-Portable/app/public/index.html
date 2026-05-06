@@ -2606,7 +2606,7 @@
                 console.log('Caricamento altri partecipanti...');
 
                 // Carica lista partecipanti
-                const responsePartecipanti = await fetch('/api/partecipanti');
+                const responsePartecipanti = await fetch(`/api/partecipanti?sessione_id=${sessioneCorrente}`);
                 if (!responsePartecipanti.ok) {
                     throw new Error('Errore caricamento partecipanti');
                 }
