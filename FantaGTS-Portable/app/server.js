@@ -1,5 +1,7 @@
 // server.js - FantaGTS Server con PostgreSQL
 const express = require('express');
+const multer = require('multer');
+const fs = require('fs');
 const http = require('http');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
@@ -320,6 +322,18 @@ async function initializeDatabase() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
         console.log('✅ Tabella configurazione creata/verificata');
+
+        // Tabella immagini info sessione
+        await db.query(`CREATE TABLE IF NOT EXISTS immagini_sessione (
+            id SERIAL PRIMARY KEY,
+            sessione_id TEXT REFERENCES sessioni_fantagts(id) ON DELETE CASCADE,
+            nome_file TEXT NOT NULL,
+            nome_originale TEXT,
+            descrizione TEXT,
+            ordine INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('✅ Tabella immagini_sessione creata/verificata');
 
         // Inserisci configurazione predefinita
         await db.query(`INSERT INTO configurazione (chiave, valore, descrizione) VALUES 
@@ -4139,6 +4153,160 @@ app.get('/api/slots-round/:round', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error('Errore API slots-round:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================================
+// IMMAGINI INFO SESSIONE
+// ========================================
+
+// Configurazione multer per upload immagini
+const storageImmagini = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const sessioneId = req.params.sessioneId || req.body.sessione_id || 'default';
+        const uploadDir = path.join(__dirname, 'uploads', 'sessioni', sessioneId);
+
+        // Crea la cartella se non esiste
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        // Nome univoco: timestamp + nome originale pulito
+        const nomeClean = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const nomeFinale = Date.now() + '_' + nomeClean;
+        cb(null, nomeFinale);
+    }
+});
+
+const uploadImmagini = multer({
+    storage: storageImmagini,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Max 5MB per immagine
+    fileFilter: function (req, file, cb) {
+        const tipiPermessi = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (tipiPermessi.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Tipo file non permesso. Usa JPG, PNG, WEBP o GIF.'));
+        }
+    }
+});
+
+// Servi le immagini uploadate come file statici
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// POST: Carica immagine per una sessione
+app.post('/api/sessioni/:sessioneId/immagini', uploadImmagini.single('immagine'), async (req, res) => {
+    try {
+        const sessioneId = req.params.sessioneId;
+        const descrizione = req.body.descrizione || '';
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nessuna immagine caricata' });
+        }
+
+        // Calcola ordine (prossimo numero)
+        const ordineResult = await db.query(
+            'SELECT COALESCE(MAX(ordine), 0) + 1 as prossimo FROM immagini_sessione WHERE sessione_id = $1',
+            [sessioneId]
+        );
+        const ordine = ordineResult.rows[0].prossimo;
+
+        // Salva nel DB
+        const result = await db.query(
+            `INSERT INTO immagini_sessione (sessione_id, nome_file, nome_originale, descrizione, ordine)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [sessioneId, req.file.filename, req.file.originalname, descrizione, ordine]
+        );
+
+        console.log(`✅ Immagine caricata per sessione ${sessioneId}: ${req.file.originalname}`);
+        res.json({ success: true, immagine: result.rows[0] });
+
+    } catch (err) {
+        console.error('Errore upload immagine:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Recupera tutte le immagini di una sessione
+app.get('/api/sessioni/:sessioneId/immagini', async (req, res) => {
+    try {
+        const sessioneId = req.params.sessioneId;
+
+        const result = await db.query(
+            'SELECT * FROM immagini_sessione WHERE sessione_id = $1 ORDER BY ordine ASC',
+            [sessioneId]
+        );
+
+        // Aggiungi URL completo per ogni immagine
+        const immagini = result.rows.map(img => ({
+            ...img,
+            url: `/uploads/sessioni/${sessioneId}/${img.nome_file}`
+        }));
+
+        res.json(immagini);
+
+    } catch (err) {
+        console.error('Errore recupero immagini:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina una immagine
+app.delete('/api/immagini/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        // Recupera info immagine prima di eliminare
+        const imgResult = await db.query('SELECT * FROM immagini_sessione WHERE id = $1', [id]);
+        if (imgResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Immagine non trovata' });
+        }
+
+        const img = imgResult.rows[0];
+
+        // Elimina file dal disco
+        const filePath = path.join(__dirname, 'uploads', 'sessioni', img.sessione_id, img.nome_file);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Elimina dal DB
+        await db.query('DELETE FROM immagini_sessione WHERE id = $1', [id]);
+
+        console.log(`✅ Immagine eliminata: ${img.nome_originale} (sessione ${img.sessione_id})`);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error('Errore eliminazione immagine:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina TUTTE le immagini di una sessione (per archiviazione)
+app.delete('/api/sessioni/:sessioneId/immagini', async (req, res) => {
+    try {
+        const sessioneId = req.params.sessioneId;
+
+        // Elimina cartella dal disco
+        const cartellaSessione = path.join(__dirname, 'uploads', 'sessioni', sessioneId);
+        if (fs.existsSync(cartellaSessione)) {
+            fs.rmSync(cartellaSessione, { recursive: true, force: true });
+        }
+
+        // Elimina dal DB
+        const result = await db.query(
+            'DELETE FROM immagini_sessione WHERE sessione_id = $1 RETURNING id',
+            [sessioneId]
+        );
+
+        console.log(`✅ Eliminate ${result.rows.length} immagini per sessione ${sessioneId}`);
+        res.json({ success: true, eliminate: result.rows.length });
+
+    } catch (err) {
+        console.error('Errore eliminazione immagini sessione:', err);
         res.status(500).json({ error: err.message });
     }
 });
