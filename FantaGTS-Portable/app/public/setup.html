@@ -1069,7 +1069,16 @@ function clearFormManualeEChiudi() {
 
         function vaiAMaster() {
             if (systemReady) {
-                window.location.href = '/master';
+                fetch('/api/sessione-attiva')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.id) {
+                            window.location.href = '/master?sessione=' + data.id;
+                        } else {
+                            window.location.href = '/master';
+                        }
+                    })
+                    .catch(() => { window.location.href = '/master'; });
             }
         }
 

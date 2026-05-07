@@ -2566,7 +2566,11 @@
         }
 
         function tornaAlMaster() {
-            window.location.href = '/master';
+            if (sessioneCorrente) {
+                window.location.href = '/master?sessione=' + sessioneCorrente;
+            } else {
+                window.location.href = '/master';
+            }
         }
 
         function vaiAIncontri() {

@@ -405,7 +405,7 @@
                 <span>🔄</span>
                 Gestione Sostituzioni
             </h1>
-            <a href="/master" class="btn-back">⬅️ Torna al Master</a>
+            <a id="btnTornaMaster" href="/master" class="btn-back" onclick="return tornaAlMaster(event)">Torna al Master</a>
         </div>
 
         <!-- Filtro Squadra -->
@@ -460,6 +460,24 @@
         let squadre = [];
         let currentReplacement = null;
         let configurazioneCorrente = null;
+
+        async function tornaAlMaster(event) {
+            event.preventDefault();
+            if (configurazioneCorrente) {
+                try {
+                    const resp = await fetch('/api/sessione-attiva');
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.id) {
+                            window.location.href = '/master?sessione=' + data.id;
+                            return false;
+                        }
+                    }
+                } catch (e) { }
+            }
+            window.location.href = '/master';
+            return false;
+        }
 
         // 🔌 Inizializza connessione Socket.IO
         function initSocket() {
