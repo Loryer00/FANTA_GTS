@@ -1513,7 +1513,7 @@ async function inviaNotifichePush(notificationData, skipWebSocket = false) {
                 console.log(`🚀 Tentativo push MIGLIORATO a: ${subscription.partecipante_id}`);
 
                 await webpush.sendNotification(pushSubscription, payload, {
-                    TTL: 300, // CAMBIATO: 5 minuti (più urgente)
+                    TTL: 86400, // 24 ore - la notifica resta in coda anche se il dispositivo e' offline a lungo
                     urgency: 'high',
                     topic: `fantagts-${Date.now()}`, // CAMBIATO: topic unico per evitare grouping
                     headers: {
