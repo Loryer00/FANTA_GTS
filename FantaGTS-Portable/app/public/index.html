@@ -3297,6 +3297,16 @@
                     return;
                 }
 
+                // Ordina per posizione: M1, M2, ..., M5+, F1, F2, F3+
+                data.giocatori.sort(function (a, b) {
+                    var tipoA = a.posizione.charAt(0);
+                    var tipoB = b.posizione.charAt(0);
+                    if (tipoA !== tipoB) return tipoA === 'M' ? -1 : 1;
+                    var numA = parseInt(a.posizione.substring(1)) || 0;
+                    var numB = parseInt(b.posizione.substring(1)) || 0;
+                    return numA - numB;
+                });
+
                 let html = '';
 
                 data.giocatori.forEach(function (g) {
