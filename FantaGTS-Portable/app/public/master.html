@@ -592,6 +592,9 @@
                 <button class="btn btn-primary" onclick="apriGestioneImmagini()">
                     &#8505; Info Torneo
                 </button>
+                <button class="btn btn-primary" onclick="mostraClassificaGiocatori()">
+                    📈 Stats Giocatori
+                </button>
             </div>
         </div>
 
@@ -1057,6 +1060,91 @@
                                 `;
 
             header.appendChild(warningBanner);
+        }
+
+        async function mostraClassificaGiocatori() {
+            if (!configurazioneCorrente) {
+                showNotification('Nessuna configurazione attiva', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/classifica-giocatori?configurazione=' + configurazioneCorrente);
+                if (!response.ok) throw new Error('Errore caricamento');
+
+                const data = await response.json();
+
+                if (!data.giocatori || data.giocatori.length === 0) {
+                    showNotification('Nessuna statistica disponibile ancora', 'warning');
+                    return;
+                }
+
+                // Crea overlay
+                var overlay = document.createElement('div');
+                overlay.id = 'stats-giocatori-overlay';
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; overflow-y: auto; padding: 20px;';
+
+                var container = document.createElement('div');
+                container.style.cssText = 'max-width: 600px; margin: 0 auto; background: #1a202c; border-radius: 12px; padding: 25px; border: 1px solid rgba(66, 153, 225, 0.3);';
+
+                var html = '<h2 style="color: #4299e1; margin-bottom: 5px; text-align: center;">Classifica Giocatori</h2>';
+                html += '<p style="text-align: center; color: #a0aec0; margin-bottom: 20px; font-size: 0.9em;">Ordinata per percentuale di vittoria</p>';
+
+                // Top 3
+                var top3 = data.giocatori.slice(0, 3);
+                var medaglie = ['&#129351;', '&#129352;', '&#129353;'];
+
+                top3.forEach(function (g, i) {
+                    var colore = getTeamColor(g.colore);
+                    html += '<div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ' + colore + '; display: flex; align-items: center; gap: 12px;">';
+                    html += '  <div style="font-size: 1.5em;">' + medaglie[i] + '</div>';
+                    html += '  <div style="flex: 1;">';
+                    html += '    <div style="font-weight: bold; color: #e2e8f0;">' + g.nome_giocatore + '</div>';
+                    html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
+                    html += '  </div>';
+                    html += '  <div style="text-align: right;">';
+                    html += '    <div style="font-size: 1.2em; font-weight: bold; color: #48bb78;">' + g.percentuale_vittoria + '%</div>';
+                    html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
+                    html += '  </div>';
+                    html += '</div>';
+                });
+
+                // Resto della classifica
+                if (data.giocatori.length > 3) {
+                    html += '<div style="margin-top: 15px;">';
+                    data.giocatori.slice(3).forEach(function (g, i) {
+                        var colore = getTeamColor(g.colore);
+                        var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+
+                        html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
+                        html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + (i + 4) + '</div>';
+                        html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
+                        html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
+                        html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
+                        html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                // Bottone chiudi
+                html += '<div style="text-align: center; margin-top: 20px;">';
+                html += '  <button class="btn btn-secondary" onclick="document.getElementById(\'stats-giocatori-overlay\').remove()">Chiudi</button>';
+                html += '</div>';
+
+                container.innerHTML = html;
+                overlay.appendChild(container);
+
+                overlay.addEventListener('click', function (e) {
+                    if (e.target === overlay) overlay.remove();
+                });
+
+                document.body.appendChild(overlay);
+
+            } catch (error) {
+                console.error('Errore classifica giocatori:', error);
+                showNotification('Errore caricamento statistiche: ' + error.message, 'error');
+            }
         }
 
         async function aggiornaCreditiSessione(nuoviCrediti) {

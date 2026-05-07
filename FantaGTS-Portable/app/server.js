@@ -3622,6 +3622,167 @@ app.get('/api/dettagli-incontro/:incontroId', async (req, res) => {
     }
 });
 
+// API statistiche giocatori di un partecipante
+app.get('/api/statistiche-giocatori/:partecipanteId', async (req, res) => {
+    try {
+        const partecipanteId = req.params.partecipanteId;
+        const sessioneId = req.query.sessione_id;
+
+        if (!sessioneId) {
+            return res.status(400).json({ error: 'sessione_id richiesto' });
+        }
+
+        const configResult = await db.query(
+            'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneId]
+        );
+        const configurazioneId = configResult.rows[0]?.configurazione_id;
+        if (!configurazioneId) {
+            return res.status(404).json({ error: 'Sessione non trovata' });
+        }
+
+        // Recupera i giocatori del partecipante (da aste o draft)
+        const squadraResult = await db.query(`
+            SELECT s.giocatore_attuale, s.posizione, s.colore, s.punti_totali
+            FROM aste a
+            JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $3
+            WHERE a.partecipante_id = $1 AND a.vincitore = true AND a.sessione_id = $2
+            UNION
+            SELECT s.giocatore_attuale, sd.posizione, s.colore, s.punti_totali
+            FROM squadre_draft sd
+            JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $3
+            WHERE sd.partecipante_id = $1 AND sd.sessione_id = $2
+        `, [partecipanteId, sessioneId, configurazioneId]);
+
+        if (squadraResult.rows.length === 0) {
+            return res.json({ giocatori: [] });
+        }
+
+        // Per ogni giocatore, cerca vittorie e sconfitte in risultati_dettaglio
+        const statistiche = [];
+
+        for (const giocatore of squadraResult.rows) {
+            const nome = giocatore.giocatore_attuale;
+            if (!nome) continue;
+
+            // Cerca come squadra1 (vincitore=1 = vittoria, vincitore=2 = sconfitta)
+            const comeSq1 = await db.query(`
+                SELECT rd.vincitore
+                FROM risultati_dettaglio rd
+                JOIN incontri i ON rd.incontro_id = i.id
+                WHERE rd.giocatore_squadra1 = $1 
+                AND i.completato = true
+                AND i.configurazione_id = $2
+            `, [nome, configurazioneId]);
+
+            // Cerca come squadra2 (vincitore=2 = vittoria, vincitore=1 = sconfitta)
+            const comeSq2 = await db.query(`
+                SELECT rd.vincitore
+                FROM risultati_dettaglio rd
+                JOIN incontri i ON rd.incontro_id = i.id
+                WHERE rd.giocatore_squadra2 = $1 
+                AND i.completato = true
+                AND i.configurazione_id = $2
+            `, [nome, configurazioneId]);
+
+            let vittorie = 0, sconfitte = 0;
+
+            comeSq1.rows.forEach(r => {
+                if (r.vincitore === 1) vittorie++;
+                else if (r.vincitore === 2) sconfitte++;
+            });
+
+            comeSq2.rows.forEach(r => {
+                if (r.vincitore === 2) vittorie++;
+                else if (r.vincitore === 1) sconfitte++;
+            });
+
+            const totale = vittorie + sconfitte;
+            const percentuale = totale > 0 ? Math.round((vittorie / totale) * 100) : 0;
+
+            statistiche.push({
+                nome: nome,
+                posizione: giocatore.posizione,
+                colore: giocatore.colore,
+                punti: giocatore.punti_totali || 0,
+                vittorie: vittorie,
+                sconfitte: sconfitte,
+                totalePartite: totale,
+                percentualeVittoria: percentuale
+            });
+        }
+
+        // Ordina per percentuale vittoria decrescente
+        statistiche.sort((a, b) => b.percentualeVittoria - a.percentualeVittoria || b.vittorie - a.vittorie);
+
+        res.json({ giocatori: statistiche });
+
+    } catch (err) {
+        console.error('Errore API statistiche-giocatori:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API classifica giocatori globale
+app.get('/api/classifica-giocatori', async (req, res) => {
+    try {
+        const configurazioneId = req.query.configurazione;
+
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'configurazione richiesto' });
+        }
+
+        const result = await db.query(`
+            SELECT 
+                nome_giocatore,
+                colore,
+                posizione,
+                SUM(vittorie) as vittorie,
+                SUM(sconfitte) as sconfitte,
+                SUM(vittorie) + SUM(sconfitte) as totale_partite,
+                CASE WHEN SUM(vittorie) + SUM(sconfitte) > 0 
+                    THEN ROUND(SUM(vittorie)::numeric / (SUM(vittorie) + SUM(sconfitte)) * 100)
+                    ELSE 0 
+                END as percentuale_vittoria
+            FROM (
+                SELECT 
+                    rd.giocatore_squadra1 as nome_giocatore,
+                    sc.colore,
+                    rd.posizione,
+                    COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as vittorie,
+                    COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as sconfitte
+                FROM risultati_dettaglio rd
+                JOIN incontri i ON rd.incontro_id = i.id
+                JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
+                WHERE i.completato = true AND i.configurazione_id = $1
+                GROUP BY rd.giocatore_squadra1, sc.colore, rd.posizione
+
+                UNION ALL
+
+                SELECT 
+                    rd.giocatore_squadra2 as nome_giocatore,
+                    sc.colore,
+                    rd.posizione,
+                    COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as vittorie,
+                    COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as sconfitte
+                FROM risultati_dettaglio rd
+                JOIN incontri i ON rd.incontro_id = i.id
+                JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
+                WHERE i.completato = true AND i.configurazione_id = $1
+                GROUP BY rd.giocatore_squadra2, sc.colore, rd.posizione
+            ) sub
+            WHERE nome_giocatore IS NOT NULL AND nome_giocatore != ''
+            GROUP BY nome_giocatore, colore, posizione
+            ORDER BY percentuale_vittoria DESC, vittorie DESC
+        `, [configurazioneId]);
+
+        res.json({ giocatori: result.rows });
+
+    } catch (err) {
+        console.error('Errore API classifica-giocatori:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API per impostare vincitore di una posizione
 app.post('/api/set-vincitore', async (req, res) => {
     try {
