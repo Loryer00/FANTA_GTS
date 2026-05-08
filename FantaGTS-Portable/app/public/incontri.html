@@ -1109,13 +1109,20 @@
                 console.log(`[AUTO-SETUP] Creazione risultati per posizioni: ${posizioni.join(', ')}`);
 
                 // Crea risultati per ogni posizione (automaticamente vince la squadra selezionata)
+                const sq1 = squadreDisponibili.find(s => s.numero === incontroData.squadra1);
+                const sq2 = squadreDisponibili.find(s => s.numero === incontroData.squadra2);
+
                 for (const posizione of posizioni) {
+                    // Recupera i nomi reali dei giocatori
+                    const g1 = sq1?.giocatori?.find(g => g.posizione === posizione);
+                    const g2 = sq2?.giocatori?.find(g => g.posizione === posizione);
+
                     const requestData = {
                         incontro_id: incontroId,
                         posizione: posizione,
-                        vincitore: numVincitore, // 1 = squadra1, 2 = squadra2
-                        giocatore_squadra1: `Giocatore ${posizione} Squadra ${incontroData.squadra1}`,
-                        giocatore_squadra2: `Giocatore ${posizione} Squadra ${incontroData.squadra2}`,
+                        vincitore: numVincitore,
+                        giocatore_squadra1: g1 ? g1.nome : `${posizione} Squadra ${incontroData.squadra1}`,
+                        giocatore_squadra2: g2 ? g2.nome : `${posizione} Squadra ${incontroData.squadra2}`,
                         punti_assegnati: turnoSelezionato?.punti_vittoria || 1
                     };
 
