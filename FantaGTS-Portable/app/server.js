@@ -3840,6 +3840,13 @@ app.post('/api/completa-incontro/:incontroId', async (req, res) => {
         }
 
         const incontro = incontroResult.rows[0];
+
+        // Blocca se l'incontro e' gia' completato (evita doppia assegnazione punti)
+        if (incontro.completato) {
+            console.warn(`⚠️ Incontro ${incontroId} gia' completato, ignorato per evitare doppi punti`);
+            return res.status(400).json({ error: 'Incontro gia completato. Resettalo prima di ricompletarlo.' });
+        }
+
         const posizioni = [incontro.pos1, incontro.pos2];
 
         // Verifica che ci siano risultati per tutte le posizioni
