@@ -3660,7 +3660,27 @@
 
             // Carica storico dal server
             try {
-                var configId = window.sessioneOggetto ? window.sessioneOggetto.configurazione_id : 'default';
+                var configId = null;
+                if (window.sessioneOggetto && window.sessioneOggetto.configurazione_id) {
+                    configId = window.sessioneOggetto.configurazione_id;
+                } else {
+                    var savedSess = localStorage.getItem('userSession');
+                    if (savedSess) {
+                        var parsedSess = JSON.parse(savedSess);
+                        if (parsedSess.configurazione_id) {
+                            configId = parsedSess.configurazione_id;
+                        } else if (parsedSess.sessioneId) {
+                            var sessResp = await fetch('/api/sessioni/' + parsedSess.sessioneId);
+                            if (sessResp.ok) {
+                                var sessData = await sessResp.json();
+                                configId = sessData.configurazione_id;
+                            }
+                        }
+                    }
+                }
+                if (!configId) configId = 'default';
+
+                console.log('Storico giocatore - configId:', configId);
                 var storicoResp = await fetch('/api/storico-giocatore/' + encodeURIComponent(g.nome) + '?configurazione=' + configId);
 
                 if (!storicoResp.ok) throw new Error('Errore caricamento storico');
