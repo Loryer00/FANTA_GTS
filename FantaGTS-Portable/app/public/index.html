@@ -3679,7 +3679,7 @@
                     var isVittoria = match.risultato === 'vittoria';
                     var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
                     var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
-                    var badgeText = isVittoria ? 'Win' : 'Lose';
+                    var badgeText = isVittoria ? 'Win' : 'Loss';
 
                     var coloreProprio = getTeamColor(match.squadraPropria.colore);
                     var coloreAvversario = getTeamColor(match.squadraAvversaria.colore);
@@ -3898,6 +3898,24 @@
             const text1 = getTextColorForTeam(sq1Colore);
             const text2 = getTextColorForTeam(sq2Colore);
 
+            // Raccogli i nomi dei giocatori posseduti
+            const mieiGiocatori = new Set();
+            document.querySelectorAll('#teamSlots .team-slot.filled').forEach(function (slot) {
+                var nomeEl = slot.querySelector('div:first-child');
+                if (nomeEl) {
+                    var nome = nomeEl.textContent.trim();
+                    if (nome && nome !== '-') mieiGiocatori.add(nome);
+                }
+            });
+
+            // Funzione per evidenziare il nome se e' un mio giocatore
+            function evidenziaNome(nome) {
+                if (mieiGiocatori.has(nome)) {
+                    return '<span style="color: #63b3ed; font-weight: bold;">' + nome + '</span>';
+                }
+                return nome;
+            }
+
             const overlay = document.createElement('div');
             overlay.id = 'popup-incontro-overlay';
             overlay.className = 'popup-incontro-overlay';
@@ -3908,14 +3926,14 @@
                     <div class="popup-coppia">
                         <div class="popup-squadra" style="background: ${color1}30; border: 1px solid ${color1};">
                             <div class="nome-squadra" style="color: ${color1};">${sq1Colore.toUpperCase()}</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${sq1G1} (${pos1})</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${sq1G2} (${pos2})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq1G1)} (${pos1})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq1G2)} (${pos2})</div>
                         </div>
                         <div class="popup-vs">VS</div>
                         <div class="popup-squadra" style="background: ${color2}30; border: 1px solid ${color2};">
                             <div class="nome-squadra" style="color: ${color2};">${sq2Colore.toUpperCase()}</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${sq2G1} (${pos1})</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${sq2G2} (${pos2})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq2G1)} (${pos1})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq2G2)} (${pos2})</div>
                         </div>
                     </div>
                 </div>

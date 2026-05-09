@@ -3732,9 +3732,9 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
             return res.status(400).json({ error: 'configurazione richiesto' });
         }
 
-        console.log(`📊 Storico giocatore: ${nomeGiocatore}, config: ${configurazioneId}`);
+        console.log(`Storico giocatore: ${nomeGiocatore}, config: ${configurazioneId}`);
 
-        // Trova tutti gli incontri dove questo giocatore ha partecipato
+        // Trova tutti i risultati_dettaglio dove questo giocatore ha partecipato
         const result = await db.query(`
             SELECT 
                 rd.incontro_id,
@@ -3749,56 +3749,47 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
                 tc.turno_numero,
                 tc.nome_turno,
                 sc1.colore as colore_squadra1,
-                sc2.colore as colore_squadra2,
-                ap.pos1 as coppia_pos1,
-                ap.pos2 as coppia_pos2
+                sc2.colore as colore_squadra2
             FROM risultati_dettaglio rd
             JOIN incontri i ON rd.incontro_id = i.id
             JOIN turni_configurazione tc ON i.turno_id = tc.id
             JOIN squadre_circolo sc1 ON i.squadra1 = sc1.numero AND sc1.configurazione_id = $2
             JOIN squadre_circolo sc2 ON i.squadra2 = sc2.numero AND sc2.configurazione_id = $2
-            LEFT JOIN accoppiamenti_posizioni ap ON ap.turno_id = i.turno_id 
-                AND ((ap.pos1 = rd.posizione) OR (ap.pos2 = rd.posizione))
             WHERE (rd.giocatore_squadra1 = $1 OR rd.giocatore_squadra2 = $1)
             AND i.completato = true
             AND i.configurazione_id = $2
-            ORDER BY tc.turno_numero ASC, rd.posizione ASC
+            ORDER BY tc.turno_numero ASC
         `, [nomeGiocatore, configurazioneId]);
 
-        // Per ogni incontro trovato, recupera anche il compagno di coppia
+        console.log(`Query risultati per ${nomeGiocatore}: ${result.rows.length} righe trovate`);
+
+        // Per ogni riga trovata, cerca il compagno di coppia nello stesso incontro
         const storico = [];
 
         for (const row of result.rows) {
-            // Determina se il giocatore era nella squadra1 o squadra2
             const nellaSquadra1 = row.giocatore_squadra1 === nomeGiocatore;
-            const squadraPropria = nellaSquadra1 ? row.num_squadra1 : row.num_squadra2;
-            const squadraAvversaria = nellaSquadra1 ? row.num_squadra2 : row.num_squadra1;
             const coloreProprio = nellaSquadra1 ? row.colore_squadra1 : row.colore_squadra2;
             const coloreAvversario = nellaSquadra1 ? row.colore_squadra2 : row.colore_squadra1;
 
-            // Determina vittoria o sconfitta
+            // Vittoria o sconfitta
             let risultato = 'sconfitta';
             if (nellaSquadra1 && row.vincitore === 1) risultato = 'vittoria';
             if (!nellaSquadra1 && row.vincitore === 2) risultato = 'vittoria';
 
-            // Trova il compagno di coppia nello stesso incontro
-            // Cerca l'altro risultato_dettaglio dello stesso incontro (stessa coppia di posizioni)
+            // Avversario nella stessa posizione
+            const avversarioStessaPos = nellaSquadra1 ? row.giocatore_squadra2 : row.giocatore_squadra1;
+
+            // Cerca il compagno: altra riga di risultati_dettaglio con stesso incontro_id
             const compagnoResult = await db.query(`
-                SELECT rd2.posizione, rd2.giocatore_squadra1, rd2.giocatore_squadra2
-                FROM risultati_dettaglio rd2
-                WHERE rd2.incontro_id = $1
-                AND rd2.posizione != $2
+                SELECT posizione, giocatore_squadra1, giocatore_squadra2
+                FROM risultati_dettaglio
+                WHERE incontro_id = $1 AND posizione != $2
             `, [row.incontro_id, row.posizione]);
 
             let compagnoNome = '';
             let compagnoPosizione = '';
-            let avversario1Nome = '';
-            let avversario1Posizione = '';
             let avversario2Nome = '';
             let avversario2Posizione = '';
-
-            // L'avversario nella stessa posizione
-            const avversarioStessaPos = nellaSquadra1 ? row.giocatore_squadra2 : row.giocatore_squadra1;
 
             if (compagnoResult.rows.length > 0) {
                 const comp = compagnoResult.rows[0];
@@ -3807,9 +3798,6 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
                 avversario2Nome = nellaSquadra1 ? comp.giocatore_squadra2 : comp.giocatore_squadra1;
                 avversario2Posizione = comp.posizione;
             }
-
-            avversario1Nome = avversarioStessaPos;
-            avversario1Posizione = row.posizione;
 
             storico.push({
                 turnoNumero: row.turno_numero,
@@ -3824,13 +3812,13 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
                 },
                 squadraAvversaria: {
                     colore: coloreAvversario,
-                    giocatore1: { nome: avversario1Nome, posizione: avversario1Posizione },
+                    giocatore1: { nome: avversarioStessaPos, posizione: row.posizione },
                     giocatore2: { nome: avversario2Nome, posizione: avversario2Posizione }
                 }
             });
         }
 
-        console.log(`✅ Storico giocatore ${nomeGiocatore}: ${storico.length} incontri trovati`);
+        console.log(`Storico giocatore ${nomeGiocatore}: ${storico.length} incontri trovati`);
         res.json({ storico: storico });
 
     } catch (err) {
