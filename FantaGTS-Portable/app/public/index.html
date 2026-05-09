@@ -1165,7 +1165,7 @@
     <div class="container">
         <div class="header" style="position: relative;">
             <h1>🎾 FantaGTS</h1>
-            <p>User Panel</p>
+            <p id="session-name-header" style="font-size: 0.85em; color: #a0aec0;">Nessuna sessione</p>
             <!-- 🔔 Pulsante Notifiche in alto a destra nell'header -->
             <button id="btn-campanella" onclick="mostraDialogNotifiche()"
                     style="position: absolute; top: 15px; right: 15px; background: rgba(237, 137, 54, 0.2); border: 1px solid rgba(237, 137, 54, 0.4); color: #ed8936; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 1.3em; width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
@@ -1773,6 +1773,8 @@
                 // Imposta la sessione corrente (lato client)
                 sessioneCorrente = sessioneId;
                 nomeSessioneCorrente = nomeSessione;
+                const sessionHeader = document.getElementById('session-name-header');
+                if (sessionHeader) sessionHeader.textContent = nomeSessione;
 
                 // 🆕 CARICA I DATI CORRETTI DEL PARTECIPANTE DALLA SESSIONE
                 const partecipanteResponse = await fetch(`/api/sessioni/${sessioneId}/partecipante/${playerData.name}`);
@@ -2117,12 +2119,13 @@
                 playerData.id = partecipante.id;
                 playerData.credits = partecipante.crediti;
                 playerData.modalita = sessione.modalita;
-                playerData.modalita = sessione.modalita;
                 playerData.sessioneId = sessioneId;  // 🆕 AGGIUNGI QUESTA RIGA
                 playerData.notificationsEnabled = sessionData.notificationsEnabled || false;
 
                 sessioneCorrente = sessioneId;
                 nomeSessioneCorrente = sessione.nome;
+                const sessionHeader = document.getElementById('session-name-header');
+                if (sessionHeader) sessionHeader.textContent = sessione.nome;
                 sessioneOggetto = sessione;
 
                 console.log('✅ Sessione ripristinata:', {
@@ -4668,6 +4671,8 @@
                 // Reset sessione corrente
                 sessioneCorrente = null;
                 nomeSessioneCorrente = '';
+                const sessionHeader = document.getElementById('session-name-header');
+                if (sessionHeader) sessionHeader.textContent = 'Nessuna sessione';
                 localStorage.removeItem('userSession');
 
                 // Nascondi game area e mostra selezione sessioni
