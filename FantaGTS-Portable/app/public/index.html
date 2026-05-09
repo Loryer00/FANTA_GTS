@@ -340,12 +340,11 @@
             }
 
             .bottom-nav-btn .icon {
-                font-size: 1.5em;
+                font-size: 1.8em;
             }
 
             .bottom-nav-btn .label {
-                font-size: 0.7em;
-                font-weight: bold;
+                display: none;
             }
 
         /* Container per dare spazio alla bottom nav */
@@ -782,6 +781,11 @@
                 border: 1px solid rgba(255, 255, 255, 0.15);
             }
 
+            .incontro-mini.mio-giocatore {
+                border-bottom-width: 7px !important;
+                border-bottom-style: solid !important;
+            }
+
         .incontro-mini {
             cursor: pointer;
         }
@@ -914,6 +918,253 @@
             padding: 30px;
             opacity: 0.6;
             font-style: italic;
+        }
+
+        .stats-giocatore-card {
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+            .stats-giocatore-card:active {
+                transform: scale(0.98);
+            }
+
+        .popup-stats-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .popup-stats {
+            background: #1a202c;
+            border: 1px solid rgba(66,153,225,0.4);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 370px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .ps-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .ps-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .ps-nome {
+            font-weight: bold;
+            font-size: 16px;
+            color: #e2e8f0;
+        }
+
+        .ps-dettaglio {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 3px;
+        }
+
+        .ps-stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ps-stat-box {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 10px 8px;
+            text-align: center;
+        }
+
+        .ps-stat-val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .ps-stat-label {
+            font-size: 10px;
+            color: #a0aec0;
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ps-barra-wrap {
+            margin-bottom: 16px;
+        }
+
+        .ps-barra-label {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ps-barra {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .ps-barra-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .ps-storico-title {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ps-match {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+            .ps-match:last-child {
+                border-bottom: none;
+            }
+
+        .ps-match-top {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ps-match-turno {
+            font-size: 12px;
+            color: #a0aec0;
+            font-weight: bold;
+        }
+
+        .ps-match-pos {
+            font-size: 11px;
+            color: #4a5568;
+            flex: 1;
+            text-align: center;
+        }
+
+        .ps-result-badge {
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 3px 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ps-result-win {
+            background: rgba(72,187,120,0.25);
+            color: #48bb78;
+        }
+
+        .ps-result-loss {
+            background: rgba(245,101,101,0.25);
+            color: #f56565;
+        }
+
+        .ps-match-wrapper {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .ps-wrapper-win {
+            border: 2px solid #48bb78;
+            background: rgba(72,187,120,0.05);
+        }
+
+        .ps-wrapper-loss {
+            border: 2px solid #f56565;
+            background: rgba(245,101,101,0.05);
+        }
+
+        .ps-coppia-sx {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .ps-coppia-dx {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            text-align: right;
+        }
+
+        .ps-coppia-nomi {
+            color: #e2e8f0;
+        }
+
+            .ps-coppia-nomi .tu {
+                color: #63b3ed;
+                font-weight: bold;
+            }
+
+        .ps-sq-nome {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ps-match-vs {
+            width: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #4a5568;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .ps-close-hint {
+            text-align: center;
+            font-size: 11px;
+            color: #4a5568;
+            margin-top: 14px;
+        }
+
+        .ps-loading {
+            text-align: center;
+            padding: 30px;
+            color: #a0aec0;
         }
 
         #section-stats .section h2 {
@@ -1086,11 +1337,11 @@
             }
 
             .bottom-nav-btn .icon {
-                font-size: 1.3em;
+                font-size: 1.6em;
             }
 
             .bottom-nav-btn .label {
-                font-size: 0.65em;
+                display: none;
             }
 
             /* Spazio per bottom navigation */
@@ -1128,11 +1379,11 @@
             }
 
             .bottom-nav-btn .icon {
-                font-size: 1.2em;
+                font-size: 1.6em;
             }
 
             .bottom-nav-btn .label {
-                font-size: 0.6em;
+                display: none;
             }
         }
 
@@ -3272,8 +3523,19 @@
                 // Raggruppa incontri per scontro tra squadre
                 const incontriRaggruppati = raggruppaIncontri(incontri, squadre);
 
+                // Raccogli i nomi dei giocatori posseduti dal partecipante
+                const mieiGiocatori = new Set();
+                document.querySelectorAll('#teamSlots .team-slot.filled').forEach(slot => {
+                    const nomeEl = slot.querySelector('div:first-child');
+                    if (nomeEl) {
+                        const nome = nomeEl.textContent.trim();
+                        if (nome && nome !== '-') mieiGiocatori.add(nome);
+                    }
+                });
+                console.log('I miei giocatori:', [...mieiGiocatori]);
+
                 // Crea overview compatto
-                const overviewHtml = creaOverviewCompattoHtml(incontriRaggruppati);
+                const overviewHtml = creaOverviewCompattoHtml(incontriRaggruppati, mieiGiocatori);
                 container.innerHTML = overviewHtml;
 
                 console.log('✅ Incontri visualizzati con overview compatto');
@@ -3320,7 +3582,10 @@
                     var colore = getTeamColor(g.colore);
                     var percColore = g.percentualeVittoria >= 60 ? '#48bb78' : g.percentualeVittoria >= 40 ? '#ecc94b' : '#f56565';
 
-                    html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';">';
+                    // Escapa i dati per l'onclick
+                    var gJson = encodeURIComponent(JSON.stringify(g));
+
+                    html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';" onclick="mostraDettaglioGiocatore(decodeURIComponent(\'' + gJson + '\'))">';
                     html += '  <div class="stats-giocatore-info">';
                     html += '    <div class="stats-giocatore-nome">' + g.nome + '</div>';
                     html += '    <div class="stats-giocatore-dettagli">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + ' | ' + g.punti + ' pt</div>';
@@ -3350,6 +3615,129 @@
             }
         }
 
+        async function mostraDettaglioGiocatore(jsonStr) {
+            // Rimuovi popup precedente
+            var vecchio = document.getElementById('popup-stats-overlay');
+            if (vecchio) vecchio.remove();
+
+            var g = JSON.parse(jsonStr);
+            var colore = getTeamColor(g.colore);
+            var percColore = g.percentualeVittoria >= 60 ? '#48bb78' : g.percentualeVittoria >= 40 ? '#ecc94b' : '#f56565';
+
+            // Crea overlay con loading
+            var overlay = document.createElement('div');
+            overlay.id = 'popup-stats-overlay';
+            overlay.className = 'popup-stats-overlay';
+
+            overlay.innerHTML = '<div class="popup-stats">' +
+                '<div class="ps-header">' +
+                '  <div class="ps-badge" style="background: ' + colore + '33; color: ' + colore + ';">' + g.posizione + '</div>' +
+                '  <div>' +
+                '    <div class="ps-nome">' + g.nome + '</div>' +
+                '    <div class="ps-dettaglio">Squadra ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + ' | ' + g.punti + ' pt totali</div>' +
+                '  </div>' +
+                '</div>' +
+                '<div class="ps-stats-row">' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: #48bb78;">' + g.vittorie + '</div><div class="ps-stat-label">Vittorie</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: #f56565;">' + g.sconfitte + '</div><div class="ps-stat-label">Sconfitte</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val">' + g.totalePartite + '</div><div class="ps-stat-label">Giocate</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: ' + percColore + ';">' + g.percentualeVittoria + '%</div><div class="ps-stat-label">Win rate</div></div>' +
+                '</div>' +
+                '<div class="ps-barra-wrap">' +
+                '  <div class="ps-barra-label"><span>Rendimento</span><span style="color: ' + percColore + ';">' + g.percentualeVittoria + '%</span></div>' +
+                '  <div class="ps-barra"><div class="ps-barra-fill" style="width: ' + g.percentualeVittoria + '%; background: ' + percColore + ';"></div></div>' +
+                '</div>' +
+                '<div class="ps-storico-title">Storico incontri</div>' +
+                '<div id="ps-storico-container" class="ps-loading">Caricamento storico...</div>' +
+                '<div class="ps-close-hint">Tocca fuori per chiudere</div>' +
+                '</div>';
+
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) overlay.remove();
+            });
+
+            document.body.appendChild(overlay);
+
+            // Carica storico dal server
+            try {
+                var configId = window.sessioneOggetto ? window.sessioneOggetto.configurazione_id : 'default';
+                var storicoResp = await fetch('/api/storico-giocatore/' + encodeURIComponent(g.nome) + '?configurazione=' + configId);
+
+                if (!storicoResp.ok) throw new Error('Errore caricamento storico');
+
+                var storicoData = await storicoResp.json();
+                var container = document.getElementById('ps-storico-container');
+
+                if (!storicoData.storico || storicoData.storico.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #a0aec0; font-size: 12px;">Nessun incontro completato</p>';
+                    return;
+                }
+
+                var storicoHtml = '';
+
+                storicoData.storico.forEach(function (match) {
+                    var isVittoria = match.risultato === 'vittoria';
+                    var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
+                    var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
+                    var badgeText = isVittoria ? 'Win' : 'Lose';
+
+                    var coloreProprio = getTeamColor(match.squadraPropria.colore);
+                    var coloreAvversario = getTeamColor(match.squadraAvversaria.colore);
+
+                    var nomeProprioColore = match.squadraPropria.colore.charAt(0).toUpperCase() + match.squadraPropria.colore.slice(1);
+                    var nomeAvversarioColore = match.squadraAvversaria.colore.charAt(0).toUpperCase() + match.squadraAvversaria.colore.slice(1);
+
+                    // Giocatore evidenziato (tu) nella coppia propria
+                    var g1Proprio = match.squadraPropria.giocatore1;
+                    var g2Proprio = match.squadraPropria.giocatore2;
+                    var g1Avv = match.squadraAvversaria.giocatore1;
+                    var g2Avv = match.squadraAvversaria.giocatore2;
+
+                    var formatGiocatore = function (gioc, evidenziato) {
+                        if (!gioc.nome) return '';
+                        var cls = (gioc.nome === g.nome) ? ' class="tu"' : '';
+                        return '<span' + cls + '>' + gioc.nome + '</span> (' + gioc.posizione + ')';
+                    };
+
+                    var proprioHtml = formatGiocatore(g1Proprio);
+                    if (g2Proprio.nome) proprioHtml += '<br>' + formatGiocatore(g2Proprio);
+
+                    var avvHtml = formatGiocatore(g1Avv);
+                    if (g2Avv.nome) avvHtml += '<br>' + formatGiocatore(g2Avv);
+
+                    storicoHtml += '<div class="ps-match">' +
+                        '<div class="ps-match-top">' +
+                        '  <div class="ps-match-turno">Turno ' + match.turnoNumero + '</div>' +
+                        '  <div class="ps-match-pos">' + match.posizioni + '</div>' +
+                        '  <div class="ps-result-badge ' + badgeClass + '">' + badgeText + '</div>' +
+                        '</div>' +
+                        '<div class="ps-match-wrapper ' + wrapperClass + '">' +
+                        '  <div class="ps-coppia-sx">' +
+                        '    <div class="ps-sq-nome" style="color: ' + coloreProprio + ';">' + nomeProprioColore + '</div>' +
+                        '    <div class="ps-coppia-nomi">' + proprioHtml + '</div>' +
+                        '  </div>' +
+                        '  <div class="ps-match-vs">VS</div>' +
+                        '  <div class="ps-coppia-dx">' +
+                        '    <div class="ps-sq-nome" style="color: ' + coloreAvversario + ';">' + nomeAvversarioColore + '</div>' +
+                        '    <div class="ps-coppia-nomi">' + avvHtml + '</div>' +
+                        '  </div>' +
+                        '</div>' +
+                        '</div>';
+                });
+
+                container.innerHTML = storicoHtml;
+                container.className = '';
+
+            } catch (error) {
+                console.error('Errore caricamento storico:', error);
+                var container = document.getElementById('ps-storico-container');
+                if (container) {
+                    container.innerHTML = '<p style="text-align: center; color: #f56565; font-size: 12px;">Errore nel caricamento dello storico</p>';
+                    container.className = '';
+                }
+            }
+        }
+
         function raggruppaIncontri(incontri, squadre) {
             const raggruppati = {};
 
@@ -3375,7 +3763,10 @@
             return raggruppati;
         }
 
-        function creaOverviewCompattoHtml(incontriRaggruppati) {
+        function creaOverviewCompattoHtml(incontriRaggruppati, mieiGiocatori) {
+            // Se non passato, set vuoto
+            const miei = mieiGiocatori || new Set();
+
             let html = '<div class="overview-compatto-container">';
             html += '<div class="overview-box-container">';
 
@@ -3426,6 +3817,16 @@
                     const g2Pos1 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos1);
                     const g2Pos2 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos2);
 
+                    // Controlla se un mio giocatore gioca in questo incontro
+                    const nomiIncontro = [
+                        g1Pos1 ? g1Pos1.nome : '',
+                        g1Pos2 ? g1Pos2.nome : '',
+                        g2Pos1 ? g2Pos1.nome : '',
+                        g2Pos2 ? g2Pos2.nome : ''
+                    ];
+                    const hasMioGiocatore = nomiIncontro.some(nome => nome && miei.has(nome));
+                    const classMio = hasMioGiocatore ? ' mio-giocatore' : '';
+
                     const dataAttr = `data-sq1-colore="${gruppo.squadra1.colore}" ` +
                         `data-sq2-colore="${gruppo.squadra2.colore}" ` +
                         `data-sq1-g1="${g1Pos1 ? g1Pos1.nome : 'N/A'}" ` +
@@ -3452,7 +3853,7 @@
                             testoColore = '#9ca3af';
                         }
                         html += `
-                                        <div class="incontro-mini completato" onclick="mostraDettaglioIncontro(this)"
+                                        <div class="incontro-mini completato${classMio}" onclick="mostraDettaglioIncontro(this)"
                                              ${dataAttr}
                                              style="background: ${sfondoColore}; border-color: ${bordoColore}; color: ${testoColore};">
                                             ${incontro.pos1}+${incontro.pos2}
@@ -3460,7 +3861,7 @@
                                     `;
                     } else {
                         html += `
-                                        <div class="incontro-mini attesa" onclick="mostraDettaglioIncontro(this)"
+                                        <div class="incontro-mini attesa${classMio}" onclick="mostraDettaglioIncontro(this)"
                                              ${dataAttr}>
                                             ${incontro.pos1}+${incontro.pos2}
                                         </div>
