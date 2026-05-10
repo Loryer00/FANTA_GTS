@@ -3315,15 +3315,16 @@
                 if (giocatore) {
                     const coloreSquadra = getTeamColor(giocatore.colore);
                     const puntiG = giocatore.punti_totali || 0;
+                    const coloreNome = giocatore.colore.charAt(0).toUpperCase() + giocatore.colore.slice(1).toLowerCase();
                     html += `
                                         <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
                                             <div style="font-size: 1.8em; font-weight: bold; color: #ffd700; min-width: 28px; text-align: center;">${puntiG}</div>
                                             <div style="text-align: left; flex: 1;">
-                                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                    <span style="font-weight: bold; color: #4299e1; font-size: 0.85em;">${pos}</span>
-                                                    <span style="font-size: 0.7em; color: ${coloreSquadra}; font-weight: bold;">${giocatore.colore}</span>
+                                                <div style="font-size: 0.85em; color: #ffffff;">
+                                                    <span style="font-weight: bold;">${pos}</span>
+                                                    <span style="margin-left: 6px; opacity: 0.7;">${coloreNome}</span>
                                                 </div>
-                                                <div style="font-size: 0.95em; margin-top: 3px;">${giocatore.giocatore_attuale}</div>
+                                                <div style="font-size: 0.95em; margin-top: 3px; color: #ffffff;">${giocatore.giocatore_attuale}</div>
                                             </div>
                                         </div>
                                     `;
