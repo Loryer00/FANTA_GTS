@@ -458,9 +458,11 @@
             background: rgba(45, 55, 72, 0.6);
             border: 4px solid #4a5568;
             border-radius: 6px;
-            padding: 8px;
-            text-align: center;
+            padding: 8px 10px;
             font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         /* Galleria Info */
@@ -3312,11 +3314,15 @@
 
                 if (giocatore) {
                     const coloreSquadra = getTeamColor(giocatore.colore);
+                    const puntiG = giocatore.punti_totali || 0;
                     html += `
                                         <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
-                                            <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                            <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                            <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
+                                            <div style="font-size: 1.5em; font-weight: bold; color: #ffd700; min-width: 24px; text-align: center;">${puntiG}</div>
+                                            <div style="text-align: left;">
+                                                <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
+                                                <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
+                                                <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
+                                            </div>
                                         </div>
                                     `;
                 } else {
