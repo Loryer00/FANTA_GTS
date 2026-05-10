@@ -3317,11 +3317,13 @@
                     const puntiG = giocatore.punti_totali || 0;
                     html += `
                                         <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
-                                            <div style="font-size: 1.5em; font-weight: bold; color: #ffd700; min-width: 24px; text-align: center;">${puntiG}</div>
-                                            <div style="text-align: left;">
-                                                <div style="font-weight: bold; color: #4299e1; font-size: 0.75em;">${pos}</div>
-                                                <div style="font-size: 0.8em; margin-top: 2px;">${giocatore.giocatore_attuale}</div>
-                                                <div style="font-size: 0.65em; color: ${coloreSquadra}; margin-top: 2px; font-weight: bold;">${giocatore.colore}</div>
+                                            <div style="font-size: 1.8em; font-weight: bold; color: #ffd700; min-width: 28px; text-align: center;">${puntiG}</div>
+                                            <div style="text-align: left; flex: 1;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <span style="font-weight: bold; color: #4299e1; font-size: 0.85em;">${pos}</span>
+                                                    <span style="font-size: 0.7em; color: ${coloreSquadra}; font-weight: bold;">${giocatore.colore}</span>
+                                                </div>
+                                                <div style="font-size: 0.95em; margin-top: 3px;">${giocatore.giocatore_attuale}</div>
                                             </div>
                                         </div>
                                     `;
