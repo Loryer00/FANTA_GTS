@@ -2143,25 +2143,10 @@
                         if (currentPlayerEl) currentPlayerEl.textContent = playerData.name;
                         if (playerCreditsEl) playerCreditsEl.textContent = playerData.credits;
 
-                        // Per draft: mostra punti invece dei crediti
+                        // I punti verranno mostrati da loadPlayerTeam
                         const playerStatsDisplay = document.getElementById('playerStatsDisplay');
                         if (playerStatsDisplay) {
-                            playerStatsDisplay.style.display = '';
-                            // Calcola punti totali dopo il caricamento squadra
-                            setTimeout(async () => {
-                                try {
-                                    const resp = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneCorrente}`);
-                                    if (resp.ok) {
-                                        const draftResp = await resp.json();
-                                        const sq = draftResp.squadra || [];
-                                        const puntiTotali = sq.reduce((sum, g) => sum + (g.puntiTotali || g.punti_totali || 0), 0);
-                                        playerStatsDisplay.innerHTML = '<span style="font-size: 1.1em;">&#127942; <span style="font-weight: bold; color: #ffd700;">' + puntiTotali + '</span> punti</span>';
-                                    }
-                                } catch (e) {
-                                    console.log('Errore calcolo punti draft:', e);
-                                    playerStatsDisplay.style.display = 'none';
-                                }
-                            }, 500);
+                            playerStatsDisplay.innerHTML = '';
                         }
 
                         // Carica squadra del partecipante
@@ -2424,24 +2409,10 @@
                             document.getElementById('currentPlayer').textContent = playerData.name;
                             document.getElementById('playerCredits').textContent = playerData.credits;
 
-                            // Per draft: mostra punti invece dei crediti
+                            // I punti verranno mostrati da loadPlayerTeam
                             const playerStatsDisplay = document.getElementById('playerStatsDisplay');
                             if (playerStatsDisplay) {
-                                playerStatsDisplay.style.display = '';
-                                setTimeout(async () => {
-                                    try {
-                                        const resp = await fetch(`/api/draft/squadra/${playerData.id}?sessione_id=${sessioneCorrente}`);
-                                        if (resp.ok) {
-                                            const draftResp = await resp.json();
-                                            const sq = draftResp.squadra || [];
-                                            const puntiTotali = sq.reduce((sum, g) => sum + (g.puntiTotali || g.punti_totali || 0), 0);
-                                            playerStatsDisplay.innerHTML = '<span style="font-size: 1.1em;">&#127942; <span style="font-weight: bold; color: #ffd700;">' + puntiTotali + '</span> punti</span>';
-                                        }
-                                    } catch (e) {
-                                        console.log('Errore calcolo punti draft:', e);
-                                        playerStatsDisplay.style.display = 'none';
-                                    }
-                                }, 500);
+                                playerStatsDisplay.innerHTML = '';
                             }
 
                             showGameArea();
@@ -2475,7 +2446,7 @@
                                 }
                             }, 2000); // Dopo 2 secondi dal caricamento
 
-                            mostraMessaggio(`💰 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
+                            mostraMessaggio(`🎯 Bentornato in "${nomeSessioneCorrente}"!`, 'success');
                             return true;
 
                         } else {
@@ -3036,13 +3007,18 @@
                 }
 
                 const creditsDisplay = document.getElementById('creditsDisplay');
-                if (creditsDisplay) {
-                    if (modalita === 'draft_libero') {
-                        creditsDisplay.style.display = 'none';
-                    } else {
-                        creditsDisplay.style.display = 'block';
-                        await updateCreditsDisplay();
+                const statsDisplay = document.getElementById('playerStatsDisplay');
+                if (modalita === 'draft_libero') {
+                    if (creditsDisplay) creditsDisplay.style.display = 'none';
+                    // Mostra i punti totali per il draft
+                    if (statsDisplay) {
+                        const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
+                        statsDisplay.style.display = '';
+                        statsDisplay.innerHTML = '&#127942; <span style="font-weight: bold; color: #ffd700;">' + puntiTotali + '</span> punti';
                     }
+                } else {
+                    if (creditsDisplay) creditsDisplay.style.display = 'block';
+                    await updateCreditsDisplay();
                 }
 
             } catch (error) {
