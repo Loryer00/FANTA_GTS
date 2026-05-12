@@ -3361,8 +3361,7 @@
 
             try {
                 // Usa la configurazione_id dalla sessione corrente
-                const sessioneObj = window.sessioneOggetto;
-                const configId = sessioneObj?.configurazione_id;
+                const configId = sessioneOggetto?.configurazione_id;
 
                 if (!configId) {
                     container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna configurazione associata</p>';
