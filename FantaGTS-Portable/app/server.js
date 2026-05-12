@@ -1582,7 +1582,7 @@ async function ricalcolaPuntiConfigurazione(configurazioneId) {
         const incontriResult = await db.query(`
             SELECT DISTINCT i.id, i.squadra1, i.squadra2, i.configurazione_id
             FROM incontri i
-            WHERE i.configurazione_id = $1
+            WHERE i.configurazione_id = $1 AND i.completato = true
         `, [configurazioneId]);
 
         console.log(`📊 Trovati ${incontriResult.rows.length} incontri da analizzare`);
@@ -2805,25 +2805,7 @@ app.post('/api/join-session-with-code', async (req, res) => {
         );
 
         console.log(`✅ Partecipante ${partecipanteId} collegato a sessione ${sessione.nome} con ${creditiSessione} crediti`);
-
-        // 🆕 RICALCOLO AUTOMATICO PUNTI quando un partecipante si unisce
-        try {
-            const configResult = await db.query(
-                'SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1',
-                [sessione.id]
-            );
-
-            if (configResult.rows.length > 0) {
-                const configurazioneId = configResult.rows[0].configurazione_id;
-                if (configurazioneId && configurazioneId !== 'default') {
-                    console.log(`🔄 Ricalcolo automatico punti per nuovo partecipante`);
-                    await ricalcolaPuntiConfigurazione(configurazioneId);
-                }
-            }
-        } catch (error) {
-            console.warn('⚠️ Errore ricalcolo punti (non bloccante):', error.message);
-        }
-
+               
         // 🆕 Ritorna anche i crediti aggiornati
         res.json({
             success: true,
@@ -2971,32 +2953,8 @@ app.post('/api/genera-slots', async (req, res) => {
         console.log('Richiesta generazione slots...');
         console.log('Configurazione:', configurazioneId);
 
-        //SALVA I PUNTI PRIMA DI RIGENERARE GLI SLOTS
-        const puntiDaSalvare = await db.query(`
-            SELECT id, punti_totali 
-            FROM slots 
-            WHERE configurazione_id = $1 AND punti_totali > 0
-        `, [configurazioneId]);
-
-        console.log(`Salvati ${puntiDaSalvare.rows.length} slots con punti`);
-
-        // Genera nuovi slots (cancella e ricrea)
+        // Genera nuovi slots (cancella e ricrea, ricalcola punti dai risultati_dettaglio)
         const result = await generaSlots(configurazioneId);
-
-        // RIPRISTINA I PUNTI DOPO LA RIGENERAZIONE
-        if (puntiDaSalvare.rows.length > 0) {
-            console.log('Ripristino punti salvati...');
-            let ripristinati = 0;
-            for (const slotSalvato of puntiDaSalvare.rows) {
-                await db.query(`
-                    UPDATE slots 
-                    SET punti_totali = $1 
-                    WHERE id = $2 AND configurazione_id = $3
-                `, [slotSalvato.punti_totali, slotSalvato.id, configurazioneId]);
-                ripristinati++;
-            }
-            console.log(`Ripristinati ${ripristinati} punti`);
-        }
 
         console.log('Slots generati con successo:', result);
         res.json({ message: 'Slots generati con successo', count: result });
@@ -4286,8 +4244,8 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
 
                     // TOGLIE i punti (usa sottrazione ma non va sotto zero)
                     const updateResult = await db.query(
-                        "UPDATE slots SET punti_totali = GREATEST(0, punti_totali - $1) WHERE id = $2 RETURNING punti_totali",
-                        [risultato.punti_assegnati, slotId]
+                        "UPDATE slots SET punti_totali = GREATEST(0, punti_totali - $1) WHERE id = $2 AND configurazione_id = $3 RETURNING punti_totali",
+                        [risultato.punti_assegnati, slotId, incontro.configurazione_id]
                     );
 
                     if (updateResult.rows.length > 0) {
