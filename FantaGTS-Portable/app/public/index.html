@@ -1679,19 +1679,19 @@
             <!-- BOTTOM NAVIGATION -->
             <div class="bottom-nav">
                 <button class="bottom-nav-btn active" onclick="switchSection('squadra')">
-                    <span class="icon">🏆</span>
-                    <span class="label">Squadra</span>
+                    <span class="icon">🏠</span>
+                    <span class="label">Home</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('classifica')">
-                    <span class="icon">📊</span>
+                    <span class="icon">🏆</span>
                     <span class="label">Classifica</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('altri')">
-                    <span class="icon">👥</span>
-                    <span class="label">Altri</span>
+                    <span class="icon">👨‍👩‍👦</span>
+                    <span class="label">Partecipanti</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('incontri')">
-                    <span class="icon">⚽</span>
+                    <span class="icon">🗓️</span>
                     <span class="label">Incontri</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('stats')">
@@ -3356,30 +3356,33 @@
             if (!container) return;
 
             try {
-                const sid = sessioneCorrente;
-                if (!sid) {
-                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna sessione attiva</p>';
+                // Usa la configurazione_id dalla sessione corrente
+                const sessioneObj = window.sessioneOggetto;
+                const configId = sessioneObj?.configurazione_id;
+
+                if (!configId) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna configurazione associata</p>';
                     return;
                 }
 
-                const response = await fetch(`/api/sessioni/${sid}/immagini`);
+                const response = await fetch(`/api/configurazioni/${configId}/immagini`);
                 if (!response.ok) throw new Error('Errore caricamento');
 
                 immaginiInfo = await response.json();
 
                 if (immaginiInfo.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna informazione disponibile per questa sessione</p>';
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna informazione disponibile per questa configurazione</p>';
                     return;
                 }
 
                 let html = '<div class="info-gallery">';
                 immaginiInfo.forEach((img, index) => {
                     html += `
-                        <div class="info-gallery-item" onclick="apriLightbox(${index})">
-                            <img src="${img.url}" alt="${img.descrizione || img.nome_originale}" loading="lazy">
-                            ${img.descrizione ? `<div class="info-gallery-desc">${img.descrizione}</div>` : ''}
-                        </div>
-                    `;
+                <div class="info-gallery-item" onclick="apriLightbox(${index})">
+                    <img src="${img.url}" alt="${img.descrizione || img.nome_originale}" loading="lazy">
+                    ${img.descrizione ? `<div class="info-gallery-desc">${img.descrizione}</div>` : ''}
+                </div>
+            `;
                 });
                 html += '</div>';
                 container.innerHTML = html;

@@ -3434,41 +3434,43 @@
 
         async function caricaListaImmaginiInfo() {
             const container = document.getElementById('listaImmaginiInfo');
-            const sessioneId = sessioneCorrente;
+
+            // Usa configurazione_id invece di sessione_id
+            const sessioneObj = window.sessioneOggetto || {};
+            const configId = sessioneObj.configurazione_id;
+
+            if (!configId) {
+                container.innerHTML = '<p>Nessuna configurazione associata alla sessione</p>';
+                return;
+            }
 
             try {
-                const response = await fetch(`/api/sessioni/${sessioneId}/immagini`);
+                const response = await fetch(`/api/configurazioni/${configId}/immagini`);
                 const immagini = await response.json();
 
                 if (immagini.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna immagine caricata per questa sessione</p>';
+                    container.innerHTML = '<p style="text-align:center; opacity:0.7;">Nessuna immagine caricata per questa configurazione</p>';
                     return;
                 }
 
                 let html = '';
                 immagini.forEach(img => {
                     html += `
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                            <img src="${img.url}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer;" 
-                                 onclick="window.open('${img.url}', '_blank')">
-                            <div style="flex: 1;">
-                                <div style="font-weight: bold; font-size: 0.9em;">${img.nome_originale}</div>
-                                <div style="font-size: 0.8em; color: #a0aec0;">${img.descrizione || 'Nessuna descrizione'}</div>
-                                <div style="font-size: 0.75em; color: #718096;">Ordine: ${img.ordine}</div>
-                            </div>
-                            <button onclick="eliminaImmagineInfo(${img.id})" 
-                                    style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.85em;">
-                                Elimina
-                            </button>
-                        </div>
-                    `;
+                <div class="img-item" style="display:flex; align-items:center; gap:15px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px;">
+                    <img src="${img.url}" style="width:80px; height:80px; object-fit:cover; border-radius:8px;">
+                    <div style="flex:1;">
+                        <strong>${img.nome_originale}</strong><br>
+                        <small style="opacity:0.7;">${img.descrizione || 'Nessuna descrizione'}</small>
+                    </div>
+                    <button onclick="eliminaImmagineConfig(${img.id})" class="btn btn-danger btn-small">Elimina</button>
+                </div>
+            `;
                 });
-
                 container.innerHTML = html;
 
             } catch (err) {
-                console.error('Errore caricamento immagini:', err);
-                container.innerHTML = '<p style="color: #f56565;">Errore caricamento immagini</p>';
+                console.error('Errore caricamento lista immagini:', err);
+                container.innerHTML = '<p>Errore caricamento immagini</p>';
             }
         }
 
@@ -3489,7 +3491,9 @@
             try {
                 showNotification('Caricamento in corso...', 'info');
 
-                const response = await fetch(`/api/sessioni/${sessioneId}/immagini`, {
+                const configId = (window.sessioneOggetto || {}).configurazione_id;
+                if (!configId) { showNotification('Nessuna configurazione associata', 'error'); return; }
+                const response = await fetch(`/api/configurazioni/${configId}/immagini`, {
                     method: 'POST',
                     body: formData
                 });
@@ -3528,6 +3532,23 @@
             } catch (err) {
                 console.error('Errore eliminazione:', err);
                 showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        async function eliminaImmagineConfig(id) {
+            if (!confirm('Eliminare questa immagine? Sara rimossa per tutte le sessioni con questa configurazione.')) return;
+
+            try {
+                const response = await fetch(`/api/immagini-config/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showNotification('Immagine eliminata', 'success');
+                    caricaListaImmaginiInfo();
+                } else {
+                    throw new Error('Errore eliminazione');
+                }
+            } catch (err) {
+                console.error('Errore:', err);
+                showNotification('Errore eliminazione immagine', 'error');
             }
         }
 

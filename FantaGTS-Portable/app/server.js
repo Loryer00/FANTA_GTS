@@ -707,6 +707,47 @@ async function updateDatabaseSchema() {
         `);
         console.log('✅ View v_sessioni_stats creata/aggiornata');
 
+        // MIGRAZIONE IMMAGINI: da sessione a configurazione
+        await db.query(`CREATE TABLE IF NOT EXISTS immagini_configurazione (
+            id SERIAL PRIMARY KEY,
+            configurazione_id TEXT REFERENCES configurazioni(id) ON DELETE CASCADE,
+            nome_file TEXT NOT NULL,
+            nome_originale TEXT,
+            descrizione TEXT,
+            ordine INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('Tabella immagini_configurazione creata/verificata');
+
+        // Migra dati esistenti dalla vecchia tabella (se ci sono)
+        const vecchieImmaginiExist = await db.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'immagini_sessione'
+            )
+        `);
+        if (vecchieImmaginiExist.rows[0].exists) {
+            const damigrare = await db.query(`
+                SELECT im.*, s.configurazione_id 
+                FROM immagini_sessione im
+                JOIN sessioni_fantagts s ON s.id = im.sessione_id
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM immagini_configurazione ic 
+                    WHERE ic.nome_file = im.nome_file 
+                    AND ic.configurazione_id = s.configurazione_id
+                )
+            `);
+            for (const img of damigrare.rows) {
+                await db.query(`
+                    INSERT INTO immagini_configurazione (configurazione_id, nome_file, nome_originale, descrizione, ordine)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [img.configurazione_id, img.nome_file, img.nome_originale, img.descrizione, img.ordine]);
+            }
+            if (damigrare.rows.length > 0) {
+                console.log('Migrate ' + damigrare.rows.length + ' immagini da sessione a configurazione');
+            }
+        }
+
         console.log('✅ Schema database aggiornato completamente con sistema configurazioni e sessioni');
     } catch (error) {
         console.error('❌ Errore aggiornamento schema:', error);
@@ -4414,32 +4455,57 @@ app.get('/api/slots-round/:round', async (req, res) => {
 });
 
 // ========================================
-// IMMAGINI INFO SESSIONE
+// IMMAGINI INFO SESSIONE (legacy per sessione)
 // ========================================
-
-// Configurazione multer per upload immagini
 const storageImmagini = multer.diskStorage({
     destination: function (req, file, cb) {
         const sessioneId = req.params.sessioneId || req.body.sessione_id || 'default';
         const uploadDir = path.join(__dirname, 'uploads', 'sessioni', sessioneId);
-
-        // Crea la cartella se non esiste
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
         cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        // Nome univoco: timestamp + nome originale pulito
         const nomeClean = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
         const nomeFinale = Date.now() + '_' + nomeClean;
         cb(null, nomeFinale);
     }
 });
-
 const uploadImmagini = multer({
     storage: storageImmagini,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Max 5MB per immagine
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function (req, file, cb) {
+        const tipiPermessi = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (tipiPermessi.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Tipo file non permesso. Usa JPG, PNG, WEBP o GIF.'));
+        }
+    }
+});
+
+// ========================================
+// IMMAGINI CONFIGURAZIONE (condivise tra sessioni)
+// ========================================
+const storageImmaginiConfig = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const configId = req.params.configurazioneId || 'default';
+        const dir = path.join(__dirname, 'uploads', 'configurazioni', configId);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+        const nomeClean = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const nomeFinale = Date.now() + '_' + nomeClean;
+        cb(null, nomeFinale);
+    }
+});
+const uploadImmaginiConfig = multer({
+    storage: storageImmaginiConfig,
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: function (req, file, cb) {
         const tipiPermessi = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         if (tipiPermessi.includes(file.mimetype)) {
@@ -4563,6 +4629,92 @@ app.delete('/api/sessioni/:sessioneId/immagini', async (req, res) => {
 
     } catch (err) {
         console.error('Errore eliminazione immagini sessione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================================
+// API IMMAGINI CONFIGURAZIONE (condivise tra sessioni)
+// ========================================
+
+// POST: Carica immagine per una configurazione
+app.post('/api/configurazioni/:configurazioneId/immagini', uploadImmaginiConfig.single('immagine'), async (req, res) => {
+    try {
+        const configurazioneId = req.params.configurazioneId;
+        const descrizione = req.body.descrizione || '';
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nessuna immagine caricata' });
+        }
+
+        const ordineResult = await db.query(
+            'SELECT COALESCE(MAX(ordine), 0) + 1 as prossimo FROM immagini_configurazione WHERE configurazione_id = $1',
+            [configurazioneId]
+        );
+        const ordine = ordineResult.rows[0].prossimo;
+
+        const result = await db.query(
+            `INSERT INTO immagini_configurazione (configurazione_id, nome_file, nome_originale, descrizione, ordine)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [configurazioneId, req.file.filename, req.file.originalname, descrizione, ordine]
+        );
+
+        console.log(`Immagine caricata per configurazione ${configurazioneId}: ${req.file.originalname}`);
+        res.json({ success: true, immagine: result.rows[0] });
+
+    } catch (err) {
+        console.error('Errore upload immagine configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Recupera tutte le immagini di una configurazione
+app.get('/api/configurazioni/:configurazioneId/immagini', async (req, res) => {
+    try {
+        const configurazioneId = req.params.configurazioneId;
+
+        const result = await db.query(
+            'SELECT * FROM immagini_configurazione WHERE configurazione_id = $1 ORDER BY ordine ASC',
+            [configurazioneId]
+        );
+
+        const immagini = result.rows.map(img => ({
+            ...img,
+            url: `/uploads/configurazioni/${configurazioneId}/${img.nome_file}`
+        }));
+
+        res.json(immagini);
+
+    } catch (err) {
+        console.error('Errore recupero immagini configurazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina una immagine di configurazione
+app.delete('/api/immagini-config/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const imgResult = await db.query('SELECT * FROM immagini_configurazione WHERE id = $1', [id]);
+        if (imgResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Immagine non trovata' });
+        }
+
+        const img = imgResult.rows[0];
+
+        const filePath = path.join(__dirname, 'uploads', 'configurazioni', img.configurazione_id, img.nome_file);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        await db.query('DELETE FROM immagini_configurazione WHERE id = $1', [id]);
+
+        console.log(`Immagine config eliminata: ${img.nome_originale} (config ${img.configurazione_id})`);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error('Errore eliminazione immagine config:', err);
         res.status(500).json({ error: err.message });
     }
 });
