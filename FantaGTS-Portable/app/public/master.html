@@ -3436,8 +3436,7 @@
             const container = document.getElementById('listaImmaginiInfo');
 
             // Usa configurazione_id invece di sessione_id
-            const sessioneObj = window.sessioneOggetto || {};
-            const configId = sessioneObj.configurazione_id;
+            const configId = configurazioneCorrente;
 
             if (!configId) {
                 container.innerHTML = '<p>Nessuna configurazione associata alla sessione</p>';
@@ -3491,7 +3490,7 @@
             try {
                 showNotification('Caricamento in corso...', 'info');
 
-                const configId = (window.sessioneOggetto || {}).configurazione_id;
+                const configId = configurazioneCorrente;
                 if (!configId) { showNotification('Nessuna configurazione associata', 'error'); return; }
                 const response = await fetch(`/api/configurazioni/${configId}/immagini`, {
                     method: 'POST',
