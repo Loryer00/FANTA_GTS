@@ -3431,7 +3431,13 @@
 
         async function caricaTurniDisponibili() {
             try {
-                console.log('📅 Caricamento turni disponibili...');
+                console.log('Caricamento turni disponibili...');
+
+                // Reset select e container ogni volta che si entra nella tab
+                const selectReset = document.getElementById('turniSelect');
+                if (selectReset) selectReset.value = '';
+                const containerReset = document.getElementById('incontriContainer');
+                if (containerReset) containerReset.innerHTML = '<p style="text-align: center; opacity: 0.7;">Seleziona un turno per visualizzare gli incontri</p>';
 
                 // Ottieni configurazione dalla sessione
                 let configurazioneId = 'default';
