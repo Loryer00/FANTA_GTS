@@ -3433,12 +3433,6 @@
             try {
                 console.log('📅 Caricamento turni disponibili...');
 
-                // Reset select e container ogni volta che si entra nella tab
-                const selectTurno = document.getElementById('turniSelect');
-                if (selectTurno) selectTurno.value = '';
-                const container = document.getElementById('incontriContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Seleziona un turno per visualizzare gli incontri</p>';
-
                 // Ottieni configurazione dalla sessione
                 let configurazioneId = 'default';
                 if (sessioneOggetto && sessioneOggetto.configurazione_id) {
