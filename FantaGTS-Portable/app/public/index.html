@@ -3433,13 +3433,10 @@
             try {
                 console.log('📅 Caricamento turni disponibili...');
 
-                // 1. Usa l'oggetto sessione completo salvato in sessioneOggetto
-                const configId = configurazioneCorrente;
-
-                // 2. Ottieni configurazione dalla sessione
+                // Ottieni configurazione dalla sessione
                 let configurazioneId = 'default';
-                if (sessioneObj && sessioneObj.configurazione_id) {
-                    configurazioneId = sessioneObj.configurazione_id;
+                if (sessioneOggetto && sessioneOggetto.configurazione_id) {
+                    configurazioneId = sessioneOggetto.configurazione_id;
                 } else if (sessioneCorrente) {
                     // Fallback: prova a caricarla dalla sessione
                     const sessResp = await fetch(`/api/sessioni/${sessioneCorrente}`);
@@ -3449,7 +3446,7 @@
                     }
                 }
 
-                console.log('🎯 Carico turni per configurazione:', configurazioneId);
+                console.log('Carico turni per configurazione:', configurazioneId);
                 const response = await fetch(`/api/turni?configurazione=${configurazioneId}`);
 
                 if (!response.ok) {
@@ -3471,11 +3468,10 @@
                     `<option value="${turno.id}">${turno.nome_turno}</option>`
                 ).join('');
 
-                console.log('✅ Turni caricati nel select:', turni.length);
+                console.log('Turni caricati nel select:', turni.length);
 
             } catch (error) {
-                console.error('❌ Errore caricamento turni:', error);
-                // Non rilancio l'errore, altrimenti la Promise rimane Uncaught (in promise)
+                console.error('Errore caricamento turni:', error);
             }
         }
 
