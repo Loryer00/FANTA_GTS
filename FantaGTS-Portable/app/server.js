@@ -5500,6 +5500,35 @@ app.post('/api/sostituzioni', async (req, res) => {
     }
 });
 
+// API GET - Cronologia sostituzioni per configurazione
+app.get('/api/sostituzioni', async (req, res) => {
+    try {
+        const configurazioneId = req.query.configurazione;
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'configurazione richiesto' });
+        }
+
+        const result = await db.query(`
+            SELECT s.id, s.slot_id, s.giocatore_vecchio, s.giocatore_nuovo, 
+                   s.motivo, s.timestamp,
+                   sc.colore, sc.numero as numero_squadra
+            FROM sostituzioni s
+            JOIN sessioni_fantagts sf ON s.sessione_id = sf.id
+            LEFT JOIN slots sl ON s.slot_id = sl.id AND sl.configurazione_id = $1
+            LEFT JOIN squadre_circolo sc ON sl.squadra_numero = sc.numero AND sc.configurazione_id = $1
+            WHERE sf.configurazione_id = $1
+            GROUP BY s.id, s.slot_id, s.giocatore_vecchio, s.giocatore_nuovo, 
+                     s.motivo, s.timestamp, sc.colore, sc.numero
+            ORDER BY s.timestamp DESC
+        `, [configurazioneId]);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API GET sostituzioni:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 async function terminaRound(forzato = false) {
     console.log('🔄 terminaRound chiamato - elaborando risultati asta');
 

@@ -395,6 +395,100 @@
                 padding: 20px;
             }
         }
+
+        /* Overlay Cronologia */
+        .cronologia-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cronologia-header-fisso {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0 10px 0;
+            flex-shrink: 0;
+        }
+
+            .cronologia-header-fisso h3 {
+                color: #4299e1;
+                font-size: 1.4em;
+                margin: 0;
+            }
+
+        .btn-chiudi-cronologia {
+            background: rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #f87171;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+            .btn-chiudi-cronologia:hover {
+                background: rgba(239, 68, 68, 0.5);
+            }
+
+        .cronologia-lista {
+            width: 90%;
+            max-width: 600px;
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px 0 30px 0;
+        }
+
+        .sost-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4299e1;
+        }
+
+            .sost-card .sost-nomi {
+                font-size: 1.1em;
+                margin-bottom: 6px;
+            }
+
+            .sost-card .sost-nome-vecchio {
+                color: #f87171;
+                text-decoration: line-through;
+            }
+
+            .sost-card .sost-freccia {
+                color: #a0aec0;
+                margin: 0 8px;
+            }
+
+            .sost-card .sost-nome-nuovo {
+                color: #48bb78;
+                font-weight: bold;
+            }
+
+            .sost-card .sost-dettagli {
+                font-size: 0.85em;
+                color: #a0aec0;
+            }
+
+            .sost-card .sost-motivo {
+                font-size: 0.85em;
+                color: #ecc94b;
+                margin-top: 4px;
+                font-style: italic;
+            }
     </style>
 </head>
 <body>
@@ -405,7 +499,10 @@
                 <span>🔄</span>
                 Gestione Sostituzioni
             </h1>
-            <a id="btnTornaMaster" href="/master" class="btn-back" onclick="return tornaAlMaster(event)">Torna al Master</a>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn-back" onclick="apriCronologia()" style="background: rgba(66,153,225,0.2); border-color: rgba(66,153,225,0.4); color: #4299e1;">Cronologia</button>
+                <a id="btnTornaMaster" href="/master" class="btn-back" onclick="return tornaAlMaster(event)">Torna al Master</a>
+            </div>
         </div>
 
         <!-- Filtro Squadra -->
@@ -826,10 +923,87 @@
             }, 3000);
         }
 
+        // Cronologia sostituzioni
+        async function apriCronologia() {
+            try {
+                if (!configurazioneCorrente) {
+                    showNotification('Nessuna configurazione attiva', 'error');
+                    return;
+                }
+
+                const response = await fetch(`/api/sostituzioni?configurazione=${configurazioneCorrente}`);
+                if (!response.ok) throw new Error('Errore caricamento cronologia');
+
+                const sostituzioni = await response.json();
+
+                // Rimuovi overlay precedente se esiste
+                const vecchio = document.getElementById('cronologiaOverlay');
+                if (vecchio) vecchio.remove();
+
+                // Crea overlay
+                const overlay = document.createElement('div');
+                overlay.id = 'cronologiaOverlay';
+                overlay.className = 'cronologia-overlay';
+
+                let listaHtml = '';
+
+                if (sostituzioni.length === 0) {
+                    listaHtml = '<p style="text-align: center; color: #a0aec0; padding: 40px 0;">Nessuna sostituzione effettuata</p>';
+                } else {
+                    sostituzioni.forEach(function (s) {
+                        const data = new Date(s.timestamp);
+                        const dataStr = data.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const oraStr = data.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+                        // Estrai posizione dallo slot_id (es: "M1_SQ3_VERDE" -> "M1")
+                        const posizione = s.slot_id ? s.slot_id.split('_')[0] : '?';
+                        const colore = s.colore ? s.colore.charAt(0).toUpperCase() + s.colore.slice(1) : '';
+                        const borderColor = getTeamColor(s.colore || '');
+
+                        listaHtml += '<div class="sost-card" style="border-left-color: ' + borderColor + ';">';
+                        listaHtml += '  <div class="sost-nomi">';
+                        listaHtml += '    <span class="sost-nome-vecchio">' + s.giocatore_vecchio + '</span>';
+                        listaHtml += '    <span class="sost-freccia">--></span>';
+                        listaHtml += '    <span class="sost-nome-nuovo">' + s.giocatore_nuovo + '</span>';
+                        listaHtml += '  </div>';
+                        listaHtml += '  <div class="sost-dettagli">' + posizione + ' - Squadra ' + colore + ' | ' + dataStr + ' ' + oraStr + '</div>';
+                        if (s.motivo) {
+                            listaHtml += '  <div class="sost-motivo">Motivo: ' + s.motivo + '</div>';
+                        }
+                        listaHtml += '</div>';
+                    });
+                }
+
+                overlay.innerHTML =
+                    '<div class="cronologia-header-fisso">' +
+                    '  <h3>Cronologia Sostituzioni</h3>' +
+                    '  <button class="btn-chiudi-cronologia" onclick="chiudiCronologia()">Chiudi</button>' +
+                    '</div>' +
+                    '<div class="cronologia-lista">' + listaHtml + '</div>';
+
+                // Chiudi cliccando fuori dalla lista
+                overlay.addEventListener('click', function (e) {
+                    if (e.target === overlay) chiudiCronologia();
+                });
+
+                document.body.appendChild(overlay);
+
+            } catch (error) {
+                console.error('Errore cronologia:', error);
+                showNotification('Errore caricamento cronologia', 'error');
+            }
+        }
+
+        function chiudiCronologia() {
+            const overlay = document.getElementById('cronologiaOverlay');
+            if (overlay) overlay.remove();
+        }
+
         // Chiudi modal con ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
+                chiudiCronologia();
             }
         });
 
