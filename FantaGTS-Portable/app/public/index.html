@@ -325,7 +325,7 @@
 
         .bottom-nav-btn {
             flex: 1;
-            padding: 8px 5px;
+            padding: 6px 2px;
             border: none;
             background: transparent;
             color: #a0aec0;
@@ -334,8 +334,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3px;
+            justify-content: center;
+            gap: 0px;
             border-radius: 10px;
+            min-height: 44px;
         }
 
             .bottom-nav-btn.active {
@@ -1703,8 +1705,7 @@
                     <span class="label">Stats</span>
                 </button>
                 <button class="bottom-nav-btn" onclick="switchSection('info')">
-                    <span class="icon" style="font-size: 2.2em; font-weight: bold;">&#8505;</span>
-                    <span class="label">Info</span>
+                    <span class="icon">&#8505;</span>
                 </button>
             </div>
         </div>
