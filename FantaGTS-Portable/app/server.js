@@ -5509,7 +5509,8 @@ app.get('/api/sostituzioni', async (req, res) => {
         }
 
         const result = await db.query(`
-            SELECT s.id, s.slot_id, s.giocatore_vecchio, s.giocatore_nuovo, 
+            SELECT DISTINCT ON (s.giocatore_vecchio, s.giocatore_nuovo, s.slot_id, DATE_TRUNC('minute', s.timestamp))
+                   s.id, s.slot_id, s.giocatore_vecchio, s.giocatore_nuovo, 
                    s.motivo, s.timestamp,
                    sc.colore, sc.numero as numero_squadra
             FROM sostituzioni s
@@ -5517,10 +5518,11 @@ app.get('/api/sostituzioni', async (req, res) => {
             LEFT JOIN slots sl ON s.slot_id = sl.id AND sl.configurazione_id = $1
             LEFT JOIN squadre_circolo sc ON sl.squadra_numero = sc.numero AND sc.configurazione_id = $1
             WHERE sf.configurazione_id = $1
-            GROUP BY s.id, s.slot_id, s.giocatore_vecchio, s.giocatore_nuovo, 
-                     s.motivo, s.timestamp, sc.colore, sc.numero
-            ORDER BY s.timestamp DESC
+            ORDER BY s.giocatore_vecchio, s.giocatore_nuovo, s.slot_id, DATE_TRUNC('minute', s.timestamp), s.id DESC
         `, [configurazioneId]);
+
+        // Riordina per timestamp decrescente dopo il DISTINCT
+        result.rows.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         res.json(result.rows);
     } catch (err) {
