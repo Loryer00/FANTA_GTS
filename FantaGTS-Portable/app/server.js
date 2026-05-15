@@ -4719,6 +4719,49 @@ app.delete('/api/immagini-config/:id', async (req, res) => {
     }
 });
 
+// POST: Pulizia record orfani (immagini senza file su disco)
+app.post('/api/immagini-config/pulizia-orfani', async (req, res) => {
+    try {
+        // Pulizia immagini_configurazione
+        const configResult = await db.query('SELECT * FROM immagini_configurazione');
+        let eliminatiConfig = 0;
+
+        for (const img of configResult.rows) {
+            const filePath = path.join(__dirname, 'uploads', 'configurazioni', img.configurazione_id, img.nome_file);
+            if (!fs.existsSync(filePath)) {
+                await db.query('DELETE FROM immagini_configurazione WHERE id = $1', [img.id]);
+                eliminatiConfig++;
+                console.log('Rimosso record orfano config:', img.nome_originale);
+            }
+        }
+
+        // Pulizia immagini_sessione
+        const sessResult = await db.query('SELECT * FROM immagini_sessione');
+        let eliminatiSess = 0;
+
+        for (const img of sessResult.rows) {
+            const filePath = path.join(__dirname, 'uploads', 'sessioni', img.sessione_id, img.nome_file);
+            if (!fs.existsSync(filePath)) {
+                await db.query('DELETE FROM immagini_sessione WHERE id = $1', [img.id]);
+                eliminatiSess++;
+                console.log('Rimosso record orfano sessione:', img.nome_originale);
+            }
+        }
+
+        console.log(`Pulizia completata: ${eliminatiConfig} config + ${eliminatiSess} sessione = ${eliminatiConfig + eliminatiSess} orfani rimossi`);
+        res.json({
+            success: true,
+            eliminati_config: eliminatiConfig,
+            eliminati_sessione: eliminatiSess,
+            totale: eliminatiConfig + eliminatiSess
+        });
+
+    } catch (err) {
+        console.error('Errore pulizia orfani:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Push notifications
 app.post('/api/subscribe-notifications', async (req, res) => {
     try {
@@ -7587,6 +7630,37 @@ initializeDatabase().then(async () => {
         }
     } catch (err) {
         console.error('❌ Errore caricamento sessione attiva:', err);
+    }
+
+    // Pulizia automatica record orfani immagini all'avvio
+    try {
+        let totaleOrfani = 0;
+
+        const configRows = await db.query('SELECT * FROM immagini_configurazione');
+        for (const img of configRows.rows) {
+            const fp = path.join(__dirname, 'uploads', 'configurazioni', img.configurazione_id, img.nome_file);
+            if (!fs.existsSync(fp)) {
+                await db.query('DELETE FROM immagini_configurazione WHERE id = $1', [img.id]);
+                totaleOrfani++;
+            }
+        }
+
+        const sessRows = await db.query('SELECT * FROM immagini_sessione');
+        for (const img of sessRows.rows) {
+            const fp = path.join(__dirname, 'uploads', 'sessioni', img.sessione_id, img.nome_file);
+            if (!fs.existsSync(fp)) {
+                await db.query('DELETE FROM immagini_sessione WHERE id = $1', [img.id]);
+                totaleOrfani++;
+            }
+        }
+
+        if (totaleOrfani > 0) {
+            console.log('Pulizia avvio: rimossi ' + totaleOrfani + ' record orfani di immagini');
+        } else {
+            console.log('Pulizia avvio: nessun record orfano trovato');
+        }
+    } catch (err) {
+        console.error('Errore pulizia orfani avvio:', err);
     }
 
     server.listen(PORT, HOST, () => {
