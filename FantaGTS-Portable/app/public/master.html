@@ -1728,7 +1728,8 @@
                                         <table class="results-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Nome</th>
+                                                    <th>Nickname</th>
+                                                    <th>Nome Cognome</th>
                                                     <th>Crediti</th>
                                                     <th>Notifiche</th>
                                                     <th>Registrato</th>
@@ -1745,6 +1746,7 @@
                     html += `
                                             <tr id="partecipante-${p.id}">
                                                 <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
+                                                <td>${p.nome_reale || '-'} ${p.cognome || ''}</td>
                                                 <td>${p.crediti}</td>
                                                 <td style="text-align: center;">${notificheOk ? '<span style="color: #48bb78;">Attive</span>' : '<span style="color: #f56565;">No</span>'}</td>
                                                 <td>${dataRegistrazione}</td>

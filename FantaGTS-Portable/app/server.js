@@ -482,6 +482,11 @@ async function updateDatabaseSchema() {
         await db.query(`ALTER TABLE partecipanti_fantagts DROP CONSTRAINT IF EXISTS partecipanti_fantagts_sessione_id_fkey`);
         console.log('✅ Foreign Key rimossa da partecipanti_fantagts');
 
+        // Campi nome_reale e cognome per partecipanti =====
+        await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS nome_reale TEXT`);
+        await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS cognome TEXT`);
+        console.log('Campi nome_reale e cognome aggiunti a partecipanti_fantagts');
+
         // 5️⃣ 🆕 MODIFICA SQUADRE_CIRCOLO: Ora collegate a configurazione_id
         console.log('🔧 Aggiornando squadre_circolo per usare configurazione_id...');
 
@@ -746,6 +751,52 @@ async function updateDatabaseSchema() {
             if (damigrare.rows.length > 0) {
                 console.log('Migrate ' + damigrare.rows.length + ' immagini da sessione a configurazione');
             }
+        }
+
+        // ========================================
+        // NUOVE TABELLE: FASI TORNEO E GIRONI
+        // ========================================
+
+        // Tabella fasi del torneo (Gironi, Quarti, Semifinali, Finale...)
+        await db.query(`CREATE TABLE IF NOT EXISTS fasi_torneo (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL,
+            ordine INTEGER NOT NULL DEFAULT 1,
+            attiva BOOLEAN DEFAULT false,
+            configurazione_id TEXT REFERENCES configurazioni(id) ON DELETE CASCADE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('Tabella fasi_torneo creata/verificata');
+
+        // Tabella gironi (Girone A, Girone B, ecc.)
+        await db.query(`CREATE TABLE IF NOT EXISTS gironi (
+            id SERIAL PRIMARY KEY,
+            fase_id INTEGER REFERENCES fasi_torneo(id) ON DELETE CASCADE,
+            nome TEXT NOT NULL,
+            ordine INTEGER NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('Tabella gironi creata/verificata');
+
+        // Tabella assegnazione squadre ai gironi
+        await db.query(`CREATE TABLE IF NOT EXISTS squadre_girone (
+            id SERIAL PRIMARY KEY,
+            girone_id INTEGER REFERENCES gironi(id) ON DELETE CASCADE,
+            squadra_numero INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(girone_id, squadra_numero)
+        )`);
+        console.log('Tabella squadre_girone creata/verificata');
+
+        // ========================================
+        // NUOVE COLONNE: Nome e Cognome reali
+        // ========================================
+        try {
+            await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS nome_reale TEXT`);
+            await db.query(`ALTER TABLE partecipanti_fantagts ADD COLUMN IF NOT EXISTS cognome TEXT`);
+            console.log('Colonne nome_reale e cognome aggiunte a partecipanti_fantagts');
+        } catch (e) {
+            console.log('Colonne nome_reale/cognome gia presenti');
         }
 
         console.log('✅ Schema database aggiornato completamente con sistema configurazioni e sessioni');
@@ -2544,7 +2595,7 @@ app.get('/api/partecipanti', async (req, res) => {
         // Per le sessioni con partecipanti_sessioni_accesso (draft), fa JOIN
         // Per le vecchie sessioni con sessione_id diretto, usa quello
         const result = await db.query(`
-            SELECT p.id, p.nome, p.pin, psa.crediti, psa.primo_accesso,
+            SELECT p.id, p.nome, p.nome_reale, p.cognome, p.pin, psa.crediti, psa.primo_accesso,
                 (SELECT COUNT(*) FROM push_subscriptions ps WHERE ps.partecipante_id = p.id AND ps.attiva = true) as notifiche_attive
             FROM partecipanti_fantagts p
             INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
@@ -2727,7 +2778,7 @@ app.post('/api/login', async (req, res) => {
 // ========================================
 app.post('/api/register', async (req, res) => {
     try {
-        const { nickname, pin, crediti = 2000 } = req.body;
+        const { nickname, pin, nome_reale, cognome, crediti = 2000 } = req.body;
 
         if (!nickname || !pin) {
             return res.status(400).json({
@@ -2736,8 +2787,17 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        if (!nome_reale || !cognome) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nome e Cognome sono obbligatori'
+            });
+        }
+
         const nicknameClean = nickname.trim();
         const pinClean = pin.trim();
+        const nomeRealeClean = nome_reale.trim();
+        const cognomeClean = cognome.trim();
 
         // Validazione PIN
         if (!/^\d{4}$/.test(pinClean)) {
@@ -2747,7 +2807,7 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // Controlla se nickname già in uso
+        // Controlla se nickname gia in uso
         const existingCheck = await db.query(`
             SELECT id FROM partecipanti_fantagts 
             WHERE LOWER(TRIM(nome)) = LOWER(TRIM($1)) 
@@ -2757,23 +2817,23 @@ app.post('/api/register', async (req, res) => {
         if (existingCheck.rows.length > 0) {
             return res.status(409).json({
                 success: false,
-                error: 'Nickname già in uso'
+                error: 'Nickname gia in uso'
             });
         }
 
         // Genera ID dal nickname
         const id = nicknameClean.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
-        // Inserimento nuovo partecipante
+        // Inserimento nuovo partecipante con nome e cognome reali
         const result = await db.query(`
-            INSERT INTO partecipanti_fantagts (id, nome, pin, crediti, attivo)
-            VALUES ($1, $2, $3, $4, true)
+            INSERT INTO partecipanti_fantagts (id, nome, pin, crediti, attivo, nome_reale, cognome)
+            VALUES ($1, $2, $3, $4, true, $5, $6)
             RETURNING id, nome, crediti
-        `, [id, nicknameClean, pinClean, crediti]);
+        `, [id, nicknameClean, pinClean, crediti, nomeRealeClean, cognomeClean]);
 
         const player = result.rows[0];
 
-        console.log(`✅ Nuovo partecipante registrato: ${player.nome} (ID: ${player.id})`);
+        console.log(`Nuovo partecipante registrato: ${player.nome} (${nomeRealeClean} ${cognomeClean}) ID: ${player.id}`);
 
         res.status(201).json({
             success: true,
@@ -2785,13 +2845,531 @@ app.post('/api/register', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore registrazione:', error);
+        console.error('Errore registrazione:', error);
         res.status(500).json({
             success: false,
             error: 'Errore server durante la registrazione'
         });
     }
 });
+
+// ========================================
+// API: FASI TORNEO E GIRONI
+// ========================================
+
+// GET: Lista fasi di una configurazione
+app.get('/api/fasi-torneo', async (req, res) => {
+    try {
+        const configurazioneId = req.query.configurazione;
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'Parametro configurazione mancante' });
+        }
+        const result = await db.query(
+            'SELECT * FROM fasi_torneo WHERE configurazione_id = $1 ORDER BY ordine',
+            [configurazioneId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Errore API fasi-torneo:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Crea nuova fase
+app.post('/api/fasi-torneo', async (req, res) => {
+    try {
+        const { nome, ordine, configurazione_id } = req.body;
+        if (!nome || !configurazione_id) {
+            return res.status(400).json({ error: 'Nome e configurazione_id richiesti' });
+        }
+        const result = await db.query(
+            `INSERT INTO fasi_torneo (nome, ordine, configurazione_id, attiva)
+             VALUES ($1, $2, $3, false) RETURNING *`,
+            [nome, ordine || 1, configurazione_id]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Errore creazione fase:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT: Attiva/disattiva una fase
+app.put('/api/fasi-torneo/:id', async (req, res) => {
+    try {
+        const { nome, attiva } = req.body;
+        const faseId = req.params.id;
+
+        if (attiva === true) {
+            // Recupera configurazione_id della fase
+            const faseResult = await db.query('SELECT configurazione_id FROM fasi_torneo WHERE id = $1', [faseId]);
+            if (faseResult.rows.length > 0) {
+                // Disattiva tutte le altre fasi della stessa configurazione
+                await db.query(
+                    'UPDATE fasi_torneo SET attiva = false WHERE configurazione_id = $1',
+                    [faseResult.rows[0].configurazione_id]
+                );
+            }
+        }
+
+        const updates = [];
+        const values = [];
+        let paramIndex = 1;
+
+        if (nome !== undefined) {
+            updates.push(`nome = $${paramIndex++}`);
+            values.push(nome);
+        }
+        if (attiva !== undefined) {
+            updates.push(`attiva = $${paramIndex++}`);
+            values.push(attiva);
+        }
+
+        values.push(faseId);
+        await db.query(
+            `UPDATE fasi_torneo SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+            values
+        );
+
+        res.json({ message: 'Fase aggiornata' });
+    } catch (err) {
+        console.error('Errore aggiornamento fase:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina fase
+app.delete('/api/fasi-torneo/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM fasi_torneo WHERE id = $1', [req.params.id]);
+        res.json({ message: 'Fase eliminata' });
+    } catch (err) {
+        console.error('Errore eliminazione fase:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Gironi di una fase
+app.get('/api/gironi/:faseId', async (req, res) => {
+    try {
+        const gironi = await db.query(
+            'SELECT * FROM gironi WHERE fase_id = $1 ORDER BY ordine',
+            [req.params.faseId]
+        );
+
+        // Per ogni girone, carica le squadre assegnate
+        for (const girone of gironi.rows) {
+            const squadre = await db.query(
+                `SELECT sg.squadra_numero, sc.colore 
+                 FROM squadre_girone sg
+                 JOIN squadre_circolo sc ON sg.squadra_numero = sc.numero 
+                    AND sc.configurazione_id = (SELECT configurazione_id FROM fasi_torneo WHERE id = $1)
+                 WHERE sg.girone_id = $2
+                 ORDER BY sc.colore`,
+                [req.params.faseId, girone.id]
+            );
+            girone.squadre = squadre.rows;
+        }
+
+        res.json(gironi.rows);
+    } catch (err) {
+        console.error('Errore API gironi:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST: Crea girone con squadre
+app.post('/api/gironi', async (req, res) => {
+    try {
+        const { fase_id, nome, ordine, squadre } = req.body;
+        if (!fase_id || !nome) {
+            return res.status(400).json({ error: 'fase_id e nome richiesti' });
+        }
+
+        await db.query('BEGIN');
+
+        const gironeResult = await db.query(
+            `INSERT INTO gironi (fase_id, nome, ordine) VALUES ($1, $2, $3) RETURNING *`,
+            [fase_id, nome, ordine || 1]
+        );
+        const girone = gironeResult.rows[0];
+
+        // Inserisci squadre nel girone
+        if (squadre && squadre.length > 0) {
+            for (const squadraNumero of squadre) {
+                await db.query(
+                    `INSERT INTO squadre_girone (girone_id, squadra_numero) VALUES ($1, $2)
+                     ON CONFLICT (girone_id, squadra_numero) DO NOTHING`,
+                    [girone.id, squadraNumero]
+                );
+            }
+        }
+
+        await db.query('COMMIT');
+        res.status(201).json(girone);
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore creazione girone:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT: Aggiorna girone e squadre
+app.put('/api/gironi/:id', async (req, res) => {
+    try {
+        const { nome, squadre } = req.body;
+        const gironeId = req.params.id;
+
+        await db.query('BEGIN');
+
+        if (nome) {
+            await db.query('UPDATE gironi SET nome = $1 WHERE id = $2', [nome, gironeId]);
+        }
+
+        if (squadre) {
+            await db.query('DELETE FROM squadre_girone WHERE girone_id = $1', [gironeId]);
+            for (const squadraNumero of squadre) {
+                await db.query(
+                    `INSERT INTO squadre_girone (girone_id, squadra_numero) VALUES ($1, $2)`,
+                    [gironeId, squadraNumero]
+                );
+            }
+        }
+
+        await db.query('COMMIT');
+        res.json({ message: 'Girone aggiornato' });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore aggiornamento girone:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE: Elimina girone
+app.delete('/api/gironi/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM gironi WHERE id = $1', [req.params.id]);
+        res.json({ message: 'Girone eliminato' });
+    } catch (err) {
+        console.error('Errore eliminazione girone:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Classifica di un girone (calcolata dagli incontri)
+app.get('/api/classifica-girone/:gironeId', async (req, res) => {
+    try {
+        const gironeId = req.params.gironeId;
+
+        // Recupera le squadre del girone
+        const squadreResult = await db.query(
+            `SELECT sg.squadra_numero, sc.colore
+             FROM squadre_girone sg
+             JOIN gironi g ON sg.girone_id = g.id
+             JOIN fasi_torneo ft ON g.fase_id = ft.id
+             JOIN squadre_circolo sc ON sg.squadra_numero = sc.numero AND sc.configurazione_id = ft.configurazione_id
+             WHERE sg.girone_id = $1`,
+            [gironeId]
+        );
+
+        const squadreGirone = squadreResult.rows;
+        const numeriSquadre = squadreGirone.map(s => s.squadra_numero);
+
+        if (numeriSquadre.length === 0) {
+            return res.json([]);
+        }
+
+        // Recupera configurazione_id
+        const configResult = await db.query(
+            `SELECT ft.configurazione_id FROM gironi g
+             JOIN fasi_torneo ft ON g.fase_id = ft.id
+             WHERE g.id = $1`,
+            [gironeId]
+        );
+        const configurazioneId = configResult.rows[0]?.configurazione_id;
+
+        // Recupera tutti gli incontri completati tra le squadre del girone
+        const incontriResult = await db.query(
+            `SELECT i.id, i.squadra1, i.squadra2, i.risultato_coppia1, i.risultato_coppia2,
+                    i.turno_id
+             FROM incontri i
+             WHERE i.configurazione_id = $1
+               AND i.completato = true
+               AND i.squadra1 = ANY($2)
+               AND i.squadra2 = ANY($2)`,
+            [configurazioneId, numeriSquadre]
+        );
+
+        // Per ogni scontro tra due squadre, conta le vittorie delle singole partite
+        // e determina il vincitore dello scontro complessivo
+        const scontriMap = {};
+
+        for (const incontro of incontriResult.rows) {
+            const chiave = [incontro.squadra1, incontro.squadra2].sort().join('_');
+            const turnoChiave = `${chiave}_t${incontro.turno_id}`;
+
+            if (!scontriMap[turnoChiave]) {
+                scontriMap[turnoChiave] = {
+                    squadra1: incontro.squadra1,
+                    squadra2: incontro.squadra2,
+                    turno_id: incontro.turno_id,
+                    vittorie_sq1: 0,
+                    vittorie_sq2: 0,
+                    totale: 0
+                };
+            }
+
+            // Conta le singole partite (risultati dettaglio)
+            const dettagli = await db.query(
+                `SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1`,
+                [incontro.id]
+            );
+
+            for (const det of dettagli.rows) {
+                scontriMap[turnoChiave].totale++;
+                if (det.vincitore === incontro.squadra1) {
+                    scontriMap[turnoChiave].vittorie_sq1++;
+                } else if (det.vincitore === incontro.squadra2) {
+                    scontriMap[turnoChiave].vittorie_sq2++;
+                }
+            }
+        }
+
+        // Calcola classifica: conta le vittorie di scontro (chi vince piu partite nello scontro)
+        const classificaMap = {};
+        for (const sq of squadreGirone) {
+            classificaMap[sq.squadra_numero] = {
+                squadra_numero: sq.squadra_numero,
+                colore: sq.colore,
+                punti: 0,
+                vittorie: 0,
+                pareggi: 0,
+                sconfitte: 0,
+                partite_vinte: 0,
+                partite_perse: 0,
+                scontri_giocati: 0
+            };
+        }
+
+        for (const scontro of Object.values(scontriMap)) {
+            const sq1 = scontro.squadra1;
+            const sq2 = scontro.squadra2;
+
+            if (classificaMap[sq1]) {
+                classificaMap[sq1].scontri_giocati++;
+                classificaMap[sq1].partite_vinte += scontro.vittorie_sq1;
+                classificaMap[sq1].partite_perse += scontro.vittorie_sq2;
+            }
+            if (classificaMap[sq2]) {
+                classificaMap[sq2].scontri_giocati++;
+                classificaMap[sq2].partite_vinte += scontro.vittorie_sq2;
+                classificaMap[sq2].partite_perse += scontro.vittorie_sq1;
+            }
+
+            if (scontro.vittorie_sq1 > scontro.vittorie_sq2) {
+                if (classificaMap[sq1]) { classificaMap[sq1].vittorie++; classificaMap[sq1].punti += 2; }
+                if (classificaMap[sq2]) classificaMap[sq2].sconfitte++;
+            } else if (scontro.vittorie_sq2 > scontro.vittorie_sq1) {
+                if (classificaMap[sq2]) { classificaMap[sq2].vittorie++; classificaMap[sq2].punti += 2; }
+                if (classificaMap[sq1]) classificaMap[sq1].sconfitte++;
+            } else {
+                if (classificaMap[sq1]) { classificaMap[sq1].pareggi++; classificaMap[sq1].punti += 1; }
+                if (classificaMap[sq2]) { classificaMap[sq2].pareggi++; classificaMap[sq2].punti += 1; }
+            }
+        }
+
+        // Ordina: vittorie DESC, poi differenza partite DESC
+        const classifica = Object.values(classificaMap).sort((a, b) => {
+            if (b.vittorie !== a.vittorie) return b.vittorie - a.vittorie;
+            const diffA = a.partite_vinte - a.partite_perse;
+            const diffB = b.partite_vinte - b.partite_perse;
+            if (diffB !== diffA) return diffB - diffA;
+            return b.partite_vinte - a.partite_vinte;
+        });
+
+        // Aggiungi posizione
+        classifica.forEach((sq, index) => {
+            sq.posizione = index + 1;
+        });
+
+        res.json(classifica);
+    } catch (err) {
+        console.error('Errore classifica girone:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET: Classifiche di tutti i gironi della fase attiva
+app.get('/api/classifiche-fase-attiva', async (req, res) => {
+    try {
+        const configurazioneId = req.query.configurazione;
+        if (!configurazioneId) {
+            return res.status(400).json({ error: 'Parametro configurazione mancante' });
+        }
+
+        // Trova fase attiva
+        const faseResult = await db.query(
+            'SELECT * FROM fasi_torneo WHERE configurazione_id = $1 AND attiva = true ORDER BY ordine LIMIT 1',
+            [configurazioneId]
+        );
+
+        if (faseResult.rows.length === 0) {
+            return res.json({ fase: null, gironi: [] });
+        }
+
+        const fase = faseResult.rows[0];
+
+        // Carica gironi della fase
+        const gironiResult = await db.query(
+            'SELECT * FROM gironi WHERE fase_id = $1 ORDER BY ordine',
+            [fase.id]
+        );
+
+        const gironiConClassifica = [];
+
+        for (const girone of gironiResult.rows) {
+            // Riusa la logica della classifica - chiama internamente
+            const squadreResult = await db.query(
+                `SELECT sg.squadra_numero, sc.colore
+                 FROM squadre_girone sg
+                 JOIN squadre_circolo sc ON sg.squadra_numero = sc.numero AND sc.configurazione_id = $1
+                 WHERE sg.girone_id = $2`,
+                [configurazioneId, girone.id]
+            );
+
+            const numeriSquadre = squadreResult.rows.map(s => s.squadra_numero);
+
+            // Stessa logica di classifica-girone
+            const incontriResult = await db.query(
+                `SELECT i.id, i.squadra1, i.squadra2, i.turno_id
+                 FROM incontri i
+                 WHERE i.configurazione_id = $1
+                   AND i.completato = true
+                   AND i.squadra1 = ANY($2)
+                   AND i.squadra2 = ANY($2)`,
+                [configurazioneId, numeriSquadre]
+            );
+
+            const scontriMap = {};
+
+            for (const incontro of incontriResult.rows) {
+                const chiave = [incontro.squadra1, incontro.squadra2].sort().join('_');
+                const turnoChiave = `${chiave}_t${incontro.turno_id}`;
+
+                if (!scontriMap[turnoChiave]) {
+                    scontriMap[turnoChiave] = {
+                        squadra1: incontro.squadra1,
+                        squadra2: incontro.squadra2,
+                        vittorie_sq1: 0,
+                        vittorie_sq2: 0
+                    };
+                }
+
+                const dettagli = await db.query(
+                    `SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1`,
+                    [incontro.id]
+                );
+
+                for (const det of dettagli.rows) {
+                    if (det.vincitore === incontro.squadra1) {
+                        scontriMap[turnoChiave].vittorie_sq1++;
+                    } else if (det.vincitore === incontro.squadra2) {
+                        scontriMap[turnoChiave].vittorie_sq2++;
+                    }
+                }
+            }
+
+            const classificaMap = {};
+            for (const sq of squadreResult.rows) {
+                classificaMap[sq.squadra_numero] = {
+                    squadra_numero: sq.squadra_numero,
+                    colore: sq.colore,
+                    punti: 0,
+                    vittorie: 0,
+                    pareggi: 0,
+                    sconfitte: 0,
+                    partite_vinte: 0,
+                    partite_perse: 0,
+                    scontri_giocati: 0
+                };
+            }
+
+            for (const scontro of Object.values(scontriMap)) {
+                const sq1 = scontro.squadra1;
+                const sq2 = scontro.squadra2;
+
+                if (classificaMap[sq1]) {
+                    classificaMap[sq1].scontri_giocati++;
+                    classificaMap[sq1].partite_vinte += scontro.vittorie_sq1;
+                    classificaMap[sq1].partite_perse += scontro.vittorie_sq2;
+                }
+                if (classificaMap[sq2]) {
+                    classificaMap[sq2].scontri_giocati++;
+                    classificaMap[sq2].partite_vinte += scontro.vittorie_sq2;
+                    classificaMap[sq2].partite_perse += scontro.vittorie_sq1;
+                }
+
+                if (scontro.vittorie_sq1 > scontro.vittorie_sq2) {
+                    if (classificaMap[sq1]) { classificaMap[sq1].vittorie++; classificaMap[sq1].punti += 2; }
+                    if (classificaMap[sq2]) classificaMap[sq2].sconfitte++;
+                } else if (scontro.vittorie_sq2 > scontro.vittorie_sq1) {
+                    if (classificaMap[sq2]) { classificaMap[sq2].vittorie++; classificaMap[sq2].punti += 2; }
+                    if (classificaMap[sq1]) classificaMap[sq1].sconfitte++;
+                } else {
+                    if (classificaMap[sq1]) { classificaMap[sq1].pareggi++; classificaMap[sq1].punti += 1; }
+                    if (classificaMap[sq2]) { classificaMap[sq2].pareggi++; classificaMap[sq2].punti += 1; }
+                }
+            }
+
+            const classifica = Object.values(classificaMap).sort((a, b) => {
+                if (b.punti !== a.punti) return b.punti - a.punti;
+                const diffA = a.partite_vinte - a.partite_perse;
+                const diffB = b.partite_vinte - b.partite_perse;
+                if (diffB !== diffA) return diffB - diffA;
+                return b.partite_vinte - a.partite_vinte;
+            });
+
+            classifica.forEach((sq, index) => { sq.posizione = index + 1; });
+
+            // Prepara lista scontri per il popup
+            const scontriLista = [];
+            for (const scontro of Object.values(scontriMap)) {
+                const colore1 = squadreResult.rows.find(s => s.squadra_numero === scontro.squadra1);
+                const colore2 = squadreResult.rows.find(s => s.squadra_numero === scontro.squadra2);
+                scontriLista.push({
+                    squadra1_numero: scontro.squadra1,
+                    squadra2_numero: scontro.squadra2,
+                    colore1: colore1 ? colore1.colore : '',
+                    colore2: colore2 ? colore2.colore : '',
+                    vittorie_sq1: scontro.vittorie_sq1,
+                    vittorie_sq2: scontro.vittorie_sq2
+                });
+            }
+
+            gironiConClassifica.push({
+                id: girone.id,
+                nome: girone.nome,
+                classifica: classifica,
+                scontri: scontriLista
+            });
+        }
+
+        res.json({
+            fase: fase,
+            gironi: gironiConClassifica
+        });
+    } catch (err) {
+        console.error('Errore classifiche fase attiva:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================================
+// FINE API FASI TORNEO E GIRONI
+// ========================================
+
+// Entra in sessione con codice (ESISTENTE - da mantenere)
+
 // Entra in sessione con codice
 app.post('/api/join-session-with-code', async (req, res) => {
     try {

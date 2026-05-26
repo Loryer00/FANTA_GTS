@@ -1418,6 +1418,141 @@
                 opacity: 0;
             }
         }
+
+        /* Classifica Gironi */
+        .gironi-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .girone-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .girone-card-title {
+            margin: 0 0 8px 0;
+            font-size: 0.82em;
+            color: #a0aec0;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .girone-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+
+            .girone-row:last-child {
+                margin-bottom: 0;
+            }
+
+        .girone-sq-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .girone-pts {
+            font-size: 1em;
+            font-weight: 700;
+            color: #e2e8f0;
+            min-width: 20px;
+            text-align: right;
+        }
+
+        .fase-titolo {
+            text-align: center;
+            font-size: 0.9em;
+            color: #4299e1;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Popup dettaglio girone */
+        .girone-card {
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+            .girone-card:active {
+                border-color: rgba(66,153,225,0.5);
+            }
+
+        .girone-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .girone-popup {
+            background: #2d3748;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 340px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .girone-popup-title {
+            text-align: center;
+            font-size: 1em;
+            font-weight: 600;
+            color: #4299e1;
+            margin-bottom: 15px;
+        }
+
+        .scontro-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+            .scontro-row .sq-nome {
+                padding: 4px 10px;
+                border-radius: 5px;
+                font-size: 0.78em;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                text-align: center;
+                min-width: 65px;
+            }
+
+        .scontro-risultato {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #e2e8f0;
+            min-width: 40px;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body class="loading">
@@ -1489,6 +1624,16 @@
                     <label>Nickname:</label>
                     <input type="text" id="registerNickname" placeholder="Scegli un nickname univoco" autocomplete="username">
                     <small id="nicknameCheck" style="display: block; margin-top: 5px; font-size: 0.85em;"></small>
+                </div>
+
+                <div class="input-group">
+                    <label>Nome:</label>
+                    <input type="text" id="registerNomeReale" placeholder="Il tuo nome reale" autocomplete="given-name">
+                </div>
+
+                <div class="input-group">
+                    <label>Cognome:</label>
+                    <input type="text" id="registerCognome" placeholder="Il tuo cognome" autocomplete="family-name">
                 </div>
 
                 <div class="input-group">
@@ -1650,6 +1795,10 @@
             <div id="section-incontri" class="content-section">
                 <div class="section">
                     <h2>Incontri</h2>
+
+                    <!-- Classifica Gironi -->
+                    <div id="classificaGironiContainer" style="margin-bottom: 20px;"></div>
+
                     <div class="incontri-selector">
                         <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e0;">Seleziona Turno:</label>
                         <select id="turniSelect" class="turni-select" onchange="caricaIncontriTurno()">
@@ -2733,29 +2882,36 @@
         // ========================================
         async function effettuaRegistrazione() {
             const nickname = document.getElementById('registerNickname').value.trim();
+            const nomeReale = document.getElementById('registerNomeReale').value.trim();
+            const cognome = document.getElementById('registerCognome').value.trim();
             const pinField = document.getElementById('registerPin');
             const pinConfirmField = document.getElementById('registerPinConfirm');
             const pin = (pinField.dataset.realPin || '').trim();
             const pinConfirm = (pinConfirmField.dataset.realPin || '').trim();
             const notificationsEnabled = document.getElementById('registerNotifications').checked;
 
-            if (!nickname || !pin || !pinConfirm) {
-                mostraMessaggio('⚠️ Compila tutti i campi!', 'warning');
+            if (!nickname || !nomeReale || !cognome || !pin || !pinConfirm) {
+                mostraMessaggio('Compila tutti i campi!', 'warning');
                 return;
             }
 
             if (nickname.length < 2) {
-                mostraMessaggio('⚠️ Il nickname deve essere di almeno 2 caratteri!', 'warning');
+                mostraMessaggio('Il nickname deve essere di almeno 2 caratteri!', 'warning');
+                return;
+            }
+
+            if (nomeReale.length < 2 || cognome.length < 2) {
+                mostraMessaggio('Nome e cognome devono essere di almeno 2 caratteri!', 'warning');
                 return;
             }
 
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-                mostraMessaggio('⚠️ Il PIN deve essere di 4 cifre numeriche!', 'error');
+                mostraMessaggio('Il PIN deve essere di 4 cifre numeriche!', 'error');
                 return;
             }
 
             if (pin !== pinConfirm) {
-                mostraMessaggio('⚠️ I PIN non coincidono!', 'error');
+                mostraMessaggio('I PIN non coincidono!', 'error');
                 return;
             }
 
@@ -2763,7 +2919,7 @@
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname, pin })
+                    body: JSON.stringify({ nickname, pin, nome_reale: nomeReale, cognome: cognome })
                 });
 
                 const result = await response.json();
@@ -2780,7 +2936,7 @@
                     // Mostra schermata selezione sessioni (come fa il login)
                     await mostraSchermataSessioni();
 
-                    mostraMessaggio(`✅ Benvenuto nel FantaGTS, ${result.player.nome}!`, 'success');
+                    mostraMessaggio('Benvenuto nel FantaGTS, ' + result.player.nome + '!', 'success');
                 } else {
                     mostraMessaggio('Errore: ' + (result.error || 'Registrazione fallita'), 'error');
 
@@ -2802,7 +2958,7 @@
                     }
                 }
             } catch (error) {
-                mostraMessaggio('❌ Errore di connessione al server', 'error');
+                mostraMessaggio('Errore di connessione al server', 'error');
                 console.error('Errore registrazione:', error);
             }
         }
@@ -3078,6 +3234,7 @@
                     break;
                 case 'incontri':
                     caricaTurniDisponibili();
+                    caricaClassificaGironi();
                     break;
                 case 'info':
                     caricaImmaginiInfo();
@@ -3424,6 +3581,121 @@
 
             document.getElementById('lightboxImg').src = immaginiInfo[lightboxIndex].url;
             document.getElementById('lightboxCounter').textContent = (lightboxIndex + 1) + ' / ' + immaginiInfo.length;
+        }
+
+        // ========================================
+        // CLASSIFICA GIRONI
+        // ========================================
+        var datiGironiGlobali = null;
+
+        async function caricaClassificaGironi() {
+            var container = document.getElementById('classificaGironiContainer');
+            if (!container) return;
+
+            try {
+                var configurazioneId = null;
+                if (sessioneOggetto && sessioneOggetto.configurazione_id) {
+                    configurazioneId = sessioneOggetto.configurazione_id;
+                } else if (sessioneCorrente) {
+                    var sessResp = await fetch('/api/sessioni/' + sessioneCorrente);
+                    if (sessResp.ok) {
+                        var sessData = await sessResp.json();
+                        configurazioneId = sessData.configurazione_id || 'default';
+                    }
+                }
+
+                if (!configurazioneId) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                var response = await fetch('/api/classifiche-fase-attiva?configurazione=' + configurazioneId);
+                if (!response.ok) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                var data = await response.json();
+                datiGironiGlobali = data;
+
+                if (!data.fase || !data.gironi || data.gironi.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                var html = '<div class="fase-titolo">' + data.fase.nome + '</div>';
+                html += '<div class="gironi-wrapper">';
+
+                data.gironi.forEach(function (girone, index) {
+                    html += '<div class="girone-card" onclick="apriDettaglioGirone(' + index + ')">';
+                    html += '<div class="girone-card-title">' + girone.nome + '</div>';
+
+                    girone.classifica.forEach(function (sq) {
+                        var teamColor = getTeamColor(sq.colore);
+                        var textColor = getTextColorForTeam(sq.colore);
+                        var nomeUpper = sq.colore ? sq.colore.toUpperCase() : '';
+
+                        html += '<div class="girone-row">';
+                        html += '<span class="girone-sq-badge" style="background:' + teamColor + '; color:' + textColor + ';">' + nomeUpper + '</span>';
+                        html += '<span class="girone-pts">' + sq.punti + '</span>';
+                        html += '</div>';
+                    });
+
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Errore caricamento classifica gironi:', error);
+                container.innerHTML = '';
+            }
+        }
+
+        function apriDettaglioGirone(indiceGirone) {
+            if (!datiGironiGlobali || !datiGironiGlobali.gironi[indiceGirone]) return;
+
+            var girone = datiGironiGlobali.gironi[indiceGirone];
+
+            var html = '<div class="girone-overlay" onclick="chiudiDettaglioGirone(event)">';
+            html += '<div class="girone-popup" onclick="event.stopPropagation()">';
+            html += '<div class="girone-popup-title">' + girone.nome + '</div>';
+
+            if (!girone.scontri || girone.scontri.length === 0) {
+                html += '<p style="text-align:center; color:#a0aec0; font-size:0.85em;">Nessuno scontro completato</p>';
+            } else {
+                girone.scontri.forEach(function (scontro) {
+                    var color1 = getTeamColor(scontro.colore1);
+                    var text1 = getTextColorForTeam(scontro.colore1);
+                    var color2 = getTeamColor(scontro.colore2);
+                    var text2 = getTextColorForTeam(scontro.colore2);
+                    var nome1 = scontro.colore1 ? scontro.colore1.toUpperCase() : '';
+                    var nome2 = scontro.colore2 ? scontro.colore2.toUpperCase() : '';
+
+                    html += '<div class="scontro-row">';
+                    html += '<span class="sq-nome" style="background:' + color1 + '; color:' + text1 + ';">' + nome1 + '</span>';
+                    html += '<span class="scontro-risultato">' + scontro.vittorie_sq1 + ' - ' + scontro.vittorie_sq2 + '</span>';
+                    html += '<span class="sq-nome" style="background:' + color2 + '; color:' + text2 + ';">' + nome2 + '</span>';
+                    html += '</div>';
+                });
+            }
+
+            html += '</div>';
+            html += '</div>';
+
+            // Aggiungi overlay al body
+            var div = document.createElement('div');
+            div.id = 'gironeOverlayContainer';
+            div.innerHTML = html;
+            document.body.appendChild(div);
+        }
+
+        function chiudiDettaglioGirone(event) {
+            var overlay = document.getElementById('gironeOverlayContainer');
+            if (overlay) {
+                overlay.remove();
+            }
         }
 
         // ========================================
