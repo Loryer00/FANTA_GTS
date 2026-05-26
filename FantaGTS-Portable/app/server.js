@@ -3068,7 +3068,7 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
     try {
         const gironeId = req.params.gironeId;
 
-        // Recupera le squadre del girone
+        // Recupera le squadre del girone e la configurazione
         const squadreResult = await db.query(
             `SELECT sg.squadra_numero, sc.colore
              FROM squadre_girone sg
@@ -3095,53 +3095,7 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
         );
         const configurazioneId = configResult.rows[0]?.configurazione_id;
 
-        // Recupera tutti gli incontri completati tra le squadre del girone
-        const incontriResult = await db.query(
-            `SELECT i.id, i.squadra1, i.squadra2, i.risultato_coppia1, i.risultato_coppia2,
-                    i.turno_id
-             FROM incontri i
-             WHERE i.configurazione_id = $1
-               AND i.completato = true
-               AND i.squadra1 = ANY($2)
-               AND i.squadra2 = ANY($2)`,
-            [configurazioneId, numeriSquadre]
-        );
-
-        // Per ogni scontro tra due squadre, conta le vittorie delle singole partite
-        // e determina il vincitore dello scontro complessivo
-        const scontriMap = {};
-
-        for (const incontro of incontriResult.rows) {
-            const chiave = [incontro.squadra1, incontro.squadra2].sort().join('_');
-            const turnoChiave = `${chiave}_t${incontro.turno_id}`;
-
-            if (!scontriMap[turnoChiave]) {
-                scontriMap[turnoChiave] = {
-                    squadra1: incontro.squadra1,
-                    squadra2: incontro.squadra2,
-                    turno_id: incontro.turno_id,
-                    vittorie_sq1: 0,
-                    vittorie_sq2: 0,
-                    totale: 0
-                };
-            }
-
-            // Conta le singole partite (risultati dettaglio)
-            const dettagli = await db.query(
-                `SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1`,
-                [incontro.id]
-            );
-
-            for (const det of dettagli.rows) {
-                if (det.vincitore === 1) {
-                    scontriMap[turnoChiave].vittorie_sq1++;
-                } else if (det.vincitore === 2) {
-                    scontriMap[turnoChiave].vittorie_sq2++;
-                }
-            }
-        }
-
-        // Calcola classifica: conta le vittorie di scontro (chi vince piu partite nello scontro)
+        // Inizializza classifica
         const classificaMap = {};
         for (const sq of squadreGirone) {
             classificaMap[sq.squadra_numero] = {
@@ -3152,22 +3106,84 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
                 pareggi: 0,
                 sconfitte: 0,
                 partite_vinte: 0,
-                partite_perse: 0,
-                scontri_giocati: 0
+                partite_perse: 0
             };
         }
 
+        // Recupera TUTTI gli incontri tra squadre del girone
+        const incontriResult = await db.query(
+            `SELECT i.id, i.squadra1, i.squadra2, i.turno_id, i.coppia_turno_id, i.completato
+             FROM incontri i
+             WHERE i.configurazione_id = $1
+               AND i.squadra1 = ANY($2)
+               AND i.squadra2 = ANY($2)
+             ORDER BY i.turno_id, i.coppia_turno_id`,
+            [configurazioneId, numeriSquadre]
+        );
+
+        // Raggruppa per scontro: stessa coppia di squadre nello stesso turno
+        const scontriMap = {};
+
+        for (const incontro of incontriResult.rows) {
+            const sqMin = Math.min(incontro.squadra1, incontro.squadra2);
+            const sqMax = Math.max(incontro.squadra1, incontro.squadra2);
+            const chiave = incontro.turno_id + '_' + sqMin + '_' + sqMax;
+
+            if (!scontriMap[chiave]) {
+                scontriMap[chiave] = {
+                    squadra1: incontro.squadra1,
+                    squadra2: incontro.squadra2,
+                    turno_id: incontro.turno_id,
+                    vittorie_sq1: 0,
+                    vittorie_sq2: 0,
+                    totale_partite: 0,
+                    tutti_completati: true,
+                    incontri_ids: []
+                };
+            }
+
+            scontriMap[chiave].incontri_ids.push(incontro.id);
+
+            if (!incontro.completato) {
+                scontriMap[chiave].tutti_completati = false;
+            }
+
+            // Conta le vittorie dai risultati_dettaglio
+            const dettagli = await db.query(
+                'SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1',
+                [incontro.id]
+            );
+
+            for (const det of dettagli.rows) {
+                scontriMap[chiave].totale_partite++;
+                if (det.vincitore === 1) {
+                    if (incontro.squadra1 === scontriMap[chiave].squadra1) {
+                        scontriMap[chiave].vittorie_sq1++;
+                    } else {
+                        scontriMap[chiave].vittorie_sq2++;
+                    }
+                } else if (det.vincitore === 2) {
+                    if (incontro.squadra2 === scontriMap[chiave].squadra1) {
+                        scontriMap[chiave].vittorie_sq1++;
+                    } else {
+                        scontriMap[chiave].vittorie_sq2++;
+                    }
+                }
+            }
+        }
+
+        // Calcola classifica: SOLO dagli scontri completati
         for (const scontro of Object.values(scontriMap)) {
+            if (!scontro.tutti_completati) continue;
+
             const sq1 = scontro.squadra1;
             const sq2 = scontro.squadra2;
 
             if (classificaMap[sq1]) {
-                classificaMap[sq1].scontri_giocati++;
                 classificaMap[sq1].partite_vinte += scontro.vittorie_sq1;
                 classificaMap[sq1].partite_perse += scontro.vittorie_sq2;
             }
             if (classificaMap[sq2]) {
-                classificaMap[sq2].scontri_giocati++;
                 classificaMap[sq2].partite_vinte += scontro.vittorie_sq2;
                 classificaMap[sq2].partite_perse += scontro.vittorie_sq1;
             }
@@ -3184,19 +3200,16 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
             }
         }
 
-        // Ordina: vittorie DESC, poi differenza partite DESC
+        // Ordina classifica
         const classifica = Object.values(classificaMap).sort((a, b) => {
-            if (b.vittorie !== a.vittorie) return b.vittorie - a.vittorie;
+            if (b.punti !== a.punti) return b.punti - a.punti;
             const diffA = a.partite_vinte - a.partite_perse;
             const diffB = b.partite_vinte - b.partite_perse;
             if (diffB !== diffA) return diffB - diffA;
             return b.partite_vinte - a.partite_vinte;
         });
 
-        // Aggiungi posizione
-        classifica.forEach((sq, index) => {
-            sq.posizione = index + 1;
-        });
+        classifica.forEach((sq, index) => { sq.posizione = index + 1; });
 
         res.json(classifica);
     } catch (err) {
@@ -3227,14 +3240,14 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
 
         // Carica gironi della fase
         const gironiResult = await db.query(
-            'SELECT * FROM gironi WHERE fase_id = $1 ORDER BY ordine',
+            'SELECT * FROM gironi WHERE fase_id = $1 ORDER BY ordine, nome',
             [fase.id]
         );
 
         const gironiConClassifica = [];
 
         for (const girone of gironiResult.rows) {
-            // Riusa la logica della classifica - chiama internamente
+            // Carica squadre del girone
             const squadreResult = await db.query(
                 `SELECT sg.squadra_numero, sc.colore
                  FROM squadre_girone sg
@@ -3245,46 +3258,7 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
 
             const numeriSquadre = squadreResult.rows.map(s => s.squadra_numero);
 
-            // Stessa logica di classifica-girone
-            const incontriResult = await db.query(
-                `SELECT i.id, i.squadra1, i.squadra2, i.turno_id
-                 FROM incontri i
-                 WHERE i.configurazione_id = $1
-                   AND i.completato = true
-                   AND i.squadra1 = ANY($2)
-                   AND i.squadra2 = ANY($2)`,
-                [configurazioneId, numeriSquadre]
-            );
-
-            const scontriMap = {};
-
-            for (const incontro of incontriResult.rows) {
-                const chiave = [incontro.squadra1, incontro.squadra2].sort().join('_');
-                const turnoChiave = `${chiave}_t${incontro.turno_id}`;
-
-                if (!scontriMap[turnoChiave]) {
-                    scontriMap[turnoChiave] = {
-                        squadra1: incontro.squadra1,
-                        squadra2: incontro.squadra2,
-                        vittorie_sq1: 0,
-                        vittorie_sq2: 0
-                    };
-                }
-
-                const dettagli = await db.query(
-                    `SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1`,
-                    [incontro.id]
-                );
-
-                for (const det of dettagli.rows) {
-                    if (det.vincitore === 1) {
-                        scontriMap[turnoChiave].vittorie_sq1++;
-                    } else if (det.vincitore === 2) {
-                        scontriMap[turnoChiave].vittorie_sq2++;
-                    }
-                }
-            }
-
+            // Inizializza classifica
             const classificaMap = {};
             for (const sq of squadreResult.rows) {
                 classificaMap[sq.squadra_numero] = {
@@ -3295,22 +3269,89 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                     pareggi: 0,
                     sconfitte: 0,
                     partite_vinte: 0,
-                    partite_perse: 0,
-                    scontri_giocati: 0
+                    partite_perse: 0
                 };
             }
 
+            // Recupera TUTTI gli incontri tra squadre del girone (anche non completati, per il popup)
+            const incontriResult = await db.query(
+                `SELECT i.id, i.squadra1, i.squadra2, i.turno_id, i.coppia_turno_id, i.completato
+                 FROM incontri i
+                 WHERE i.configurazione_id = $1
+                   AND i.squadra1 = ANY($2)
+                   AND i.squadra2 = ANY($2)
+                 ORDER BY i.turno_id, i.coppia_turno_id`,
+                [configurazioneId, numeriSquadre]
+            );
+
+            // Raggruppa per scontro: stessa coppia di squadre nello stesso turno
+            // Chiave: "turno_squadraMin_squadraMax"
+            const scontriMap = {};
+
+            for (const incontro of incontriResult.rows) {
+                const sqMin = Math.min(incontro.squadra1, incontro.squadra2);
+                const sqMax = Math.max(incontro.squadra1, incontro.squadra2);
+                const chiave = incontro.turno_id + '_' + sqMin + '_' + sqMax;
+
+                if (!scontriMap[chiave]) {
+                    scontriMap[chiave] = {
+                        squadra1: incontro.squadra1,
+                        squadra2: incontro.squadra2,
+                        turno_id: incontro.turno_id,
+                        vittorie_sq1: 0,
+                        vittorie_sq2: 0,
+                        totale_partite: 0,
+                        tutti_completati: true,
+                        incontri_ids: []
+                    };
+                }
+
+                scontriMap[chiave].incontri_ids.push(incontro.id);
+
+                if (!incontro.completato) {
+                    scontriMap[chiave].tutti_completati = false;
+                }
+
+                // Conta le vittorie dai risultati_dettaglio di questo incontro
+                const dettagli = await db.query(
+                    'SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1',
+                    [incontro.id]
+                );
+
+                for (const det of dettagli.rows) {
+                    scontriMap[chiave].totale_partite++;
+                    // vincitore = 1 significa squadra1 dell'incontro, 2 = squadra2
+                    // Dobbiamo mappare rispetto alle squadre originali dello scontro
+                    if (det.vincitore === 1) {
+                        // Ha vinto squadra1 dell'incontro
+                        if (incontro.squadra1 === scontriMap[chiave].squadra1) {
+                            scontriMap[chiave].vittorie_sq1++;
+                        } else {
+                            scontriMap[chiave].vittorie_sq2++;
+                        }
+                    } else if (det.vincitore === 2) {
+                        // Ha vinto squadra2 dell'incontro
+                        if (incontro.squadra2 === scontriMap[chiave].squadra1) {
+                            scontriMap[chiave].vittorie_sq1++;
+                        } else {
+                            scontriMap[chiave].vittorie_sq2++;
+                        }
+                    }
+                }
+            }
+
+            // Calcola classifica: SOLO dagli scontri dove TUTTI gli incontri sono completati
             for (const scontro of Object.values(scontriMap)) {
+                if (!scontro.tutti_completati) continue;
+
                 const sq1 = scontro.squadra1;
                 const sq2 = scontro.squadra2;
 
                 if (classificaMap[sq1]) {
-                    classificaMap[sq1].scontri_giocati++;
                     classificaMap[sq1].partite_vinte += scontro.vittorie_sq1;
                     classificaMap[sq1].partite_perse += scontro.vittorie_sq2;
                 }
                 if (classificaMap[sq2]) {
-                    classificaMap[sq2].scontri_giocati++;
                     classificaMap[sq2].partite_vinte += scontro.vittorie_sq2;
                     classificaMap[sq2].partite_perse += scontro.vittorie_sq1;
                 }
@@ -3327,6 +3368,7 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                 }
             }
 
+            // Ordina classifica
             const classifica = Object.values(classificaMap).sort((a, b) => {
                 if (b.punti !== a.punti) return b.punti - a.punti;
                 const diffA = a.partite_vinte - a.partite_perse;
@@ -3337,18 +3379,18 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
 
             classifica.forEach((sq, index) => { sq.posizione = index + 1; });
 
-            // Prepara lista scontri per il popup
+            // Prepara lista scontri per il popup (mostra TUTTI, anche parziali)
             const scontriLista = [];
             for (const scontro of Object.values(scontriMap)) {
                 const colore1 = squadreResult.rows.find(s => s.squadra_numero === scontro.squadra1);
                 const colore2 = squadreResult.rows.find(s => s.squadra_numero === scontro.squadra2);
                 scontriLista.push({
-                    squadra1_numero: scontro.squadra1,
-                    squadra2_numero: scontro.squadra2,
                     colore1: colore1 ? colore1.colore : '',
                     colore2: colore2 ? colore2.colore : '',
                     vittorie_sq1: scontro.vittorie_sq1,
-                    vittorie_sq2: scontro.vittorie_sq2
+                    vittorie_sq2: scontro.vittorie_sq2,
+                    completato: scontro.tutti_completati,
+                    totale_partite: scontro.totale_partite
                 });
             }
 

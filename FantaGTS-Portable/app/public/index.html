@@ -3675,12 +3675,22 @@
 
                     html += '<div class="scontro-row">';
                     html += '<span class="sq-nome" style="background:' + color1 + '; color:' + text1 + ';">' + nome1 + '</span>';
-                    html += '<span class="scontro-risultato">' + scontro.vittorie_sq1 + ' - ' + scontro.vittorie_sq2 + '</span>';
+                    var risultatoTesto = scontro.vittorie_sq1 + ' - ' + scontro.vittorie_sq2;
+                    var stileParziale = '';
+                    if (!scontro.completato) {
+                        stileParziale = ' opacity: 0.6; font-style: italic;';
+                        risultatoTesto = scontro.vittorie_sq1 + ' - ' + scontro.vittorie_sq2 + '*';
+                    }
+                    html += '<span class="scontro-risultato" style="' + stileParziale + '">' + risultatoTesto + '</span>';
                     html += '<span class="sq-nome" style="background:' + color2 + '; color:' + text2 + ';">' + nome2 + '</span>';
                     html += '</div>';
                 });
+                // Legenda parziali
+                var haParziali = girone.scontri.some(function (s) { return !s.completato; });
+                if (haParziali) {
+                    html += '<p style="text-align:center; color:#718096; font-size:0.75em; margin-top:10px;">* risultato parziale (scontro in corso)</p>';
+                }
             }
-
             html += '</div>';
             html += '</div>';
 
