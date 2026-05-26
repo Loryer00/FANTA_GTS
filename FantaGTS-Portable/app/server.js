@@ -2988,9 +2988,16 @@ app.post('/api/gironi', async (req, res) => {
 
         await db.query('BEGIN');
 
+        // Calcola ordine automatico
+        const countResult = await db.query(
+            'SELECT COALESCE(MAX(ordine), 0) + 1 as prossimo FROM gironi WHERE fase_id = $1',
+            [fase_id]
+        );
+        const ordineCalcolato = ordine || countResult.rows[0].prossimo;
+
         const gironeResult = await db.query(
             `INSERT INTO gironi (fase_id, nome, ordine) VALUES ($1, $2, $3) RETURNING *`,
-            [fase_id, nome, ordine || 1]
+            [fase_id, nome, ordineCalcolato]
         );
         const girone = gironeResult.rows[0];
 
@@ -3126,10 +3133,9 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
             );
 
             for (const det of dettagli.rows) {
-                scontriMap[turnoChiave].totale++;
-                if (det.vincitore === incontro.squadra1) {
+                if (det.vincitore === 1) {
                     scontriMap[turnoChiave].vittorie_sq1++;
-                } else if (det.vincitore === incontro.squadra2) {
+                } else if (det.vincitore === 2) {
                     scontriMap[turnoChiave].vittorie_sq2++;
                 }
             }
@@ -3271,9 +3277,9 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                 );
 
                 for (const det of dettagli.rows) {
-                    if (det.vincitore === incontro.squadra1) {
+                    if (det.vincitore === 1) {
                         scontriMap[turnoChiave].vittorie_sq1++;
-                    } else if (det.vincitore === incontro.squadra2) {
+                    } else if (det.vincitore === 2) {
                         scontriMap[turnoChiave].vittorie_sq2++;
                     }
                 }

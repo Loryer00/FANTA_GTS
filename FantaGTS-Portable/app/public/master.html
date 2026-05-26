@@ -636,9 +636,7 @@
 
             <!-- PULSANTI DI NAVIGAZIONE - SPOSTATI IN ALTO -->
             <div style="margin-top: 20px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
-                <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
-                    ⚽ Incontri
-                </button>
+
                 <button class="btn btn-primary" onclick="mostraGestionePartecipanti()">
                     👥 Partecipanti
                 </button>
@@ -648,11 +646,17 @@
                 <button class="btn btn-primary" onclick="apriSostituzioni()">
                     🔄 Sostituzioni
                 </button>
-                <button class="btn btn-primary" onclick="apriGestioneImmagini()">
-                    &#8505; Info Torneo
+                <button class="btn btn-primary" onclick="apriGestioneGironi()">
+                    Gironi
+                </button>
+                <button class="btn btn-primary" onclick="vaiAGestioneIncontri()">
+                    ⚽ Incontri
                 </button>
                 <button class="btn btn-primary" onclick="mostraClassificaGiocatori()">
                     📈 Stats Giocatori
+                </button>
+                <button class="btn btn-primary" onclick="apriGestioneImmagini()">
+                    &#8505; Info Torneo
                 </button>
             </div>
         </div>
@@ -739,57 +743,32 @@
             </div>
         </div>
 
-        <!-- Gestione Fasi e Gironi -->
-        <div class="section" id="sezioneFasiGironi">
-            <h2>Gestione Fasi e Gironi</h2>
-
-            <div style="margin-bottom: 15px;">
-                <label style="color: #a0aec0; font-size: 0.9em; display: block; margin-bottom: 5px;">Fase corrente:</label>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <select id="selectFaseCorrente" onchange="cambiaFaseCorrente()" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em;">
-                        <option value="">-- Nessuna fase --</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="apriCreazioneFase()" style="padding:8px 14px; font-size:0.85em;">+ Fase</button>
+        <!-- Modal Gestione Gironi -->
+        <div id="gestioneGironiModal" class="modal" onclick="if(event.target===this)closeModal('gestioneGironiModal')">
+            <div class="modal-content" style="display: flex; flex-direction: column; max-height: 85vh; overflow: hidden; max-width: 600px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+                    <h3 style="margin: 0;">Gestione Fasi e Gironi</h3>
+                    <button class="btn btn-secondary" onclick="closeModal('gestioneGironiModal')" style="padding: 6px 14px; font-size: 0.9em;">
+                        Chiudi
+                    </button>
                 </div>
-            </div>
 
-            <div id="containerGironi" style="margin-top: 15px;"></div>
+                <div style="overflow-y: auto; flex: 1;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #a0aec0; font-size: 0.9em; display: block; margin-bottom: 5px;">Fase corrente:</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="selectFaseCorrente" onchange="cambiaFaseCorrente()" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em;">
+                                <option value="">-- Nessuna fase --</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="apriCreazioneFase()" style="padding:8px 14px; font-size:0.85em;">+ Fase</button>
+                        </div>
+                    </div>
 
-            <div id="areaAggiungiGirone" style="margin-top: 10px; display: none;">
-                <button class="btn btn-primary" onclick="apriCreazioneGirone()" style="padding:8px 14px; font-size:0.85em; width:100%;">+ Aggiungi Girone</button>
-            </div>
-        </div>
+                    <div id="containerGironi" style="margin-top: 15px;"></div>
 
-        <!-- Modal Creazione Fase -->
-        <div id="modalCreazioneFase" class="modal" onclick="if(event.target===this)chiudiModaleFase()">
-            <div class="modal-content" style="max-width: 400px;">
-                <h3 style="margin:0 0 15px;">Nuova Fase</h3>
-                <div style="margin-bottom:12px;">
-                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:4px;">Nome fase:</label>
-                    <input type="text" id="inputNomeFase" placeholder="Es: Fase a gironi, Quarti di finale..." style="width:100%; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em; box-sizing:border-box;">
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-primary" onclick="salvaFase()" style="flex:1;">Salva</button>
-                    <button class="btn btn-secondary" onclick="chiudiModaleFase()" style="flex:1;">Annulla</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Creazione/Modifica Girone -->
-        <div id="modalCreazioneGirone" class="modal" onclick="if(event.target===this)chiudiModaleGirone()">
-            <div class="modal-content" style="max-width: 450px;">
-                <h3 id="titoloModaleGirone" style="margin:0 0 15px;">Nuovo Girone</h3>
-                <div style="margin-bottom:12px;">
-                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:4px;">Nome girone:</label>
-                    <input type="text" id="inputNomeGirone" placeholder="Es: Girone A" style="width:100%; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em; box-sizing:border-box;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:8px;">Seleziona squadre:</label>
-                    <div id="listaSquadreSelezionabili" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-primary" onclick="salvaGirone()" style="flex:1;">Salva</button>
-                    <button class="btn btn-secondary" onclick="chiudiModaleGirone()" style="flex:1;">Annulla</button>
+                    <div id="areaAggiungiGirone" style="margin-top: 10px; display: none;">
+                        <button class="btn btn-primary" onclick="apriCreazioneGirone()" style="padding:8px 14px; font-size:0.85em; width:100%;">+ Aggiungi Girone</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3965,6 +3944,11 @@
             }
         }
 
+        function apriGestioneGironi() {
+            document.getElementById('gestioneGironiModal').style.display = 'flex';
+            caricaFasiEGironi();
+        }
+
         async function eliminaGirone(gironeId, nomeGirone) {
             if (!confirm('Eliminare ' + nomeGirone + '?')) return;
 
@@ -3977,12 +3961,6 @@
                 console.error('Errore eliminazione girone:', err);
             }
         }
-
-        // Carica fasi e gironi all'avvio (dopo che configurazioneCorrente e stata settata)
-        var originalInitMaster = window.onload;
-        setTimeout(function () {
-            caricaFasiEGironi();
-        }, 2000);
 
     </script>
 
