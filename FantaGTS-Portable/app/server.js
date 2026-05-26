@@ -3131,8 +3131,8 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
 
             if (!scontriMap[chiave]) {
                 scontriMap[chiave] = {
-                    squadra1: incontro.squadra1,
-                    squadra2: incontro.squadra2,
+                    squadra1: sqMin,
+                    squadra2: sqMax,
                     turno_id: incontro.turno_id,
                     vittorie_sq1: 0,
                     vittorie_sq2: 0,
@@ -3147,28 +3147,43 @@ app.get('/api/classifica-girone/:gironeId', async (req, res) => {
             if (!incontro.completato) {
                 scontriMap[chiave].tutti_completati = false;
             }
+        }
 
-            // Conta le vittorie dai risultati_dettaglio
-            const dettagli = await db.query(
-                'SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1',
-                [incontro.id]
+        // Conta le vittorie per ogni scontro A LIVELLO DI INCONTRO (non di singola posizione)
+        for (const scontro of Object.values(scontriMap)) {
+            if (scontro.incontri_ids.length === 0) continue;
+
+            // Per ogni incontro, determina chi ha vinto (maggioranza posizioni)
+            const incontriCompleti = await db.query(
+                `SELECT i.id, i.squadra1, i.squadra2, i.completato,
+                            i.risultato_coppia1, i.risultato_coppia2
+                     FROM incontri i
+                     WHERE i.id = ANY($1)`,
+                [scontro.incontri_ids]
             );
 
-            for (const det of dettagli.rows) {
-                scontriMap[chiave].totale_partite++;
-                if (det.vincitore === 1) {
-                    if (incontro.squadra1 === scontriMap[chiave].squadra1) {
-                        scontriMap[chiave].vittorie_sq1++;
+            for (const inc of incontriCompleti.rows) {
+                if (!inc.completato) continue;
+
+                scontro.totale_partite++;
+
+                // risultato_coppia1 = 'Vittoria'/'Sconfitta'/'Pareggio'
+                if (inc.risultato_coppia1 === 'Vittoria') {
+                    // squadra1 dell'incontro ha vinto
+                    if (inc.squadra1 === scontro.squadra1) {
+                        scontro.vittorie_sq1++;
                     } else {
-                        scontriMap[chiave].vittorie_sq2++;
+                        scontro.vittorie_sq2++;
                     }
-                } else if (det.vincitore === 2) {
-                    if (incontro.squadra2 === scontriMap[chiave].squadra1) {
-                        scontriMap[chiave].vittorie_sq1++;
+                } else if (inc.risultato_coppia2 === 'Vittoria') {
+                    // squadra2 dell'incontro ha vinto
+                    if (inc.squadra2 === scontro.squadra1) {
+                        scontro.vittorie_sq1++;
                     } else {
-                        scontriMap[chiave].vittorie_sq2++;
+                        scontro.vittorie_sq2++;
                     }
                 }
+                // Se Pareggio, nessuno prende la vittoria dell'incontro
             }
         }
 
@@ -3285,7 +3300,6 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
             );
 
             // Raggruppa per scontro: stessa coppia di squadre nello stesso turno
-            // Chiave: "turno_squadraMin_squadraMax"
             const scontriMap = {};
 
             for (const incontro of incontriResult.rows) {
@@ -3313,27 +3327,41 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                 }
             }
 
-            // Conta le vittorie per ogni scontro - una sola query per scontro
+            // Conta le vittorie per ogni scontro A LIVELLO DI INCONTRO (non di singola posizione)
             for (const scontro of Object.values(scontriMap)) {
                 if (scontro.incontri_ids.length === 0) continue;
 
-                const dettagliResult = await db.query(
-                    `SELECT i.squadra1 as incontro_sq1, i.squadra2 as incontro_sq2, rd.vincitore
-                     FROM risultati_dettaglio rd
-                     JOIN incontri i ON rd.incontro_id = i.id
-                     WHERE rd.incontro_id = ANY($1)
-                       AND rd.vincitore > 0`,
+                // Per ogni incontro, determina chi ha vinto (maggioranza posizioni)
+                const incontriCompleti = await db.query(
+                    `SELECT i.id, i.squadra1, i.squadra2, i.completato,
+                            i.risultato_coppia1, i.risultato_coppia2
+                     FROM incontri i
+                     WHERE i.id = ANY($1)`,
                     [scontro.incontri_ids]
                 );
 
-                for (const det of dettagliResult.rows) {
+                for (const inc of incontriCompleti.rows) {
+                    if (!inc.completato) continue;
+
                     scontro.totale_partite++;
-                    const squadraVincitrice = (det.vincitore === 1) ? det.incontro_sq1 : det.incontro_sq2;
-                    if (squadraVincitrice === scontro.squadra1) {
-                        scontro.vittorie_sq1++;
-                    } else {
-                        scontro.vittorie_sq2++;
+
+                    // risultato_coppia1 = 'Vittoria'/'Sconfitta'/'Pareggio'
+                    if (inc.risultato_coppia1 === 'Vittoria') {
+                        // squadra1 dell'incontro ha vinto
+                        if (inc.squadra1 === scontro.squadra1) {
+                            scontro.vittorie_sq1++;
+                        } else {
+                            scontro.vittorie_sq2++;
+                        }
+                    } else if (inc.risultato_coppia2 === 'Vittoria') {
+                        // squadra2 dell'incontro ha vinto
+                        if (inc.squadra2 === scontro.squadra1) {
+                            scontro.vittorie_sq1++;
+                        } else {
+                            scontro.vittorie_sq2++;
+                        }
                     }
+                    // Se Pareggio, nessuno prende la vittoria dell'incontro
                 }
             }
 
