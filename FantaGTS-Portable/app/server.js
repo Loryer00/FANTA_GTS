@@ -3063,6 +3063,28 @@ app.delete('/api/gironi/:id', async (req, res) => {
     }
 });
 
+// PUT: Riordina gironi di una fase
+app.put('/api/gironi-riordina/:faseId', async (req, res) => {
+    try {
+        const { ordine } = req.body; // array di { id, ordine }
+        if (!ordine || !Array.isArray(ordine)) {
+            return res.status(400).json({ error: 'Array ordine richiesto' });
+        }
+
+        await db.query('BEGIN');
+        for (const item of ordine) {
+            await db.query('UPDATE gironi SET ordine = $1 WHERE id = $2', [item.ordine, item.id]);
+        }
+        await db.query('COMMIT');
+
+        res.json({ message: 'Ordine gironi aggiornato' });
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Errore riordino gironi:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET: Classifica di un girone (calcolata dagli incontri)
 app.get('/api/classifica-girone/:gironeId', async (req, res) => {
     try {

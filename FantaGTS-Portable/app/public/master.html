@@ -599,6 +599,29 @@
             letter-spacing: 0.5px;
         }
 
+        .girone-master-card.dragging {
+            opacity: 0.4;
+            border: 2px dashed #4299e1;
+        }
+
+        .girone-master-card.drag-over {
+            border-top: 3px solid #48bb78;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            padding: 4px 8px;
+            color: #718096;
+            font-size: 1.2em;
+            user-select: none;
+            display: flex;
+            align-items: center;
+        }
+
+            .drag-handle:active {
+                cursor: grabbing;
+            }
+
         .sq-selezionabile {
             padding: 6px 14px;
             border-radius: 6px;
@@ -3736,9 +3759,12 @@
 
                 var html = '';
                 gironi.forEach(function (girone) {
-                    html += '<div class="girone-master-card">';
+                    html += '<div class="girone-master-card" draggable="true" data-girone-id="' + girone.id + '">';
                     html += '<div class="girone-master-header">';
+                    html += '<div style="display:flex; align-items:center; gap:8px;">';
+                    html += '<span class="drag-handle" title="Trascina per riordinare">||</span>';
                     html += '<h4>' + girone.nome + '</h4>';
+                    html += '</div>';
                     html += '<div style="display:flex; gap:6px;">';
                     html += '<button class="btn btn-secondary" onclick="modificaGirone(' + girone.id + ')" style="padding:4px 10px; font-size:0.8em;">Modifica</button>';
                     html += '<button class="btn btn-warning" onclick="eliminaGirone(' + girone.id + ', \'' + girone.nome + '\')" style="padding:4px 10px; font-size:0.8em;">Elimina</button>';
@@ -3762,6 +3788,9 @@
 
                 container.innerHTML = html;
 
+                // Inizializza drag & drop
+                inizializzaDragDropGironi();
+
                 // Mostra anche bottone per attivare la fase se non e attiva
                 var faseSelezionata = fasiDisponibili.find(function (f) { return f.id == faseCorrenteId; });
                 if (faseSelezionata && !faseSelezionata.attiva) {
@@ -3772,6 +3801,90 @@
 
             } catch (err) {
                 console.error('Errore caricamento gironi:', err);
+            }
+        }
+
+        function inizializzaDragDropGironi() {
+            var cards = document.querySelectorAll('.girone-master-card[draggable]');
+            var draggedEl = null;
+
+            cards.forEach(function (card) {
+                card.addEventListener('dragstart', function (e) {
+                    draggedEl = card;
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.getAttribute('data-girone-id'));
+                });
+
+                card.addEventListener('dragend', function () {
+                    card.classList.remove('dragging');
+                    // Rimuovi classe drag-over da tutte le card
+                    document.querySelectorAll('.girone-master-card.drag-over').forEach(function (c) {
+                        c.classList.remove('drag-over');
+                    });
+                    draggedEl = null;
+                });
+
+                card.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (card !== draggedEl) {
+                        card.classList.add('drag-over');
+                    }
+                });
+
+                card.addEventListener('dragleave', function () {
+                    card.classList.remove('drag-over');
+                });
+
+                card.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+
+                    if (!draggedEl || draggedEl === card) return;
+
+                    // Sposta l'elemento nel DOM
+                    var container = document.getElementById('containerGironi');
+                    var allCards = Array.from(container.querySelectorAll('.girone-master-card[draggable]'));
+                    var draggedIndex = allCards.indexOf(draggedEl);
+                    var targetIndex = allCards.indexOf(card);
+
+                    if (draggedIndex < targetIndex) {
+                        card.parentNode.insertBefore(draggedEl, card.nextSibling);
+                    } else {
+                        card.parentNode.insertBefore(draggedEl, card);
+                    }
+
+                    // Salva il nuovo ordine sul server
+                    salvaOrdineGironi();
+                });
+            });
+        }
+
+        async function salvaOrdineGironi() {
+            var cards = document.querySelectorAll('.girone-master-card[draggable]');
+            var ordine = [];
+            var posizione = 1;
+
+            cards.forEach(function (card) {
+                ordine.push({
+                    id: parseInt(card.getAttribute('data-girone-id')),
+                    ordine: posizione++
+                });
+            });
+
+            try {
+                var resp = await fetch('/api/gironi-riordina/' + faseCorrenteId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ordine: ordine })
+                });
+
+                if (resp.ok) {
+                    showNotification('Ordine gironi aggiornato', 'success');
+                }
+            } catch (err) {
+                console.error('Errore salvataggio ordine gironi:', err);
             }
         }
 
