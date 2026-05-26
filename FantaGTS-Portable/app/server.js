@@ -3295,8 +3295,8 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
 
                 if (!scontriMap[chiave]) {
                     scontriMap[chiave] = {
-                        squadra1: incontro.squadra1,
-                        squadra2: incontro.squadra2,
+                        squadra1: sqMin,
+                        squadra2: sqMax,
                         turno_id: incontro.turno_id,
                         vittorie_sq1: 0,
                         vittorie_sq2: 0,
@@ -3311,31 +3311,28 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                 if (!incontro.completato) {
                     scontriMap[chiave].tutti_completati = false;
                 }
+            }
 
-                // Conta le vittorie dai risultati_dettaglio di questo incontro
-                const dettagli = await db.query(
-                    'SELECT vincitore FROM risultati_dettaglio WHERE incontro_id = $1',
-                    [incontro.id]
+            // Conta le vittorie per ogni scontro - una sola query per scontro
+            for (const scontro of Object.values(scontriMap)) {
+                if (scontro.incontri_ids.length === 0) continue;
+
+                const dettagliResult = await db.query(
+                    `SELECT i.squadra1 as incontro_sq1, i.squadra2 as incontro_sq2, rd.vincitore
+                     FROM risultati_dettaglio rd
+                     JOIN incontri i ON rd.incontro_id = i.id
+                     WHERE rd.incontro_id = ANY($1)
+                       AND rd.vincitore > 0`,
+                    [scontro.incontri_ids]
                 );
 
-                for (const det of dettagli.rows) {
-                    scontriMap[chiave].totale_partite++;
-                    // vincitore = 1 significa squadra1 dell'incontro, 2 = squadra2
-                    // Dobbiamo mappare rispetto alle squadre originali dello scontro
-                    if (det.vincitore === 1) {
-                        // Ha vinto squadra1 dell'incontro
-                        if (incontro.squadra1 === scontriMap[chiave].squadra1) {
-                            scontriMap[chiave].vittorie_sq1++;
-                        } else {
-                            scontriMap[chiave].vittorie_sq2++;
-                        }
-                    } else if (det.vincitore === 2) {
-                        // Ha vinto squadra2 dell'incontro
-                        if (incontro.squadra2 === scontriMap[chiave].squadra1) {
-                            scontriMap[chiave].vittorie_sq1++;
-                        } else {
-                            scontriMap[chiave].vittorie_sq2++;
-                        }
+                for (const det of dettagliResult.rows) {
+                    scontro.totale_partite++;
+                    const squadraVincitrice = (det.vincitore === 1) ? det.incontro_sq1 : det.incontro_sq2;
+                    if (squadraVincitrice === scontro.squadra1) {
+                        scontro.vittorie_sq1++;
+                    } else {
+                        scontro.vittorie_sq2++;
                     }
                 }
             }
