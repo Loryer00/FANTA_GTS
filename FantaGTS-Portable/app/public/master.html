@@ -562,6 +562,65 @@
             opacity: 0.6;
             font-style: italic;
         }
+
+        /* Gestione Gironi Master */
+        .girone-master-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .girone-master-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+            .girone-master-header h4 {
+                margin: 0;
+                font-size: 0.95em;
+                color: #4299e1;
+            }
+
+        .girone-master-squadre {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .girone-master-sq {
+            padding: 4px 12px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .sq-selezionabile {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s, transform 0.1s;
+            border: 2px solid transparent;
+        }
+
+            .sq-selezionabile.selezionata {
+                opacity: 1;
+                border-color: #4299e1;
+                transform: scale(1.05);
+            }
+
+            .sq-selezionabile:hover {
+                opacity: 0.8;
+            }
+
     </style>
 
 </head>
@@ -677,6 +736,61 @@
                 <button class="btn btn-primary" onclick="apriCreaSquadraManuale()">
                     Crea Squadra Manuale
                 </button>
+            </div>
+        </div>
+
+        <!-- Gestione Fasi e Gironi -->
+        <div class="section" id="sezioneFasiGironi">
+            <h2>Gestione Fasi e Gironi</h2>
+
+            <div style="margin-bottom: 15px;">
+                <label style="color: #a0aec0; font-size: 0.9em; display: block; margin-bottom: 5px;">Fase corrente:</label>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <select id="selectFaseCorrente" onchange="cambiaFaseCorrente()" style="flex:1; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em;">
+                        <option value="">-- Nessuna fase --</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="apriCreazioneFase()" style="padding:8px 14px; font-size:0.85em;">+ Fase</button>
+                </div>
+            </div>
+
+            <div id="containerGironi" style="margin-top: 15px;"></div>
+
+            <div id="areaAggiungiGirone" style="margin-top: 10px; display: none;">
+                <button class="btn btn-primary" onclick="apriCreazioneGirone()" style="padding:8px 14px; font-size:0.85em; width:100%;">+ Aggiungi Girone</button>
+            </div>
+        </div>
+
+        <!-- Modal Creazione Fase -->
+        <div id="modalCreazioneFase" class="modal" onclick="if(event.target===this)chiudiModaleFase()">
+            <div class="modal-content" style="max-width: 400px;">
+                <h3 style="margin:0 0 15px;">Nuova Fase</h3>
+                <div style="margin-bottom:12px;">
+                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:4px;">Nome fase:</label>
+                    <input type="text" id="inputNomeFase" placeholder="Es: Fase a gironi, Quarti di finale..." style="width:100%; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em; box-sizing:border-box;">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary" onclick="salvaFase()" style="flex:1;">Salva</button>
+                    <button class="btn btn-secondary" onclick="chiudiModaleFase()" style="flex:1;">Annulla</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Creazione/Modifica Girone -->
+        <div id="modalCreazioneGirone" class="modal" onclick="if(event.target===this)chiudiModaleGirone()">
+            <div class="modal-content" style="max-width: 450px;">
+                <h3 id="titoloModaleGirone" style="margin:0 0 15px;">Nuovo Girone</h3>
+                <div style="margin-bottom:12px;">
+                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:4px;">Nome girone:</label>
+                    <input type="text" id="inputNomeGirone" placeholder="Es: Girone A" style="width:100%; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); font-size:0.95em; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="color:#a0aec0; font-size:0.85em; display:block; margin-bottom:8px;">Seleziona squadre:</label>
+                    <div id="listaSquadreSelezionabili" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary" onclick="salvaGirone()" style="flex:1;">Salva</button>
+                    <button class="btn btn-secondary" onclick="chiudiModaleGirone()" style="flex:1;">Annulla</button>
+                </div>
             </div>
         </div>
 
@@ -3563,6 +3677,312 @@
                 showNotification('Errore eliminazione immagine', 'error');
             }
         }
+
+        // ========================================
+        // GESTIONE FASI E GIRONI
+        // ========================================
+        var fasiDisponibili = [];
+        var faseCorrenteId = null;
+        var gironeInModifica = null;
+        var squadreCircoloDisponibili = [];
+
+        async function caricaFasiEGironi() {
+            if (!configurazioneCorrente) return;
+
+            try {
+                // Carica squadre del circolo per la selezione
+                var sqResp = await fetch('/api/squadre?configurazione=' + configurazioneCorrente);
+                if (sqResp.ok) {
+                    squadreCircoloDisponibili = await sqResp.json();
+                }
+
+                // Carica fasi
+                var resp = await fetch('/api/fasi-torneo?configurazione=' + configurazioneCorrente);
+                if (!resp.ok) return;
+                fasiDisponibili = await resp.json();
+
+                var select = document.getElementById('selectFaseCorrente');
+                select.innerHTML = '<option value="">-- Nessuna fase --</option>';
+
+                fasiDisponibili.forEach(function (fase) {
+                    var opt = document.createElement('option');
+                    opt.value = fase.id;
+                    opt.textContent = fase.nome + (fase.attiva ? ' (ATTIVA)' : '');
+                    if (fase.attiva) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                // Se c'e una fase attiva, carica i gironi
+                var faseAttiva = fasiDisponibili.find(function (f) { return f.attiva; });
+                if (faseAttiva) {
+                    faseCorrenteId = faseAttiva.id;
+                    select.value = faseAttiva.id;
+                    await caricaGironiFase(faseAttiva.id);
+                    document.getElementById('areaAggiungiGirone').style.display = 'block';
+                } else if (fasiDisponibili.length > 0) {
+                    faseCorrenteId = fasiDisponibili[0].id;
+                    select.value = fasiDisponibili[0].id;
+                    await caricaGironiFase(fasiDisponibili[0].id);
+                    document.getElementById('areaAggiungiGirone').style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Errore caricamento fasi:', err);
+            }
+        }
+
+        async function cambiaFaseCorrente() {
+            var select = document.getElementById('selectFaseCorrente');
+            faseCorrenteId = select.value;
+            if (faseCorrenteId) {
+                await caricaGironiFase(faseCorrenteId);
+                document.getElementById('areaAggiungiGirone').style.display = 'block';
+            } else {
+                document.getElementById('containerGironi').innerHTML = '';
+                document.getElementById('areaAggiungiGirone').style.display = 'none';
+            }
+        }
+
+        async function caricaGironiFase(faseId) {
+            try {
+                var resp = await fetch('/api/gironi/' + faseId);
+                if (!resp.ok) return;
+                var gironi = await resp.json();
+
+                var container = document.getElementById('containerGironi');
+
+                if (gironi.length === 0) {
+                    container.innerHTML = '<p style="color:#718096; text-align:center; font-size:0.9em;">Nessun girone configurato per questa fase</p>';
+                    return;
+                }
+
+                var html = '';
+                gironi.forEach(function (girone) {
+                    html += '<div class="girone-master-card">';
+                    html += '<div class="girone-master-header">';
+                    html += '<h4>' + girone.nome + '</h4>';
+                    html += '<div style="display:flex; gap:6px;">';
+                    html += '<button class="btn btn-secondary" onclick="modificaGirone(' + girone.id + ')" style="padding:4px 10px; font-size:0.8em;">Modifica</button>';
+                    html += '<button class="btn btn-warning" onclick="eliminaGirone(' + girone.id + ', \'' + girone.nome + '\')" style="padding:4px 10px; font-size:0.8em;">Elimina</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<div class="girone-master-squadre">';
+
+                    if (girone.squadre && girone.squadre.length > 0) {
+                        girone.squadre.forEach(function (sq) {
+                            var bgColor = getTeamColorForMaster(sq.colore);
+                            var txtColor = getTextColorForTeamMaster(sq.colore);
+                            html += '<span class="girone-master-sq" style="background:' + bgColor + '; color:' + txtColor + ';">' + sq.colore.toUpperCase() + '</span>';
+                        });
+                    } else {
+                        html += '<span style="color:#718096; font-size:0.85em;">Nessuna squadra assegnata</span>';
+                    }
+
+                    html += '</div>';
+                    html += '</div>';
+                });
+
+                container.innerHTML = html;
+
+                // Mostra anche bottone per attivare la fase se non e attiva
+                var faseSelezionata = fasiDisponibili.find(function (f) { return f.id == faseCorrenteId; });
+                if (faseSelezionata && !faseSelezionata.attiva) {
+                    container.innerHTML += '<button class="btn btn-primary" onclick="attivaFase(' + faseCorrenteId + ')" style="width:100%; margin-top:10px; padding:10px;">Attiva questa fase</button>';
+                } else if (faseSelezionata && faseSelezionata.attiva) {
+                    container.innerHTML += '<div style="text-align:center; margin-top:8px; color:#48bb78; font-size:0.85em; font-weight:600;">Fase attualmente attiva</div>';
+                }
+
+            } catch (err) {
+                console.error('Errore caricamento gironi:', err);
+            }
+        }
+
+        function apriCreazioneFase() {
+            document.getElementById('inputNomeFase').value = '';
+            document.getElementById('modalCreazioneFase').style.display = 'flex';
+        }
+
+        function chiudiModaleFase() {
+            document.getElementById('modalCreazioneFase').style.display = 'none';
+        }
+
+        async function salvaFase() {
+            var nome = document.getElementById('inputNomeFase').value.trim();
+            if (!nome) {
+                alert('Inserisci un nome per la fase');
+                return;
+            }
+
+            try {
+                var ordine = fasiDisponibili.length + 1;
+                var resp = await fetch('/api/fasi-torneo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome: nome,
+                        ordine: ordine,
+                        configurazione_id: configurazioneCorrente
+                    })
+                });
+
+                if (resp.ok) {
+                    chiudiModaleFase();
+                    await caricaFasiEGironi();
+                } else {
+                    alert('Errore nella creazione della fase');
+                }
+            } catch (err) {
+                console.error('Errore salvataggio fase:', err);
+                alert('Errore di connessione');
+            }
+        }
+
+        async function attivaFase(faseId) {
+            try {
+                var resp = await fetch('/api/fasi-torneo/' + faseId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ attiva: true })
+                });
+
+                if (resp.ok) {
+                    await caricaFasiEGironi();
+                }
+            } catch (err) {
+                console.error('Errore attivazione fase:', err);
+            }
+        }
+
+        function apriCreazioneGirone() {
+            gironeInModifica = null;
+            document.getElementById('titoloModaleGirone').textContent = 'Nuovo Girone';
+            document.getElementById('inputNomeGirone').value = '';
+            renderSquadreSelezionabili([]);
+            document.getElementById('modalCreazioneGirone').style.display = 'flex';
+        }
+
+        async function modificaGirone(gironeId) {
+            try {
+                var resp = await fetch('/api/gironi/' + faseCorrenteId);
+                if (!resp.ok) return;
+                var gironi = await resp.json();
+                var girone = gironi.find(function (g) { return g.id === gironeId; });
+                if (!girone) return;
+
+                gironeInModifica = gironeId;
+                document.getElementById('titoloModaleGirone').textContent = 'Modifica ' + girone.nome;
+                document.getElementById('inputNomeGirone').value = girone.nome;
+
+                var squadreSelezionate = girone.squadre ? girone.squadre.map(function (s) { return s.squadra_numero; }) : [];
+                renderSquadreSelezionabili(squadreSelezionate);
+                document.getElementById('modalCreazioneGirone').style.display = 'flex';
+            } catch (err) {
+                console.error('Errore modifica girone:', err);
+            }
+        }
+
+        function renderSquadreSelezionabili(squadreGiaSelezionate) {
+            var container = document.getElementById('listaSquadreSelezionabili');
+            var html = '';
+
+            squadreCircoloDisponibili.forEach(function (sq) {
+                var isSelected = squadreGiaSelezionate.indexOf(sq.numero) !== -1;
+                var bgColor = getTeamColorForMaster(sq.colore);
+                var txtColor = getTextColorForTeamMaster(sq.colore);
+
+                html += '<div class="sq-selezionabile ' + (isSelected ? 'selezionata' : '') + '" ';
+                html += 'data-numero="' + sq.numero + '" ';
+                html += 'style="background:' + bgColor + '; color:' + txtColor + ';" ';
+                html += 'onclick="toggleSquadraGirone(this)">';
+                html += sq.colore.toUpperCase();
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleSquadraGirone(el) {
+            el.classList.toggle('selezionata');
+        }
+
+        function chiudiModaleGirone() {
+            document.getElementById('modalCreazioneGirone').style.display = 'none';
+            gironeInModifica = null;
+        }
+
+        async function salvaGirone() {
+            var nome = document.getElementById('inputNomeGirone').value.trim();
+            if (!nome) {
+                alert('Inserisci un nome per il girone');
+                return;
+            }
+
+            var squadreSelezionate = [];
+            var elementi = document.querySelectorAll('#listaSquadreSelezionabili .sq-selezionabile.selezionata');
+            elementi.forEach(function (el) {
+                squadreSelezionate.push(parseInt(el.getAttribute('data-numero')));
+            });
+
+            if (squadreSelezionate.length === 0) {
+                alert('Seleziona almeno una squadra');
+                return;
+            }
+
+            try {
+                var url, method;
+                if (gironeInModifica) {
+                    url = '/api/gironi/' + gironeInModifica;
+                    method = 'PUT';
+                } else {
+                    url = '/api/gironi';
+                    method = 'POST';
+                }
+
+                var body = {
+                    nome: nome,
+                    squadre: squadreSelezionate
+                };
+
+                if (!gironeInModifica) {
+                    body.fase_id = parseInt(faseCorrenteId);
+                    body.ordine = 1;
+                }
+
+                var resp = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (resp.ok) {
+                    chiudiModaleGirone();
+                    await caricaGironiFase(faseCorrenteId);
+                } else {
+                    alert('Errore nel salvataggio del girone');
+                }
+            } catch (err) {
+                console.error('Errore salvataggio girone:', err);
+                alert('Errore di connessione');
+            }
+        }
+
+        async function eliminaGirone(gironeId, nomeGirone) {
+            if (!confirm('Eliminare ' + nomeGirone + '?')) return;
+
+            try {
+                var resp = await fetch('/api/gironi/' + gironeId, { method: 'DELETE' });
+                if (resp.ok) {
+                    await caricaGironiFase(faseCorrenteId);
+                }
+            } catch (err) {
+                console.error('Errore eliminazione girone:', err);
+            }
+        }
+
+        // Carica fasi e gironi all'avvio (dopo che configurazioneCorrente e stata settata)
+        var originalInitMaster = window.onload;
+        setTimeout(function () {
+            caricaFasiEGironi();
+        }, 2000);
 
     </script>
 
