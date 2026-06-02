@@ -4045,7 +4045,7 @@ app.get('/api/classifica', async (req, res) => {
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
             LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
             WHERE p.attivo = true 
-            GROUP BY p.id, p.nome, psa.crediti 
+            GROUP BY p.id, p.nome, p.nome_reale, p.cognome, psa.crediti
             ORDER BY punti_totali DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
 
         // Aggiungi posizione in classifica

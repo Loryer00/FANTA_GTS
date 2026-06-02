@@ -3288,21 +3288,19 @@
 
                 classifica.forEach((partecipante, index) => {
                     const positionClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : '';
-                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-
+                    const posLabel = index === 0 ? '&#129351;' : index === 1 ? '&#129352;' : index === 2 ? '&#129353;' : (index + 1) + '&#176;';
                     const nomeReale = partecipante.nome_reale || '';
                     const cognomeReale = partecipante.cognome || '';
                     const hasRealName = nomeReale || cognomeReale;
 
                     html += `
-                                        <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
+                                        <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}"
+                                             ${hasRealName ? 'onclick="mostraAnagraficaPopup(\'' + partecipante.nome.replace(/'/g, "\\'") + '\', \'' + (nomeReale + ' ' + cognomeReale).trim().replace(/'/g, "\\'") + '\')"' : ''}>
                                             <div class="classifica-position ${positionClass}">
-                                                ${medal} ${index + 1}°
+                                                ${posLabel}
                                             </div>
-                                            <div class="classifica-name" style="position: relative;">
-                                                <span ${hasRealName ? `onclick="toggleRealName(this)" style="cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px;"` : ''} data-real="${nomeReale} ${cognomeReale}">
-                                                    ${partecipante.nome}
-                                                </span>
+                                            <div class="classifica-name">
+                                                ${partecipante.nome}
                                                 ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
                                             </div>
                                             <div class="classifica-points">
@@ -3659,20 +3657,24 @@
             }
         }
 
-        function toggleRealName(el) {
-            // Chiudi eventuali popup aperti
-            document.querySelectorAll('.realname-popup').forEach(p => p.remove());
+        function mostraAnagraficaPopup(nickname, nomeCompleto) {
+            var vecchio = document.getElementById('popup-anagrafica-overlay');
+            if (vecchio) vecchio.remove();
 
-            const realName = el.getAttribute('data-real').trim();
-            if (!realName) return;
+            var overlay = document.createElement('div');
+            overlay.id = 'popup-anagrafica-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
 
-            const popup = document.createElement('div');
-            popup.className = 'realname-popup';
-            popup.textContent = realName;
-            popup.style.cssText = 'position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #2d3748; color: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 0.8em; white-space: nowrap; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none;';
-            el.parentElement.appendChild(popup);
+            overlay.innerHTML = '<div style="background: #1a202c; border: 1px solid rgba(66,153,225,0.4); border-radius: 12px; padding: 20px 25px; max-width: 280px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.6); text-align: center;">' +
+                '<div style="font-size: 1.1em; font-weight: bold; color: #4299e1; margin-bottom: 10px;">' + nickname + '</div>' +
+                '<div style="font-size: 0.95em; color: #e2e8f0;">' + nomeCompleto + '</div>' +
+                '</div>';
 
-            setTimeout(() => popup.remove(), 2000);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) overlay.remove();
+            });
+
+            document.body.appendChild(overlay);
         }
 
         // Chiudi popup se si tocca altrove
