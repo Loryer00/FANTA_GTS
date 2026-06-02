@@ -3652,6 +3652,27 @@ app.delete('/api/partecipanti/:id', async (req, res) => {
     }
 });
 
+// ========================================
+// API: Aggiorna nome_reale e cognome partecipante
+// ========================================
+app.put('/api/partecipanti/:id/anagrafica', async (req, res) => {
+    try {
+        const { nome_reale, cognome } = req.body;
+        const partecipanteId = req.params.id;
+
+        await db.query(
+            `UPDATE partecipanti_fantagts SET nome_reale = $1, cognome = $2 WHERE id = $3`,
+            [nome_reale || null, cognome || null, partecipanteId]
+        );
+
+        console.log(`Anagrafica aggiornata per ${partecipanteId}: ${nome_reale} ${cognome}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Errore aggiornamento anagrafica:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Generazione slots
 app.post('/api/genera-slots', async (req, res) => {
     try {

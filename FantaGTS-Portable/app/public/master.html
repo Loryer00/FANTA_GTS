@@ -1862,7 +1862,16 @@
                     html += `
                                             <tr id="partecipante-${p.id}">
                                                 <td><strong>${p.nome}</strong><br><small>${p.id}</small></td>
-                                                <td>${p.nome_reale || '-'} ${p.cognome || ''}</td>
+                                                <td>
+                                                    <span class="nome-editabile"
+                                                          data-id="${p.id}" 
+                                                          data-nome="${p.nome_reale || ''}" 
+                                                          data-cognome="${p.cognome || ''}"
+                                                          onclick="apriEditAnagrafica(this)"
+                                                          style="cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.4); padding-bottom: 1px;">
+                                                        ${(p.nome_reale || p.cognome) ? (p.nome_reale || '') + ' ' + (p.cognome || '') : '<em style=&quot;opacity:0.5&quot;>clicca per inserire</em>'}
+                                                    </span>
+                                                </td>
                                                 <td>${p.crediti}</td>
                                                 <td style="text-align: center;">${notificheOk ? '<span style="color: #48bb78;">Attive</span>' : '<span style="color: #f56565;">No</span>'}</td>
                                                 <td>${dataRegistrazione}</td>
@@ -1923,6 +1932,84 @@
                 showNotification('Errore di connessione', 'error');
             }
         }
+
+        // Modifica anagrafica partecipante inline
+        async function apriEditAnagrafica(el) {
+            // Chiudi eventuali edit aperti
+            document.querySelectorAll('.anagrafica-edit-box').forEach(b => b.remove());
+
+            const id = el.dataset.id;
+            const nomeAttuale = el.dataset.nome;
+            const cognomeAttuale = el.dataset.cognome;
+
+            const box = document.createElement('div');
+            box.className = 'anagrafica-edit-box';
+            box.style.cssText = 'position: absolute; z-index: 999; background: #2d3748; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 6px; min-width: 200px;';
+            box.innerHTML = `
+                <input type="text" id="editNome_${id}" value="${nomeAttuale}" placeholder="Nome" 
+                       style="padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.85em;">
+                <input type="text" id="editCognome_${id}" value="${cognomeAttuale}" placeholder="Cognome" 
+                       style="padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.85em;">
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="salvaAnagrafica('${id}')" 
+                            style="flex:1; padding: 5px; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Salva</button>
+                    <button onclick="chiudiEditAnagrafica()" 
+                            style="flex:1; padding: 5px; background: #718096; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Annulla</button>
+                </div>
+            `;
+
+            // Posiziona vicino all'elemento cliccato
+            const rect = el.getBoundingClientRect();
+            box.style.position = 'fixed';
+            box.style.top = (rect.bottom + 5) + 'px';
+            box.style.left = rect.left + 'px';
+
+            document.body.appendChild(box);
+
+            // Focus sul primo campo
+            document.getElementById(`editNome_${id}`).focus();
+        }
+
+        function chiudiEditAnagrafica() {
+            document.querySelectorAll('.anagrafica-edit-box').forEach(b => b.remove());
+        }
+
+        async function salvaAnagrafica(partecipanteId) {
+            const nome = document.getElementById(`editNome_${partecipanteId}`).value.trim();
+            const cognome = document.getElementById(`editCognome_${partecipanteId}`).value.trim();
+
+            try {
+                const response = await fetch(`/api/partecipanti/${partecipanteId}/anagrafica`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome_reale: nome, cognome: cognome })
+                });
+
+                if (response.ok) {
+                    showNotification('Anagrafica aggiornata', 'success');
+                    chiudiEditAnagrafica();
+                    // Aggiorna la cella nella tabella
+                    const span = document.querySelector(`.nome-editabile[data-id="${partecipanteId}"]`);
+                    if (span) {
+                        span.dataset.nome = nome;
+                        span.dataset.cognome = cognome;
+                        span.innerHTML = (nome || cognome) ? nome + ' ' + cognome : '<em style="opacity:0.5">clicca per inserire</em>';
+                    }
+                } else {
+                    showNotification('Errore salvataggio', 'error');
+                }
+            } catch (err) {
+                console.error('Errore salvataggio anagrafica:', err);
+                showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Chiudi edit cliccando fuori
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.anagrafica-edit-box') && !e.target.closest('.nome-editabile')) {
+                chiudiEditAnagrafica();
+            }
+        });
 
         // Ricarica lista partecipanti
         async function ricaricaPartecipantiGestione() {
