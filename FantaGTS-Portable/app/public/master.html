@@ -1869,7 +1869,7 @@
                                                           data-cognome="${p.cognome || ''}"
                                                           onclick="apriEditAnagrafica(this)"
                                                           style="cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.4); padding-bottom: 1px;">
-                                                        ${(p.nome_reale || p.cognome) ? (p.nome_reale || '') + ' ' + (p.cognome || '') : '<em style=&quot;opacity:0.5&quot;>clicca per inserire</em>'}
+                                                        ${(p.nome_reale || p.cognome) ? (p.nome_reale || '') + ' ' + (p.cognome || '') : '<em style="opacity:0.5">clicca per inserire</em>'}
                                                     </span>
                                                 </td>
                                                 <td>${p.crediti}</td>
@@ -1933,53 +1933,47 @@
             }
         }
 
-        // Modifica anagrafica partecipante inline
-        async function apriEditAnagrafica(el) {
-            // Chiudi eventuali edit aperti
-            document.querySelectorAll('.anagrafica-edit-box').forEach(b => b.remove());
+        // Modifica anagrafica partecipante
+        function apriEditAnagrafica(el) {
+            document.querySelectorAll('.anagrafica-edit-box').forEach(function (b) { b.remove(); });
 
-            const id = el.dataset.id;
-            const nomeAttuale = el.dataset.nome;
-            const cognomeAttuale = el.dataset.cognome;
+            var id = el.dataset.id;
+            var nomeAttuale = el.dataset.nome;
+            var cognomeAttuale = el.dataset.cognome;
 
-            const box = document.createElement('div');
+            var box = document.createElement('div');
             box.className = 'anagrafica-edit-box';
-            box.style.cssText = 'position: absolute; z-index: 999; background: #2d3748; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 6px; min-width: 200px;';
-            box.innerHTML = `
-                <input type="text" id="editNome_${id}" value="${nomeAttuale}" placeholder="Nome" 
-                       style="padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.85em;">
-                <input type="text" id="editCognome_${id}" value="${cognomeAttuale}" placeholder="Cognome" 
-                       style="padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.85em;">
-                <div style="display: flex; gap: 6px;">
-                    <button onclick="salvaAnagrafica('${id}')" 
-                            style="flex:1; padding: 5px; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Salva</button>
-                    <button onclick="chiudiEditAnagrafica()" 
-                            style="flex:1; padding: 5px; background: #718096; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Annulla</button>
-                </div>
-            `;
+            box.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+            box.innerHTML = '<div style="background: #1a202c; border: 1px solid rgba(66,153,225,0.4); border-radius: 12px; padding: 20px; max-width: 300px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.6);">' +
+                '<div style="text-align: center; font-weight: bold; color: #4299e1; margin-bottom: 15px;">Modifica Anagrafica</div>' +
+                '<input type="text" id="editNome_' + id + '" value="' + nomeAttuale + '" placeholder="Nome" ' +
+                '       style="width: 100%; padding: 8px 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.9em;">' +
+                '<input type="text" id="editCognome_' + id + '" value="' + cognomeAttuale + '" placeholder="Cognome" ' +
+                '       style="width: 100%; padding: 8px 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.9em;">' +
+                '<div style="display: flex; gap: 8px;">' +
+                '  <button onclick="salvaAnagrafica(\'' + id + '\')" style="flex:1; padding: 8px; background: #48bb78; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Salva</button>' +
+                '  <button onclick="chiudiEditAnagrafica()" style="flex:1; padding: 8px; background: #718096; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Annulla</button>' +
+                '</div>' +
+                '</div>';
 
-            // Posiziona vicino all'elemento cliccato
-            const rect = el.getBoundingClientRect();
-            box.style.position = 'fixed';
-            box.style.top = (rect.bottom + 5) + 'px';
-            box.style.left = rect.left + 'px';
+            box.addEventListener('click', function (e) {
+                if (e.target === box) chiudiEditAnagrafica();
+            });
 
             document.body.appendChild(box);
-
-            // Focus sul primo campo
-            document.getElementById(`editNome_${id}`).focus();
+            document.getElementById('editNome_' + id).focus();
         }
 
         function chiudiEditAnagrafica() {
-            document.querySelectorAll('.anagrafica-edit-box').forEach(b => b.remove());
+            document.querySelectorAll('.anagrafica-edit-box').forEach(function (b) { b.remove(); });
         }
 
         async function salvaAnagrafica(partecipanteId) {
-            const nome = document.getElementById(`editNome_${partecipanteId}`).value.trim();
-            const cognome = document.getElementById(`editCognome_${partecipanteId}`).value.trim();
+            var nome = document.getElementById('editNome_' + partecipanteId).value.trim();
+            var cognome = document.getElementById('editCognome_' + partecipanteId).value.trim();
 
             try {
-                const response = await fetch(`/api/partecipanti/${partecipanteId}/anagrafica`, {
+                var response = await fetch('/api/partecipanti/' + partecipanteId + '/anagrafica', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nome_reale: nome, cognome: cognome })
@@ -1988,8 +1982,7 @@
                 if (response.ok) {
                     showNotification('Anagrafica aggiornata', 'success');
                     chiudiEditAnagrafica();
-                    // Aggiorna la cella nella tabella
-                    const span = document.querySelector(`.nome-editabile[data-id="${partecipanteId}"]`);
+                    var span = document.querySelector('.nome-editabile[data-id="' + partecipanteId + '"]');
                     if (span) {
                         span.dataset.nome = nome;
                         span.dataset.cognome = cognome;
