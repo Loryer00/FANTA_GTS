@@ -3290,13 +3290,19 @@
                     const positionClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : '';
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
+                    const nomeReale = partecipante.nome_reale || '';
+                    const cognomeReale = partecipante.cognome || '';
+                    const hasRealName = nomeReale || cognomeReale;
+
                     html += `
                                         <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}">
                                             <div class="classifica-position ${positionClass}">
                                                 ${medal} ${index + 1}°
                                             </div>
-                                            <div class="classifica-name">
-                                                ${partecipante.nome}
+                                            <div class="classifica-name" style="position: relative;">
+                                                <span ${hasRealName ? `onclick="toggleRealName(this)" style="cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px;"` : ''} data-real="${nomeReale} ${cognomeReale}">
+                                                    ${partecipante.nome}
+                                                </span>
                                                 ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
                                             </div>
                                             <div class="classifica-points">
@@ -3652,6 +3658,29 @@
                 container.innerHTML = '';
             }
         }
+
+        function toggleRealName(el) {
+            // Chiudi eventuali popup aperti
+            document.querySelectorAll('.realname-popup').forEach(p => p.remove());
+
+            const realName = el.getAttribute('data-real').trim();
+            if (!realName) return;
+
+            const popup = document.createElement('div');
+            popup.className = 'realname-popup';
+            popup.textContent = realName;
+            popup.style.cssText = 'position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #2d3748; color: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 0.8em; white-space: nowrap; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none;';
+            el.parentElement.appendChild(popup);
+
+            setTimeout(() => popup.remove(), 2000);
+        }
+
+        // Chiudi popup se si tocca altrove
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('[data-real]')) {
+                document.querySelectorAll('.realname-popup').forEach(p => p.remove());
+            }
+        });
 
         function apriDettaglioGirone(indiceGirone) {
             if (!datiGironiGlobali || !datiGironiGlobali.gironi[indiceGirone]) return;

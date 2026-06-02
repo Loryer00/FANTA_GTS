@@ -4015,7 +4015,7 @@ app.get('/api/classifica', async (req, res) => {
         const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
 
         const result = await db.query(`SELECT 
-            p.id, p.nome, psa.crediti, 
+            p.id, p.nome, p.nome_reale, p.cognome, psa.crediti,
             COUNT(a.id) as giocatori_totali,
             COALESCE(SUM(s.punti_totali), 0) as punti_totali,
             COALESCE(SUM(a.costo_finale), 0) as crediti_spesi
@@ -4058,6 +4058,8 @@ app.get('/api/classifica-draft', async (req, res) => {
     SELECT 
         p.id, 
         p.nome, 
+        p.nome_reale,
+        p.cognome,
         COUNT(sd.id) as giocatori_totali,
         COALESCE(SUM(s.punti_totali), 0) as punti_totali
     FROM partecipanti_fantagts p 
