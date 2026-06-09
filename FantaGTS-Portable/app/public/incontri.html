@@ -973,6 +973,27 @@
 
             html += '</div>';
 
+            // Punteggio della coppia (game) - una sola coppia di valori per incontro
+            html += `
+                <div style="margin-top:15px; text-align:center;">
+                    <div style="color:#a0aec0; font-size:0.9em; margin-bottom:6px;">Punteggio coppia (game)</div>
+                    <div style="display:flex; gap:10px; justify-content:center; align-items:center;">
+                        <span>${squadra1.colore}</span>
+                        <input type="number" id="games1-${incontro.id}" min="0" max="9"
+                               value="${incontro.games_squadra1 != null ? incontro.games_squadra1 : ''}"
+                               ${incontro.completato ? 'disabled' : ''}
+                               style="width:60px; padding:6px; border-radius:6px; text-align:center; color:#333;">
+                        <span>-</span>
+                        <input type="number" id="games2-${incontro.id}" min="0" max="9"
+                               value="${incontro.games_squadra2 != null ? incontro.games_squadra2 : ''}"
+                               ${incontro.completato ? 'disabled' : ''}
+                               style="width:60px; padding:6px; border-radius:6px; text-align:center; color:#333;">
+                        <span>${squadra2.colore}</span>
+                        ${!incontro.completato ? `<button class="btn btn-secondary" onclick="salvaPunteggioIncontro(${incontro.id})">Salva punteggio</button>` : ''}
+                    </div>
+                </div>
+            `;
+
             // Aggiungi pulsanti di controllo se non completato
             if (!incontro.completato) {
                 html += `
@@ -1016,6 +1037,35 @@
                 }
             } catch (error) {
                 showNotification('Errore di connessione', 'error');
+            }
+        }
+
+        // Salva il punteggio (game) della coppia per un incontro
+        async function salvaPunteggioIncontro(incontroId) {
+            const g1 = document.getElementById(`games1-${incontroId}`).value;
+            const g2 = document.getElementById(`games2-${incontroId}`).value;
+            if (g1 === '' || g2 === '') {
+                showNotification('Inserisci entrambi i punteggi', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/set-punteggio-incontro/${incontroId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        games_squadra1: parseInt(g1),
+                        games_squadra2: parseInt(g2)
+                    })
+                });
+                if (response.ok) {
+                    showNotification('Punteggio salvato', 'success');
+                    await caricaIncontriTurno(turnoSelezionato.id);
+                } else {
+                    const error = await response.json();
+                    showNotification('Errore: ' + error.error, 'error');
+                }
+            } catch (err) {
+                showNotification('Errore di rete', 'error');
             }
         }
 

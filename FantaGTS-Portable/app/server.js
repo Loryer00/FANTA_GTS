@@ -258,12 +258,19 @@ async function initializeDatabase() {
             squadra2 INTEGER NOT NULL,
             risultato_coppia1 TEXT,
             risultato_coppia2 TEXT,
+            games_squadra1 INTEGER,
+            games_squadra2 INTEGER,
             completato BOOLEAN DEFAULT false,
             inserito_da TEXT,
             sessione_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
-        console.log('✅ Tabella incontri creata/verificata');
+        console.log('Tabella incontri creata/verificata');
+
+        // Aggiunge le colonne punteggio coppia se mancanti (DB gia esistenti)
+        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS games_squadra1 INTEGER`);
+        await db.query(`ALTER TABLE incontri ADD COLUMN IF NOT EXISTS games_squadra2 INTEGER`);
+        console.log('Colonne games_squadra1/games_squadra2 verificate');
 
         await db.query(`CREATE TABLE IF NOT EXISTS accoppiamenti_posizioni (
             id SERIAL PRIMARY KEY,
@@ -4609,6 +4616,29 @@ app.post('/api/set-vincitore', async (req, res) => {
         res.json({ message: 'Vincitore impostato con successo' });
     } catch (err) {
         console.error('Errore API set-vincitore:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/set-punteggio-incontro/:incontroId', async (req, res) => {
+    try {
+        const incontroId = req.params.incontroId;
+        const games_squadra1 = parseInt(req.body.games_squadra1);
+        const games_squadra2 = parseInt(req.body.games_squadra2);
+
+        if (isNaN(games_squadra1) || isNaN(games_squadra2) ||
+            games_squadra1 < 0 || games_squadra1 > 9 ||
+            games_squadra2 < 0 || games_squadra2 > 9) {
+            return res.status(400).json({ error: 'Punteggi non validi (ammessi 0-9)' });
+        }
+
+        await db.query(
+            `UPDATE incontri SET games_squadra1 = $1, games_squadra2 = $2 WHERE id = $3`,
+            [games_squadra1, games_squadra2, incontroId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Errore API set-punteggio-incontro:', err);
         res.status(500).json({ error: err.message });
     }
 });
