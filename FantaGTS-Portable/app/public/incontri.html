@@ -813,12 +813,17 @@
         ${pos1Squadra2?.nome || `N/A(${incontro.pos1})`}<br>${pos2Squadra2?.nome || `N/A(${incontro.pos2})`}
 </div>
                         </div>
-                        ${incontro.completato && incontro.games_squadra1 != null && incontro.games_squadra2 != null ? `
-                        <div class="confronto-coppie" style="margin-top: 8px;">
+                        ${incontro.completato ? (
+                                (incontro.games_squadra1 != null && incontro.games_squadra2 != null) ? `
+                        <div class="confronto-coppie" style="margin-top: 8px; cursor: pointer;" onclick="apriPopupPunteggio('${incontro.id}', '${squadra1Vincente ? 'squadra1' : 'squadra2'}', true)">
                             <div style="flex: 1; text-align: center; font-size: 1.6em; font-weight: 800; color: ${squadra1Vincente ? coloreVincente : '#5a6573'};">${incontro.games_squadra1}</div>
                             <div class="vs-centrale" style="visibility: hidden;">vs</div>
                             <div style="flex: 1; text-align: center; font-size: 1.6em; font-weight: 800; color: ${squadra2Vincente ? coloreVincente : '#5a6573'};">${incontro.games_squadra2}</div>
-                        </div>` : ''}
+                        </div>` : `
+                        <div style="text-align: center; margin-top: 8px;">
+                            <button onclick="apriPopupPunteggio('${incontro.id}', '${squadra1Vincente ? 'squadra1' : 'squadra2'}', true)" style="background: rgba(255,255,255,0.08); color: #cbd5e0; border: none; border-radius: 8px; font-weight: 700; font-size: 0.8em; padding: 7px 12px; cursor: pointer;">Aggiungi punteggio</button>
+                        </div>`
+                            ) : ''}
                     `;
 
                         colonnaScontro.appendChild(incontroBlock);
@@ -1110,10 +1115,12 @@
             apriPopupPunteggio(incontroId, squadra);
         }
 
-        // Popup per inserire il punteggio (game) della coppia vincente
-        function apriPopupPunteggio(incontroId, squadra) {
+        // Popup per inserire il punteggio (game) della coppia
+        function apriPopupPunteggio(incontroId, squadra, soloPunteggio) {
             const vecchio = document.getElementById('popup-punteggio-overlay');
             if (vecchio) vecchio.remove();
+
+            const flag = soloPunteggio ? 'true' : 'false';
 
             const overlay = document.createElement('div');
             overlay.id = 'popup-punteggio-overlay';
@@ -1127,7 +1134,7 @@
                 '  </div>' +
                 '  <div style="display:flex; gap:10px;">' +
                 '    <button onclick="annullaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(255,255,255,0.08); color:#cbd5e0;">Annulla</button>' +
-                '    <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
+                '    <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\', ' + flag + ')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
                 '  </div>' +
                 '</div>';
 
@@ -1153,7 +1160,7 @@
         }
 
         // Conferma: valida i game, assegna il numero alto alla vincente, poi conferma l'incontro
-        async function confermaPunteggio(incontroId, squadra) {
+        async function confermaPunteggio(incontroId, squadra, soloPunteggio) {
             const g1 = parseInt(document.getElementById('pp-g1').value);
             const g2 = parseInt(document.getElementById('pp-g2').value);
 
@@ -1171,12 +1178,37 @@
             const basso = Math.min(g1, g2);
             const games_squadra1 = (squadra === 'squadra1') ? alto : basso;
             const games_squadra2 = (squadra === 'squadra1') ? basso : alto;
-            punteggiPending.set(incontroId, { games_squadra1, games_squadra2 });
 
             const overlay = document.getElementById('popup-punteggio-overlay');
             if (overlay) overlay.remove();
 
-            // procede con la conferma esistente (imposta vincitore + completa)
+            if (soloPunteggio) {
+                // Incontro gia completato: salva SOLO i game, nessun punto e nessuna notifica
+                try {
+                    const response = await fetch(`/api/set-punteggio-incontro/${incontroId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ games_squadra1, games_squadra2 })
+                    });
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error);
+                    }
+                    const idxP = incontriCaricati.findIndex(i => i.id == incontroId);
+                    if (idxP !== -1) {
+                        incontriCaricati[idxP].games_squadra1 = games_squadra1;
+                        incontriCaricati[idxP].games_squadra2 = games_squadra2;
+                    }
+                    showNotification('Punteggio salvato', 'success');
+                    if (turnoSelezionato) caricaIncontriTurno(turnoSelezionato.id);
+                } catch (err) {
+                    showNotification('Errore: ' + err.message, 'error');
+                }
+                return;
+            }
+
+            // Incontro nuovo: memorizza il punteggio e procede con la conferma (vincitore + completa)
+            punteggiPending.set(incontroId, { games_squadra1, games_squadra2 });
             await confermaIncontro(incontroId);
         }
 
