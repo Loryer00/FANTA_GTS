@@ -861,6 +861,28 @@
                 font-weight: bold;
                 color: #4299e1;
                 font-size: 0.85em;
+                width: 24px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+            .popup-incontro .popup-punteggi {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .popup-incontro .popup-punteggio {
+                flex: 1;
+                text-align: center;
+                font-size: 1.6em;
+                font-weight: 800;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .popup-incontro .popup-punteggio-sep {
+                width: 24px;
+                flex-shrink: 0;
             }
 
         .stats-giocatore-card {
@@ -4183,12 +4205,18 @@
                     const hasMioGiocatore = nomiIncontro.some(nome => nome && miei.has(nome));
                     const classMio = hasMioGiocatore ? ' mio-giocatore' : '';
 
+                    // Punteggio coppia: associa i game al lato giusto (sq1 = gruppo.squadra1)
+                    const g1Games = (incontro.squadra1 === gruppo.squadra1.numero) ? incontro.games_squadra1 : incontro.games_squadra2;
+                    const g2Games = (incontro.squadra1 === gruppo.squadra1.numero) ? incontro.games_squadra2 : incontro.games_squadra1;
+
                     const dataAttr = `data-sq1-colore="${gruppo.squadra1.colore}" ` +
                         `data-sq2-colore="${gruppo.squadra2.colore}" ` +
                         `data-sq1-g1="${g1Pos1 ? g1Pos1.nome : 'N/A'}" ` +
                         `data-sq1-g2="${g1Pos2 ? g1Pos2.nome : 'N/A'}" ` +
                         `data-sq2-g1="${g2Pos1 ? g2Pos1.nome : 'N/A'}" ` +
                         `data-sq2-g2="${g2Pos2 ? g2Pos2.nome : 'N/A'}" ` +
+                        `data-games1="${g1Games != null ? g1Games : ''}" ` +
+                        `data-games2="${g2Games != null ? g2Games : ''}" ` +
                         `data-pos1="${incontro.pos1}" ` +
                         `data-pos2="${incontro.pos2}"`;
 
@@ -4248,6 +4276,8 @@
             const sq2G2 = el.getAttribute('data-sq2-g2');
             const pos1 = el.getAttribute('data-pos1');
             const pos2 = el.getAttribute('data-pos2');
+            const games1 = el.getAttribute('data-games1');
+            const games2 = el.getAttribute('data-games2');
 
             const color1 = getTeamColor(sq1Colore);
             const color2 = getTeamColor(sq2Colore);
@@ -4272,6 +4302,20 @@
                 return nome;
             }
 
+            let punteggiHtml = '';
+            if (games1 && games2 && games1 !== '' && games2 !== '') {
+                const ng1 = parseInt(games1);
+                const ng2 = parseInt(games2);
+                const cPunt1 = (ng1 > ng2) ? color1 : '#718096';
+                const cPunt2 = (ng2 > ng1) ? color2 : '#718096';
+                punteggiHtml =
+                    '<div class="popup-punteggi">' +
+                    '  <div class="popup-punteggio" style="color: ' + cPunt1 + ';">' + ng1 + '</div>' +
+                    '  <div class="popup-punteggio-sep"></div>' +
+                    '  <div class="popup-punteggio" style="color: ' + cPunt2 + ';">' + ng2 + '</div>' +
+                    '</div>';
+            }
+
             const overlay = document.createElement('div');
             overlay.id = 'popup-incontro-overlay';
             overlay.className = 'popup-incontro-overlay';
@@ -4292,6 +4336,7 @@
                             <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq2G2)} (${pos2})</div>
                         </div>
                     </div>
+                    ${punteggiHtml}
                 </div>
             `;
 
