@@ -4560,19 +4560,18 @@ app.get('/api/classifica-giocatori', async (req, res) => {
 
         const result = await db.query(`
             SELECT 
-                nome_giocatore,
-                colore,
-                posizione,
-                SUM(vittorie) as vittorie,
-                SUM(sconfitte) as sconfitte,
-                SUM(vittorie) + SUM(sconfitte) as totale_partite,
-                CASE WHEN SUM(vittorie) + SUM(sconfitte) > 0 
-                    THEN ROUND(SUM(vittorie)::numeric / (SUM(vittorie) + SUM(sconfitte)) * 100)
+                sl.giocatore_attuale as nome_giocatore,
+                sub.colore,
+                sub.posizione,
+                SUM(sub.vittorie) as vittorie,
+                SUM(sub.sconfitte) as sconfitte,
+                SUM(sub.vittorie) + SUM(sub.sconfitte) as totale_partite,
+                CASE WHEN SUM(sub.vittorie) + SUM(sub.sconfitte) > 0 
+                    THEN ROUND(SUM(sub.vittorie)::numeric / (SUM(sub.vittorie) + SUM(sub.sconfitte)) * 100)
                     ELSE 0 
                 END as percentuale_vittoria
             FROM (
                 SELECT 
-                    rd.giocatore_squadra1 as nome_giocatore,
                     sc.colore,
                     rd.posizione,
                     COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as vittorie,
@@ -4581,12 +4580,11 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                 JOIN incontri i ON rd.incontro_id = i.id
                 JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
                 WHERE i.completato = true AND i.configurazione_id = $1
-                GROUP BY rd.giocatore_squadra1, sc.colore, rd.posizione
+                GROUP BY sc.colore, rd.posizione
 
                 UNION ALL
 
                 SELECT 
-                    rd.giocatore_squadra2 as nome_giocatore,
                     sc.colore,
                     rd.posizione,
                     COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as vittorie,
@@ -4595,10 +4593,13 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                 JOIN incontri i ON rd.incontro_id = i.id
                 JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
                 WHERE i.completato = true AND i.configurazione_id = $1
-                GROUP BY rd.giocatore_squadra2, sc.colore, rd.posizione
+                GROUP BY sc.colore, rd.posizione
             ) sub
-            WHERE nome_giocatore IS NOT NULL AND nome_giocatore != ''
-            GROUP BY nome_giocatore, colore, posizione
+            LEFT JOIN slots sl 
+                ON LOWER(sl.colore) = LOWER(sub.colore) 
+                AND UPPER(sl.posizione) = UPPER(sub.posizione) 
+                AND sl.configurazione_id = $1
+            GROUP BY sl.giocatore_attuale, sub.colore, sub.posizione
             ORDER BY percentuale_vittoria DESC, vittorie DESC
         `, [configurazioneId]);
 
