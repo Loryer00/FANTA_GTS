@@ -3313,13 +3313,16 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                     pareggi: 0,
                     sconfitte: 0,
                     partite_vinte: 0,
-                    partite_perse: 0
+                    partite_perse: 0,
+                    punti_fatti: 0,
+                    punti_subiti: 0,
+                    differenza: 0
                 };
             }
 
             // Recupera TUTTI gli incontri tra squadre del girone (anche non completati, per il popup)
             const incontriResult = await db.query(
-                `SELECT i.id, i.squadra1, i.squadra2, i.turno_id, i.coppia_turno_id, i.completato
+                `SELECT i.id, i.squadra1, i.squadra2, i.turno_id, i.coppia_turno_id, i.completato, i.games_squadra1, i.games_squadra2
                  FROM incontri i
                  WHERE i.configurazione_id = $1
                    AND i.squadra1 = ANY($2)
@@ -3353,6 +3356,20 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
 
                 if (!incontro.completato) {
                     scontriMap[chiave].tutti_completati = false;
+                }
+
+                // Somma i game (punti fatti/subiti) solo per incontri completati con punteggio inserito
+                if (incontro.completato &&
+                    incontro.games_squadra1 != null &&
+                    incontro.games_squadra2 != null) {
+                    if (classificaMap[incontro.squadra1]) {
+                        classificaMap[incontro.squadra1].punti_fatti += incontro.games_squadra1;
+                        classificaMap[incontro.squadra1].punti_subiti += incontro.games_squadra2;
+                    }
+                    if (classificaMap[incontro.squadra2]) {
+                        classificaMap[incontro.squadra2].punti_fatti += incontro.games_squadra2;
+                        classificaMap[incontro.squadra2].punti_subiti += incontro.games_squadra1;
+                    }
                 }
             }
 
@@ -3431,7 +3448,10 @@ app.get('/api/classifiche-fase-attiva', async (req, res) => {
                 return b.partite_vinte - a.partite_vinte;
             });
 
-            classifica.forEach((sq, index) => { sq.posizione = index + 1; });
+            classifica.forEach((sq, index) => {
+                sq.posizione = index + 1;
+                sq.differenza = sq.punti_fatti - sq.punti_subiti;
+            });
 
             // Prepara lista scontri per il popup (mostra TUTTI, anche parziali)
             const scontriLista = [];

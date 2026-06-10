@@ -3661,8 +3661,12 @@
                         var textColor = getTextColorForTeam(sq.colore);
                         var nomeUpper = sq.colore ? sq.colore.toUpperCase() : '';
 
+                        var diff = sq.differenza || 0;
+                        var diffTesto = (diff > 0 ? '+' : '') + diff;
+
                         html += '<div class="girone-row">';
                         html += '<span class="girone-sq-badge" style="background:' + teamColor + '; color:' + textColor + ';">' + nomeUpper + '</span>';
+                        html += '<span class="girone-diff" style="margin-left:auto; margin-right:10px; font-size:0.8em; color:#6b7280;">(' + diffTesto + ')</span>';
                         html += '<span class="girone-pts">' + sq.punti + '</span>';
                         html += '</div>';
                     });
