@@ -4114,9 +4114,9 @@ app.get('/api/classifica-draft', async (req, res) => {
     INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
     LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
     LEFT JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $2
-    WHERE psa.sessione_id = $1 AND p.attivo = true
+   WHERE psa.sessione_id = $1 AND p.attivo = true
     GROUP BY p.id, p.nome
-    ORDER BY punti_totali DESC
+    ORDER BY punti_totali DESC, LOWER(p.nome) ASC
 `, [sessione_id, configurazioneId]);
 
         // Aggiungi posizione in classifica

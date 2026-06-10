@@ -1745,6 +1745,9 @@
                         🚪 Esci
                     </button>
                 </div>
+                <!-- Posizione in classifica -->
+                <div id="playerPosition" style="font-size: 2.4em; font-weight: bold; color: #ffd700; line-height: 1.1; margin-bottom: 2px; min-height: 1.1em;"></div>
+
                 <!-- Nickname grande -->
                 <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
                     <strong id="currentPlayer">--</strong>
@@ -2996,6 +2999,54 @@
         // ========================================
         // GESTIONE SQUADRA
         // ========================================
+        // Aggiorna la posizione in classifica mostrata in primo piano
+        async function aggiornaPosizioneGiocatore() {
+            try {
+                const posEl = document.getElementById('playerPosition');
+                if (!posEl) return;
+
+                const savedSession = localStorage.getItem('userSession');
+                let modalita = 'asta_competitiva';
+                let sessioneId = null;
+                if (savedSession) {
+                    const session = JSON.parse(savedSession);
+                    modalita = session.modalita || 'asta_competitiva';
+                    sessioneId = session.sessioneId;
+                }
+
+                let apiUrl = '/api/classifica';
+                if (modalita === 'draft_libero' && sessioneId) {
+                    apiUrl = '/api/classifica-draft?sessione_id=' + sessioneId;
+                }
+
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    posEl.innerHTML = '';
+                    return;
+                }
+
+                const classifica = await response.json();
+                const index = classifica.findIndex(function (p) {
+                    return p.id === playerData.id;
+                });
+
+                if (index === -1) {
+                    posEl.innerHTML = '';
+                    return;
+                }
+
+                let etichetta;
+                if (index === 0) etichetta = '&#129351;';
+                else if (index === 1) etichetta = '&#129352;';
+                else if (index === 2) etichetta = '&#129353;';
+                else etichetta = (index + 1) + '&#176;';
+
+                posEl.innerHTML = etichetta;
+            } catch (error) {
+                console.error('Errore aggiornamento posizione:', error);
+            }
+        }
+
         async function loadPlayerTeam() {
             try {
                 console.log('Caricamento squadra per:', playerData.id);
@@ -3213,6 +3264,9 @@
                     if (creditsDisplay) creditsDisplay.style.display = 'block';
                     await updateCreditsDisplay();
                 }
+
+                // Aggiorna la posizione in classifica mostrata sopra al nome
+                await aggiornaPosizioneGiocatore();
 
             } catch (error) {
                 console.error('Errore caricamento squadra:', error);
