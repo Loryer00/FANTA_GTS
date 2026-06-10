@@ -1547,9 +1547,9 @@
         }
 
         .scontro-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: center;
             gap: 8px;
             margin-bottom: 10px;
             padding: 8px;
@@ -1566,6 +1566,14 @@
                 text-align: center;
                 min-width: 65px;
             }
+
+                .scontro-row .sq-nome:first-child {
+                    justify-self: end;
+                }
+
+                .scontro-row .sq-nome:last-child {
+                    justify-self: start;
+                }
 
         .scontro-risultato {
             font-size: 1.1em;
