@@ -1746,7 +1746,7 @@
                     </button>
                 </div>
                 <!-- Posizione in classifica -->
-                <div id="playerPosition" style="font-size: 2.4em; font-weight: bold; color: #ffd700; line-height: 1.1; margin-bottom: 2px; min-height: 1.1em;"></div>
+                <div id="playerPosition" style="font-size: 2.4em; font-weight: bold; color: #ffd700; line-height: 1.1; margin-top: 18px; margin-bottom: 2px; min-height: 1.1em;"></div>
 
                 <!-- Nickname grande -->
                 <div style="font-size: 2em; font-weight: normal; color: #63b3ed; margin-bottom: 15px;">
@@ -2743,7 +2743,7 @@
                     const slotTotali = document.querySelectorAll('#teamSlots .team-slot').length || 10;
                     if (giocatoriTotali >= slotTotali && statsDisplay) {
                         const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
-                        statsDisplay.innerHTML = `🏆 <span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
+                        statsDisplay.innerHTML = `<span style="font-weight: bold; color: #ffd700;">${puntiTotali}</span> punti`;
                     } else if (statsDisplay) {
                         // Durante l'asta mostra i crediti
                         statsDisplay.innerHTML = `💰 <span id="playerCredits">${playerData.credits}</span> crediti`;
@@ -3258,7 +3258,7 @@
                     if (statsDisplay) {
                         const puntiTotali = squadra.reduce((sum, g) => sum + (g.punti_totali || 0), 0);
                         statsDisplay.style.display = '';
-                        statsDisplay.innerHTML = '&#127942; <span style="font-weight: bold; color: #ffd700;">' + puntiTotali + '</span> punti';
+                        statsDisplay.innerHTML = '<span style="font-weight: bold; color: #ffd700;">' + puntiTotali + '</span> punti';
                     }
                 } else {
                     if (creditsDisplay) creditsDisplay.style.display = 'block';
