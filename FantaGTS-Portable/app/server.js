@@ -4363,13 +4363,15 @@ app.get('/api/statistiche-giocatori/:partecipanteId', async (req, res) => {
         }
 
         // Recupera i giocatori del partecipante (da aste o draft)
+        // Includiamo squadra_numero per poter legare le statistiche allo SLOT
+        // e non al nome del giocatore (cosi le sostituzioni mantengono lo storico)
         const squadraResult = await db.query(`
-            SELECT s.giocatore_attuale, s.posizione, s.colore, s.punti_totali
+            SELECT s.giocatore_attuale, s.posizione, s.colore, s.punti_totali, s.squadra_numero
             FROM aste a
             JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $3
             WHERE a.partecipante_id = $1 AND a.vincitore = true AND a.sessione_id = $2
             UNION
-            SELECT s.giocatore_attuale, sd.posizione, s.colore, s.punti_totali
+            SELECT s.giocatore_attuale, s.posizione, s.colore, s.punti_totali, s.squadra_numero
             FROM squadre_draft sd
             JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $3
             WHERE sd.partecipante_id = $1 AND sd.sessione_id = $2
@@ -4379,44 +4381,30 @@ app.get('/api/statistiche-giocatori/:partecipanteId', async (req, res) => {
             return res.json({ giocatori: [] });
         }
 
-        // Per ogni giocatore, cerca vittorie e sconfitte in risultati_dettaglio
+        // Per ogni slot, conta vittorie e sconfitte in base allo SLOT
+        // (numero squadra + posizione), indipendentemente dal nome registrato
         const statistiche = [];
 
         for (const giocatore of squadraResult.rows) {
             const nome = giocatore.giocatore_attuale;
             if (!nome) continue;
 
-            // Cerca come squadra1 (vincitore=1 = vittoria, vincitore=2 = sconfitta)
-            const comeSq1 = await db.query(`
-                SELECT rd.vincitore
+            const conteggio = await db.query(`
+                SELECT
+                    COUNT(CASE WHEN (i.squadra1 = $1 AND rd.vincitore = 1)
+                                  OR (i.squadra2 = $1 AND rd.vincitore = 2) THEN 1 END) as vittorie,
+                    COUNT(CASE WHEN (i.squadra1 = $1 AND rd.vincitore = 2)
+                                  OR (i.squadra2 = $1 AND rd.vincitore = 1) THEN 1 END) as sconfitte
                 FROM risultati_dettaglio rd
                 JOIN incontri i ON rd.incontro_id = i.id
-                WHERE rd.giocatore_squadra1 = $1 
+                WHERE rd.posizione = $2
                 AND i.completato = true
-                AND i.configurazione_id = $2
-            `, [nome, configurazioneId]);
+                AND i.configurazione_id = $3
+                AND (i.squadra1 = $1 OR i.squadra2 = $1)
+            `, [giocatore.squadra_numero, giocatore.posizione, configurazioneId]);
 
-            // Cerca come squadra2 (vincitore=2 = vittoria, vincitore=1 = sconfitta)
-            const comeSq2 = await db.query(`
-                SELECT rd.vincitore
-                FROM risultati_dettaglio rd
-                JOIN incontri i ON rd.incontro_id = i.id
-                WHERE rd.giocatore_squadra2 = $1 
-                AND i.completato = true
-                AND i.configurazione_id = $2
-            `, [nome, configurazioneId]);
-
-            let vittorie = 0, sconfitte = 0;
-
-            comeSq1.rows.forEach(r => {
-                if (r.vincitore === 1) vittorie++;
-                else if (r.vincitore === 2) sconfitte++;
-            });
-
-            comeSq2.rows.forEach(r => {
-                if (r.vincitore === 2) vittorie++;
-                else if (r.vincitore === 1) sconfitte++;
-            });
+            const vittorie = parseInt(conteggio.rows[0]?.vittorie || 0);
+            const sconfitte = parseInt(conteggio.rows[0]?.sconfitte || 0);
 
             const totale = vittorie + sconfitte;
             const percentuale = totale > 0 ? Math.round((vittorie / totale) * 100) : 0;
