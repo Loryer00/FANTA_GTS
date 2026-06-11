@@ -5158,8 +5158,13 @@
                 console.log('📊 Ricevuto aggiornamento punti:', data);
                 loadPlayerTeam();
                 const classificaSection = document.getElementById('section-classifica');
-                if (classificaSection && classificaSection.style.display !== 'none') {
-                    caricaClassifica();  // ✅ CORRETTO
+                if (classificaSection && classificaSection.classList.contains('active')) {
+                    caricaClassifica();
+                }
+                // Aggiorna anche la classifica gironi (si trova nella tab Incontri)
+                const incontriSection = document.getElementById('section-incontri');
+                if (incontriSection && incontriSection.classList.contains('active')) {
+                    caricaClassificaGironi();
                 }
             });
 
