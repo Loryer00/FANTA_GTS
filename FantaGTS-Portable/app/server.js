@@ -5036,9 +5036,10 @@ app.post('/api/reset-incontro/:incontroId', async (req, res) => {
         // 3. Ora elimina i risultati dettaglio
         await db.query("DELETE FROM risultati_dettaglio WHERE incontro_id = $1", [incontroId]);
 
-        // 4. Reset stato incontro
+        // 4. Reset stato incontro (azzera anche i game, vanno reinseriti)
         await db.query(`UPDATE incontri 
-            SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL
+            SET completato = false, risultato_coppia1 = NULL, risultato_coppia2 = NULL,
+                games_squadra1 = NULL, games_squadra2 = NULL
             WHERE id = $1`, [incontroId]);
 
         console.log(`✅ Incontro ${incontroId} resettato completamente`);

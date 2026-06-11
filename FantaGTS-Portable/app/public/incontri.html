@@ -1301,6 +1301,23 @@
                     console.log(`[OK] Vincitore ${posizione} impostato`);
                 }
 
+                // Salva il punteggio della coppia PRIMA di completare l'incontro,
+                // cosi quando completa-incontro emette aggiornamento_punti i game sono gia nel DB
+                const punteggio = punteggiPending.get(incontroId);
+                if (punteggio) {
+                    await fetch(`/api/set-punteggio-incontro/${incontroId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(punteggio)
+                    });
+                    const idxP = incontriCaricati.findIndex(i => i.id == incontroId);
+                    if (idxP !== -1) {
+                        incontriCaricati[idxP].games_squadra1 = punteggio.games_squadra1;
+                        incontriCaricati[idxP].games_squadra2 = punteggio.games_squadra2;
+                    }
+                    punteggiPending.delete(incontroId);
+                }
+
                 // Ora completa l'incontro (legge i risultati già salvati dal database)
                 console.log(`📤 Chiamata API completa-incontro/${incontroId}`);
 
@@ -1334,22 +1351,6 @@
                 // Successo!
                 const result = await completaResponse.json();
                 console.log('[SUCCESSO] Incontro completato:', result);
-
-                // Salva il punteggio della coppia se inserito dal popup
-                const punteggio = punteggiPending.get(incontroId);
-                if (punteggio) {
-                    await fetch(`/api/set-punteggio-incontro/${incontroId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(punteggio)
-                    });
-                    const idxP = incontriCaricati.findIndex(i => i.id == incontroId);
-                    if (idxP !== -1) {
-                        incontriCaricati[idxP].games_squadra1 = punteggio.games_squadra1;
-                        incontriCaricati[idxP].games_squadra2 = punteggio.games_squadra2;
-                    }
-                    punteggiPending.delete(incontroId);
-                }
 
                 // Aggiorna interfaccia locale
                 aggiornaInterfacciaDopoConferma(incontroId);
