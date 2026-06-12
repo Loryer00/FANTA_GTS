@@ -4413,6 +4413,7 @@ app.get('/api/statistiche-giocatori/:partecipanteId', async (req, res) => {
                 nome: nome,
                 posizione: giocatore.posizione,
                 colore: giocatore.colore,
+                squadra_numero: giocatore.squadra_numero,
                 punti: giocatore.punti_totali || 0,
                 vittorie: vittorie,
                 sconfitte: sconfitte,

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaGTS - Simulazione Tabellone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0d1715; --surface:#13201d; --surface2:#1a2a26; --line:#2b3d38;
+    --chalk:#e9efe8; --muted:#8aa39b;
+    --clay:#d98a4a; --flat:#6fb3d9; --good:#5bbf8a; --bad:#e0574b;
+    --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--chalk);font-family:var(--body);line-height:1.5;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px;margin:0 auto;padding:30px 22px 80px}
+  header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--clay)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,40px);line-height:1.04;
+    letter-spacing:-.02em;margin:.3em 0 .1em}
+  .sub{color:var(--muted);max-width:64ch;font-size:15px}
+  .status{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:10px}
+  .status b{color:var(--chalk)}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+  .panel h2{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  label.fld{font-size:13px;display:flex;flex-direction:column;gap:5px}
+  select,input[type=number]{background:var(--ink);color:var(--chalk);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:13px}
+  select:focus,input:focus{outline:2px solid var(--clay);outline-offset:1px}
+
+  .matchups{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .mu{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .mu .g{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .mu .teams{font-family:var(--display);font-weight:600;font-size:15px;margin-top:4px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,.2)}
+
+  .coppie-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .coppia{display:flex;gap:8px;align-items:center}
+  .coppia .x{color:var(--muted);font-family:var(--mono)}
+  .btn{font-family:var(--body);font-weight:600;font-size:13px;border-radius:9px;padding:9px 16px;
+    cursor:pointer;border:1px solid var(--line);background:var(--surface2);color:var(--chalk)}
+  .btn:hover{border-color:var(--clay)}
+  .btn.ghost{background:transparent}
+  .btn.go{background:var(--clay);color:#1a120a;border-color:var(--clay);font-size:15px;padding:12px 26px}
+  .btn.go:disabled{opacity:.4;cursor:not-allowed}
+  .btn.small{padding:6px 10px;font-size:12px}
+
+  .ctrl{display:flex;flex-direction:column;gap:6px;min-width:160px;flex:1}
+  .ctrl .lab{display:flex;justify-content:space-between;font-size:13px}
+  .ctrl .val{font-family:var(--mono);color:var(--clay)}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:3px;background:var(--surface2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--chalk);cursor:pointer;border:3px solid var(--clay)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--chalk);cursor:pointer;border:3px solid var(--clay)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+
+  .gauge-card{background:linear-gradient(160deg,var(--surface2),var(--surface));border:1px solid var(--line);
+    border-radius:14px;padding:20px;text-align:center;margin-bottom:20px}
+  .gauge-verdict{font-family:var(--display);font-weight:700;font-size:21px;margin-top:2px}
+  .gauge-note{font-size:13px;color:var(--muted);max-width:52ch;margin:8px auto 0}
+  svg{display:block;width:100%;height:auto}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  td.n{font-family:var(--mono);text-align:right}
+  .delta-up{color:var(--good)} .delta-down{color:var(--bad)}
+  .bar{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;min-width:60px}
+  .bar i{display:block;height:100%;background:var(--clay)}
+
+  .msg{font-size:13.5px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px}
+  .msg.err{border-color:var(--bad);color:#f0b8b2;background:rgba(224,87,75,.08)}
+  .msg.warn{border-color:var(--clay);color:#f0cfa6;background:rgba(217,138,74,.08)}
+  .hidden{display:none}
+  .footnote{font-size:12.5px;color:var(--muted);margin-top:8px;border-top:1px solid var(--line);padding-top:14px;max-width:82ch}
+  code{font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:.92em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">FantaGTS · proiezione fase finale</div>
+    <h1>Simulazione tabellone con punteggio compensato</h1>
+    <p class="sub">Gira migliaia di tabelloni dai quarti alla finale usando la percentuale di vittoria reale di ogni giocatore, e confronta la classifica con e senza handicap per chi resta con pochi giocatori in gioco.</p>
+    <div class="status" id="status">Caricamento sessione...</div>
+  </header>
+
+  <div id="loadError" class="msg err hidden"></div>
+
+  <!-- 1. TABELLONE -->
+  <div class="panel" id="panelBracket">
+    <h2>Tabellone di partenza</h2>
+    <div class="row" style="margin-bottom:14px">
+      <label class="fld">Fase usata come quarti
+        <select id="faseSelect"></select>
+      </label>
+      <button class="btn small ghost" id="reloadBracket">Ricarica tabellone</button>
+    </div>
+    <div class="matchups" id="matchups"></div>
+    <p class="hint" id="bracketHint"></p>
+  </div>
+
+  <!-- 2. COPPIE -->
+  <div class="panel">
+    <h2>Incroci delle coppie</h2>
+    <p class="hint" style="margin-top:-6px;margin-bottom:14px">In ogni scontro si gioca per queste coppie di posizioni. Valgono per tutte e tre le fasi.</p>
+    <div class="coppie-list" id="coppieList"></div>
+    <button class="btn small" id="addCoppia">Aggiungi coppia</button>
+  </div>
+
+  <!-- 3. FORMULA -->
+  <div class="panel">
+    <h2>Formula handicap</h2>
+    <div class="row" style="align-items:flex-end">
+      <div class="ctrl"><div class="lab"><span>Punti base a vittoria</span><span class="val" id="vBase">1</span></div>
+        <input type="range" id="base" min="1" max="5" step="1" value="1"></div>
+      <div class="ctrl"><div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
+        <input type="range" id="cap" min="1" max="4" step="0.1" value="2"></div>
+      <div class="ctrl"><div class="lab"><span>k (intensità)</span><span class="val" id="vK">1.2</span></div>
+        <input type="range" id="k" min="0" max="4" step="0.1" value="1.2"></div>
+      <div class="ctrl"><div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
+        <input type="range" id="th" min="0" max="100" step="5" value="50"></div>
+    </div>
+    <p class="hint">m = min(cap, 1 + k(1 - S/R)), attiva solo sotto soglia. S = giocatori ancora vivi del partecipante, R = suoi giocatori presenti ai quarti.</p>
+  </div>
+
+  <div style="margin:6px 0 26px">
+    <button class="btn go" id="runBtn" disabled>Simula il tabellone</button>
+    <span class="hint" id="runInfo" style="margin-left:12px"></span>
+  </div>
+
+  <!-- RISULTATI -->
+  <div id="results" class="hidden">
+    <div class="gauge-card">
+      <svg id="gauge" viewBox="0 0 320 178" style="max-width:330px;margin:0 auto"></svg>
+      <div class="gauge-verdict" id="verdict">-</div>
+      <div class="gauge-note" id="verdictNote"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Classifica proiettata a fine torneo</h2>
+      <table>
+        <thead><tr>
+          <th>Partecipante</th><th>Punti ora</th><th>Senza handicap</th><th>Con handicap</th>
+          <th>Differenza</th><th>Vivi ai quarti</th>
+        </tr></thead>
+        <tbody id="standings"></tbody>
+      </table>
+      <p class="footnote">"Punti ora" sono i punti reali gia accumulati. Le due colonne di proiezione sono la media a fine simulazione: il torneo non e ancora giocato, quindi sono valori attesi su migliaia di tabelloni, non una previsione secca. Se la colonna con handicap stravolge l'ordine rispetto a quella senza, e il segnale che stai compensando troppo: alza la soglia o abbassa cap e k.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Probabilita di passaggio per squadra</h2>
+      <table>
+        <thead><tr><th>Squadra</th><th>Semifinale</th><th>Finale</th><th>Vince</th></tr></thead>
+        <tbody id="teamProbs"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ---- stato sessione (stessa logica delle altre pagine) ----
+let sessioneCorrente=null, configurazioneCorrente=null, sessioneInfo=null;
+
+async function caricaSessioneAttiva(){
+  const p=new URLSearchParams(location.search);
+  const cfg=p.get('configurazione'), sess=p.get('sessione');
+  if(sess){
+    const r=await fetch(`/api/sessioni/${sess}`); if(!r.ok) throw new Error('Sessione '+sess+' non trovata');
+    const d=await r.json(); sessioneCorrente=d.id; configurazioneCorrente=d.configurazione_id; sessioneInfo=d; return;
+  }
+  if(cfg){ configurazioneCorrente=cfg; sessioneCorrente=null; return; }
+  const r=await fetch('/api/sessione-attiva'); if(!r.ok) throw new Error('Impossibile leggere la sessione attiva');
+  const d=await r.json();
+  if(d&&d.id){ sessioneCorrente=d.id; configurazioneCorrente=d.configurazione_id; sessioneInfo=d; }
+  else throw new Error('Nessuna sessione attiva trovata');
+}
+
+// ---- dati reali ----
+let bracket=[];      // [{gironeNome, sq:[{numero,colore},{numero,colore}]}]
+let slotMap={};      // "numero|posizione" -> {owner, winProb}
+let players=[];      // {owner, posizione, squadra, winProb}
+let participants=[]; // {id, nome, currentPoints, posizioni:Set}
+let posizioniTutte=[];
+
+function showErr(m){ $('loadError').textContent=m; $('loadError').classList.remove('hidden'); }
+
+async function caricaFasi(){
+  const r=await fetch(`/api/fasi-torneo?configurazione=${configurazioneCorrente}`);
+  if(!r.ok) throw new Error('Errore caricamento fasi');
+  const fasi=await r.json();
+  if(!fasi.length) throw new Error('Nessuna fase configurata: crea i quarti in Gestione Fasi e Gironi');
+  const sel=$('faseSelect'); sel.innerHTML='';
+  fasi.forEach(f=>{
+    const o=document.createElement('option'); o.value=f.id;
+    o.textContent=f.nome+(f.attiva?' (attiva)':''); if(f.attiva) o.selected=true;
+    sel.appendChild(o);
+  });
+  return fasi;
+}
+
+async function caricaBracket(faseId){
+  const r=await fetch(`/api/gironi/${faseId}`);
+  if(!r.ok) throw new Error('Errore caricamento gironi');
+  const gironi=await r.json();
+  bracket=[]; let saltati=0;
+  gironi.forEach(g=>{
+    if(g.squadre && g.squadre.length===2){
+      bracket.push({gironeNome:g.nome, sq:g.squadre.map(s=>({numero:s.squadra_numero, colore:s.colore||'#888'}))});
+    } else saltati++;
+  });
+  renderBracket(saltati);
+}
+
+function renderBracket(saltati){
+  const c=$('matchups'); c.innerHTML='';
+  bracket.forEach((m,i)=>{
+    const d=document.createElement('div'); d.className='mu';
+    d.innerHTML=`<div class="g">Scontro ${i+1} · ${m.gironeNome}</div>
+      <div class="teams"><span class="dot" style="background:${m.sq[0].colore}"></span>Sq ${m.sq[0].numero}
+      <span style="color:var(--muted);font-weight:400"> vs </span>
+      <span class="dot" style="background:${m.sq[1].colore}"></span>Sq ${m.sq[1].numero}</div>`;
+    c.appendChild(d);
+  });
+  let h=`${bracket.length} scontri caricati. L'avanzamento segue l'ordine: vincente 1 vs vincente 2, vincente 3 vs vincente 4, e cosi via fino alla finale.`;
+  if(saltati>0) h+=` ${saltati} gironi con piu di 2 squadre ignorati: il tabellone vuole scontri secchi.`;
+  $('bracketHint').textContent=h;
+}
+
+async function caricaPartecipanti(){
+  const r=await fetch(`/api/partecipanti?sessione_id=${sessioneCorrente}`);
+  if(!r.ok) throw new Error('Errore caricamento partecipanti');
+  const lista=await r.json();
+  participants=[]; slotMap={}; players=[]; const posSet=new Set();
+  for(const p of lista){
+    const rs=await fetch(`/api/statistiche-giocatori/${p.id}?sessione_id=${sessioneCorrente}`);
+    if(!rs.ok) continue;
+    const data=await rs.json();
+    const giocatori=data.giocatori||[];
+    let punti=0; const pos=new Set();
+    giocatori.forEach(g=>{
+      punti+=Number(g.punti)||0;
+      pos.add(g.posizione); posSet.add(g.posizione);
+      if(g.squadra_numero!=null){
+        const wp=Math.min(0.95,Math.max(0.05,(Number(g.percentualeVittoria)||50)/100));
+        slotMap[g.squadra_numero+'|'+g.posizione]={owner:p.id, winProb:wp};
+        players.push({owner:p.id, posizione:g.posizione, squadra:g.squadra_numero, winProb:wp});
+      }
+    });
+    participants.push({id:p.id, nome:p.nome, currentPoints:punti, posizioni:pos});
+  }
+  posizioniTutte=Array.from(posSet);
+  if(!posizioniTutte.length) throw new Error('Nessun giocatore con statistiche: serve almeno un turno gia giocato per avere le percentuali di vittoria.');
+}
+
+// ---- editor coppie ----
+let coppie=[]; // [[pos1,pos2],...]
+function defaultCoppie(){
+  const p=posizioniTutte.slice(); const out=[];
+  for(let i=0;i+1<p.length;i+=2) out.push([p[i],p[i+1]]);
+  return out.length?out:[[p[0]||'M1',p[0]||'M1']];
+}
+function renderCoppie(){
+  const c=$('coppieList'); c.innerHTML='';
+  coppie.forEach((cp,idx)=>{
+    const row=document.createElement('div'); row.className='coppia';
+    row.appendChild(posSelect(cp[0],v=>{coppie[idx][0]=v;}));
+    const x=document.createElement('span'); x.className='x'; x.textContent='+'; row.appendChild(x);
+    row.appendChild(posSelect(cp[1],v=>{coppie[idx][1]=v;}));
+    const del=document.createElement('button'); del.className='btn small ghost'; del.textContent='Rimuovi';
+    del.onclick=()=>{coppie.splice(idx,1); renderCoppie();};
+    row.appendChild(del);
+    c.appendChild(row);
+  });
+}
+function posSelect(val,onCh){
+  const s=document.createElement('select');
+  posizioniTutte.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(p===val)o.selected=true;s.appendChild(o);});
+  s.onchange=()=>onCh(s.value); return s;
+}
+
+// ---- simulazione ----
+function params(){
+  return {base:+$('base').value, cap:+$('cap').value, k:+$('k').value, th:+$('th').value/100};
+}
+function mult(S,R,p){ const r=R>0?S/R:0; if(r>=p.th) return 1; return Math.min(p.cap,1+p.k*(1-r)); }
+
+// forza di una coppia di una squadra = media delle winProb dei due slot (se manca, 0.5)
+function pairStrength(squadra,cp){
+  const a=slotMap[squadra+'|'+cp[0]], b=slotMap[squadra+'|'+cp[1]];
+  const wa=a?a.winProb:0.5, wb=b?b.winProb:0.5; return (wa+wb)/2;
+}
+
+// R per partecipante = suoi giocatori presenti nelle 8 squadre dei quarti
+function computeR(){
+  const teams=new Set(); bracket.forEach(m=>m.sq.forEach(s=>teams.add(s.numero)));
+  const R={}; participants.forEach(p=>R[p.id]=0);
+  players.forEach(pl=>{ if(teams.has(pl.squadra)) R[pl.owner]++; });
+  return {R,teams};
+}
+
+function simOnce(p,R,useHandicap){
+  // squadre vive: parte da tutte quelle dei quarti
+  let round=bracket.map(m=>m.sq.slice()); // ogni elemento = [squadraA, squadraB]
+  const score={}; participants.forEach(x=>score[x.id]=0);
+  const advanced=[]; // numeri squadra che passano ogni round (per stats)
+  const teamReach={}; // numero -> {semi,final,win}
+
+  function aliveCount(aliveTeams){
+    // S per partecipante = suoi giocatori su squadre vive
+    const S={}; participants.forEach(x=>S[x.id]=0);
+    players.forEach(pl=>{ if(aliveTeams.has(pl.squadra)) S[pl.owner]++; });
+    return S;
+  }
+
+  let aliveTeams=new Set(); bracket.forEach(m=>m.sq.forEach(s=>aliveTeams.add(s.numero)));
+  let matches=round; let phase=0;
+  while(matches.length>=1){
+    const S=aliveCount(aliveTeams);
+    const winners=[];
+    for(const mt of matches){
+      const A=mt[0], B=mt[1];
+      let winA=0;
+      for(const cp of coppie){
+        const sA=pairStrength(A.numero,cp), sB=pairStrength(B.numero,cp);
+        const pA=sA/((sA+sB)||1);
+        const aWins=Math.random()<pA;
+        const winner=aWins?A:B; const loser=aWins?B:A;
+        if(aWins) winA++;
+        // assegna punti ai due slot vincenti
+        for(const pos of cp){
+          const slot=slotMap[winner.numero+'|'+pos];
+          if(slot){ const m=useHandicap?mult(S[slot.owner],R[slot.owner],p):1; score[slot.owner]+=p.base*m; }
+        }
+      }
+      const sqWin = winA> (coppie.length/2) ? A : (winA< (coppie.length/2)? B : (Math.random()<0.5?A:B));
+      winners.push(sqWin);
+    }
+    // aggiorna squadre vive = solo vincenti
+    aliveTeams=new Set(winners.map(w=>w.numero));
+    // statistiche raggiungimento
+    if(phase===0) winners.forEach(w=>{ (teamReach[w.numero]=teamReach[w.numero]||{semi:0,final:0,win:0}).semi=1;});
+    // prepara prossimo round accoppiando a due a due
+    if(winners.length===1){
+      const champ=winners[0]; teamReach[champ.numero]=teamReach[champ.numero]||{semi:0,final:0,win:0};
+      teamReach[champ.numero].win=1; teamReach[champ.numero].final=1;
+      break;
+    }
+    const next=[];
+    for(let i=0;i+1<winners.length;i+=2) next.push([winners[i],winners[i+1]]);
+    // se dispari, l'ultima passa direttamente
+    if(winners.length%2===1) next.push([winners[winners.length-1],winners[winners.length-1]]);
+    // marca chi e' in finale (prossimo round con 1 match)
+    if(next.length===1){ next[0].forEach(w=>{ (teamReach[w.numero]=teamReach[w.numero]||{semi:0,final:0,win:0}).final=1; });}
+    matches=next; phase++;
+  }
+  return {score,teamReach};
+}
+
+function spearman(a,b){
+  const n=a.length; const rank=arr=>{const idx=arr.map((v,i)=>[v,i]).sort((x,y)=>x[0]-y[0]);const r=[];idx.forEach((e,pos)=>r[e[1]]=pos);return r;};
+  const ra=rank(a),rb=rank(b),m=(n-1)/2; let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){const x=ra[i]-m,y=rb[i]-m;num+=x*y;da+=x*x;db+=y*y;}
+  return (da&&db)?num/Math.sqrt(da*db):0;
+}
+
+function run(){
+  const p=params(); const {R}=computeR();
+  const TRIALS=2500;
+  const ids=participants.map(x=>x.id);
+  const sumFlat={}, sumHand={}; ids.forEach(i=>{sumFlat[i]=0;sumHand[i]=0;});
+  const reach={}; let flips=0; let corrShiftSum=0;
+  for(let t=0;t<TRIALS;t++){
+    const f=simOnce(p,R,false), h=simOnce(p,R,true);
+    ids.forEach(i=>{sumFlat[i]+=f.score[i]; sumHand[i]+=h.score[i];});
+    // chi vince nei due scenari (punti correnti + proiezione del singolo torneo)
+    const wf=ids.reduce((a,i)=>(f.score[i]+pc(i))>(f.score[a]+pc(a))?i:a,ids[0]);
+    const wh=ids.reduce((a,i)=>(h.score[i]+pc(i))>(h.score[a]+pc(a))?i:a,ids[0]);
+    if(wf!==wh) flips++;
+    for(const num in h.teamReach){ const r=reach[num]=reach[num]||{semi:0,final:0,win:0};
+      r.semi+=h.teamReach[num].semi||0; r.final+=h.teamReach[num].final||0; r.win+=h.teamReach[num].win||0; }
+  }
+  function pc(id){ return participants.find(x=>x.id===id).currentPoints; }
+  // medie
+  const rows=participants.map(x=>({
+    id:x.id, nome:x.nome, cur:x.currentPoints,
+    flat:x.currentPoints+sumFlat[x.id]/TRIALS,
+    hand:x.currentPoints+sumHand[x.id]/TRIALS,
+    R:R[x.id]
+  }));
+  // indicatore: quanto handicap erode la corrispondenza merito->classifica
+  const arrFlat=rows.map(r=>r.flat), arrHand=rows.map(r=>r.hand);
+  // "merito" approssimato = proiezione piatta (chi gioca meglio segna di piu senza bonus)
+  const corrFlat=spearman(arrFlat,arrFlat); // =1 per costruzione, riferimento
+  const corrHand=spearman(arrFlat,arrHand);
+  const erosion=Math.max(0,Math.min(1,(1-corrHand)/0.6));
+  const flipRisk=Math.max(0,Math.min(1,(flips/TRIALS)/0.5));
+  const risk=Math.max(0,Math.min(1,0.6*erosion+0.4*flipRisk));
+  renderResults(rows,reach,TRIALS,risk,flips/TRIALS,corrHand);
+}
+
+// ---- render risultati ----
+function renderResults(rows,reach,trials,risk,flipRate,corrHand){
+  $('results').classList.remove('hidden');
+  const maxHand=Math.max(...rows.map(r=>r.hand),1);
+  rows.sort((a,b)=>b.hand-a.hand);
+  const tb=$('standings'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const diff=r.hand-r.flat; const cls=diff>0.05?'delta-up':(diff<-0.05?'delta-down':'');
+    const sign=diff>0?'+':'';
+    tb.innerHTML+=`<tr>
+      <td>${r.nome}</td>
+      <td class="n">${r.cur}</td>
+      <td class="n" style="color:var(--flat)">${r.flat.toFixed(1)}</td>
+      <td class="n" style="color:var(--clay)">${r.hand.toFixed(1)}</td>
+      <td class="n ${cls}">${sign}${diff.toFixed(1)}</td>
+      <td class="n">${r.R}</td>
+    </tr>`;
+  });
+  // probabilita squadre
+  const tp=$('teamProbs'); tp.innerHTML='';
+  const nums=Object.keys(reach).map(Number).sort((a,b)=>reach[b].win-reach[a].win);
+  nums.forEach(num=>{
+    const r=reach[num];
+    tp.innerHTML+=`<tr><td>Squadra ${num}</td>
+      <td class="n">${Math.round(100*r.semi/trials)}%</td>
+      <td class="n">${Math.round(100*r.final/trials)}%</td>
+      <td class="n" style="color:var(--clay)">${Math.round(100*r.win/trials)}%</td></tr>`;
+  });
+  drawGauge(risk);
+  let v,note,col;
+  if(risk<0.4){v='Sotto controllo';col='var(--good)';note='La compensazione aiuta chi resta indietro senza ribaltare la classifica del merito.';}
+  else if(risk<0.7){v='Da tenere d\'occhio';col='var(--clay)';note='La fortuna del giocatore rimasto inizia a pesare. Alza la soglia o abbassa cap e k.';}
+  else{v='Sta sfuggendo di mano';col='var(--bad)';note='La classifica la decide piu il caso che la bravura. Riduci cap e k, attiva l\'handicap piu tardi.';}
+  $('verdict').textContent=v; $('verdict').style.color=col; $('verdictNote').textContent=note;
+  $('runInfo').textContent=`${trials} tabelloni simulati · vincitore cambiato nel ${Math.round(flipRate*100)}% dei casi`;
+}
+
+function drawGauge(risk){
+  const W=320,H=178,cx=160,cy=150,r=120,a0=Math.PI,a1=0;
+  const pol=a=>[cx+r*Math.cos(a),cy-r*Math.sin(a)];
+  let s='';
+  [[0,.4,'var(--good)'],[.4,.7,'var(--clay)'],[.7,1,'var(--bad)']].forEach(([s0,s1,col])=>{
+    const A0=a0+(a1-a0)*s0,A1=a0+(a1-a0)*s1,[x0,y0]=pol(A0),[x1,y1]=pol(A1);
+    s+=`<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${col}" stroke-width="16"/>`;
+  });
+  const A=a0+(a1-a0)*Math.max(0,Math.min(1,risk));
+  const px=cx+(r-26)*Math.cos(A),py=cy-(r-26)*Math.sin(A);
+  s+=`<line x1="${cx}" y1="${cy}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}" stroke="var(--chalk)" stroke-width="3"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="6" fill="var(--chalk)"/>`;
+  s+=`<text x="40" y="172" fill="var(--good)" font-size="10" font-family="var(--mono)">stabile</text>`;
+  s+=`<text x="280" y="172" fill="var(--bad)" font-size="10" text-anchor="end" font-family="var(--mono)">fuori scala</text>`;
+  $('gauge').innerHTML=s;
+}
+
+// ---- avvio ----
+function bindControls(){
+  const upd=()=>{ $('vBase').textContent=$('base').value;
+    $('vCap').textContent=(+$('cap').value).toFixed(1)+'x';
+    $('vK').textContent=(+$('k').value).toFixed(1);
+    $('vTh').textContent=$('th').value+'%'; };
+  ['base','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+  $('addCoppia').onclick=()=>{coppie.push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]);renderCoppie();};
+  $('runBtn').onclick=run;
+  $('faseSelect').onchange=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
+  $('reloadBracket').onclick=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
+}
+
+async function init(){
+  try{
+    await caricaSessioneAttiva();
+    $('status').innerHTML=`Sessione: <b>${sessioneInfo?sessioneInfo.nome:'(da URL)'}</b> · configurazione <b>${configurazioneCorrente}</b>`;
+    const fasi=await caricaFasi();
+    const attiva=fasi.find(f=>f.attiva)||fasi[0];
+    await caricaBracket(attiva.id);
+    await caricaPartecipanti();
+    coppie=defaultCoppie(); renderCoppie();
+    bindControls();
+    $('runBtn').disabled=false;
+    $('runInfo').textContent=`${participants.length} partecipanti, ${players.length} giocatori con statistiche pronti.`;
+  }catch(e){
+    showErr(e.message+' — controlla di aver aperto la pagina dal tuo server con una sessione attiva.');
+    $('status').textContent='Caricamento non riuscito.';
+  }
+}
+init();
+</script>
+</body>
+</html>
