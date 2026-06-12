@@ -341,21 +341,20 @@ async function caricaPartecipanti(){
 const FASI=['quarti','semi','finale'];
 let coppiePerFase={quarti:[],semi:[],finale:[]};
 function defaultCoppie(){
-  const p=posizioniTutte.slice(); const out=[];
-  for(let i=0;i+1<p.length;i+=2) out.push([p[i],p[i+1]]);
-  return out.length?out:[[p[0]||'M1',p[0]||'M1']];
+  const n=Math.max(1, Math.floor(posizioniTutte.length/2));
+  return Array.from({length:n},()=>['','']);
 }
 function renderCoppie(fase){
   const c=$('coppieList_'+fase); if(!c) return; c.innerHTML='';
   const lista=coppiePerFase[fase];
   lista.forEach((cp,idx)=>{
     const row=document.createElement('div'); row.className='coppia';
-    // posizioni gia usate dalle ALTRE voci di questa fase
+    // posizioni gia usate dalle ALTRE voci di questa fase (solo quelle valorizzate)
     const altrui=new Set();
-    lista.forEach((c2,j)=>{ if(j!==idx){ altrui.add(c2[0]); altrui.add(c2[1]); } });
+    lista.forEach((c2,j)=>{ if(j!==idx){ if(c2[0])altrui.add(c2[0]); if(c2[1])altrui.add(c2[1]); } });
     // il primo select blocca anche la posizione del secondo della stessa coppia, e viceversa
-    const bloccate0=new Set(altrui); bloccate0.add(cp[1]);
-    const bloccate1=new Set(altrui); bloccate1.add(cp[0]);
+    const bloccate0=new Set(altrui); if(cp[1])bloccate0.add(cp[1]);
+    const bloccate1=new Set(altrui); if(cp[0])bloccate1.add(cp[0]);
     row.appendChild(posSelect(cp[0],v=>{lista[idx][0]=v; renderCoppie(fase);},bloccate0));
     const x=document.createElement('span'); x.className='x'; x.textContent='+'; row.appendChild(x);
     row.appendChild(posSelect(cp[1],v=>{lista[idx][1]=v; renderCoppie(fase);},bloccate1));
@@ -368,6 +367,7 @@ function renderCoppie(fase){
 function renderAllCoppie(){ FASI.forEach(renderCoppie); }
 function posSelect(val,onCh,bloccate){
   const s=document.createElement('select');
+  const vuoto=document.createElement('option'); vuoto.value=''; vuoto.textContent='—'; if(!val) vuoto.selected=true; s.appendChild(vuoto);
   posizioniTutte.forEach(p=>{
     const o=document.createElement('option'); o.value=p; o.textContent=p;
     if(p===val) o.selected=true;
@@ -436,7 +436,7 @@ function simOnce(p,R,mode){
     const winners=[];
     // coppie della fase corrente: 0=quarti, 1=semifinale, 2=finale
     const faseNome=FASI[Math.min(phase,FASI.length-1)];
-    const faseCoppie=coppiePerFase[faseNome];
+    const faseCoppie=coppiePerFase[faseNome].filter(cp=>cp[0]&&cp[1]);
     const baseFase=p.baseFase[faseNome];
     for(const mt of matches){
       const A=mt[0], B=mt[1];
@@ -491,6 +491,9 @@ function spearman(a,b){
 function run(){
   const p=params(); const {R}=computeR();
   const mode=modoCorrente;
+  const totCoppie=FASI.reduce((a,f)=>a+coppiePerFase[f].filter(c=>c[0]&&c[1]).length,0);
+  if(totCoppie===0){ showErr('Imposta almeno una coppia completa (due posizioni) prima di simulare.'); return; }
+  $('loadError').classList.add('hidden');
   const TRIALS=2500;
   const ids=participants.map(x=>x.id);
   const sumMain={}, sumFisso={}; ids.forEach(i=>{sumMain[i]=0;sumFisso[i]=0;});
@@ -676,8 +679,7 @@ function bindControls(){
 
   document.querySelectorAll('[data-add]').forEach(btn=>{
     btn.onclick=()=>{ const f=btn.getAttribute('data-add');
-      const a=primaLibera(f); const b=primaLibera(f,[a]);
-      coppiePerFase[f].push([a,b]); renderCoppie(f); };
+      coppiePerFase[f].push(['','']); renderCoppie(f); };
   });
   $('runBtn').onclick=run;
   $('faseSelect').onchange=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
