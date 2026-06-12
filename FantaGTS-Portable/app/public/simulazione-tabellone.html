@@ -41,6 +41,13 @@
   .mu .teams{font-family:var(--display);font-weight:600;font-size:15px;margin-top:4px}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,.2)}
 
+  .fase-box{border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:10px;background:var(--surface2)}
+  .fase-box>summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:14px;list-style:none;
+    padding:4px 0;color:var(--chalk)}
+  .fase-box>summary::-webkit-details-marker{display:none}
+  .fase-box>summary::before{content:'\25B8';color:var(--clay);margin-right:8px;display:inline-block;transition:transform .15s}
+  .fase-box[open]>summary::before{transform:rotate(90deg)}
+  .fase-box>.coppie-list{margin-top:12px}
   .coppie-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
   .coppia{display:flex;gap:8px;align-items:center}
   .coppia .x{color:var(--muted);font-family:var(--mono)}
@@ -108,10 +115,26 @@
 
   <!-- 2. COPPIE -->
   <div class="panel">
-    <h2>Incroci delle coppie</h2>
-    <p class="hint" style="margin-top:-6px;margin-bottom:14px">In ogni scontro si gioca per queste coppie di posizioni. Valgono per tutte e tre le fasi.</p>
-    <div class="coppie-list" id="coppieList"></div>
-    <button class="btn small" id="addCoppia">Aggiungi coppia</button>
+    <h2>Incroci delle coppie per fase</h2>
+    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Imposta gli incroci per ognuna delle tre fasi. In ogni scontro si gioca per le coppie di posizioni della fase corrispondente.</p>
+
+    <details class="fase-box" open>
+      <summary>Quarti</summary>
+      <div class="coppie-list" id="coppieList_quarti"></div>
+      <button class="btn small" data-add="quarti">Aggiungi coppia</button>
+    </details>
+
+    <details class="fase-box">
+      <summary>Semifinale</summary>
+      <div class="coppie-list" id="coppieList_semi"></div>
+      <button class="btn small" data-add="semi">Aggiungi coppia</button>
+    </details>
+
+    <details class="fase-box">
+      <summary>Finale</summary>
+      <div class="coppie-list" id="coppieList_finale"></div>
+      <button class="btn small" data-add="finale">Aggiungi coppia</button>
+    </details>
   </div>
 
   <!-- 3. FORMULA -->
@@ -262,26 +285,29 @@ async function caricaPartecipanti(){
   if(!posizioniTutte.length) throw new Error('Nessun giocatore con statistiche: serve almeno un turno gia giocato per avere le percentuali di vittoria.');
 }
 
-// ---- editor coppie ----
-let coppie=[]; // [[pos1,pos2],...]
+// ---- editor coppie per fase ----
+const FASI=['quarti','semi','finale'];
+let coppiePerFase={quarti:[],semi:[],finale:[]};
 function defaultCoppie(){
   const p=posizioniTutte.slice(); const out=[];
   for(let i=0;i+1<p.length;i+=2) out.push([p[i],p[i+1]]);
   return out.length?out:[[p[0]||'M1',p[0]||'M1']];
 }
-function renderCoppie(){
-  const c=$('coppieList'); c.innerHTML='';
-  coppie.forEach((cp,idx)=>{
+function renderCoppie(fase){
+  const c=$('coppieList_'+fase); if(!c) return; c.innerHTML='';
+  const lista=coppiePerFase[fase];
+  lista.forEach((cp,idx)=>{
     const row=document.createElement('div'); row.className='coppia';
-    row.appendChild(posSelect(cp[0],v=>{coppie[idx][0]=v;}));
+    row.appendChild(posSelect(cp[0],v=>{lista[idx][0]=v;}));
     const x=document.createElement('span'); x.className='x'; x.textContent='+'; row.appendChild(x);
-    row.appendChild(posSelect(cp[1],v=>{coppie[idx][1]=v;}));
+    row.appendChild(posSelect(cp[1],v=>{lista[idx][1]=v;}));
     const del=document.createElement('button'); del.className='btn small ghost'; del.textContent='Rimuovi';
-    del.onclick=()=>{coppie.splice(idx,1); renderCoppie();};
+    del.onclick=()=>{lista.splice(idx,1); renderCoppie(fase);};
     row.appendChild(del);
     c.appendChild(row);
   });
 }
+function renderAllCoppie(){ FASI.forEach(renderCoppie); }
 function posSelect(val,onCh){
   const s=document.createElement('select');
   posizioniTutte.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(p===val)o.selected=true;s.appendChild(o);});
@@ -327,10 +353,12 @@ function simOnce(p,R,useHandicap){
   while(matches.length>=1){
     const S=aliveCount(aliveTeams);
     const winners=[];
+    // coppie della fase corrente: 0=quarti, 1=semifinale, 2=finale
+    const faseCoppie=coppiePerFase[FASI[Math.min(phase,FASI.length-1)]];
     for(const mt of matches){
       const A=mt[0], B=mt[1];
       let winA=0;
-      for(const cp of coppie){
+      for(const cp of faseCoppie){
         const sA=pairStrength(A.numero,cp), sB=pairStrength(B.numero,cp);
         const pA=sA/((sA+sB)||1);
         const aWins=Math.random()<pA;
@@ -342,7 +370,8 @@ function simOnce(p,R,useHandicap){
           if(slot){ const m=useHandicap?mult(S[slot.owner],R[slot.owner],p):1; score[slot.owner]+=p.base*m; }
         }
       }
-      const sqWin = winA> (coppie.length/2) ? A : (winA< (coppie.length/2)? B : (Math.random()<0.5?A:B));
+      const half=faseCoppie.length/2;
+      const sqWin = winA>half ? A : (winA<half ? B : (Math.random()<0.5?A:B));
       winners.push(sqWin);
     }
     // aggiorna squadre vive = solo vincenti
@@ -469,7 +498,10 @@ function bindControls(){
     $('vK').textContent=(+$('k').value).toFixed(1);
     $('vTh').textContent=$('th').value+'%'; };
   ['base','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
-  $('addCoppia').onclick=()=>{coppie.push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]);renderCoppie();};
+  document.querySelectorAll('[data-add]').forEach(btn=>{
+    btn.onclick=()=>{ const f=btn.getAttribute('data-add');
+      coppiePerFase[f].push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]); renderCoppie(f); };
+  });
   $('runBtn').onclick=run;
   $('faseSelect').onchange=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
   $('reloadBracket').onclick=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
@@ -483,7 +515,7 @@ async function init(){
     const attiva=fasi.find(f=>f.attiva)||fasi[0];
     await caricaBracket(attiva.id);
     await caricaPartecipanti();
-    coppie=defaultCoppie(); renderCoppie();
+    FASI.forEach(f=>coppiePerFase[f]=defaultCoppie()); renderAllCoppie();
     bindControls();
     $('runBtn').disabled=false;
     $('runInfo').textContent=`${participants.length} partecipanti, ${players.length} giocatori con statistiche pronti.`;
