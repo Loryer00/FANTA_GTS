@@ -505,6 +505,54 @@
             text-align: center;
         }
 
+        .squadre-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .squadra-info-card {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .squadra-info-header {
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 8px 6px;
+            font-size: 0.95em;
+        }
+
+        .squadra-info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.85em;
+        }
+
+            .squadra-info-row .ruolo {
+                font-weight: 700;
+                opacity: 0.6;
+                min-width: 26px;
+            }
+
+            .squadra-info-row .giocatore {
+                flex: 1;
+            }
+
+        @media (max-width: 480px) {
+            .squadre-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Lightbox fullscreen */
         .lightbox-overlay {
             display: none;
@@ -3606,7 +3654,6 @@
             if (!container) return;
 
             try {
-                // Usa la configurazione_id dalla sessione corrente
                 const configId = sessioneOggetto?.configurazione_id;
 
                 if (!configId) {
@@ -3614,32 +3661,50 @@
                     return;
                 }
 
-                const response = await fetch(`/api/configurazioni/${configId}/immagini`);
+                const response = await fetch('/api/squadre?configurazione=' + configId);
                 if (!response.ok) throw new Error('Errore caricamento');
 
-                immaginiInfo = await response.json();
+                const squadre = await response.json();
 
-                if (immaginiInfo.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna informazione disponibile per questa configurazione</p>';
+                if (!squadre.length) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna squadra disponibile per questa configurazione</p>';
                     return;
                 }
 
-                let html = '<div class="info-gallery">';
-                immaginiInfo.forEach((img, index) => {
-                    html += `
-                <div class="info-gallery-item" onclick="apriLightbox(${index})">
-                    <img src="${img.url}" alt="${img.descrizione || img.nome_originale}" loading="lazy">
-                    ${img.descrizione ? `<div class="info-gallery-desc">${img.descrizione}</div>` : ''}
-                </div>
-            `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
+                container.innerHTML = renderSquadreComplete(squadre);
 
             } catch (error) {
-                console.error('Errore caricamento immagini info:', error);
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Immagini non disponibili</p>';
+                console.error('Errore caricamento squadre info:', error);
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Squadre non disponibili</p>';
             }
+        }
+
+        function renderSquadreComplete(squadre) {
+            let html = '<div class="squadre-info-grid">';
+            squadre.forEach(sq => {
+                const bg = getTeamColor(sq.colore);
+                const txt = getTextColorForTeam(sq.colore);
+                let righe = '';
+                for (let i = 1; i <= 7; i++) {
+                    const g = sq['m' + i];
+                    if (g && g.trim()) {
+                        righe += '<div class="squadra-info-row"><span class="ruolo">M' + i + '</span><span class="giocatore">' + g + '</span></div>';
+                    }
+                }
+                for (let i = 1; i <= 3; i++) {
+                    const g = sq['f' + i];
+                    if (g && g.trim()) {
+                        righe += '<div class="squadra-info-row"><span class="ruolo">F' + i + '</span><span class="giocatore">' + g + '</span></div>';
+                    }
+                }
+                const titolo = sq.colore || ('Squadra ' + sq.numero);
+                html += '<div class="squadra-info-card">'
+                    + '<div class="squadra-info-header" style="background:' + bg + ';color:' + txt + ';">' + titolo + '</div>'
+                    + '<div class="squadra-info-body">' + righe + '</div>'
+                    + '</div>';
+            });
+            html += '</div>';
+            return html;
         }
 
         function apriLightbox(index) {

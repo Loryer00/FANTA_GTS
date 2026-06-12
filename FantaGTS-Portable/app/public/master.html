@@ -889,7 +889,7 @@
     <div id="gestioneImmaginiModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width: 800px; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">&#8505; Immagini Info Torneo</h3>
+                <h3 style="margin: 0;">&#8505; Squadre del torneo</h3>
                 <button onclick="closeModal('gestioneImmaginiModal')" style="
                     background: transparent; border: 1px solid #a0aec0; color: #a0aec0;
                     border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.9em;
@@ -898,23 +898,6 @@
                 </button>
             </div>
 
-            <!-- Upload nuova immagine -->
-            <div style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-                <h4 style="margin-bottom: 10px;">Carica nuova immagine</h4>
-                <div style="margin-bottom: 10px;">
-                    <input type="file" id="inputImmagineInfo" accept="image/*"
-                           style="width: 100%; padding: 8px; background: rgba(255,255,255,0.9); border-radius: 6px; color: #333;">
-                </div>
-                <div style="margin-bottom: 10px;">
-                    <input type="text" id="descrizioneImmagineInfo" placeholder="Descrizione (opzionale, es: Gironi, Calendario 1 Turno...)"
-                           style="width: 100%; padding: 10px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: #e2e8f0;">
-                </div>
-                <button class="btn btn-primary" onclick="uploadImmagineInfo()">
-                    Carica Immagine
-                </button>
-            </div>
-
-            <!-- Lista immagini caricate -->
             <div id="listaImmaginiInfo">
                 <p style="text-align: center; opacity: 0.7;">Caricamento...</p>
             </div>
@@ -3714,13 +3697,62 @@
         // ========================================
 
         function apriGestioneImmagini() {
-            const sessioneId = sessioneCorrente;
-            if (!sessioneId) {
+            if (!sessioneCorrente) {
                 showNotification('Seleziona prima una sessione', 'error');
                 return;
             }
             document.getElementById('gestioneImmaginiModal').style.display = 'flex';
-            caricaListaImmaginiInfo();
+            caricaSquadreInfo();
+        }
+
+        async function caricaSquadreInfo() {
+            const container = document.getElementById('listaImmaginiInfo');
+            const configId = configurazioneCorrente;
+
+            if (!configId) {
+                container.innerHTML = '<p>Nessuna configurazione associata alla sessione</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/squadre?configurazione=' + configId);
+                const squadre = await response.json();
+
+                if (!squadre.length) {
+                    container.innerHTML = '<p style="text-align:center; opacity:0.7;">Nessuna squadra per questa configurazione</p>';
+                    return;
+                }
+
+                let html = '<div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">';
+                squadre.forEach(sq => {
+                    const bg = getTeamColorForMaster(sq.colore);
+                    const txt = getTextColorForTeamMaster(sq.colore);
+                    let righe = '';
+                    for (let i = 1; i <= 7; i++) {
+                        const g = sq['m' + i];
+                        if (g && g.trim()) {
+                            righe += '<div style="display:flex; gap:8px; padding:5px 10px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.85em;"><span style="font-weight:700; opacity:0.6; min-width:26px;">M' + i + '</span><span>' + g + '</span></div>';
+                        }
+                    }
+                    for (let i = 1; i <= 3; i++) {
+                        const g = sq['f' + i];
+                        if (g && g.trim()) {
+                            righe += '<div style="display:flex; gap:8px; padding:5px 10px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.85em;"><span style="font-weight:700; opacity:0.6; min-width:26px;">F' + i + '</span><span>' + g + '</span></div>';
+                        }
+                    }
+                    const titolo = sq.colore || ('Squadra ' + sq.numero);
+                    html += '<div style="border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04);">'
+                        + '<div style="text-align:center; font-weight:700; text-transform:uppercase; padding:8px; background:' + bg + '; color:' + txt + ';">' + titolo + '</div>'
+                        + righe
+                        + '</div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error('Errore caricamento squadre:', err);
+                container.innerHTML = '<p>Errore caricamento squadre</p>';
+            }
         }
 
         async function caricaListaImmaginiInfo() {
