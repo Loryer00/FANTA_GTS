@@ -58,6 +58,8 @@
   .btn.go{background:var(--clay);color:#1a120a;border-color:var(--clay);font-size:15px;padding:12px 26px}
   .btn.go:disabled{opacity:.4;cursor:not-allowed}
   .btn.small{padding:6px 10px;font-size:12px}
+  .mode-btn{opacity:.7}
+  .mode-btn.active{background:var(--clay);color:#1a120a;border-color:var(--clay);opacity:1}
 
   .ctrl{display:flex;flex-direction:column;gap:6px;min-width:160px;flex:1}
   .ctrl .lab{display:flex;justify-content:space-between;font-size:13px}
@@ -151,19 +153,35 @@
     </div>
   </div>
 
-  <!-- 4. FORMULA HANDICAP -->
+  <!-- 4. SISTEMA DI PUNTEGGIO -->
   <div class="panel">
-    <h2>Formula handicap</h2>
-    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Valore di vittoria personale in base a quanti giocatori restano vivi al partecipante.</p>
-    <div class="row" style="align-items:flex-end">
-      <div class="ctrl"><div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
-        <input type="range" id="cap" min="1" max="4" step="0.1" value="2"></div>
-      <div class="ctrl"><div class="lab"><span>k (intensità)</span><span class="val" id="vK">1.2</span></div>
-        <input type="range" id="k" min="0" max="4" step="0.1" value="1.2"></div>
-      <div class="ctrl"><div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
-        <input type="range" id="th" min="0" max="100" step="5" value="50"></div>
+    <h2>Sistema di punteggio da simulare</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn mode-btn active" data-mode="fisso">Punti fissi per fase</button>
+      <button class="btn mode-btn" data-mode="semi">Semi-automatico</button>
+      <button class="btn mode-btn" data-mode="auto">Automatico compensato</button>
     </div>
-    <p class="hint">Punti effettivi di una vittoria = punti base della fase x m, con m = min(cap, 1 + k(1 - S/R)), attivo solo sotto soglia. S = giocatori ancora vivi del partecipante, R = suoi giocatori presenti ai quarti.</p>
+    <p class="hint" id="modeHint"></p>
+    <div id="semiControls" class="hidden" style="margin-top:12px">
+      <div class="row" style="align-items:flex-end">
+        <div class="ctrl"><div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
+          <input type="range" id="cap" min="1" max="4" step="0.1" value="2"></div>
+        <div class="ctrl"><div class="lab"><span>k (intensita)</span><span class="val" id="vK">1.2</span></div>
+          <input type="range" id="k" min="0" max="4" step="0.1" value="1.2"></div>
+        <div class="ctrl"><div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
+          <input type="range" id="th" min="0" max="100" step="5" value="50"></div>
+      </div>
+      <p class="hint">Sistema congiunto che regoli tu: valore di una vittoria = punti base della fase x m, con m = min(cap, 1 + k(1 - S/R)), attivo solo quando i giocatori vivi scendono sotto la soglia. Tu scegli quanto e quando compensare.</p>
+    </div>
+    <div id="autoControls" class="hidden" style="margin-top:12px">
+      <div class="row" style="align-items:flex-end">
+        <div class="ctrl"><div class="lab"><span>Intensita compensazione</span><span class="val" id="vG">1.0</span></div>
+          <input type="range" id="g" min="1" max="3" step="0.1" value="1"></div>
+        <div class="ctrl"><div class="lab"><span>Cap di sicurezza</span><span class="val" id="vCap2">nessuno</span></div>
+          <input type="range" id="cap2" min="2" max="30" step="1" value="30"></div>
+      </div>
+      <p class="hint">Valore automatico di una vittoria = punti base della fase per (R/S) elevato all'intensita. R = giocatori ai quarti, S = giocatori ancora vivi. A intensita 1 e il valore che lascia a tutti la stessa opportunita di punti (equilibrato): chi resta con 1 solo giocatore lo vede valere R volte tanto. Alzando l'intensita la compensazione diventa piu aggressiva. Il cap limita il moltiplicatore massimo; a 30 e di fatto disattivato.</p>
+    </div>
   </div>
 
   <div style="margin:6px 0 26px">
@@ -173,22 +191,30 @@
 
   <!-- RISULTATI -->
   <div id="results" class="hidden">
-    <div class="gauge-card">
+    <div class="gauge-card" id="gaugeCard">
       <svg id="gauge" viewBox="0 0 320 178" style="max-width:330px;margin:0 auto"></svg>
       <div class="gauge-verdict" id="verdict">-</div>
       <div class="gauge-note" id="verdictNote"></div>
     </div>
 
     <div class="panel">
-      <h2>Classifica proiettata a fine torneo</h2>
+      <h2 id="standingsTitle">Classifica proiettata a fine torneo</h2>
       <table>
-        <thead><tr>
-          <th>Partecipante</th><th>Punti ora</th><th>Senza handicap</th><th>Con handicap</th>
-          <th>Differenza</th><th>Vivi ai quarti</th>
-        </tr></thead>
+        <thead id="standingsHead"></thead>
         <tbody id="standings"></tbody>
       </table>
-      <p class="footnote">"Punti ora" sono i punti reali gia accumulati. Le due colonne di proiezione sono la media a fine simulazione: il torneo non e ancora giocato, quindi sono valori attesi su migliaia di tabelloni, non una previsione secca. Se la colonna con handicap stravolge l'ordine rispetto a quella senza, e il segnale che stai compensando troppo: alza la soglia o abbassa cap e k.</p>
+      <p class="footnote">"Punti ora" sono i punti reali gia accumulati. La proiezione e la media su migliaia di tabelloni del sistema scelto: il torneo non e ancora giocato, quindi sono valori attesi, non una previsione secca.</p>
+    </div>
+
+    <div class="panel hidden" id="valuePanel">
+      <h2>Valore di una vittoria per fase (sistema automatico)</h2>
+      <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale in media una vittoria di un giocatore di ciascun partecipante, fase per fase, in base a quanti giocatori gli restano vivi. Dove non c'e valore, il partecipante e gia fuori in quella fase.</p>
+      <table>
+        <thead><tr><th>Partecipante</th>
+          <th>Quarti (vivi / valore)</th><th>Semifinale (vivi / valore)</th><th>Finale (vivi / valore)</th>
+        </tr></thead>
+        <tbody id="valueTable"></tbody>
+      </table>
     </div>
 
     <div class="panel">
@@ -328,13 +354,15 @@ function posSelect(val,onCh){
 }
 
 // ---- simulazione ----
+let modoCorrente='fisso'; // 'fisso' | 'auto'
 function params(){
   return {
     baseFase:{quarti:+$('baseQ').value, semi:+$('baseS').value, finale:+$('baseF').value},
-    cap:+$('cap').value, k:+$('k').value, th:+$('th').value/100
+    g:+$('g').value, cap:+$('cap2').value
   };
 }
-function mult(S,R,p){ const r=R>0?S/R:0; if(r>=p.th) return 1; return Math.min(p.cap,1+p.k*(1-r)); }
+// moltiplicatore automatico: compensa l'opportunita persa. S vivi su R iniziali.
+function multAuto(S,R,p){ if(S<=0) return 0; return Math.min(p.cap, Math.pow(R/S, p.g)); }
 
 // forza di una coppia di una squadra = media delle winProb dei due slot (se manca, 0.5)
 function pairStrength(squadra,cp){
@@ -350,10 +378,11 @@ function computeR(){
   return {R,teams};
 }
 
-function simOnce(p,R,useHandicap){
+function simOnce(p,R,mode){
   // squadre vive: parte da tutte quelle dei quarti
   let round=bracket.map(m=>m.sq.slice()); // ogni elemento = [squadraA, squadraB]
   const score={}; participants.forEach(x=>score[x.id]=0);
+  const survByPhase=[]; // giocatori vivi per fase, per partecipante
   const advanced=[]; // numeri squadra che passano ogni round (per stats)
   const teamReach={}; // numero -> {semi,final,win}
 
@@ -368,6 +397,7 @@ function simOnce(p,R,useHandicap){
   let matches=round; let phase=0;
   while(matches.length>=1){
     const S=aliveCount(aliveTeams);
+    survByPhase[phase]={...S};
     const winners=[];
     // coppie della fase corrente: 0=quarti, 1=semifinale, 2=finale
     const faseNome=FASI[Math.min(phase,FASI.length-1)];
@@ -385,7 +415,10 @@ function simOnce(p,R,useHandicap){
         // assegna punti ai due slot vincenti
         for(const pos of cp){
           const slot=slotMap[winner.numero+'|'+pos];
-          if(slot){ const m=useHandicap?mult(S[slot.owner],R[slot.owner],p):1; score[slot.owner]+=baseFase*m; }
+          if(slot){
+            const m = mode==='auto' ? multAuto(S[slot.owner],R[slot.owner],p) : 1;
+            score[slot.owner]+=baseFase*m;
+          }
         }
       }
       const half=faseCoppie.length/2;
@@ -410,7 +443,7 @@ function simOnce(p,R,useHandicap){
     if(next.length===1){ next[0].forEach(w=>{ (teamReach[w.numero]=teamReach[w.numero]||{semi:0,final:0,win:0}).final=1; });}
     matches=next; phase++;
   }
-  return {score,teamReach};
+  return {score,teamReach,survByPhase};
 }
 
 function spearman(a,b){
@@ -422,57 +455,115 @@ function spearman(a,b){
 
 function run(){
   const p=params(); const {R}=computeR();
+  const mode=modoCorrente;
   const TRIALS=2500;
   const ids=participants.map(x=>x.id);
-  const sumFlat={}, sumHand={}; ids.forEach(i=>{sumFlat[i]=0;sumHand[i]=0;});
-  const reach={}; let flips=0; let corrShiftSum=0;
-  for(let t=0;t<TRIALS;t++){
-    const f=simOnce(p,R,false), h=simOnce(p,R,true);
-    ids.forEach(i=>{sumFlat[i]+=f.score[i]; sumHand[i]+=h.score[i];});
-    // chi vince nei due scenari (punti correnti + proiezione del singolo torneo)
-    const wf=ids.reduce((a,i)=>(f.score[i]+pc(i))>(f.score[a]+pc(a))?i:a,ids[0]);
-    const wh=ids.reduce((a,i)=>(h.score[i]+pc(i))>(h.score[a]+pc(a))?i:a,ids[0]);
-    if(wf!==wh) flips++;
-    for(const num in h.teamReach){ const r=reach[num]=reach[num]||{semi:0,final:0,win:0};
-      r.semi+=h.teamReach[num].semi||0; r.final+=h.teamReach[num].final||0; r.win+=h.teamReach[num].win||0; }
-  }
+  const sumMain={}, sumFisso={}; ids.forEach(i=>{sumMain[i]=0;sumFisso[i]=0;});
+  const reach={}; let flips=0;
+  // accumulatori valore per fase (solo utile in auto): per fase, per partecipante
+  const NF=FASI.length;
+  const survSum={}, valSum={}, aliveCnt={};
+  ids.forEach(i=>{survSum[i]=Array(NF).fill(0); valSum[i]=Array(NF).fill(0); aliveCnt[i]=Array(NF).fill(0);});
   function pc(id){ return participants.find(x=>x.id===id).currentPoints; }
-  // medie
+
+  for(let t=0;t<TRIALS;t++){
+    const main=simOnce(p,R,mode);
+    ids.forEach(i=>{sumMain[i]+=main.score[i];});
+    // riferimento fisso per il quadrante (solo quando mode auto)
+    if(mode==='auto'){
+      const fix=simOnce(p,R,'fisso');
+      ids.forEach(i=>{sumFisso[i]+=fix.score[i];});
+      const wf=ids.reduce((a,i)=>(fix.score[i]+pc(i))>(fix.score[a]+pc(a))?i:a,ids[0]);
+      const wh=ids.reduce((a,i)=>(main.score[i]+pc(i))>(main.score[a]+pc(a))?i:a,ids[0]);
+      if(wf!==wh) flips++;
+    }
+    // valore per fase
+    for(let ph=0; ph<NF; ph++){
+      const Sf=main.survByPhase[ph]; if(!Sf) continue;
+      const baseFase=p.baseFase[FASI[ph]];
+      ids.forEach(i=>{
+        const S=Sf[i]||0;
+        if(S>0){ survSum[i][ph]+=S; valSum[i][ph]+=baseFase*(mode==='auto'?multAuto(S,R[i],p):1); aliveCnt[i][ph]++; }
+      });
+    }
+    // raggiungimento squadre
+    for(const num in main.teamReach){ const r=reach[num]=reach[num]||{semi:0,final:0,win:0};
+      r.semi+=main.teamReach[num].semi||0; r.final+=main.teamReach[num].final||0; r.win+=main.teamReach[num].win||0; }
+  }
+
   const rows=participants.map(x=>({
     id:x.id, nome:x.nome, cur:x.currentPoints,
-    flat:x.currentPoints+sumFlat[x.id]/TRIALS,
-    hand:x.currentPoints+sumHand[x.id]/TRIALS,
-    R:R[x.id]
+    proj:x.currentPoints+sumMain[x.id]/TRIALS,
+    projFisso:x.currentPoints+sumFisso[x.id]/TRIALS,
+    R:R[x.id],
+    perFase:FASI.map((f,ph)=>({
+      vivi: aliveCnt[x.id][ph]?survSum[x.id][ph]/aliveCnt[x.id][ph]:0,
+      valore: aliveCnt[x.id][ph]?valSum[x.id][ph]/aliveCnt[x.id][ph]:0,
+      presenza: aliveCnt[x.id][ph]/TRIALS
+    }))
   }));
-  // indicatore: quanto handicap erode la corrispondenza merito->classifica
-  const arrFlat=rows.map(r=>r.flat), arrHand=rows.map(r=>r.hand);
-  // "merito" approssimato = proiezione piatta (chi gioca meglio segna di piu senza bonus)
-  const corrFlat=spearman(arrFlat,arrFlat); // =1 per costruzione, riferimento
-  const corrHand=spearman(arrFlat,arrHand);
-  const erosion=Math.max(0,Math.min(1,(1-corrHand)/0.6));
-  const flipRisk=Math.max(0,Math.min(1,(flips/TRIALS)/0.5));
-  const risk=Math.max(0,Math.min(1,0.6*erosion+0.4*flipRisk));
-  renderResults(rows,reach,TRIALS,risk,flips/TRIALS,corrHand);
+
+  let risk=0;
+  if(mode==='auto'){
+    const arrFisso=rows.map(r=>r.projFisso), arrAuto=rows.map(r=>r.proj);
+    const corr=spearman(arrFisso,arrAuto);
+    const erosion=Math.max(0,Math.min(1,(1-corr)/0.6));
+    const flipRisk=Math.max(0,Math.min(1,(flips/TRIALS)/0.5));
+    risk=Math.max(0,Math.min(1,0.6*erosion+0.4*flipRisk));
+  }
+  renderResults({rows,reach,trials:TRIALS,risk,flipRate:flips/TRIALS,mode});
 }
 
 // ---- render risultati ----
-function renderResults(rows,reach,trials,risk,flipRate,corrHand){
+function renderResults({rows,reach,trials,risk,flipRate,mode}){
   $('results').classList.remove('hidden');
-  const maxHand=Math.max(...rows.map(r=>r.hand),1);
-  rows.sort((a,b)=>b.hand-a.hand);
+  const auto = mode==='auto';
+
+  // titolo + header classifica dinamici
+  $('standingsTitle').textContent = auto
+    ? 'Classifica proiettata - sistema automatico compensato'
+    : 'Classifica proiettata - punti fissi per fase';
+  $('standingsHead').innerHTML = auto
+    ? `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione automatica</th><th>Proiezione fissi</th><th>Differenza</th><th>Vivi ai quarti</th></tr>`
+    : `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione finale</th><th>Vivi ai quarti</th></tr>`;
+
+  rows.sort((a,b)=>b.proj-a.proj);
   const tb=$('standings'); tb.innerHTML='';
   rows.forEach(r=>{
-    const diff=r.hand-r.flat; const cls=diff>0.05?'delta-up':(diff<-0.05?'delta-down':'');
-    const sign=diff>0?'+':'';
-    tb.innerHTML+=`<tr>
-      <td>${r.nome}</td>
-      <td class="n">${r.cur}</td>
-      <td class="n" style="color:var(--flat)">${r.flat.toFixed(1)}</td>
-      <td class="n" style="color:var(--clay)">${r.hand.toFixed(1)}</td>
-      <td class="n ${cls}">${sign}${diff.toFixed(1)}</td>
-      <td class="n">${r.R}</td>
-    </tr>`;
+    if(auto){
+      const diff=r.proj-r.projFisso; const cls=diff>0.05?'delta-up':(diff<-0.05?'delta-down':''); const sign=diff>0?'+':'';
+      tb.innerHTML+=`<tr>
+        <td>${r.nome}</td>
+        <td class="n">${r.cur}</td>
+        <td class="n" style="color:var(--clay)">${r.proj.toFixed(1)}</td>
+        <td class="n" style="color:var(--flat)">${r.projFisso.toFixed(1)}</td>
+        <td class="n ${cls}">${sign}${diff.toFixed(1)}</td>
+        <td class="n">${r.R}</td></tr>`;
+    } else {
+      tb.innerHTML+=`<tr>
+        <td>${r.nome}</td>
+        <td class="n">${r.cur}</td>
+        <td class="n" style="color:var(--clay)">${r.proj.toFixed(1)}</td>
+        <td class="n">${r.R}</td></tr>`;
+    }
   });
+
+  // tabella valore per fase (solo automatico)
+  if(auto){
+    $('valuePanel').classList.remove('hidden');
+    const vt=$('valueTable'); vt.innerHTML='';
+    rows.forEach(r=>{
+      const cell=ph=>{
+        const f=r.perFase[ph];
+        if(f.presenza<0.01) return `<td class="n" style="color:var(--muted)">fuori</td>`;
+        return `<td class="n">${f.vivi.toFixed(1)} / <b style="color:var(--clay)">${f.valore.toFixed(1)}</b></td>`;
+      };
+      vt.innerHTML+=`<tr><td>${r.nome}</td>${cell(0)}${cell(1)}${cell(2)}</tr>`;
+    });
+  } else {
+    $('valuePanel').classList.add('hidden');
+  }
+
   // probabilita squadre
   const tp=$('teamProbs'); tp.innerHTML='';
   const nums=Object.keys(reach).map(Number).sort((a,b)=>reach[b].win-reach[a].win);
@@ -483,13 +574,21 @@ function renderResults(rows,reach,trials,risk,flipRate,corrHand){
       <td class="n">${Math.round(100*r.final/trials)}%</td>
       <td class="n" style="color:var(--clay)">${Math.round(100*r.win/trials)}%</td></tr>`;
   });
-  drawGauge(risk);
-  let v,note,col;
-  if(risk<0.4){v='Sotto controllo';col='var(--good)';note='La compensazione aiuta chi resta indietro senza ribaltare la classifica del merito.';}
-  else if(risk<0.7){v='Da tenere d\'occhio';col='var(--clay)';note='La fortuna del giocatore rimasto inizia a pesare. Alza la soglia o abbassa cap e k.';}
-  else{v='Sta sfuggendo di mano';col='var(--bad)';note='La classifica la decide piu il caso che la bravura. Riduci cap e k, attiva l\'handicap piu tardi.';}
-  $('verdict').textContent=v; $('verdict').style.color=col; $('verdictNote').textContent=note;
-  $('runInfo').textContent=`${trials} tabelloni simulati · vincitore cambiato nel ${Math.round(flipRate*100)}% dei casi`;
+
+  // quadrante equilibrio: solo per il sistema automatico
+  if(auto){
+    $('gaugeCard').classList.remove('hidden');
+    drawGauge(risk);
+    let v,note,col;
+    if(risk<0.4){v='Sotto controllo';col='var(--good)';note='La compensazione tiene in gioco chi perde giocatori senza ribaltare la classifica del merito.';}
+    else if(risk<0.7){v='Da tenere d\'occhio';col='var(--clay)';note='La fortuna del giocatore rimasto inizia a pesare. Abbassa l\'intensita o metti un cap piu basso.';}
+    else{v='Sta sfuggendo di mano';col='var(--bad)';note='La classifica la decide piu il caso che la bravura. Riduci l\'intensita e applica un cap.';}
+    $('verdict').textContent=v; $('verdict').style.color=col; $('verdictNote').textContent=note;
+    $('runInfo').textContent=`${trials} tabelloni · sistema automatico · vincitore diverso dai punti fissi nel ${Math.round(flipRate*100)}% dei casi`;
+  } else {
+    $('gaugeCard').classList.add('hidden');
+    $('runInfo').textContent=`${trials} tabelloni · punti fissi per fase`;
+  }
 }
 
 function drawGauge(risk){
@@ -510,14 +609,30 @@ function drawGauge(risk){
 }
 
 // ---- avvio ----
+function setModeHint(){
+  $('modeHint').textContent = modoCorrente==='auto'
+    ? 'Il sistema calcola da solo quanto vale la vittoria di ogni giocatore in base a quanti compagni gli restano: piu ne perde, piu ogni sua vittoria vale. Chi resta senza giocatori e fuori.'
+    : 'Ogni vittoria vale i punti base della fase, uguali per tutti i giocatori.';
+}
 function bindControls(){
   const upd=()=>{ $('vBaseQ').textContent=$('baseQ').value;
     $('vBaseS').textContent=$('baseS').value;
     $('vBaseF').textContent=$('baseF').value;
-    $('vCap').textContent=(+$('cap').value).toFixed(1)+'x';
-    $('vK').textContent=(+$('k').value).toFixed(1);
-    $('vTh').textContent=$('th').value+'%'; };
-  ['baseQ','baseS','baseF','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+    $('vG').textContent=(+$('g').value).toFixed(1);
+    const c=+$('cap2').value; $('vCap2').textContent = c>=30 ? 'nessuno' : c+'x'; };
+  ['baseQ','baseS','baseF','g','cap2'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+
+  document.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      modoCorrente=btn.getAttribute('data-mode');
+      $('autoControls').classList.toggle('hidden', modoCorrente!=='auto');
+      setModeHint();
+    };
+  });
+  setModeHint();
+
   document.querySelectorAll('[data-add]').forEach(btn=>{
     btn.onclick=()=>{ const f=btn.getAttribute('data-add');
       coppiePerFase[f].push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]); renderCoppie(f); };
