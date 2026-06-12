@@ -1219,46 +1219,91 @@
                 var container = document.createElement('div');
                 container.style.cssText = 'background: #1a202c; border-radius: 12px; padding: 25px; border: 1px solid rgba(66, 153, 225, 0.3);';
 
-                var html = '<p style="text-align: center; color: #a0aec0; margin-bottom: 20px; font-size: 0.9em;">Ordinata per percentuale di vittoria</p>';
+                // Campo di ricerca
+                var searchBox = document.createElement('input');
+                searchBox.type = 'text';
+                searchBox.placeholder = 'Cerca giocatore...';
+                searchBox.style.cssText = 'width: 100%; box-sizing: border-box; padding: 10px 14px; margin-bottom: 18px; border-radius: 8px; border: 1px solid rgba(66,153,225,0.4); background: #2d3748; color: #e2e8f0; font-size: 0.95em; outline: none;';
+                container.appendChild(searchBox);
 
-                // Top 3
-                var top3 = data.giocatori.slice(0, 3);
-                var medaglie = ['&#129351;', '&#129352;', '&#129353;'];
+                // Contenitore della lista (riempito da renderLista)
+                var listaDiv = document.createElement('div');
+                container.appendChild(listaDiv);
 
-                top3.forEach(function (g, i) {
-                    var colore = getTeamColorForMaster(g.colore);
-                    html += '<div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ' + colore + '; display: flex; align-items: center; gap: 12px;">';
-                    html += '  <div style="font-size: 1.5em;">' + medaglie[i] + '</div>';
-                    html += '  <div style="flex: 1;">';
-                    html += '    <div style="font-weight: bold; color: #e2e8f0;">' + g.nome_giocatore + '</div>';
-                    html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
-                    html += '  </div>';
-                    html += '  <div style="text-align: right;">';
-                    html += '    <div style="font-size: 1.2em; font-weight: bold; color: #48bb78;">' + g.percentuale_vittoria + '%</div>';
-                    html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
-                    html += '  </div>';
-                    html += '</div>';
-                });
+                function renderLista(filtro) {
+                    filtro = (filtro || '').trim().toLowerCase();
+                    var html = '';
 
-                // Resto della classifica
-                if (data.giocatori.length > 3) {
-                    html += '<div style="margin-top: 15px;">';
-                    data.giocatori.slice(3).forEach(function (g, i) {
-                        var colore = getTeamColorForMaster(g.colore);
-                        var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+                    if (filtro === '') {
+                        // Vista normale: top 3 con medaglie + resto della classifica
+                        var top3 = data.giocatori.slice(0, 3);
+                        var medaglie = ['&#129351;', '&#129352;', '&#129353;'];
 
-                        html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
-                        html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + (i + 4) + '</div>';
-                        html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
-                        html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
-                        html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
-                        html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
-                        html += '</div>';
-                    });
-                    html += '</div>';
+                        top3.forEach(function (g, i) {
+                            var colore = getTeamColorForMaster(g.colore);
+                            html += '<div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ' + colore + '; display: flex; align-items: center; gap: 12px;">';
+                            html += '  <div style="font-size: 1.5em;">' + medaglie[i] + '</div>';
+                            html += '  <div style="flex: 1;">';
+                            html += '    <div style="font-weight: bold; color: #e2e8f0;">' + g.nome_giocatore + '</div>';
+                            html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
+                            html += '  </div>';
+                            html += '  <div style="text-align: right;">';
+                            html += '    <div style="font-size: 1.2em; font-weight: bold; color: #48bb78;">' + g.percentuale_vittoria + '%</div>';
+                            html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
+                            html += '  </div>';
+                            html += '</div>';
+                        });
+
+                        if (data.giocatori.length > 3) {
+                            html += '<div style="margin-top: 15px;">';
+                            data.giocatori.slice(3).forEach(function (g, i) {
+                                var colore = getTeamColorForMaster(g.colore);
+                                var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+
+                                html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
+                                html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + (i + 4) + '</div>';
+                                html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
+                                html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
+                                html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
+                                html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        }
+                    } else {
+                        // Vista filtrata: lista semplice di chi corrisponde alla ricerca
+                        var risultati = data.giocatori.filter(function (g) {
+                            return (g.nome_giocatore || '').toLowerCase().indexOf(filtro) !== -1;
+                        });
+
+                        if (risultati.length === 0) {
+                            html = '<p style="text-align: center; color: #a0aec0; padding: 20px;">Nessun giocatore trovato</p>';
+                        } else {
+                            risultati.forEach(function (g) {
+                                var colore = getTeamColorForMaster(g.colore);
+                                var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+                                var pos = data.giocatori.indexOf(g) + 1;
+
+                                html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
+                                html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + pos + '</div>';
+                                html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
+                                html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
+                                html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
+                                html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
+                                html += '</div>';
+                            });
+                        }
+                    }
+
+                    listaDiv.innerHTML = html;
                 }
 
-                container.innerHTML = html;
+                searchBox.addEventListener('input', function () {
+                    renderLista(searchBox.value);
+                });
+
+                renderLista('');
+
                 scrollArea.appendChild(container);
                 overlay.appendChild(scrollArea);
 

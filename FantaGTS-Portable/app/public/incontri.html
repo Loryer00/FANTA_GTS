@@ -1122,18 +1122,38 @@
 
             const flag = soloPunteggio ? 'true' : 'false';
 
+            // Recupera colori squadre e punteggi gia inseriti (se presenti)
+            const inc = incontriCaricati.find(i => i.id == incontroId);
+            const sq1 = inc ? squadreDisponibili.find(s => s.numero === inc.squadra1) : null;
+            const sq2 = inc ? squadreDisponibili.find(s => s.numero === inc.squadra2) : null;
+            const col1 = sq1 ? sq1.colore : 'Squadra 1';
+            const col2 = sq2 ? sq2.colore : 'Squadra 2';
+            const val1 = (inc && inc.games_squadra1 != null) ? inc.games_squadra1 : '';
+            const val2 = (inc && inc.games_squadra2 != null) ? inc.games_squadra2 : '';
+
+            // Bottone "Salta": presente solo per incontri nuovi (non in modalita solo punteggio)
+            const btnSalta = soloPunteggio ? '' :
+                '    <button onclick="saltaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(237,137,54,0.9); color:#fff;">Salta</button>';
+
             const overlay = document.createElement('div');
             overlay.id = 'popup-punteggio-overlay';
             overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;';
             overlay.innerHTML =
                 '<div style="background:#1c2733; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:22px 20px; width:280px;">' +
-                '  <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px;">' +
-                '    <input id="pp-g1" type="text" inputmode="numeric" maxlength="1" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
-                '    <span style="font-size:1.6em; color:#718096; font-weight:800;">-</span>' +
-                '    <input id="pp-g2" type="text" inputmode="numeric" maxlength="1" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
+                '  <div style="display:flex; align-items:flex-start; justify-content:center; gap:14px; margin-bottom:20px;">' +
+                '    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
+                '      <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col1 + '</span>' +
+                '      <input id="pp-g1" type="text" inputmode="numeric" maxlength="1" value="' + val1 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
+                '    </div>' +
+                '    <span style="font-size:1.6em; color:#718096; font-weight:800; margin-top:28px;">-</span>' +
+                '    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
+                '      <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col2 + '</span>' +
+                '      <input id="pp-g2" type="text" inputmode="numeric" maxlength="1" value="' + val2 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
+                '    </div>' +
                 '  </div>' +
                 '  <div style="display:flex; gap:10px;">' +
                 '    <button onclick="annullaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(255,255,255,0.08); color:#cbd5e0;">Annulla</button>' +
+                        btnSalta +
                 '    <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\', ' + flag + ')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
                 '  </div>' +
                 '</div>';
@@ -1159,6 +1179,19 @@
             }
         }
 
+        // Salta: conferma il vincitore senza inserire il punteggio.
+        // L'incontro resta completato ma senza game e mostrera "Aggiungi punteggio".
+        async function saltaPunteggio(incontroId) {
+            const overlay = document.getElementById('popup-punteggio-overlay');
+            if (overlay) overlay.remove();
+
+            // Nessun game: assicurati che non resti nulla in sospeso
+            punteggiPending.delete(incontroId);
+
+            // Completa l'incontro con il solo vincitore gia selezionato
+            await confermaIncontro(incontroId);
+        }
+
         // Conferma: valida i game, assegna il numero alto alla vincente, poi conferma l'incontro
         async function confermaPunteggio(incontroId, squadra, soloPunteggio) {
             const g1 = parseInt(document.getElementById('pp-g1').value);
@@ -1168,16 +1201,12 @@
                 showNotification('Inserisci due numeri da 0 a 9', 'error');
                 return;
             }
-            if (g1 === g2) {
-                showNotification('Il vincitore deve avere piu game', 'error');
-                return;
-            }
 
-            // il numero piu alto va alla coppia vincente
-            const alto = Math.max(g1, g2);
-            const basso = Math.min(g1, g2);
-            const games_squadra1 = (squadra === 'squadra1') ? alto : basso;
-            const games_squadra2 = (squadra === 'squadra1') ? basso : alto;
+            // Il vincitore e gia stato scelto selezionando la coppia.
+            // I punteggi vengono presi cosi come inseriti, anche in caso di
+            // pareggio (es. 0-0): pp-g1 = squadra1, pp-g2 = squadra2.
+            const games_squadra1 = g1;
+            const games_squadra2 = g2;
 
             const overlay = document.getElementById('popup-punteggio-overlay');
             if (overlay) overlay.remove();
