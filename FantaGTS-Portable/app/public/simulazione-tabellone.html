@@ -137,12 +137,25 @@
     </details>
   </div>
 
-  <!-- 3. FORMULA -->
+  <!-- 3. PUNTI PER FASE -->
+  <div class="panel">
+    <h2>Punti base a vittoria per fase</h2>
+    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale una vittoria in ogni fase, prima del bonus handicap.</p>
+    <div class="row" style="align-items:flex-end">
+      <div class="ctrl"><div class="lab"><span>Quarti</span><span class="val" id="vBaseQ">3</span></div>
+        <input type="range" id="baseQ" min="1" max="20" step="1" value="3"></div>
+      <div class="ctrl"><div class="lab"><span>Semifinale</span><span class="val" id="vBaseS">5</span></div>
+        <input type="range" id="baseS" min="1" max="20" step="1" value="5"></div>
+      <div class="ctrl"><div class="lab"><span>Finale</span><span class="val" id="vBaseF">10</span></div>
+        <input type="range" id="baseF" min="1" max="20" step="1" value="10"></div>
+    </div>
+  </div>
+
+  <!-- 4. FORMULA HANDICAP -->
   <div class="panel">
     <h2>Formula handicap</h2>
+    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Valore di vittoria personale in base a quanti giocatori restano vivi al partecipante.</p>
     <div class="row" style="align-items:flex-end">
-      <div class="ctrl"><div class="lab"><span>Punti base a vittoria</span><span class="val" id="vBase">1</span></div>
-        <input type="range" id="base" min="1" max="5" step="1" value="1"></div>
       <div class="ctrl"><div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
         <input type="range" id="cap" min="1" max="4" step="0.1" value="2"></div>
       <div class="ctrl"><div class="lab"><span>k (intensità)</span><span class="val" id="vK">1.2</span></div>
@@ -150,7 +163,7 @@
       <div class="ctrl"><div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
         <input type="range" id="th" min="0" max="100" step="5" value="50"></div>
     </div>
-    <p class="hint">m = min(cap, 1 + k(1 - S/R)), attiva solo sotto soglia. S = giocatori ancora vivi del partecipante, R = suoi giocatori presenti ai quarti.</p>
+    <p class="hint">Punti effettivi di una vittoria = punti base della fase x m, con m = min(cap, 1 + k(1 - S/R)), attivo solo sotto soglia. S = giocatori ancora vivi del partecipante, R = suoi giocatori presenti ai quarti.</p>
   </div>
 
   <div style="margin:6px 0 26px">
@@ -316,7 +329,10 @@ function posSelect(val,onCh){
 
 // ---- simulazione ----
 function params(){
-  return {base:+$('base').value, cap:+$('cap').value, k:+$('k').value, th:+$('th').value/100};
+  return {
+    baseFase:{quarti:+$('baseQ').value, semi:+$('baseS').value, finale:+$('baseF').value},
+    cap:+$('cap').value, k:+$('k').value, th:+$('th').value/100
+  };
 }
 function mult(S,R,p){ const r=R>0?S/R:0; if(r>=p.th) return 1; return Math.min(p.cap,1+p.k*(1-r)); }
 
@@ -354,7 +370,9 @@ function simOnce(p,R,useHandicap){
     const S=aliveCount(aliveTeams);
     const winners=[];
     // coppie della fase corrente: 0=quarti, 1=semifinale, 2=finale
-    const faseCoppie=coppiePerFase[FASI[Math.min(phase,FASI.length-1)]];
+    const faseNome=FASI[Math.min(phase,FASI.length-1)];
+    const faseCoppie=coppiePerFase[faseNome];
+    const baseFase=p.baseFase[faseNome];
     for(const mt of matches){
       const A=mt[0], B=mt[1];
       let winA=0;
@@ -367,7 +385,7 @@ function simOnce(p,R,useHandicap){
         // assegna punti ai due slot vincenti
         for(const pos of cp){
           const slot=slotMap[winner.numero+'|'+pos];
-          if(slot){ const m=useHandicap?mult(S[slot.owner],R[slot.owner],p):1; score[slot.owner]+=p.base*m; }
+          if(slot){ const m=useHandicap?mult(S[slot.owner],R[slot.owner],p):1; score[slot.owner]+=baseFase*m; }
         }
       }
       const half=faseCoppie.length/2;
@@ -493,11 +511,13 @@ function drawGauge(risk){
 
 // ---- avvio ----
 function bindControls(){
-  const upd=()=>{ $('vBase').textContent=$('base').value;
+  const upd=()=>{ $('vBaseQ').textContent=$('baseQ').value;
+    $('vBaseS').textContent=$('baseS').value;
+    $('vBaseF').textContent=$('baseF').value;
     $('vCap').textContent=(+$('cap').value).toFixed(1)+'x';
     $('vK').textContent=(+$('k').value).toFixed(1);
     $('vTh').textContent=$('th').value+'%'; };
-  ['base','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+  ['baseQ','baseS','baseF','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
   document.querySelectorAll('[data-add]').forEach(btn=>{
     btn.onclick=()=>{ const f=btn.getAttribute('data-add');
       coppiePerFase[f].push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]); renderCoppie(f); };
