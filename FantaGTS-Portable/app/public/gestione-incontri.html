@@ -1502,36 +1502,42 @@
                     return;
                 }
 
-                // 3. Per ogni girone genera gli scontri tra le sue squadre
+                // 3. Genera lo scontro solo per i gironi a eliminazione diretta
+                //    (esattamente 2 squadre). I gironi all'italiana (3+ squadre)
+                //    vanno distribuiti su piu turni manuali e qui vengono saltati.
                 let aggiunti = 0;
                 let saltati = 0;
+                let gironiSaltati = 0;
 
                 gironi.forEach(function (girone) {
                     const squadre = girone.squadre || [];
-                    for (let i = 0; i < squadre.length; i++) {
-                        for (let j = i + 1; j < squadre.length; j++) {
-                            const n1 = squadre[i].squadra_numero;
-                            const n2 = squadre[j].squadra_numero;
 
-                            // Evita scontri gia presenti (in qualsiasi ordine)
-                            const esisteGia = configTurno.scontri.some(function (s) {
-                                return (s.squadra1 == n1 && s.squadra2 == n2) ||
-                                    (s.squadra1 == n2 && s.squadra2 == n1);
-                            });
-                            if (esisteGia) {
-                                saltati++;
-                                continue;
-                            }
-
-                            configTurno.scontri.push({
-                                squadra1: parseInt(n1),
-                                squadra2: parseInt(n2),
-                                nomeSquadra1: n1 + ' - ' + squadre[i].colore,
-                                nomeSquadra2: n2 + ' - ' + squadre[j].colore
-                            });
-                            aggiunti++;
-                        }
+                    // Salta i gironi che non sono scontri diretti
+                    if (squadre.length !== 2) {
+                        gironiSaltati++;
+                        return;
                     }
+
+                    const n1 = squadre[0].squadra_numero;
+                    const n2 = squadre[1].squadra_numero;
+
+                    // Evita scontri gia presenti (in qualsiasi ordine)
+                    const esisteGia = configTurno.scontri.some(function (s) {
+                        return (s.squadra1 == n1 && s.squadra2 == n2) ||
+                            (s.squadra1 == n2 && s.squadra2 == n1);
+                    });
+                    if (esisteGia) {
+                        saltati++;
+                        return;
+                    }
+
+                    configTurno.scontri.push({
+                        squadra1: parseInt(n1),
+                        squadra2: parseInt(n2),
+                        nomeSquadra1: n1 + ' - ' + squadre[0].colore,
+                        nomeSquadra2: n2 + ' - ' + squadre[1].colore
+                    });
+                    aggiunti++;
                 });
 
                 // 4. Aggiorna l'interfaccia
@@ -1540,8 +1546,9 @@
                 caricaSquadrePerScontri();
 
                 let messaggio = 'Importati ' + aggiunti + ' scontri dalla fase "' + faseAttiva.nome + '"';
-                if (saltati > 0) messaggio += ' (' + saltati + ' gia presenti, saltati)';
-                showNotification(messaggio, 'success');
+                if (saltati > 0) messaggio += ' (' + saltati + ' gia presenti)';
+                if (gironiSaltati > 0) messaggio += '. Saltati ' + gironiSaltati + ' gironi con piu di 2 squadre: per la fase a gironi usa i turni manuali';
+                showNotification(messaggio, aggiunti > 0 ? 'success' : 'error');
 
             } catch (err) {
                 console.error('Errore importazione scontri dai gironi:', err);
