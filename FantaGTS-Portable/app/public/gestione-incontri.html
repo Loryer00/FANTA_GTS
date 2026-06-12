@@ -804,6 +804,10 @@
                 <h3 class="step-title">⚔️ Step 2: Scontri tra Squadre</h3>
                 <p class="step-description">Seleziona le squadre che si scontreranno in questo turno</p>
 
+                <button class="btn btn-primary" onclick="importaScontriDaiGironi()" style="margin-bottom: 15px;">
+                    Importa scontri dai gironi della fase attiva
+                </button>
+
                 <div class="scontri-configurator">
                     <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 15px; align-items: center; margin-bottom: 15px;">
                         <select id="squadra1Select" style="padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
@@ -1465,6 +1469,84 @@
             }
 
             console.log('Aggiunte ' + posizioniDisponibili.length + ' posizioni ai menu');
+        }
+
+        // Importa automaticamente gli scontri dai gironi della fase attiva.
+        // Per ogni girone genera gli scontri tra le sue squadre (tutti contro tutti):
+        //  - girone da 2 squadre -> 1 scontro (es. un quarto di finale)
+        //  - girone da 4 squadre -> 6 scontri (girone all'italiana)
+        async function importaScontriDaiGironi() {
+            try {
+                // 1. Trova la fase attiva della configurazione corrente
+                const respFasi = await fetch('/api/fasi-torneo?configurazione=' + configurazioneCorrente);
+                if (!respFasi.ok) {
+                    showNotification('Errore nel caricamento delle fasi', 'error');
+                    return;
+                }
+                const fasi = await respFasi.json();
+                const faseAttiva = fasi.find(f => f.attiva);
+                if (!faseAttiva) {
+                    showNotification('Nessuna fase attiva: attivane una in Gestione Fasi e Gironi', 'error');
+                    return;
+                }
+
+                // 2. Carica i gironi della fase attiva
+                const respGironi = await fetch('/api/gironi/' + faseAttiva.id);
+                if (!respGironi.ok) {
+                    showNotification('Errore nel caricamento dei gironi', 'error');
+                    return;
+                }
+                const gironi = await respGironi.json();
+                if (gironi.length === 0) {
+                    showNotification('La fase "' + faseAttiva.nome + '" non ha gironi configurati', 'error');
+                    return;
+                }
+
+                // 3. Per ogni girone genera gli scontri tra le sue squadre
+                let aggiunti = 0;
+                let saltati = 0;
+
+                gironi.forEach(function (girone) {
+                    const squadre = girone.squadre || [];
+                    for (let i = 0; i < squadre.length; i++) {
+                        for (let j = i + 1; j < squadre.length; j++) {
+                            const n1 = squadre[i].squadra_numero;
+                            const n2 = squadre[j].squadra_numero;
+
+                            // Evita scontri gia presenti (in qualsiasi ordine)
+                            const esisteGia = configTurno.scontri.some(function (s) {
+                                return (s.squadra1 == n1 && s.squadra2 == n2) ||
+                                    (s.squadra1 == n2 && s.squadra2 == n1);
+                            });
+                            if (esisteGia) {
+                                saltati++;
+                                continue;
+                            }
+
+                            configTurno.scontri.push({
+                                squadra1: parseInt(n1),
+                                squadra2: parseInt(n2),
+                                nomeSquadra1: n1 + ' - ' + squadre[i].colore,
+                                nomeSquadra2: n2 + ' - ' + squadre[j].colore
+                            });
+                            aggiunti++;
+                        }
+                    }
+                });
+
+                // 4. Aggiorna l'interfaccia
+                visualizzaScontri();
+                abilitaBottoneStep3();
+                caricaSquadrePerScontri();
+
+                let messaggio = 'Importati ' + aggiunti + ' scontri dalla fase "' + faseAttiva.nome + '"';
+                if (saltati > 0) messaggio += ' (' + saltati + ' gia presenti, saltati)';
+                showNotification(messaggio, 'success');
+
+            } catch (err) {
+                console.error('Errore importazione scontri dai gironi:', err);
+                showNotification('Errore durante l\'importazione degli scontri', 'error');
+            }
         }
 
         function aggiungiScontro() {
