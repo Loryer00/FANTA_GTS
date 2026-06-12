@@ -248,11 +248,20 @@ async function caricaSessioneAttiva(){
 }
 
 // ---- dati reali ----
-let bracket=[];      // [{gironeNome, sq:[{numero,colore},{numero,colore}]}]
+let bracket=[];      // [{gironeNome, sq:[{numero,colore,css},{...}]}]
 let slotMap={};      // "numero|posizione" -> {owner, winProb}
 let players=[];      // {owner, posizione, squadra, winProb}
 let participants=[]; // {id, nome, currentPoints, posizioni:Set}
 let posizioniTutte=[];
+let teamInfo={};     // numero -> {colore, css}
+
+const COLOR_CSS={rosso:'#e0574b',rossa:'#e0574b',blu:'#4f8fd0',azzurro:'#6fb3d9',verde:'#5bbf8a',
+  giallo:'#e3c24a',gialla:'#e3c24a',arancione:'#e08a4a',arancio:'#e08a4a',viola:'#9b6dc4',rosa:'#e08ab0',
+  nero:'#54605c',bianco:'#dfe7e2',grigio:'#9aa7a2',marrone:'#9c6b4a',oro:'#d4af37',argento:'#b8c0bd',
+  celeste:'#79c0e0',fucsia:'#e060a0',magenta:'#d0509a',turchese:'#3fb8a8',lime:'#9bd05b',indaco:'#6a6fd0'};
+function cssColore(c){ if(!c) return '#888'; const k=(''+c).trim().toLowerCase(); if(COLOR_CSS[k]) return COLOR_CSS[k]; if(k[0]==='#') return c; return '#888'; }
+function cap1(s){ s=''+s; return s.charAt(0).toUpperCase()+s.slice(1); }
+function teamLabel(num){ const t=teamInfo[num]; return (t&&t.colore)? 'Squadra '+cap1(t.colore) : 'Squadra '+num; }
 
 function showErr(m){ $('loadError').textContent=m; $('loadError').classList.remove('hidden'); }
 
@@ -274,10 +283,14 @@ async function caricaBracket(faseId){
   const r=await fetch(`/api/gironi/${faseId}`);
   if(!r.ok) throw new Error('Errore caricamento gironi');
   const gironi=await r.json();
-  bracket=[]; let saltati=0;
+  bracket=[]; let saltati=0; teamInfo={};
   gironi.forEach(g=>{
     if(g.squadre && g.squadre.length===2){
-      bracket.push({gironeNome:g.nome, sq:g.squadre.map(s=>({numero:s.squadra_numero, colore:s.colore||'#888'}))});
+      const sq=g.squadre.map(s=>{
+        teamInfo[s.squadra_numero]={colore:s.colore, css:cssColore(s.colore)};
+        return {numero:s.squadra_numero, colore:s.colore, css:cssColore(s.colore)};
+      });
+      bracket.push({gironeNome:g.nome, sq});
     } else saltati++;
   });
   renderBracket(saltati);
@@ -288,9 +301,9 @@ function renderBracket(saltati){
   bracket.forEach((m,i)=>{
     const d=document.createElement('div'); d.className='mu';
     d.innerHTML=`<div class="g">Scontro ${i+1} · ${m.gironeNome}</div>
-      <div class="teams"><span class="dot" style="background:${m.sq[0].colore}"></span>Sq ${m.sq[0].numero}
+      <div class="teams"><span class="dot" style="background:${m.sq[0].css}"></span>${teamLabel(m.sq[0].numero)}
       <span style="color:var(--muted);font-weight:400"> vs </span>
-      <span class="dot" style="background:${m.sq[1].colore}"></span>Sq ${m.sq[1].numero}</div>`;
+      <span class="dot" style="background:${m.sq[1].css}"></span>${teamLabel(m.sq[1].numero)}</div>`;
     c.appendChild(d);
   });
   let h=`${bracket.length} scontri caricati. L'avanzamento segue l'ordine: vincente 1 vs vincente 2, vincente 3 vs vincente 4, e cosi via fino alla finale.`;
@@ -337,9 +350,15 @@ function renderCoppie(fase){
   const lista=coppiePerFase[fase];
   lista.forEach((cp,idx)=>{
     const row=document.createElement('div'); row.className='coppia';
-    row.appendChild(posSelect(cp[0],v=>{lista[idx][0]=v;}));
+    // posizioni gia usate dalle ALTRE voci di questa fase
+    const altrui=new Set();
+    lista.forEach((c2,j)=>{ if(j!==idx){ altrui.add(c2[0]); altrui.add(c2[1]); } });
+    // il primo select blocca anche la posizione del secondo della stessa coppia, e viceversa
+    const bloccate0=new Set(altrui); bloccate0.add(cp[1]);
+    const bloccate1=new Set(altrui); bloccate1.add(cp[0]);
+    row.appendChild(posSelect(cp[0],v=>{lista[idx][0]=v; renderCoppie(fase);},bloccate0));
     const x=document.createElement('span'); x.className='x'; x.textContent='+'; row.appendChild(x);
-    row.appendChild(posSelect(cp[1],v=>{lista[idx][1]=v;}));
+    row.appendChild(posSelect(cp[1],v=>{lista[idx][1]=v; renderCoppie(fase);},bloccate1));
     const del=document.createElement('button'); del.className='btn small ghost'; del.textContent='Rimuovi';
     del.onclick=()=>{lista.splice(idx,1); renderCoppie(fase);};
     row.appendChild(del);
@@ -347,22 +366,38 @@ function renderCoppie(fase){
   });
 }
 function renderAllCoppie(){ FASI.forEach(renderCoppie); }
-function posSelect(val,onCh){
+function posSelect(val,onCh,bloccate){
   const s=document.createElement('select');
-  posizioniTutte.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(p===val)o.selected=true;s.appendChild(o);});
+  posizioniTutte.forEach(p=>{
+    const o=document.createElement('option'); o.value=p; o.textContent=p;
+    if(p===val) o.selected=true;
+    if(bloccate && bloccate.has(p) && p!==val) o.disabled=true;
+    s.appendChild(o);
+  });
   s.onchange=()=>onCh(s.value); return s;
+}
+// prima posizione non ancora usata in questa fase (per il pulsante Aggiungi)
+function primaLibera(fase, escludi){
+  const usate=new Set(escludi||[]);
+  coppiePerFase[fase].forEach(c=>{usate.add(c[0]);usate.add(c[1]);});
+  return posizioniTutte.find(p=>!usate.has(p)) || posizioniTutte[0];
 }
 
 // ---- simulazione ----
-let modoCorrente='fisso'; // 'fisso' | 'auto'
+let modoCorrente='fisso'; // 'fisso' | 'semi' | 'auto'
 function params(){
   return {
     baseFase:{quarti:+$('baseQ').value, semi:+$('baseS').value, finale:+$('baseF').value},
-    g:+$('g').value, cap:+$('cap2').value
+    auto:{g:+$('g').value, cap:+$('cap2').value},
+    semi:{cap:+$('cap').value, k:+$('k').value, th:+$('th').value/100}
   };
 }
-// moltiplicatore automatico: compensa l'opportunita persa. S vivi su R iniziali.
-function multAuto(S,R,p){ if(S<=0) return 0; return Math.min(p.cap, Math.pow(R/S, p.g)); }
+// moltiplicatore secondo il sistema scelto. S vivi su R iniziali del partecipante.
+function multFor(mode,S,R,p){
+  if(mode==='auto'){ if(S<=0) return 0; return Math.min(p.auto.cap, Math.pow(R/S, p.auto.g)); }
+  if(mode==='semi'){ const r=R>0?S/R:0; if(r>=p.semi.th) return 1; return Math.min(p.semi.cap, 1+p.semi.k*(1-r)); }
+  return 1;
+}
 
 // forza di una coppia di una squadra = media delle winProb dei due slot (se manca, 0.5)
 function pairStrength(squadra,cp){
@@ -416,7 +451,7 @@ function simOnce(p,R,mode){
         for(const pos of cp){
           const slot=slotMap[winner.numero+'|'+pos];
           if(slot){
-            const m = mode==='auto' ? multAuto(S[slot.owner],R[slot.owner],p) : 1;
+            const m = multFor(mode, S[slot.owner], R[slot.owner], p);
             score[slot.owner]+=baseFase*m;
           }
         }
@@ -469,8 +504,8 @@ function run(){
   for(let t=0;t<TRIALS;t++){
     const main=simOnce(p,R,mode);
     ids.forEach(i=>{sumMain[i]+=main.score[i];});
-    // riferimento fisso per il quadrante (solo quando mode auto)
-    if(mode==='auto'){
+    // riferimento fisso per il quadrante (per semi e auto)
+    if(mode!=='fisso'){
       const fix=simOnce(p,R,'fisso');
       ids.forEach(i=>{sumFisso[i]+=fix.score[i];});
       const wf=ids.reduce((a,i)=>(fix.score[i]+pc(i))>(fix.score[a]+pc(a))?i:a,ids[0]);
@@ -483,7 +518,7 @@ function run(){
       const baseFase=p.baseFase[FASI[ph]];
       ids.forEach(i=>{
         const S=Sf[i]||0;
-        if(S>0){ survSum[i][ph]+=S; valSum[i][ph]+=baseFase*(mode==='auto'?multAuto(S,R[i],p):1); aliveCnt[i][ph]++; }
+        if(S>0){ survSum[i][ph]+=S; valSum[i][ph]+=baseFase*multFor(mode,S,R[i],p); aliveCnt[i][ph]++; }
       });
     }
     // raggiungimento squadre
@@ -504,9 +539,9 @@ function run(){
   }));
 
   let risk=0;
-  if(mode==='auto'){
-    const arrFisso=rows.map(r=>r.projFisso), arrAuto=rows.map(r=>r.proj);
-    const corr=spearman(arrFisso,arrAuto);
+  if(mode!=='fisso'){
+    const arrFisso=rows.map(r=>r.projFisso), arrComp=rows.map(r=>r.proj);
+    const corr=spearman(arrFisso,arrComp);
     const erosion=Math.max(0,Math.min(1,(1-corr)/0.6));
     const flipRisk=Math.max(0,Math.min(1,(flips/TRIALS)/0.5));
     risk=Math.max(0,Math.min(1,0.6*erosion+0.4*flipRisk));
@@ -517,20 +552,19 @@ function run(){
 // ---- render risultati ----
 function renderResults({rows,reach,trials,risk,flipRate,mode}){
   $('results').classList.remove('hidden');
-  const auto = mode==='auto';
+  const comp = mode!=='fisso';
+  const nomeSistema = mode==='auto' ? 'automatico compensato' : (mode==='semi' ? 'semi-automatico' : 'punti fissi per fase');
 
   // titolo + header classifica dinamici
-  $('standingsTitle').textContent = auto
-    ? 'Classifica proiettata - sistema automatico compensato'
-    : 'Classifica proiettata - punti fissi per fase';
-  $('standingsHead').innerHTML = auto
-    ? `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione automatica</th><th>Proiezione fissi</th><th>Differenza</th><th>Vivi ai quarti</th></tr>`
+  $('standingsTitle').textContent = 'Classifica proiettata - '+nomeSistema;
+  $('standingsHead').innerHTML = comp
+    ? `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione ${mode==='auto'?'automatica':'semi-auto'}</th><th>Proiezione fissi</th><th>Differenza</th><th>Vivi ai quarti</th></tr>`
     : `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione finale</th><th>Vivi ai quarti</th></tr>`;
 
   rows.sort((a,b)=>b.proj-a.proj);
   const tb=$('standings'); tb.innerHTML='';
   rows.forEach(r=>{
-    if(auto){
+    if(comp){
       const diff=r.proj-r.projFisso; const cls=diff>0.05?'delta-up':(diff<-0.05?'delta-down':''); const sign=diff>0?'+':'';
       tb.innerHTML+=`<tr>
         <td>${r.nome}</td>
@@ -548,8 +582,8 @@ function renderResults({rows,reach,trials,risk,flipRate,mode}){
     }
   });
 
-  // tabella valore per fase (solo automatico)
-  if(auto){
+  // tabella valore per fase (per semi e auto)
+  if(comp){
     $('valuePanel').classList.remove('hidden');
     const vt=$('valueTable'); vt.innerHTML='';
     rows.forEach(r=>{
@@ -569,22 +603,22 @@ function renderResults({rows,reach,trials,risk,flipRate,mode}){
   const nums=Object.keys(reach).map(Number).sort((a,b)=>reach[b].win-reach[a].win);
   nums.forEach(num=>{
     const r=reach[num];
-    tp.innerHTML+=`<tr><td>Squadra ${num}</td>
+    tp.innerHTML+=`<tr><td>${teamLabel(num)}</td>
       <td class="n">${Math.round(100*r.semi/trials)}%</td>
       <td class="n">${Math.round(100*r.final/trials)}%</td>
       <td class="n" style="color:var(--clay)">${Math.round(100*r.win/trials)}%</td></tr>`;
   });
 
-  // quadrante equilibrio: solo per il sistema automatico
-  if(auto){
+  // quadrante equilibrio: per i sistemi che compensano
+  if(comp){
     $('gaugeCard').classList.remove('hidden');
     drawGauge(risk);
     let v,note,col;
     if(risk<0.4){v='Sotto controllo';col='var(--good)';note='La compensazione tiene in gioco chi perde giocatori senza ribaltare la classifica del merito.';}
-    else if(risk<0.7){v='Da tenere d\'occhio';col='var(--clay)';note='La fortuna del giocatore rimasto inizia a pesare. Abbassa l\'intensita o metti un cap piu basso.';}
-    else{v='Sta sfuggendo di mano';col='var(--bad)';note='La classifica la decide piu il caso che la bravura. Riduci l\'intensita e applica un cap.';}
+    else if(risk<0.7){v='Da tenere d\'occhio';col='var(--clay)';note='La fortuna del giocatore rimasto inizia a pesare. Riduci la compensazione o metti un cap piu basso.';}
+    else{v='Sta sfuggendo di mano';col='var(--bad)';note='La classifica la decide piu il caso che la bravura. Riduci la compensazione e applica un cap.';}
     $('verdict').textContent=v; $('verdict').style.color=col; $('verdictNote').textContent=note;
-    $('runInfo').textContent=`${trials} tabelloni · sistema automatico · vincitore diverso dai punti fissi nel ${Math.round(flipRate*100)}% dei casi`;
+    $('runInfo').textContent=`${trials} tabelloni · sistema ${nomeSistema} · vincitore diverso dai punti fissi nel ${Math.round(flipRate*100)}% dei casi`;
   } else {
     $('gaugeCard').classList.add('hidden');
     $('runInfo').textContent=`${trials} tabelloni · punti fissi per fase`;
@@ -610,17 +644,23 @@ function drawGauge(risk){
 
 // ---- avvio ----
 function setModeHint(){
-  $('modeHint').textContent = modoCorrente==='auto'
+  const t = modoCorrente==='auto'
     ? 'Il sistema calcola da solo quanto vale la vittoria di ogni giocatore in base a quanti compagni gli restano: piu ne perde, piu ogni sua vittoria vale. Chi resta senza giocatori e fuori.'
+    : modoCorrente==='semi'
+    ? 'Sistema congiunto: parte dai punti base della fase e aggiunge una compensazione che regoli tu con cap, k e soglia.'
     : 'Ogni vittoria vale i punti base della fase, uguali per tutti i giocatori.';
+  $('modeHint').textContent=t;
 }
 function bindControls(){
   const upd=()=>{ $('vBaseQ').textContent=$('baseQ').value;
     $('vBaseS').textContent=$('baseS').value;
     $('vBaseF').textContent=$('baseF').value;
     $('vG').textContent=(+$('g').value).toFixed(1);
-    const c=+$('cap2').value; $('vCap2').textContent = c>=30 ? 'nessuno' : c+'x'; };
-  ['baseQ','baseS','baseF','g','cap2'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+    const c=+$('cap2').value; $('vCap2').textContent = c>=30 ? 'nessuno' : c+'x';
+    $('vCap').textContent=(+$('cap').value).toFixed(1)+'x';
+    $('vK').textContent=(+$('k').value).toFixed(1);
+    $('vTh').textContent=$('th').value+'%'; };
+  ['baseQ','baseS','baseF','g','cap2','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
     btn.onclick=()=>{
@@ -628,6 +668,7 @@ function bindControls(){
       btn.classList.add('active');
       modoCorrente=btn.getAttribute('data-mode');
       $('autoControls').classList.toggle('hidden', modoCorrente!=='auto');
+      $('semiControls').classList.toggle('hidden', modoCorrente!=='semi');
       setModeHint();
     };
   });
@@ -635,7 +676,8 @@ function bindControls(){
 
   document.querySelectorAll('[data-add]').forEach(btn=>{
     btn.onclick=()=>{ const f=btn.getAttribute('data-add');
-      coppiePerFase[f].push([posizioniTutte[0],posizioniTutte[1]||posizioniTutte[0]]); renderCoppie(f); };
+      const a=primaLibera(f); const b=primaLibera(f,[a]);
+      coppiePerFase[f].push([a,b]); renderCoppie(f); };
   });
   $('runBtn').onclick=run;
   $('faseSelect').onchange=()=>caricaBracket($('faseSelect').value).catch(e=>showErr(e.message));
