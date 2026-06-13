@@ -79,6 +79,7 @@
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
   th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
   td.n{font-family:var(--mono);text-align:right}
+  th.n{text-align:right}
   .delta-up{color:var(--good)} .delta-down{color:var(--bad)}
   .bar{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;min-width:60px}
   .bar i{display:block;height:100%;background:var(--clay)}
@@ -532,11 +533,13 @@ function run(){
   const p=params(); const {R}=computeR();
   const mode=modoCorrente;
   const totCoppie=FASI.reduce((a,f)=>a+coppiePerFase[f].filter(c=>c[0]&&c[1]).length,0);
-  if(totCoppie===0){ showErr('Imposta almeno una coppia completa (due posizioni) prima di simulare.'); return; }
+  iif(totCoppie===0){ showErr('Imposta almeno una coppia completa (due posizioni) prima di simulare.'); return; }
+  if(!bracket.length){ showErr('Tabellone vuoto: la fase scelta come quarti non contiene scontri secchi tra 2 squadre. Seleziona la fase a eliminazione (quarti) e premi Ricarica tabellone.'); return; }
   $('loadError').classList.add('hidden');
   const TRIALS=2500;
   const ids=participants.map(x=>x.id);
   const sumMain={}, sumFisso={}; ids.forEach(i=>{sumMain[i]=0;sumFisso[i]=0;});
+  const firstCnt={}, best={}; ids.forEach(i=>{firstCnt[i]=0; best[i]=-Infinity;});
   const reach={}; let flips=0;
   // accumulatori valore per fase (solo utile in auto): per fase, per partecipante
   const NF=FASI.length;
@@ -545,8 +548,13 @@ function run(){
   function pc(id){ return participants.find(x=>x.id===id).currentPoints; }
 
   for(let t=0;t<TRIALS;t++){
-    const main=simOnce(p,R,mode);
+  const main=simOnce(p,R,mode);
     ids.forEach(i=>{sumMain[i]+=main.score[i];});
+    // questo singolo tabellone: chi arriva primo e miglior punteggio personale
+    let topTot=-Infinity;
+    ids.forEach(i=>{ const tot=pc(i)+main.score[i]; if(tot>best[i])best[i]=tot; if(tot>topTot)topTot=tot; });
+    const leaders=ids.filter(i=>Math.abs((pc(i)+main.score[i])-topTot)<1e-9);
+    const quota=1/leaders.length; leaders.forEach(i=>firstCnt[i]+=quota);
     // riferimento fisso per il quadrante (per semi e auto)
     if(mode!=='fisso'){
       const fix=simOnce(p,R,'fisso');
@@ -573,6 +581,8 @@ function run(){
     id:x.id, nome:x.nome, cur:x.currentPoints,
     proj:x.currentPoints+sumMain[x.id]/TRIALS,
     projFisso:x.currentPoints+sumFisso[x.id]/TRIALS,
+    primo:firstCnt[x.id]/TRIALS,
+    best:best[x.id],
     R:R[x.id],
     perFase:FASI.map((f,ph)=>({
       vivi: aliveCnt[x.id][ph]?survSum[x.id][ph]/aliveCnt[x.id][ph]:0,
@@ -601,8 +611,8 @@ function renderResults({rows,reach,trials,risk,flipRate,mode}){
   // titolo + header classifica dinamici
   $('standingsTitle').textContent = 'Classifica proiettata - '+nomeSistema;
   $('standingsHead').innerHTML = comp
-    ? `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione ${mode==='auto'?'automatica':'semi-auto'}</th><th>Proiezione fissi</th><th>Differenza</th><th>Vivi ai quarti</th></tr>`
-    : `<tr><th>Partecipante</th><th>Punti ora</th><th>Proiezione finale</th><th>Vivi ai quarti</th></tr>`;
+    ? `<tr><th>Partecipante</th><th class="n">Punti ora</th><th class="n">Proiezione ${mode==='auto'?'automatica':'semi-auto'}</th><th class="n">Proiezione fissi</th><th class="n">Differenza</th><th class="n">1&deg;</th><th class="n">Migliore</th><th class="n">Vivi ai quarti</th></tr>`
+    : `<tr><th>Partecipante</th><th class="n">Punti ora</th><th class="n">Proiezione finale</th><th class="n">1&deg;</th><th class="n">Migliore</th><th class="n">Vivi ai quarti</th></tr>`;
 
   rows.sort((a,b)=>b.proj-a.proj);
   const tb=$('standings'); tb.innerHTML='';
@@ -615,12 +625,16 @@ function renderResults({rows,reach,trials,risk,flipRate,mode}){
         <td class="n" style="color:var(--clay)">${r.proj.toFixed(1)}</td>
         <td class="n" style="color:var(--flat)">${r.projFisso.toFixed(1)}</td>
         <td class="n ${cls}">${sign}${diff.toFixed(1)}</td>
+        <td class="n" style="color:var(--good)">${(r.primo*100).toFixed(1)}%</td>
+        <td class="n">${r.best.toFixed(1)}</td>
         <td class="n">${r.R}</td></tr>`;
     } else {
       tb.innerHTML+=`<tr>
         <td>${r.nome}</td>
         <td class="n">${r.cur}</td>
         <td class="n" style="color:var(--clay)">${r.proj.toFixed(1)}</td>
+        <td class="n" style="color:var(--good)">${(r.primo*100).toFixed(1)}%</td>
+        <td class="n">${r.best.toFixed(1)}</td>
         <td class="n">${r.R}</td></tr>`;
     }
   });
