@@ -92,141 +92,176 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-     <button class="btn small ghost" onclick="window.location.href='/master.html'" style="margin-bottom:14px">Torna al master</button>
-    <div class="eyebrow">FantaGTS · proiezione fase finale</div>
-    <h1>Simulazione tabellone con punteggio compensato</h1>
-    <p class="sub">Gira migliaia di tabelloni dai quarti alla finale usando la percentuale di vittoria reale di ogni giocatore, e confronta la classifica con e senza handicap per chi resta con pochi giocatori in gioco.</p>
-    <div class="status" id="status">Caricamento sessione...</div>
-  </header>
+    <div class="wrap">
+        <header class="top">
+            <button class="btn small ghost" onclick="window.location.href='/master.html'" style="margin-bottom:14px">Torna al master</button>
+            <div class="eyebrow">FantaGTS · proiezione fase finale</div>
+            <h1>Simulazione tabellone con punteggio compensato</h1>
+            <p class="sub">Gira migliaia di tabelloni dai quarti alla finale usando la percentuale di vittoria reale di ogni giocatore, e confronta la classifica con e senza handicap per chi resta con pochi giocatori in gioco.</p>
+            <div class="status" id="status">Caricamento sessione...</div>
+        </header>
 
-  <div id="loadError" class="msg err hidden"></div>
+        <div id="loadError" class="msg err hidden"></div>
 
-  <!-- 1. TABELLONE -->
-  <div class="panel" id="panelBracket">
-    <h2>Tabellone di partenza</h2>
-    <div class="row" style="margin-bottom:14px">
-      <label class="fld">Fase usata come quarti
-        <select id="faseSelect"></select>
-      </label>
-      <button class="btn small ghost" id="reloadBracket">Ricarica tabellone</button>
+        <!-- 1. TABELLONE -->
+        <div class="panel" id="panelBracket">
+            <h2>Tabellone di partenza</h2>
+            <div class="row" style="margin-bottom:14px">
+                <label class="fld">
+                    Fase usata come quarti
+                    <select id="faseSelect"></select>
+                </label>
+                <button class="btn small ghost" id="reloadBracket">Ricarica tabellone</button>
+            </div>
+            <div class="matchups" id="matchups"></div>
+            <p class="hint" id="bracketHint"></p>
+        </div>
+
+        <!-- 2. COPPIE -->
+        <div class="panel">
+            <h2>Incroci delle coppie per fase</h2>
+            <p class="hint" style="margin-top:-6px;margin-bottom:14px">Imposta gli incroci per ognuna delle tre fasi. In ogni scontro si gioca per le coppie di posizioni della fase corrispondente.</p>
+
+            <details class="fase-box" open>
+                <summary>Quarti</summary>
+                <div class="coppie-list" id="coppieList_quarti"></div>
+                <button class="btn small" data-add="quarti">Aggiungi coppia</button>
+            </details>
+
+            <details class="fase-box">
+                <summary>Semifinale</summary>
+                <div class="coppie-list" id="coppieList_semi"></div>
+                <button class="btn small" data-add="semi">Aggiungi coppia</button>
+            </details>
+
+            <details class="fase-box">
+                <summary>Finale</summary>
+                <div class="coppie-list" id="coppieList_finale"></div>
+                <button class="btn small" data-add="finale">Aggiungi coppia</button>
+            </details>
+        </div>
+
+        <!-- 3. PUNTI PER FASE -->
+        <div class="panel">
+            <h2>Punti base a vittoria per fase</h2>
+            <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale una vittoria in ogni fase, prima del bonus handicap.</p>
+            <div class="row" style="align-items:flex-end">
+                <div class="ctrl">
+                    <div class="lab"><span>Quarti</span><span class="val" id="vBaseQ">3</span></div>
+                    <input type="range" id="baseQ" min="1" max="20" step="1" value="3">
+                </div>
+                <div class="ctrl">
+                    <div class="lab"><span>Semifinale</span><span class="val" id="vBaseS">5</span></div>
+                    <input type="range" id="baseS" min="1" max="20" step="1" value="5">
+                </div>
+                <div class="ctrl">
+                    <div class="lab"><span>Finale</span><span class="val" id="vBaseF">10</span></div>
+                    <input type="range" id="baseF" min="1" max="20" step="1" value="10">
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. SISTEMA DI PUNTEGGIO -->
+        <div class="panel">
+            <h2>Sistema di punteggio da simulare</h2>
+            <div class="row" style="margin-bottom:8px">
+                <button class="btn mode-btn active" data-mode="fisso">Punti fissi per fase</button>
+                <button class="btn mode-btn" data-mode="semi">Semi-automatico</button>
+                <button class="btn mode-btn" data-mode="auto">Automatico compensato</button>
+            </div>
+            <p class="hint" id="modeHint"></p>
+            <div id="semiControls" class="hidden" style="margin-top:12px">
+                <div class="row" style="align-items:flex-end">
+                    <div class="ctrl">
+                        <div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
+                        <input type="range" id="cap" min="1" max="4" step="0.1" value="2">
+                    </div>
+                    <div class="ctrl">
+                        <div class="lab"><span>k (intensita)</span><span class="val" id="vK">1.2</span></div>
+                        <input type="range" id="k" min="0" max="4" step="0.1" value="1.2">
+                    </div>
+                    <div class="ctrl">
+                        <div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
+                        <input type="range" id="th" min="0" max="100" step="5" value="50">
+                    </div>
+                </div>
+                <p class="hint">Sistema congiunto che regoli tu: valore di una vittoria = punti base della fase x m, con m = min(cap, 1 + k(1 - S/R)), attivo solo quando i giocatori vivi scendono sotto la soglia. Tu scegli quanto e quando compensare.</p>
+            </div>
+            <div id="autoControls" class="hidden" style="margin-top:12px">
+                <div class="row" style="align-items:flex-end">
+                    <div class="ctrl">
+                        <div class="lab"><span>Intensita compensazione</span><span class="val" id="vG">1.0</span></div>
+                        <input type="range" id="g" min="1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="ctrl">
+                        <div class="lab"><span>Cap di sicurezza</span><span class="val" id="vCap2">nessuno</span></div>
+                        <input type="range" id="cap2" min="2" max="30" step="1" value="30">
+                    </div>
+                </div>
+                <p class="hint">Valore automatico di una vittoria = punti base della fase per (R/S) elevato all'intensita. R = giocatori ai quarti, S = giocatori ancora vivi. A intensita 1 e il valore che lascia a tutti la stessa opportunita di punti (equilibrato): chi resta con 1 solo giocatore lo vede valere R volte tanto. Alzando l'intensita la compensazione diventa piu aggressiva. Il cap limita il moltiplicatore massimo; a 30 e di fatto disattivato.</p>
+            </div>
+        </div>
+
+        <!-- 4b. AFFIDABILITA STATISTICHE -->
+        <div class="panel">
+            <h2>Affidabilita delle statistiche</h2>
+            <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto credere alle percentuali di vittoria reali. Abbassandolo, le differenze tra squadre forti e deboli si appiattiscono: utile quando una squadra ha numeri gonfiati da un girone facile.</p>
+            <div class="row" style="align-items:flex-end">
+                <div class="ctrl">
+                    <div class="lab"><span>Peso statistiche</span><span class="val" id="vAff">100%</span></div>
+                    <input type="range" id="aff" min="0" max="100" step="25" value="100">
+                </div>
+            </div>
+            <p class="hint" id="affHint"></p>
+        </div>
+
+        <div style="margin:6px 0 26px">
+            <button class="btn go" id="runBtn" disabled>Simula il tabellone</button>
+            <span class="hint" id="runInfo" style="margin-left:12px"></span>
+        </div>
+
+        <!-- RISULTATI -->
+        <div id="results" class="hidden">
+            <div class="gauge-card" id="gaugeCard">
+                <svg id="gauge" viewBox="0 0 320 178" style="max-width:330px;margin:0 auto"></svg>
+                <div class="gauge-verdict" id="verdict">-</div>
+                <div class="gauge-note" id="verdictNote"></div>
+            </div>
+
+            <div class="panel">
+                <h2 id="standingsTitle">Classifica proiettata a fine torneo</h2>
+                <table>
+                    <thead id="standingsHead"></thead>
+                    <tbody id="standings"></tbody>
+                </table>
+                <p class="footnote">"Punti ora" sono i punti reali gia accumulati. La proiezione e la media su migliaia di tabelloni del sistema scelto: il torneo non e ancora giocato, quindi sono valori attesi, non una previsione secca.</p>
+            </div>
+
+            <div class="panel hidden" id="valuePanel">
+                <h2>Valore di una vittoria per fase (sistema automatico)</h2>
+                <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale in media una vittoria di un giocatore di ciascun partecipante, fase per fase, in base a quanti giocatori gli restano vivi. Dove non c'e valore, il partecipante e gia fuori in quella fase.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Partecipante</th>
+                            <th>Quarti (vivi / valore)</th>
+                            <th>Semifinale (vivi / valore)</th>
+                            <th>Finale (vivi / valore)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="valueTable"></tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <h2>Probabilita di passaggio per squadra</h2>
+                <table>
+                    <thead><tr><th>Squadra</th><th>Semifinale</th><th>Finale</th><th>Vince</th></tr></thead>
+                    <tbody id="teamProbs"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <div class="matchups" id="matchups"></div>
-    <p class="hint" id="bracketHint"></p>
-  </div>
-
-  <!-- 2. COPPIE -->
-  <div class="panel">
-    <h2>Incroci delle coppie per fase</h2>
-    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Imposta gli incroci per ognuna delle tre fasi. In ogni scontro si gioca per le coppie di posizioni della fase corrispondente.</p>
-
-    <details class="fase-box" open>
-      <summary>Quarti</summary>
-      <div class="coppie-list" id="coppieList_quarti"></div>
-      <button class="btn small" data-add="quarti">Aggiungi coppia</button>
-    </details>
-
-    <details class="fase-box">
-      <summary>Semifinale</summary>
-      <div class="coppie-list" id="coppieList_semi"></div>
-      <button class="btn small" data-add="semi">Aggiungi coppia</button>
-    </details>
-
-    <details class="fase-box">
-      <summary>Finale</summary>
-      <div class="coppie-list" id="coppieList_finale"></div>
-      <button class="btn small" data-add="finale">Aggiungi coppia</button>
-    </details>
-  </div>
-
-  <!-- 3. PUNTI PER FASE -->
-  <div class="panel">
-    <h2>Punti base a vittoria per fase</h2>
-    <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale una vittoria in ogni fase, prima del bonus handicap.</p>
-    <div class="row" style="align-items:flex-end">
-      <div class="ctrl"><div class="lab"><span>Quarti</span><span class="val" id="vBaseQ">3</span></div>
-        <input type="range" id="baseQ" min="1" max="20" step="1" value="3"></div>
-      <div class="ctrl"><div class="lab"><span>Semifinale</span><span class="val" id="vBaseS">5</span></div>
-        <input type="range" id="baseS" min="1" max="20" step="1" value="5"></div>
-      <div class="ctrl"><div class="lab"><span>Finale</span><span class="val" id="vBaseF">10</span></div>
-        <input type="range" id="baseF" min="1" max="20" step="1" value="10"></div>
-    </div>
-  </div>
-
-  <!-- 4. SISTEMA DI PUNTEGGIO -->
-  <div class="panel">
-    <h2>Sistema di punteggio da simulare</h2>
-    <div class="row" style="margin-bottom:8px">
-      <button class="btn mode-btn active" data-mode="fisso">Punti fissi per fase</button>
-      <button class="btn mode-btn" data-mode="semi">Semi-automatico</button>
-      <button class="btn mode-btn" data-mode="auto">Automatico compensato</button>
-    </div>
-    <p class="hint" id="modeHint"></p>
-    <div id="semiControls" class="hidden" style="margin-top:12px">
-      <div class="row" style="align-items:flex-end">
-        <div class="ctrl"><div class="lab"><span>Cap (massimo)</span><span class="val" id="vCap">2.0x</span></div>
-          <input type="range" id="cap" min="1" max="4" step="0.1" value="2"></div>
-        <div class="ctrl"><div class="lab"><span>k (intensita)</span><span class="val" id="vK">1.2</span></div>
-          <input type="range" id="k" min="0" max="4" step="0.1" value="1.2"></div>
-        <div class="ctrl"><div class="lab"><span>Soglia attivazione</span><span class="val" id="vTh">50%</span></div>
-          <input type="range" id="th" min="0" max="100" step="5" value="50"></div>
-      </div>
-      <p class="hint">Sistema congiunto che regoli tu: valore di una vittoria = punti base della fase x m, con m = min(cap, 1 + k(1 - S/R)), attivo solo quando i giocatori vivi scendono sotto la soglia. Tu scegli quanto e quando compensare.</p>
-    </div>
-    <div id="autoControls" class="hidden" style="margin-top:12px">
-      <div class="row" style="align-items:flex-end">
-        <div class="ctrl"><div class="lab"><span>Intensita compensazione</span><span class="val" id="vG">1.0</span></div>
-          <input type="range" id="g" min="1" max="3" step="0.1" value="1"></div>
-        <div class="ctrl"><div class="lab"><span>Cap di sicurezza</span><span class="val" id="vCap2">nessuno</span></div>
-          <input type="range" id="cap2" min="2" max="30" step="1" value="30"></div>
-      </div>
-      <p class="hint">Valore automatico di una vittoria = punti base della fase per (R/S) elevato all'intensita. R = giocatori ai quarti, S = giocatori ancora vivi. A intensita 1 e il valore che lascia a tutti la stessa opportunita di punti (equilibrato): chi resta con 1 solo giocatore lo vede valere R volte tanto. Alzando l'intensita la compensazione diventa piu aggressiva. Il cap limita il moltiplicatore massimo; a 30 e di fatto disattivato.</p>
-    </div>
-  </div>
-
-  <div style="margin:6px 0 26px">
-    <button class="btn go" id="runBtn" disabled>Simula il tabellone</button>
-    <span class="hint" id="runInfo" style="margin-left:12px"></span>
-  </div>
-
-  <!-- RISULTATI -->
-  <div id="results" class="hidden">
-    <div class="gauge-card" id="gaugeCard">
-      <svg id="gauge" viewBox="0 0 320 178" style="max-width:330px;margin:0 auto"></svg>
-      <div class="gauge-verdict" id="verdict">-</div>
-      <div class="gauge-note" id="verdictNote"></div>
-    </div>
-
-    <div class="panel">
-      <h2 id="standingsTitle">Classifica proiettata a fine torneo</h2>
-      <table>
-        <thead id="standingsHead"></thead>
-        <tbody id="standings"></tbody>
-      </table>
-      <p class="footnote">"Punti ora" sono i punti reali gia accumulati. La proiezione e la media su migliaia di tabelloni del sistema scelto: il torneo non e ancora giocato, quindi sono valori attesi, non una previsione secca.</p>
-    </div>
-
-    <div class="panel hidden" id="valuePanel">
-      <h2>Valore di una vittoria per fase (sistema automatico)</h2>
-      <p class="hint" style="margin-top:-6px;margin-bottom:14px">Quanto vale in media una vittoria di un giocatore di ciascun partecipante, fase per fase, in base a quanti giocatori gli restano vivi. Dove non c'e valore, il partecipante e gia fuori in quella fase.</p>
-      <table>
-        <thead><tr><th>Partecipante</th>
-          <th>Quarti (vivi / valore)</th><th>Semifinale (vivi / valore)</th><th>Finale (vivi / valore)</th>
-        </tr></thead>
-        <tbody id="valueTable"></tbody>
-      </table>
-    </div>
-
-    <div class="panel">
-      <h2>Probabilita di passaggio per squadra</h2>
-      <table>
-        <thead><tr><th>Squadra</th><th>Semifinale</th><th>Finale</th><th>Vince</th></tr></thead>
-        <tbody id="teamProbs"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -386,6 +421,7 @@ function primaLibera(fase, escludi){
 
 // ---- simulazione ----
 let modoCorrente='fisso'; // 'fisso' | 'semi' | 'auto'
+let affidabilitaStat = 1;   // 1 = statistiche piene, 0 = tutte le squadre pari (50/50)
 function params(){
   return {
     baseFase:{quarti:+$('baseQ').value, semi:+$('baseS').value, finale:+$('baseF').value},
@@ -400,10 +436,13 @@ function multFor(mode,S,R,p){
   return 1;
 }
 
-// forza di una coppia di una squadra = media delle winProb dei due slot (se manca, 0.5)
+// forza di una coppia di una squadra = media delle winProb dei due slot (se manca, 0.5),
+// poi avvicinata al 50% in base al peso delle statistiche scelto dall'utente
 function pairStrength(squadra,cp){
   const a=slotMap[squadra+'|'+cp[0]], b=slotMap[squadra+'|'+cp[1]];
-  const wa=a?a.winProb:0.5, wb=b?b.winProb:0.5; return (wa+wb)/2;
+  const wa=a?a.winProb:0.5, wb=b?b.winProb:0.5;
+  const media=(wa+wb)/2;
+  return 0.5 + (media-0.5)*affidabilitaStat;
 }
 
 // R per partecipante = suoi giocatori presenti nelle 8 squadre dei quarti
@@ -663,8 +702,16 @@ function bindControls(){
     const c=+$('cap2').value; $('vCap2').textContent = c>=30 ? 'nessuno' : c+'x';
     $('vCap').textContent=(+$('cap').value).toFixed(1)+'x';
     $('vK').textContent=(+$('k').value).toFixed(1);
-    $('vTh').textContent=$('th').value+'%'; };
-  ['baseQ','baseS','baseF','g','cap2','cap','k','th'].forEach(id=>$(id).addEventListener('input',upd)); upd();
+    $('vTh').textContent=$('th').value+'%';
+    const aff=+$('aff').value; affidabilitaStat=aff/100;
+    $('vAff').textContent=aff+'%';
+    const affTesti={100:'Statistiche al massimo: conta tutto il valore reale di ogni giocatore.',
+      75:'Leggero livellamento: le differenze tra forti e deboli contano un po\' meno.',
+      50:'Meta peso: le differenze valgono la meta.',
+      25:'Forte livellamento: squadre quasi tutte equivalenti.',
+      0:'Statistiche ignorate: ogni scontro e 50/50, decide solo il caso.'};
+    $('affHint').textContent=affTesti[aff]||''; };
+  ['baseQ','baseS','baseF','g','cap2','cap','k','th','aff'].forEach(id=>$(id).addEventListener('input',upd)); upd();
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
     btn.onclick=()=>{
