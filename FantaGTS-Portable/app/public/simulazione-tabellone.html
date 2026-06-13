@@ -533,7 +533,7 @@ function run(){
   const p=params(); const {R}=computeR();
   const mode=modoCorrente;
   const totCoppie=FASI.reduce((a,f)=>a+coppiePerFase[f].filter(c=>c[0]&&c[1]).length,0);
-  iif(totCoppie===0){ showErr('Imposta almeno una coppia completa (due posizioni) prima di simulare.'); return; }
+  if(totCoppie===0){ showErr('Imposta almeno una coppia completa (due posizioni) prima di simulare.'); return; }
   if(!bracket.length){ showErr('Tabellone vuoto: la fase scelta come quarti non contiene scontri secchi tra 2 squadre. Seleziona la fase a eliminazione (quarti) e premi Ricarica tabellone.'); return; }
   $('loadError').classList.add('hidden');
   const TRIALS=2500;
