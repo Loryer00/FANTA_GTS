@@ -3072,7 +3072,7 @@
                 const content = document.getElementById('classificaContent');
 
                 let html = '<table class="results-table"><thead><tr>';
-                html += '<th>Pos</th><th>Nome</th><th>Giocatori</th><th>Punti</th>';
+                html += '<th>Pos</th><th>Nome</th><th>Giocatori</th><th>Punti</th><th>Game</th>';
                 html += '</tr></thead><tbody>';
 
                 classifica.forEach((p, index) => {
@@ -3081,6 +3081,7 @@
                                                                 <td>${p.nome}</td>
                                                                 <td>${p.giocatori_totali}</td>
                                                                 <td>${p.punti_totali}</td>
+                                                                <td>${p.punti_giocatori || 0}</td>
                                                             </tr>`;
                 });
 

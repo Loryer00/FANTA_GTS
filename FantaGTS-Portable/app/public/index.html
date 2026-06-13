@@ -377,11 +377,18 @@
 
         .classifica-row {
             display: grid;
-            grid-template-columns: 50px 1fr 80px;
+            grid-template-columns: 50px 1fr 70px 80px;
             gap: 10px;
             padding: 12px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             align-items: center;
+        }
+
+        .classifica-games {
+            text-align: right;
+            color: #a0aec0;
+            font-weight: 600;
+            font-size: 0.9em;
         }
 
             .classifica-row:last-child {
@@ -3434,6 +3441,9 @@
                                             <div class="classifica-name">
                                                 ${partecipante.nome}
                                                 ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
+                                            </div>
+                                            <div class="classifica-games">
+                                                ${partecipante.punti_giocatori || 0} g
                                             </div>
                                             <div class="classifica-points">
                                                 ${partecipante.punti_totali} pt
