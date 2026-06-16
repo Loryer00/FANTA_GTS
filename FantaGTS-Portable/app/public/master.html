@@ -3087,14 +3087,16 @@
                 const content = document.getElementById('classificaContent');
 
                 let html = '<table class="results-table"><thead><tr>';
-                html += '<th>Pos</th><th>Nome</th><th>Game</th><th>Punti</th>';
+                html += '<th>Pos</th><th>Nome</th><th>Diff</th><th>Punti</th>';
                 html += '</tr></thead><tbody>';
 
                 classifica.forEach((p, index) => {
+                    const diff = (p.punti_giocatori || 0) - (p.punti_subiti || 0);
+                    const diffTesto = (diff > 0 ? '+' : '') + diff;
                     html += `<tr>
                                                                 <td><strong>${index + 1}°</strong></td>
                                                                 <td>${p.nome}</td>
-                                                                <td>${p.punti_giocatori || 0}</td>
+                                                                <td>${diffTesto}</td>
                                                                 <td>${p.punti_totali}</td>
                                                             </tr>`;
                 });
