@@ -3451,6 +3451,8 @@
                     const nomeReale = partecipante.nome_reale || '';
                     const cognomeReale = partecipante.cognome || '';
                     const hasRealName = nomeReale || cognomeReale;
+                    const diffPartecipante = (partecipante.punti_giocatori || 0) - (partecipante.punti_subiti || 0);
+                    const diffTesto = (diffPartecipante > 0 ? '+' : '') + diffPartecipante;
 
                     html += `
                                         <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}"
@@ -3463,7 +3465,7 @@
                                                 ${partecipante.id === playerData.id ? ' <span style="color: #4299e1;">(Tu)</span>' : ''}
                                             </div>
                                             <div class="classifica-games">
-                                                ${partecipante.punti_giocatori || 0}
+                                                ${diffTesto}
                                             </div>
                                             <div class="classifica-points">
                                                 ${partecipante.punti_totali} pt
