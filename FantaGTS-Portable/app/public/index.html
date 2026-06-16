@@ -481,6 +481,12 @@
             gap: 10px;
         }
 
+        /* Giocatori di squadre gia uscite dalla fase attiva: piu sbiaditi */
+        .slot-eliminato {
+            opacity: 0.4;
+            filter: grayscale(35%);
+        }
+
         /* Galleria Info */
         .info-gallery {
             display: grid;
@@ -2829,6 +2835,7 @@
                 const pos = slot.dataset.position;
                 slot.classList.remove('filled');
                 slot.classList.add('empty');
+                slot.classList.remove('slot-eliminato');
                 slot.innerHTML = `<strong>${pos}</strong><br>-`;
                 slot.style.background = '';
                 slot.style.border = '';
@@ -3249,6 +3256,9 @@
                 // Reset UI prima di popolare
                 resetTeamUI();
 
+                // Recupera i colori delle squadre ancora in gioco (per sbiadire le altre)
+                await caricaColoriSquadreAttive();
+
                 // Popola le card con i giocatori
                 squadra.forEach(giocatore => {
                     const posizione = giocatore.posizione;
@@ -3263,6 +3273,13 @@
                         slot.style.border = `2px solid ${coloreSquadra}`;
                         slot.style.color = '#ffffff';
                         slot.style.boxShadow = `0 4px 12px ${coloreSquadra}66`;
+
+                        // Sbiadisci se la squadra del giocatore e gia uscita dalla fase attiva
+                        if (squadraEliminata(giocatore.colore)) {
+                            slot.classList.add('slot-eliminato');
+                        } else {
+                            slot.classList.remove('slot-eliminato');
+                        }
 
                         if (modalita === 'draft_libero') {
                             slot.innerHTML = `
@@ -3509,6 +3526,9 @@
                 const searchInput = document.getElementById('searchPartecipanti');
                 if (searchInput) searchInput.value = '';
 
+                // Recupera i colori delle squadre ancora in gioco (per sbiadire le altre)
+                await caricaColoriSquadreAttive();
+
                 // Renderizza tutti
                 renderPartecipantiFiltrati(datiPartecipantiCache);
 
@@ -3627,8 +3647,9 @@
                     const coloreSquadra = getTeamColor(giocatore.colore);
                     const puntiG = giocatore.punti_totali || 0;
                     const coloreNome = giocatore.colore.charAt(0).toUpperCase() + giocatore.colore.slice(1).toLowerCase();
+                    const classeEliminato = squadraEliminata(giocatore.colore) ? ' slot-eliminato' : '';
                     html += `
-                                        <div class="partecipante-slot" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
+                                        <div class="partecipante-slot${classeEliminato}" style="border-color: ${coloreSquadra}; background: linear-gradient(135deg, ${coloreSquadra}33, ${coloreSquadra}18);">
                                             <div style="font-size: 1.8em; font-weight: bold; color: #ffd700; min-width: 28px; text-align: center;">${puntiG}</div>
                                             <div style="text-align: left; flex: 1;">
                                                 <div style="font-size: 0.85em; color: #ffffff;">
@@ -3753,6 +3774,59 @@
         // CLASSIFICA GIRONI
         // ========================================
         var datiGironiGlobali = null;
+
+        // Cache dei colori delle squadre ancora presenti nella fase attiva.
+        // null = nessuna fase attiva / non determinato -> NON opacizzare nessuno.
+        var coloriSquadreAttive = null;
+
+        // Recupera i colori delle squadre che fanno parte della fase attiva del torneo
+        async function caricaColoriSquadreAttive() {
+            try {
+                var configurazioneId = null;
+                if (sessioneOggetto && sessioneOggetto.configurazione_id) {
+                    configurazioneId = sessioneOggetto.configurazione_id;
+                } else if (window.sessioneOggetto && window.sessioneOggetto.configurazione_id) {
+                    configurazioneId = window.sessioneOggetto.configurazione_id;
+                }
+
+                if (!configurazioneId) {
+                    coloriSquadreAttive = null;
+                    return;
+                }
+
+                var response = await fetch('/api/classifiche-fase-attiva?configurazione=' + configurazioneId);
+                if (!response.ok) {
+                    coloriSquadreAttive = null;
+                    return;
+                }
+
+                var data = await response.json();
+
+                // Nessuna fase attiva o nessun girone: tutte le squadre sono ancora in gioco
+                if (!data.fase || !data.gironi || data.gironi.length === 0) {
+                    coloriSquadreAttive = null;
+                    return;
+                }
+
+                var set = new Set();
+                data.gironi.forEach(function (girone) {
+                    (girone.classifica || []).forEach(function (sq) {
+                        if (sq.colore) set.add(sq.colore.toLowerCase());
+                    });
+                });
+
+                coloriSquadreAttive = set.size > 0 ? set : null;
+            } catch (error) {
+                console.error('Errore caricamento colori squadre attive:', error);
+                coloriSquadreAttive = null;
+            }
+        }
+
+        // Indica se la squadra di quel colore e gia uscita dalla fase attiva
+        function squadraEliminata(colore) {
+            if (!coloriSquadreAttive || !colore) return false;
+            return !coloriSquadreAttive.has(colore.toLowerCase());
+        }
 
         async function caricaClassificaGironi() {
             var container = document.getElementById('classificaGironiContainer');
