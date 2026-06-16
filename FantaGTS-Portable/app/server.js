@@ -4077,14 +4077,25 @@ app.get('/api/classifica', async (req, res) => {
                     AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
                 JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
                 WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
-            ), 0) as punti_giocatori
-            FROM partecipanti_fantagts p 
+            ), 0) as punti_giocatori,
+            COALESCE((
+                SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
+                                WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
+                FROM aste a2
+                JOIN slots s2 ON a2.slot_id = s2.id AND s2.configurazione_id = $2
+                JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                    AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                    AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+                JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+                WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
+            ), 0) as punti_subiti
+            FROM partecipanti_fantagts p
             INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id AND psa.sessione_id = $1
             LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
             LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
             WHERE p.attivo = true 
             GROUP BY p.id, p.nome, p.nome_reale, p.cognome, psa.crediti
-            ORDER BY punti_totali DESC, punti_giocatori DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
+            ORDER BY punti_totali DESC, (punti_giocatori - punti_subiti) DESC, punti_giocatori DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -4128,14 +4139,25 @@ app.get('/api/classifica-draft', async (req, res) => {
                 AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
             JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
             WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
-        ), 0) as punti_giocatori
-    FROM partecipanti_fantagts p 
+        ), 0) as punti_giocatori,
+        COALESCE((
+            SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
+                            WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
+            FROM squadre_draft sd2
+            JOIN slots s2 ON sd2.slot_id = s2.id AND s2.configurazione_id = $2
+            JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+            JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+            WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
+        ), 0) as punti_subiti
+    FROM partecipanti_fantagts p
     INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
     LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
     LEFT JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $2
    WHERE psa.sessione_id = $1 AND p.attivo = true
     GROUP BY p.id, p.nome
-    ORDER BY punti_totali DESC, punti_giocatori DESC, LOWER(p.nome) ASC
+    ORDER BY punti_totali DESC, (punti_giocatori - punti_subiti) DESC, punti_giocatori DESC, LOWER(p.nome) ASC
 `, [sessione_id, configurazioneId]);
 
         // Aggiungi posizione in classifica
@@ -4567,48 +4589,73 @@ app.get('/api/classifica-giocatori', async (req, res) => {
         }
 
         const result = await db.query(`
-            SELECT 
-                sl.giocatore_attuale as nome_giocatore,
-                sub.colore,
-                sub.posizione,
-                SUM(sub.vittorie) as vittorie,
-                SUM(sub.sconfitte) as sconfitte,
-                SUM(sub.vittorie) + SUM(sub.sconfitte) as totale_partite,
-                CASE WHEN SUM(sub.vittorie) + SUM(sub.sconfitte) > 0 
-                    THEN ROUND(SUM(sub.vittorie)::numeric / (SUM(sub.vittorie) + SUM(sub.sconfitte)) * 100)
-                    ELSE 0 
-                END as percentuale_vittoria
+            SELECT q.*, (q.punti_fatti - q.punti_subiti) AS differenza
             FROM (
                 SELECT 
-                    sc.colore,
-                    rd.posizione,
-                    COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as vittorie,
-                    COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as sconfitte
-                FROM risultati_dettaglio rd
-                JOIN incontri i ON rd.incontro_id = i.id
-                JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
-                WHERE i.completato = true AND i.configurazione_id = $1
-                GROUP BY sc.colore, rd.posizione
+                    sl.giocatore_attuale as nome_giocatore,
+                    sub.colore,
+                    sub.posizione,
+                    SUM(sub.vittorie) as vittorie,
+                    SUM(sub.sconfitte) as sconfitte,
+                    SUM(sub.vittorie) + SUM(sub.sconfitte) as totale_partite,
+                    CASE WHEN SUM(sub.vittorie) + SUM(sub.sconfitte) > 0 
+                        THEN ROUND(SUM(sub.vittorie)::numeric / (SUM(sub.vittorie) + SUM(sub.sconfitte)) * 100)
+                        ELSE 0 
+                    END as percentuale_vittoria,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN i.squadra1 = scg.numero THEN i.games_squadra1 ELSE i.games_squadra2 END)
+                        FROM incontri i
+                        JOIN coppie_turno ct ON i.coppia_turno_id = ct.id
+                        JOIN squadre_circolo scg ON LOWER(scg.colore) = LOWER(sub.colore)
+                            AND scg.configurazione_id = $1
+                            AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
+                        WHERE i.completato = true AND i.configurazione_id = $1
+                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))
+                    ), 0) as punti_fatti,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN i.squadra1 = scg.numero THEN i.games_squadra2 ELSE i.games_squadra1 END)
+                        FROM incontri i
+                        JOIN coppie_turno ct ON i.coppia_turno_id = ct.id
+                        JOIN squadre_circolo scg ON LOWER(scg.colore) = LOWER(sub.colore)
+                            AND scg.configurazione_id = $1
+                            AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
+                        WHERE i.completato = true AND i.configurazione_id = $1
+                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))
+                    ), 0) as punti_subiti
+                FROM (
+                    SELECT 
+                        sc.colore,
+                        rd.posizione,
+                        COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as vittorie,
+                        COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as sconfitte
+                    FROM risultati_dettaglio rd
+                    JOIN incontri i ON rd.incontro_id = i.id
+                    JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
+                    WHERE i.completato = true AND i.configurazione_id = $1
+                    GROUP BY sc.colore, rd.posizione
 
-                UNION ALL
+                    UNION ALL
 
-                SELECT 
-                    sc.colore,
-                    rd.posizione,
-                    COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as vittorie,
-                    COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as sconfitte
-                FROM risultati_dettaglio rd
-                JOIN incontri i ON rd.incontro_id = i.id
-                JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
-                WHERE i.completato = true AND i.configurazione_id = $1
-                GROUP BY sc.colore, rd.posizione
-            ) sub
-            LEFT JOIN slots sl 
-                ON LOWER(sl.colore) = LOWER(sub.colore) 
-                AND UPPER(sl.posizione) = UPPER(sub.posizione) 
-                AND sl.configurazione_id = $1
-            GROUP BY sl.giocatore_attuale, sub.colore, sub.posizione
-            ORDER BY percentuale_vittoria DESC, vittorie DESC
+                    SELECT 
+                        sc.colore,
+                        rd.posizione,
+                        COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as vittorie,
+                        COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as sconfitte
+                    FROM risultati_dettaglio rd
+                    JOIN incontri i ON rd.incontro_id = i.id
+                    JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
+                    WHERE i.completato = true AND i.configurazione_id = $1
+                    GROUP BY sc.colore, rd.posizione
+                ) sub
+                LEFT JOIN slots sl 
+                    ON LOWER(sl.colore) = LOWER(sub.colore) 
+                    AND UPPER(sl.posizione) = UPPER(sub.posizione) 
+                    AND sl.configurazione_id = $1
+                GROUP BY sl.giocatore_attuale, sub.colore, sub.posizione
+            ) q
+            ORDER BY q.percentuale_vittoria DESC, differenza DESC, q.vittorie DESC
         `, [configurazioneId]);
 
         res.json({ giocatori: result.rows });

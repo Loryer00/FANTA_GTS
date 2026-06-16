@@ -1267,6 +1267,13 @@
                             html += '    <div style="font-weight: bold; color: #e2e8f0;">' + g.nome_giocatore + '</div>';
                             html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
                             html += '  </div>';
+                            var diff3 = g.differenza || 0;
+                            var diffTxt3 = (diff3 > 0 ? '+' : '') + diff3;
+                            var diffCol3 = diff3 > 0 ? '#48bb78' : (diff3 < 0 ? '#f56565' : '#a0aec0');
+                            html += '  <div style="text-align: center; min-width: 50px;">';
+                            html += '    <div style="font-weight: bold; color: ' + diffCol3 + ';">' + diffTxt3 + '</div>';
+                            html += '    <div style="font-size: 0.7em; color: #718096;">diff</div>';
+                            html += '  </div>';
                             html += '  <div style="text-align: right;">';
                             html += '    <div style="font-size: 1.2em; font-weight: bold; color: #48bb78;">' + g.percentuale_vittoria + '%</div>';
                             html += '    <div style="font-size: 0.8em; color: #a0aec0;">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
@@ -1284,6 +1291,10 @@
                                 html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + (i + 4) + '</div>';
                                 html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
                                 html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
+                                var diffB = g.differenza || 0;
+                                var diffTxtB = (diffB > 0 ? '+' : '') + diffB;
+                                var diffColB = diffB > 0 ? '#48bb78' : (diffB < 0 ? '#f56565' : '#a0aec0');
+                                html += '  <div style="font-size: 0.85em; font-weight: bold; color: ' + diffColB + '; min-width: 40px; text-align: right;">' + diffTxtB + '</div>';
                                 html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
                                 html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
                                 html += '</div>';
@@ -1308,6 +1319,10 @@
                                 html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + pos + '</div>';
                                 html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
                                 html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
+                                var diffF = g.differenza || 0;
+                                var diffTxtF = (diffF > 0 ? '+' : '') + diffF;
+                                var diffColF = diffF > 0 ? '#48bb78' : (diffF < 0 ? '#f56565' : '#a0aec0');
+                                html += '  <div style="font-size: 0.85em; font-weight: bold; color: ' + diffColF + '; min-width: 40px; text-align: right;">' + diffTxtF + '</div>';
                                 html += '  <div style="font-weight: bold; color: ' + percColore + '; min-width: 45px; text-align: right;">' + g.percentuale_vittoria + '%</div>';
                                 html += '  <div style="font-size: 0.8em; color: #a0aec0; min-width: 55px; text-align: right;">' + g.vittorie + 'V-' + g.sconfitte + 'S</div>';
                                 html += '</div>';
