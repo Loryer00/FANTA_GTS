@@ -4062,40 +4062,44 @@ app.get('/api/classifica', async (req, res) => {
         const sessione = await db.query('SELECT configurazione_id FROM sessioni_fantagts WHERE id = $1', [sessioneCorrente]);
         const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
 
-       const result = await db.query(`SELECT 
-            p.id, p.nome, p.nome_reale, p.cognome, psa.crediti,
-            COUNT(a.id) as giocatori_totali,
-            COALESCE(SUM(s.punti_totali), 0) as punti_totali,
-            COALESCE(SUM(a.costo_finale), 0) as crediti_spesi,
-            COALESCE((
-                SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra1
-                                WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra2 END)
-                FROM aste a2
-                JOIN slots s2 ON a2.slot_id = s2.id AND s2.configurazione_id = $2
-                JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
-                    AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                    AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
-                JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
-                WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
-            ), 0) as punti_giocatori,
-            COALESCE((
-                SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
-                                WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
-                FROM aste a2
-                JOIN slots s2 ON a2.slot_id = s2.id AND s2.configurazione_id = $2
-                JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
-                    AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                    AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
-                JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
-                WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
-            ), 0) as punti_subiti
-            FROM partecipanti_fantagts p
-            INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id AND psa.sessione_id = $1
-            LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
-            LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
-            WHERE p.attivo = true 
-            GROUP BY p.id, p.nome, p.nome_reale, p.cognome, psa.crediti
-            ORDER BY punti_totali DESC, (punti_giocatori - punti_subiti) DESC, punti_giocatori DESC, crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
+        const result = await db.query(`
+            SELECT cl.*, (cl.punti_giocatori - cl.punti_subiti) AS differenza
+            FROM (
+                SELECT 
+                    p.id, p.nome, p.nome_reale, p.cognome, psa.crediti,
+                    COUNT(a.id) as giocatori_totali,
+                    COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+                    COALESCE(SUM(a.costo_finale), 0) as crediti_spesi,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra1
+                                        WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra2 END)
+                        FROM aste a2
+                        JOIN slots s2 ON a2.slot_id = s2.id AND s2.configurazione_id = $2
+                        JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                            AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+                        JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+                        WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
+                    ), 0) as punti_giocatori,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
+                                        WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
+                        FROM aste a2
+                        JOIN slots s2 ON a2.slot_id = s2.id AND s2.configurazione_id = $2
+                        JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                            AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+                        JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+                        WHERE a2.partecipante_id = p.id AND a2.vincitore = true AND a2.sessione_id = $1
+                    ), 0) as punti_subiti
+                    FROM partecipanti_fantagts p 
+                    INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id AND psa.sessione_id = $1
+                    LEFT JOIN aste a ON p.id = a.partecipante_id AND a.vincitore = true AND a.sessione_id = $1
+                    LEFT JOIN slots s ON a.slot_id = s.id AND s.configurazione_id = $2
+                    WHERE p.attivo = true 
+                    GROUP BY p.id, p.nome, p.nome_reale, p.cognome, psa.crediti
+            ) cl
+            ORDER BY cl.punti_totali DESC, differenza DESC, cl.punti_giocatori DESC, cl.crediti_spesi ASC`, [sessioneCorrente, configurazioneId]);
 
         // Aggiungi posizione in classifica
         const classifica = result.rows.map((row, index) => {
@@ -4125,39 +4129,42 @@ app.get('/api/classifica-draft', async (req, res) => {
         const configurazioneId = sessione.rows[0]?.configurazione_id || 'default';
 
         const result = await db.query(`
-    SELECT 
-        p.id, p.nome, p.nome_reale, p.cognome,
-        COUNT(sd.id) as giocatori_totali,
-        COALESCE(SUM(s.punti_totali), 0) as punti_totali,
-        COALESCE((
-            SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra1
-                            WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra2 END)
-            FROM squadre_draft sd2
-            JOIN slots s2 ON sd2.slot_id = s2.id AND s2.configurazione_id = $2
-            JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
-                AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
-            JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
-            WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
-        ), 0) as punti_giocatori,
-        COALESCE((
-            SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
-                            WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
-            FROM squadre_draft sd2
-            JOIN slots s2 ON sd2.slot_id = s2.id AND s2.configurazione_id = $2
-            JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
-                AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
-            JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
-            WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
-        ), 0) as punti_subiti
-    FROM partecipanti_fantagts p
-    INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
-    LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
-    LEFT JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $2
-   WHERE psa.sessione_id = $1 AND p.attivo = true
-    GROUP BY p.id, p.nome
-    ORDER BY punti_totali DESC, (punti_giocatori - punti_subiti) DESC, punti_giocatori DESC, LOWER(p.nome) ASC
+    SELECT cl.*, (cl.punti_giocatori - cl.punti_subiti) AS differenza
+    FROM (
+        SELECT 
+            p.id, p.nome, p.nome_reale, p.cognome,
+            COUNT(sd.id) as giocatori_totali,
+            COALESCE(SUM(s.punti_totali), 0) as punti_totali,
+            COALESCE((
+                SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra1
+                                WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra2 END)
+                FROM squadre_draft sd2
+                JOIN slots s2 ON sd2.slot_id = s2.id AND s2.configurazione_id = $2
+                JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                    AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                    AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+                JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+                WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
+            ), 0) as punti_giocatori,
+            COALESCE((
+                SELECT SUM(CASE WHEN i.squadra1 = s2.squadra_numero THEN i.games_squadra2
+                                WHEN i.squadra2 = s2.squadra_numero THEN i.games_squadra1 END)
+                FROM squadre_draft sd2
+                JOIN slots s2 ON sd2.slot_id = s2.id AND s2.configurazione_id = $2
+                JOIN incontri i ON i.configurazione_id = $2 AND i.completato = true
+                    AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
+                    AND (i.squadra1 = s2.squadra_numero OR i.squadra2 = s2.squadra_numero)
+                JOIN coppie_turno c ON i.coppia_turno_id = c.id AND s2.posizione IN (c.pos1, c.pos2)
+                WHERE sd2.partecipante_id = p.id AND sd2.sessione_id = $1
+            ), 0) as punti_subiti
+        FROM partecipanti_fantagts p 
+        INNER JOIN partecipanti_sessioni_accesso psa ON p.id = psa.partecipante_id
+        LEFT JOIN squadre_draft sd ON p.id = sd.partecipante_id AND sd.sessione_id = $1
+        LEFT JOIN slots s ON sd.slot_id = s.id AND s.configurazione_id = $2
+        WHERE psa.sessione_id = $1 AND p.attivo = true
+        GROUP BY p.id, p.nome
+    ) cl
+    ORDER BY cl.punti_totali DESC, differenza DESC, cl.punti_giocatori DESC, LOWER(cl.nome) ASC
 `, [sessione_id, configurazioneId]);
 
         // Aggiungi posizione in classifica
