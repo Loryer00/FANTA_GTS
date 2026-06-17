@@ -3456,7 +3456,7 @@
 
                     html += `
                                         <div class="classifica-row ${partecipante.id === playerData.id ? 'style="background: rgba(66, 153, 225, 0.2);"' : ''}"
-                                             ${hasRealName ? 'onclick="mostraAnagraficaPopup(\'' + partecipante.nome.replace(/'/g, "\\'") + '\', \'' + (nomeReale + ' ' + cognomeReale).trim().replace(/'/g, "\\'") + '\')"' : ''}>
+                                             ${hasRealName ? 'onclick="mostraAnagraficaPopup(\'' + partecipante.nome.replace(/'/g, "\\'") + '\', \'' + (nomeReale + ' ' + cognomeReale).trim().replace(/'/g, "\\'") + '\', \'' + partecipante.id + '\')"' : ''}>
                                             <div class="classifica-position ${positionClass}">
                                                 ${posLabel}
                                             </div>
@@ -3899,7 +3899,7 @@
             }
         }
 
-        function mostraAnagraficaPopup(nickname, nomeCompleto) {
+        async function mostraAnagraficaPopup(nickname, nomeCompleto, partecipanteId) {
             var vecchio = document.getElementById('popup-anagrafica-overlay');
             if (vecchio) vecchio.remove();
 
@@ -3907,9 +3907,10 @@
             overlay.id = 'popup-anagrafica-overlay';
             overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
 
-            overlay.innerHTML = '<div style="background: #1a202c; border: 1px solid rgba(66,153,225,0.4); border-radius: 12px; padding: 20px 25px; max-width: 280px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.6); text-align: center;">' +
-                '<div style="font-size: 1.1em; font-weight: bold; color: #4299e1; margin-bottom: 10px;">' + nickname + '</div>' +
-                '<div style="font-size: 0.95em; color: #e2e8f0;">' + nomeCompleto + '</div>' +
+            overlay.innerHTML = '<div style="background: #1a202c; border: 1px solid rgba(66,153,225,0.4); border-radius: 12px; padding: 20px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6); text-align: center;">' +
+                '<div style="font-size: 1.1em; font-weight: bold; color: #4299e1; margin-bottom: 6px;">' + nickname + '</div>' +
+                '<div style="font-size: 0.95em; color: #e2e8f0; margin-bottom: 15px;">' + nomeCompleto + '</div>' +
+                '<div id="popup-anagrafica-rosa" style="text-align: left;"><p style="text-align: center; opacity: 0.7;">Caricamento rosa...</p></div>' +
                 '</div>';
 
             overlay.addEventListener('click', function (e) {
@@ -3917,6 +3918,25 @@
             });
 
             document.body.appendChild(overlay);
+
+            // Carica e mostra la rosa con la stessa grafica della Tab squadre
+            if (partecipanteId) {
+                try {
+                    var dati = await calcolaDatiPartecipante({ id: partecipanteId, nome: nickname });
+                    var rosaContainer = document.getElementById('popup-anagrafica-rosa');
+                    if (rosaContainer) {
+                        if (dati.squadra && dati.squadra.length > 0) {
+                            rosaContainer.innerHTML = generaHtmlPartecipante(dati);
+                        } else {
+                            rosaContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">Nessuna rosa disponibile</p>';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Errore caricamento rosa popup:', error);
+                    var rc = document.getElementById('popup-anagrafica-rosa');
+                    if (rc) rc.innerHTML = '<p style="text-align: center; opacity: 0.7; color: #f56565;">Errore caricamento rosa</p>';
+                }
+            }
         }
 
         // Chiudi popup se si tocca altrove
