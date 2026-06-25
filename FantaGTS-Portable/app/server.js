@@ -4590,9 +4590,18 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
 app.get('/api/classifica-giocatori', async (req, res) => {
     try {
         const configurazioneId = req.query.configurazione;
+        const finoATurno = req.query.fino_a_turno ? parseInt(req.query.fino_a_turno) : null;
 
         if (!configurazioneId) {
             return res.status(400).json({ error: 'configurazione richiesto' });
+        }
+
+        // Se richiesto, limita il calcolo agli incontri fino al turno indicato
+        const params = [configurazioneId];
+        let filtroTurno = '';
+        if (finoATurno !== null && !isNaN(finoATurno)) {
+            params.push(finoATurno);
+            filtroTurno = ' AND i.turno_id IN (SELECT id FROM turni_configurazione WHERE turno_numero <= $2 AND configurazione_id = $1)';
         }
 
         const result = await db.query(`
@@ -4618,7 +4627,7 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                             AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
                         WHERE i.completato = true AND i.configurazione_id = $1
                             AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))
+                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))${filtroTurno}
                     ), 0) as punti_fatti,
                     COALESCE((
                         SELECT SUM(CASE WHEN i.squadra1 = scg.numero THEN i.games_squadra2 ELSE i.games_squadra1 END)
@@ -4629,7 +4638,7 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                             AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
                         WHERE i.completato = true AND i.configurazione_id = $1
                             AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))
+                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))${filtroTurno}
                     ), 0) as punti_subiti
                 FROM (
                     SELECT 
@@ -4640,7 +4649,7 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                     FROM risultati_dettaglio rd
                     JOIN incontri i ON rd.incontro_id = i.id
                     JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
-                    WHERE i.completato = true AND i.configurazione_id = $1
+                    WHERE i.completato = true AND i.configurazione_id = $1${filtroTurno}
                     GROUP BY sc.colore, rd.posizione
 
                     UNION ALL
@@ -4653,7 +4662,7 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                     FROM risultati_dettaglio rd
                     JOIN incontri i ON rd.incontro_id = i.id
                     JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
-                    WHERE i.completato = true AND i.configurazione_id = $1
+                    WHERE i.completato = true AND i.configurazione_id = $1${filtroTurno}
                     GROUP BY sc.colore, rd.posizione
                 ) sub
                 LEFT JOIN slots sl 
@@ -4663,7 +4672,7 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                 GROUP BY sl.giocatore_attuale, sub.colore, sub.posizione
             ) q
             ORDER BY q.percentuale_vittoria DESC, differenza DESC, q.vittorie DESC
-        `, [configurazioneId]);
+        `, params);
 
         res.json({ giocatori: result.rows });
 

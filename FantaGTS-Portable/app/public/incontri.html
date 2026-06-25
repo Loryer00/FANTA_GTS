@@ -1131,39 +1131,39 @@
             const val1 = (inc && inc.games_squadra1 != null) ? inc.games_squadra1 : '';
             const val2 = (inc && inc.games_squadra2 != null) ? inc.games_squadra2 : '';
 
-            // Bottone "Salta": presente solo per incontri nuovi (non in modalita solo punteggio)
+            // Bottoni presenti solo per incontri nuovi (non in modalita solo punteggio)
             const btnSalta = soloPunteggio ? '' :
-                '    <button onclick="saltaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(237,137,54,0.9); color:#fff;">Salta</button>';
-
-            // Bottone "Calcola": solo per incontri nuovi. Sceglie il risultato in base alle statistiche.
+                '<button onclick="saltaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(237,137,54,0.9); color:#fff;">Salta</button>';
             const btnCalcola = soloPunteggio ? '' :
-                '  <button onclick="calcolaRisultato(\'' + incontroId + '\')" style="width:100%; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#4299e1,#3182ce); color:#fff; margin-bottom:10px;">Calcola</button>';
+                '<button onclick="calcolaRisultato(\'' + incontroId + '\')" style="width:100%; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#4299e1,#3182ce); color:#fff; margin-bottom:10px;">Calcola</button>';
 
             const overlay = document.createElement('div');
             overlay.id = 'popup-punteggio-overlay';
-            overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;';
-            overlay.innerHTML =
-                '<div style="background:#1c2733; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:22px 20px; width:280px;">' +
-                '  <div style="display:flex; align-items:flex-start; justify-content:center; gap:14px; margin-bottom:20px;">' +
-                '    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
-                '      <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col1 + '</span>' +
-                '      <input id="pp-g1" type="text" inputmode="numeric" maxlength="1" value="' + val1 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
-                '    </div>' +
-                '    <span style="font-size:1.6em; color:#718096; font-weight:800; margin-top:28px;">-</span>' +
-                '    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
-                '      <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col2 + '</span>' +
-                '      <input id="pp-g2" type="text" inputmode="numeric" maxlength="1" value="' + val2 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
-                '    </div>' +
-                '    </div>' +
+            overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px;';
+
+            const box = document.createElement('div');
+            box.style.cssText = 'background:#1c2733; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:22px 20px; width:300px; max-width:100%; box-sizing:border-box;';
+
+            box.innerHTML =
+                '<div style="display:flex; align-items:flex-start; justify-content:center; gap:14px; margin-bottom:20px;">' +
+                '  <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
+                '    <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col1 + '</span>' +
+                '    <input id="pp-g1" type="text" inputmode="numeric" maxlength="1" value="' + val1 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
                 '  </div>' +
+                '  <span style="font-size:1.6em; color:#718096; font-weight:800; margin-top:28px;">-</span>' +
+                '  <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">' +
+                '    <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col2 + '</span>' +
+                '    <input id="pp-g2" type="text" inputmode="numeric" maxlength="1" value="' + val2 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
+                '  </div>' +
+                '</div>' +
                 btnCalcola +
-                '  <div style="display:flex; gap:10px;">' +
-                '    <button onclick="annullaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(255,255,255,0.08); color:#cbd5e0;">Annulla</button>' +
+                '<div style="display:flex; gap:10px;">' +
+                '  <button onclick="annullaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(255,255,255,0.08); color:#cbd5e0;">Annulla</button>' +
                 btnSalta +
-                '    <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\', ' + flag + ')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
-                '  </div>' +
+                '  <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\', ' + flag + ')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
                 '</div>';
 
+            overlay.appendChild(box);
             document.body.appendChild(overlay);
             setTimeout(function () {
                 const campo = document.getElementById('pp-g1');
@@ -1266,7 +1266,13 @@
             // Carica le statistiche giocatori dalla stessa fonte della sezione "Stat Giocatori"
             let statsGiocatori = [];
             try {
-                const resp = await fetch('/api/classifica-giocatori?configurazione=' + configurazioneCorrente);
+                let urlStat = '/api/classifica-giocatori?configurazione=' + configurazioneCorrente;
+                // Limita le statistiche al turno di questo incontro, per non gonfiare
+                // le percentuali con i turni successivi (es. una squadra ancora in gioco al 5 turno)
+                if (turnoSelezionato && turnoSelezionato.turno_numero != null) {
+                    urlStat += '&fino_a_turno=' + turnoSelezionato.turno_numero;
+                }
+                const resp = await fetch(urlStat);
                 const data = await resp.json();
                 statsGiocatori = data.giocatori || [];
             } catch (e) {
