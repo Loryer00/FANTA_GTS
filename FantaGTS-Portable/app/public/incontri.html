@@ -1135,6 +1135,10 @@
             const btnSalta = soloPunteggio ? '' :
                 '    <button onclick="saltaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(237,137,54,0.9); color:#fff;">Salta</button>';
 
+            // Bottone "Calcola": solo per incontri nuovi. Sceglie il risultato in base alle statistiche.
+            const btnCalcola = soloPunteggio ? '' :
+                '  <button onclick="calcolaRisultato(\'' + incontroId + '\')" style="width:100%; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#4299e1,#3182ce); color:#fff; margin-bottom:10px;">Calcola</button>';
+
             const overlay = document.createElement('div');
             overlay.id = 'popup-punteggio-overlay';
             overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;';
@@ -1150,10 +1154,12 @@
                 '      <span style="font-size:0.8em; color:#a0aec0; font-weight:700;">' + col2 + '</span>' +
                 '      <input id="pp-g2" type="text" inputmode="numeric" maxlength="1" value="' + val2 + '" style="width:66px; height:60px; text-align:center; font-size:1.8em; font-weight:800; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff;">' +
                 '    </div>' +
+                '    </div>' +
                 '  </div>' +
+                btnCalcola +
                 '  <div style="display:flex; gap:10px;">' +
                 '    <button onclick="annullaPunteggio(\'' + incontroId + '\')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:rgba(255,255,255,0.08); color:#cbd5e0;">Annulla</button>' +
-                        btnSalta +
+                btnSalta +
                 '    <button onclick="confermaPunteggio(\'' + incontroId + '\', \'' + squadra + '\', ' + flag + ')" style="flex:1; border:none; border-radius:9px; font-weight:700; padding:12px; cursor:pointer; background:linear-gradient(135deg,#48bb78,#38a169); color:#fff;">Conferma</button>' +
                 '  </div>' +
                 '</div>';
@@ -1239,6 +1245,95 @@
             // Incontro nuovo: memorizza il punteggio e procede con la conferma (vincitore + completa)
             punteggiPending.set(incontroId, { games_squadra1, games_squadra2 });
             await confermaIncontro(incontroId);
+        }
+
+        // Calcola automaticamente il risultato in base alle statistiche dei giocatori.
+        // Determina la coppia vincente e un punteggio plausibile, poi precompila il popup.
+        async function calcolaRisultato(incontroId) {
+            const inc = incontriCaricati.find(i => i.id == incontroId);
+            if (!inc) { showNotification('Incontro non trovato', 'error'); return; }
+
+            const sq1 = squadreDisponibili.find(s => s.numero === inc.squadra1);
+            const sq2 = squadreDisponibili.find(s => s.numero === inc.squadra2);
+            if (!sq1 || !sq2) { showNotification('Squadre non trovate', 'error'); return; }
+
+            // I due giocatori per ciascuna squadra in questo incontro
+            const g1a = sq1.giocatori && sq1.giocatori.find(g => g.posizione === inc.pos1);
+            const g1b = sq1.giocatori && sq1.giocatori.find(g => g.posizione === inc.pos2);
+            const g2a = sq2.giocatori && sq2.giocatori.find(g => g.posizione === inc.pos1);
+            const g2b = sq2.giocatori && sq2.giocatori.find(g => g.posizione === inc.pos2);
+
+            // Carica le statistiche giocatori dalla stessa fonte della sezione "Stat Giocatori"
+            let statsGiocatori = [];
+            try {
+                const resp = await fetch('/api/classifica-giocatori?configurazione=' + configurazioneCorrente);
+                const data = await resp.json();
+                statsGiocatori = data.giocatori || [];
+            } catch (e) {
+                showNotification('Errore caricamento statistiche', 'error');
+                return;
+            }
+
+            // Forza di un giocatore: combina percentuale vittoria e differenza game.
+            // Se non ci sono dati (totale_partite 0 o giocatore assente) si usa un valore neutro.
+            function forzaGiocatore(nome) {
+                if (!nome) return 50;
+                const st = statsGiocatori.find(s =>
+                    (s.nome_giocatore || '').toLowerCase().trim() === nome.toLowerCase().trim()
+                );
+                if (!st || Number(st.totale_partite) === 0) return 50;
+                const perc = Number(st.percentuale_vittoria) || 0;
+                const diff = Number(st.differenza) || 0;
+                return perc + diff;
+            }
+
+            const forza1 = forzaGiocatore(g1a && g1a.nome) + forzaGiocatore(g1b && g1b.nome);
+            const forza2 = forzaGiocatore(g2a && g2a.nome) + forzaGiocatore(g2b && g2b.nome);
+
+            // Punteggio del perdente in base al divario di forza
+            const gap = Math.abs(forza1 - forza2);
+            let gamesPerdente;
+            if (gap >= 80) gamesPerdente = 1;
+            else if (gap >= 50) gamesPerdente = 2;
+            else if (gap >= 25) gamesPerdente = 3;
+            else gamesPerdente = 4;
+
+            // Determina la squadra vincente
+            let squadraVincente, g1, g2;
+            if (forza1 === forza2) {
+                squadraVincente = Math.random() < 0.5 ? 'squadra1' : 'squadra2';
+                gamesPerdente = 5;
+            } else if (forza1 > forza2) {
+                squadraVincente = 'squadra1';
+            } else {
+                squadraVincente = 'squadra2';
+            }
+
+            if (squadraVincente === 'squadra1') { g1 = 9; g2 = gamesPerdente; }
+            else { g1 = gamesPerdente; g2 = 9; }
+
+            // Memorizza la coppia vincente scelta dal sistema
+            selezioniCoppie.set(incontroId, squadraVincente);
+
+            // Aggiorna l'evidenziazione della coppia vincente nel blocco incontro
+            const blocco = document.querySelector('[data-incontro-id="' + incontroId + '"]');
+            if (blocco) {
+                blocco.querySelectorAll('.coppia-box').forEach(c => c.classList.remove('vincitore'));
+                const box = Array.from(blocco.querySelectorAll('.coppia-box'))
+                    .find(c => c.getAttribute('data-squadra') === squadraVincente);
+                if (box) box.classList.add('vincitore');
+                const btn = blocco.querySelector('.btn-conferma');
+                if (btn) btn.disabled = false;
+            }
+
+            // Precompila i punteggi nel popup
+            const campo1 = document.getElementById('pp-g1');
+            const campo2 = document.getElementById('pp-g2');
+            if (campo1) campo1.value = g1;
+            if (campo2) campo2.value = g2;
+
+            const nomeVincente = squadraVincente === 'squadra1' ? sq1.colore : sq2.colore;
+            showNotification('Risultato calcolato: vince ' + nomeVincente + ' (' + g1 + '-' + g2 + ')', 'success');
         }
 
         // 3. FUNZIONE selezionaVincitore (aggiungere se serve per compatibilità)
