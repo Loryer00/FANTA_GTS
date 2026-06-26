@@ -785,6 +785,19 @@
             margin-bottom: 10px;
         }
 
+        .stats-globali-search {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(66, 153, 225, 0.4);
+            background: #2d3748;
+            color: #e2e8f0;
+            font-size: 0.95em;
+            outline: none;
+        }
+
         .progress-container {
             display: flex;
             align-items: center;
@@ -1954,7 +1967,10 @@
                         <p style="text-align: center; opacity: 0.7;">Caricamento statistiche...</p>
                     </div>
                     <div id="statsGlobaliContainer" style="display: none;">
-                        <p style="text-align: center; opacity: 0.7;">Caricamento classifica globale...</p>
+                        <input type="text" id="statsGlobaliSearch" class="stats-globali-search" placeholder="Cerca giocatore..." oninput="filtraStatisticheGlobali()">
+                        <div id="statsGlobaliLista">
+                            <p style="text-align: center; opacity: 0.7;">Caricamento classifica globale...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3440,7 +3456,7 @@
                     caricaImmaginiInfo();
                     break;
                 case 'stats':
-                    caricaStatisticheGiocatori();
+                    cambiaTabStatistiche('rosa');
                     break;
             }
         }
@@ -4275,8 +4291,8 @@
         }
 
         async function caricaStatisticheGlobali() {
-            const container = document.getElementById('statsGlobaliContainer');
-            if (!container) return;
+            const lista = document.getElementById('statsGlobaliLista');
+            if (!lista) return;
 
             try {
                 var configId = sessioneOggetto && sessioneOggetto.configurazione_id
@@ -4284,7 +4300,7 @@
                     : (window.sessioneOggetto && window.sessioneOggetto.configurazione_id);
 
                 if (!configId) {
-                    container.innerHTML = '<p class="stats-nessun-dato">Nessuna configurazione associata</p>';
+                    lista.innerHTML = '<p class="stats-nessun-dato">Nessuna configurazione associata</p>';
                     return;
                 }
 
@@ -4294,41 +4310,68 @@
                 const data = await response.json();
 
                 if (!data.giocatori || data.giocatori.length === 0) {
-                    container.innerHTML = '<p class="stats-nessun-dato">Nessuna statistica globale disponibile ancora</p>';
+                    lista.innerHTML = '<p class="stats-nessun-dato">Nessuna statistica globale disponibile ancora</p>';
                     return;
                 }
 
-                let html = '';
+                statsGlobaliDati = data.giocatori;
 
-                data.giocatori.forEach(function (g, i) {
-                    var colore = getTeamColor(g.colore);
-                    var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
-                    var diff = g.differenza || 0;
-                    var diffTxt = (diff > 0 ? '+' : '') + diff;
-                    var diffCol = diff > 0 ? '#48bb78' : (diff < 0 ? '#f56565' : '#a0aec0');
+                var search = document.getElementById('statsGlobaliSearch');
+                if (search) search.value = '';
 
-                    html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';">';
-                    html += '  <div class="stats-giocatore-info">';
-                    html += '    <div class="stats-giocatore-nome">' + (i + 1) + '. ' + g.nome_giocatore + '</div>';
-                    html += '    <div class="stats-giocatore-dettagli">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
-                    html += '    <div class="stats-barra-container">';
-                    html += '      <div class="stats-barra-fill" style="width: ' + g.percentuale_vittoria + '%; background: ' + percColore + ';"></div>';
-                    html += '    </div>';
-                    html += '  </div>';
-                    html += '  <div class="stats-giocatore-numeri">';
-                    html += '    <div style="font-weight: bold; color: ' + diffCol + '; font-size: 0.85em;">' + diffTxt + ' diff</div>';
-                    html += '    <div class="stats-percentuale" style="color: ' + percColore + ';">' + g.percentuale_vittoria + '%</div>';
-                    html += '    <div class="stats-record">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
-                    html += '  </div>';
-                    html += '</div>';
-                });
-
-                container.innerHTML = html;
+                renderStatisticheGlobali('');
 
             } catch (error) {
                 console.error('Errore caricamento statistiche globali:', error);
-                container.innerHTML = '<p class="stats-nessun-dato">Errore nel caricamento della classifica globale</p>';
+                lista.innerHTML = '<p class="stats-nessun-dato">Errore nel caricamento della classifica globale</p>';
             }
+        }
+
+        function filtraStatisticheGlobali() {
+            var search = document.getElementById('statsGlobaliSearch');
+            renderStatisticheGlobali(search ? search.value : '');
+        }
+
+        function renderStatisticheGlobali(filtro) {
+            const lista = document.getElementById('statsGlobaliLista');
+            if (!lista) return;
+
+            filtro = (filtro || '').trim().toLowerCase();
+
+            let html = '';
+
+            statsGlobaliDati.forEach(function (g, i) {
+                if (filtro !== '' && (g.nome_giocatore || '').toLowerCase().indexOf(filtro) === -1) {
+                    return;
+                }
+
+                var colore = getTeamColor(g.colore);
+                var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+                var diff = g.differenza || 0;
+                var diffTxt = (diff > 0 ? '+' : '') + diff;
+                var diffCol = diff > 0 ? '#48bb78' : (diff < 0 ? '#f56565' : '#a0aec0');
+
+                html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';">';
+                html += '  <div class="stats-giocatore-info">';
+                html += '    <div class="stats-giocatore-nome">' + (i + 1) + '. ' + g.nome_giocatore + '</div>';
+                html += '    <div class="stats-giocatore-dettagli">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
+                html += '    <div class="stats-barra-container">';
+                html += '      <div class="stats-barra-fill" style="width: ' + g.percentuale_vittoria + '%; background: ' + percColore + ';"></div>';
+                html += '    </div>';
+                html += '  </div>';
+                html += '  <div class="stats-giocatore-numeri">';
+                html += '    <div style="font-weight: bold; color: ' + diffCol + '; font-size: 0.85em;">' + diffTxt + ' diff</div>';
+                html += '    <div class="stats-percentuale" style="color: ' + percColore + ';">' + g.percentuale_vittoria + '%</div>';
+                html += '    <div class="stats-record">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
+                html += '  </div>';
+                html += '</div>';
+            });
+
+            if (html === '') {
+                html = '<p class="stats-nessun-dato">Nessun giocatore trovato</p>';
+            }
+
+            lista.innerHTML = html;
         }
 
         async function mostraDettaglioGiocatore(jsonStr) {
