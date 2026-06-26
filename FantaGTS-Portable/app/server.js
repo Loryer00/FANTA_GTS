@@ -4667,7 +4667,12 @@ app.get('/api/classifica-giocatori', async (req, res) => {
                 ) parts
                 GROUP BY parts.nome_giocatore
             ) q
-            ORDER BY q.percentuale_vittoria DESC, differenza DESC, q.vittorie DESC
+            ORDER BY
+                CASE WHEN (q.vittorie + q.sconfitte) > 0
+                    THEN q.vittorie::numeric / (q.vittorie + q.sconfitte)
+                    ELSE 0 END DESC,
+                (q.punti_fatti - q.punti_subiti) DESC,
+                q.vittorie DESC
         `, params);
 
         res.json({ giocatori: result.rows });
