@@ -949,6 +949,36 @@
                 flex-shrink: 0;
             }
 
+        .stats-switch-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .stats-switch {
+            display: inline-flex;
+            background: #1a202c;
+            border-radius: 20px;
+            padding: 4px;
+            border: 1px solid rgba(66, 153, 225, 0.4);
+        }
+
+        .stats-switch-btn {
+            padding: 7px 22px;
+            border: none;
+            background: transparent;
+            color: #a0aec0;
+            border-radius: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .stats-switch-btn.stats-switch-attiva {
+                background: #4299e1;
+                color: #ffffff;
+            }
+
         .stats-giocatore-card {
             background: rgba(255,255,255,0.06);
             border-radius: 10px;
@@ -1912,8 +1942,19 @@
             <div id="section-stats" class="content-section">
                 <div class="section">
                     <h2>Statistiche Giocatori</h2>
+
+                    <div class="stats-switch-wrapper">
+                        <div class="stats-switch">
+                            <button id="statsTabRosa" class="stats-switch-btn stats-switch-attiva" onclick="cambiaTabStatistiche('rosa')">Rosa</button>
+                            <button id="statsTabGlobale" class="stats-switch-btn" onclick="cambiaTabStatistiche('globale')">Globale</button>
+                        </div>
+                    </div>
+
                     <div id="statsGiocatoriContainer">
                         <p style="text-align: center; opacity: 0.7;">Caricamento statistiche...</p>
+                    </div>
+                    <div id="statsGlobaliContainer" style="display: none;">
+                        <p style="text-align: center; opacity: 0.7;">Caricamento classifica globale...</p>
                     </div>
                 </div>
             </div>
@@ -4144,6 +4185,26 @@
             }
         }
 
+        function cambiaTabStatistiche(tab) {
+            var btnRosa = document.getElementById('statsTabRosa');
+            var btnGlobale = document.getElementById('statsTabGlobale');
+            var contRosa = document.getElementById('statsGiocatoriContainer');
+            var contGlobale = document.getElementById('statsGlobaliContainer');
+
+            if (tab === 'globale') {
+                btnRosa.classList.remove('stats-switch-attiva');
+                btnGlobale.classList.add('stats-switch-attiva');
+                contRosa.style.display = 'none';
+                contGlobale.style.display = 'block';
+                caricaStatisticheGlobali();
+            } else {
+                btnGlobale.classList.remove('stats-switch-attiva');
+                btnRosa.classList.add('stats-switch-attiva');
+                contGlobale.style.display = 'none';
+                contRosa.style.display = 'block';
+            }
+        }
+
         async function caricaStatisticheGiocatori() {
             const container = document.getElementById('statsGiocatoriContainer');
             if (!container) return;
@@ -4210,6 +4271,63 @@
             } catch (error) {
                 console.error('Errore caricamento statistiche:', error);
                 container.innerHTML = '<p class="stats-nessun-dato">Errore nel caricamento delle statistiche</p>';
+            }
+        }
+
+        async function caricaStatisticheGlobali() {
+            const container = document.getElementById('statsGlobaliContainer');
+            if (!container) return;
+
+            try {
+                var configId = sessioneOggetto && sessioneOggetto.configurazione_id
+                    ? sessioneOggetto.configurazione_id
+                    : (window.sessioneOggetto && window.sessioneOggetto.configurazione_id);
+
+                if (!configId) {
+                    container.innerHTML = '<p class="stats-nessun-dato">Nessuna configurazione associata</p>';
+                    return;
+                }
+
+                const response = await fetch('/api/classifica-giocatori?configurazione=' + configId);
+                if (!response.ok) throw new Error('Errore caricamento');
+
+                const data = await response.json();
+
+                if (!data.giocatori || data.giocatori.length === 0) {
+                    container.innerHTML = '<p class="stats-nessun-dato">Nessuna statistica globale disponibile ancora</p>';
+                    return;
+                }
+
+                let html = '';
+
+                data.giocatori.forEach(function (g, i) {
+                    var colore = getTeamColor(g.colore);
+                    var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+                    var diff = g.differenza || 0;
+                    var diffTxt = (diff > 0 ? '+' : '') + diff;
+                    var diffCol = diff > 0 ? '#48bb78' : (diff < 0 ? '#f56565' : '#a0aec0');
+
+                    html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';">';
+                    html += '  <div class="stats-giocatore-info">';
+                    html += '    <div class="stats-giocatore-nome">' + (i + 1) + '. ' + g.nome_giocatore + '</div>';
+                    html += '    <div class="stats-giocatore-dettagli">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';
+                    html += '    <div class="stats-barra-container">';
+                    html += '      <div class="stats-barra-fill" style="width: ' + g.percentuale_vittoria + '%; background: ' + percColore + ';"></div>';
+                    html += '    </div>';
+                    html += '  </div>';
+                    html += '  <div class="stats-giocatore-numeri">';
+                    html += '    <div style="font-weight: bold; color: ' + diffCol + '; font-size: 0.85em;">' + diffTxt + ' diff</div>';
+                    html += '    <div class="stats-percentuale" style="color: ' + percColore + ';">' + g.percentuale_vittoria + '%</div>';
+                    html += '    <div class="stats-record">' + g.vittorie + 'V - ' + g.sconfitte + 'S</div>';
+                    html += '  </div>';
+                    html += '</div>';
+                });
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Errore caricamento statistiche globali:', error);
+                container.innerHTML = '<p class="stats-nessun-dato">Errore nel caricamento della classifica globale</p>';
             }
         }
 
