@@ -4605,71 +4605,67 @@ app.get('/api/classifica-giocatori', async (req, res) => {
         }
 
         const result = await db.query(`
-            SELECT q.*, (q.punti_fatti - q.punti_subiti) AS differenza
+            SELECT
+                q.nome_giocatore,
+                q.colore,
+                q.posizione,
+                q.vittorie,
+                q.sconfitte,
+                (q.vittorie + q.sconfitte) AS totale_partite,
+                CASE WHEN (q.vittorie + q.sconfitte) > 0
+                    THEN ROUND(q.vittorie::numeric / (q.vittorie + q.sconfitte) * 100)
+                    ELSE 0
+                END AS percentuale_vittoria,
+                q.punti_fatti,
+                q.punti_subiti,
+                (q.punti_fatti - q.punti_subiti) AS differenza
             FROM (
-                SELECT 
-                    sl.giocatore_attuale as nome_giocatore,
-                    sub.colore,
-                    sub.posizione,
-                    SUM(sub.vittorie) as vittorie,
-                    SUM(sub.sconfitte) as sconfitte,
-                    SUM(sub.vittorie) + SUM(sub.sconfitte) as totale_partite,
-                    CASE WHEN SUM(sub.vittorie) + SUM(sub.sconfitte) > 0 
-                        THEN ROUND(SUM(sub.vittorie)::numeric / (SUM(sub.vittorie) + SUM(sub.sconfitte)) * 100)
-                        ELSE 0 
-                    END as percentuale_vittoria,
-                    COALESCE((
-                        SELECT SUM(CASE WHEN i.squadra1 = scg.numero THEN i.games_squadra1 ELSE i.games_squadra2 END)
-                        FROM incontri i
-                        JOIN coppie_turno ct ON i.coppia_turno_id = ct.id
-                        JOIN squadre_circolo scg ON LOWER(scg.colore) = LOWER(sub.colore)
-                            AND scg.configurazione_id = $1
-                            AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
-                        WHERE i.completato = true AND i.configurazione_id = $1
-                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))${filtroTurno}
-                    ), 0) as punti_fatti,
-                    COALESCE((
-                        SELECT SUM(CASE WHEN i.squadra1 = scg.numero THEN i.games_squadra2 ELSE i.games_squadra1 END)
-                        FROM incontri i
-                        JOIN coppie_turno ct ON i.coppia_turno_id = ct.id
-                        JOIN squadre_circolo scg ON LOWER(scg.colore) = LOWER(sub.colore)
-                            AND scg.configurazione_id = $1
-                            AND (i.squadra1 = scg.numero OR i.squadra2 = scg.numero)
-                        WHERE i.completato = true AND i.configurazione_id = $1
-                            AND i.games_squadra1 IS NOT NULL AND i.games_squadra2 IS NOT NULL
-                            AND UPPER(sub.posizione) IN (UPPER(ct.pos1), UPPER(ct.pos2))${filtroTurno}
-                    ), 0) as punti_subiti
+                SELECT
+                    parts.nome_giocatore,
+                    (ARRAY_AGG(parts.colore ORDER BY parts.turno_numero DESC, parts.incontro_id DESC))[1] AS colore,
+                    (ARRAY_AGG(parts.posizione ORDER BY parts.turno_numero DESC, parts.incontro_id DESC))[1] AS posizione,
+                    SUM(parts.vinta) AS vittorie,
+                    SUM(parts.persa) AS sconfitte,
+                    SUM(parts.games_fatti) AS punti_fatti,
+                    SUM(parts.games_subiti) AS punti_subiti
                 FROM (
-                    SELECT 
+                    SELECT
+                        rd.giocatore_squadra1 AS nome_giocatore,
                         sc.colore,
                         rd.posizione,
-                        COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as vittorie,
-                        COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as sconfitte
+                        tc.turno_numero,
+                        i.id AS incontro_id,
+                        CASE WHEN rd.vincitore = 1 THEN 1 ELSE 0 END AS vinta,
+                        CASE WHEN rd.vincitore = 2 THEN 1 ELSE 0 END AS persa,
+                        COALESCE(i.games_squadra1, 0) AS games_fatti,
+                        COALESCE(i.games_squadra2, 0) AS games_subiti
                     FROM risultati_dettaglio rd
                     JOIN incontri i ON rd.incontro_id = i.id
+                    JOIN turni_configurazione tc ON i.turno_id = tc.id
                     JOIN squadre_circolo sc ON i.squadra1 = sc.numero AND sc.configurazione_id = $1
-                    WHERE i.completato = true AND i.configurazione_id = $1${filtroTurno}
-                    GROUP BY sc.colore, rd.posizione
+                    WHERE i.completato = true AND i.configurazione_id = $1
+                        AND rd.giocatore_squadra1 IS NOT NULL${filtroTurno}
 
                     UNION ALL
 
-                    SELECT 
+                    SELECT
+                        rd.giocatore_squadra2 AS nome_giocatore,
                         sc.colore,
                         rd.posizione,
-                        COUNT(CASE WHEN rd.vincitore = 2 THEN 1 END) as vittorie,
-                        COUNT(CASE WHEN rd.vincitore = 1 THEN 1 END) as sconfitte
+                        tc.turno_numero,
+                        i.id AS incontro_id,
+                        CASE WHEN rd.vincitore = 2 THEN 1 ELSE 0 END AS vinta,
+                        CASE WHEN rd.vincitore = 1 THEN 1 ELSE 0 END AS persa,
+                        COALESCE(i.games_squadra2, 0) AS games_fatti,
+                        COALESCE(i.games_squadra1, 0) AS games_subiti
                     FROM risultati_dettaglio rd
                     JOIN incontri i ON rd.incontro_id = i.id
+                    JOIN turni_configurazione tc ON i.turno_id = tc.id
                     JOIN squadre_circolo sc ON i.squadra2 = sc.numero AND sc.configurazione_id = $1
-                    WHERE i.completato = true AND i.configurazione_id = $1${filtroTurno}
-                    GROUP BY sc.colore, rd.posizione
-                ) sub
-                LEFT JOIN slots sl 
-                    ON LOWER(sl.colore) = LOWER(sub.colore) 
-                    AND UPPER(sl.posizione) = UPPER(sub.posizione) 
-                    AND sl.configurazione_id = $1
-                GROUP BY sl.giocatore_attuale, sub.colore, sub.posizione
+                    WHERE i.completato = true AND i.configurazione_id = $1
+                        AND rd.giocatore_squadra2 IS NOT NULL${filtroTurno}
+                ) parts
+                GROUP BY parts.nome_giocatore
             ) q
             ORDER BY q.percentuale_vittoria DESC, differenza DESC, q.vittorie DESC
         `, params);
