@@ -4472,9 +4472,6 @@
                     var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
                     var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
                     var badgeText = isVittoria ? 'Win' : 'Loss';
-                    if (match.gamesPropri != null && match.gamesAvversari != null) {
-                        badgeText += ' ' + match.gamesPropri + '-' + match.gamesAvversari;
-                    }
 
                     var coloreProprio = getTeamColor(match.squadraPropria.colore);
                     var coloreAvversario = getTeamColor(match.squadraAvversaria.colore);
@@ -4511,7 +4508,11 @@
                         '    <div class="ps-sq-nome" style="color: ' + coloreProprio + ';">' + nomeProprioColore + '</div>' +
                         '    <div class="ps-coppia-nomi">' + proprioHtml + '</div>' +
                         '  </div>' +
-                        '  <div class="ps-match-vs">VS</div>' +
+                        '  <div class="ps-match-punteggio">' +
+                        (match.gamesPropri != null && match.gamesAvversari != null
+                            ? '<span class="ps-game-sx">' + match.gamesPropri + '</span><span class="ps-game-sep">-</span><span class="ps-game-dx">' + match.gamesAvversari + '</span>'
+                            : 'VS') +
+                        '  </div>' +
                         '  <div class="ps-coppia-dx">' +
                         '    <div class="ps-sq-nome" style="color: ' + coloreAvversario + ';">' + nomeAvversarioColore + '</div>' +
                         '    <div class="ps-coppia-nomi">' + avvHtml + '</div>' +

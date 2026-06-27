@@ -679,6 +679,21 @@
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
+        .ps-match-punteggio {
+            min-width: 44px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            color: #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .ps-game-sep {
+            color: #4a5568;
+            margin: 0 3px;
+            font-weight: normal;
+        }
+
         .ps-badge {
             width: 44px;
             height: 44px;
@@ -1504,9 +1519,6 @@
                     var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
                     var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
                     var badgeText = isVittoria ? 'Win' : 'Loss';
-                    if (match.gamesPropri != null && match.gamesAvversari != null) {
-                        badgeText += ' ' + match.gamesPropri + '-' + match.gamesAvversari;
-                    }
 
                     var coloreProprio = getTeamColorForMaster(match.squadraPropria.colore);
                     var coloreAvversario = getTeamColorForMaster(match.squadraAvversaria.colore);
@@ -1542,7 +1554,11 @@
                         '    <div class="ps-sq-nome" style="color: ' + coloreProprio + ';">' + nomeProprioColore + '</div>' +
                         '    <div class="ps-coppia-nomi">' + proprioHtml + '</div>' +
                         '  </div>' +
-                        '  <div class="ps-match-vs">VS</div>' +
+                        '  <div class="ps-match-punteggio">' +
+                        (match.gamesPropri != null && match.gamesAvversari != null
+                            ? '<span class="ps-game-sx">' + match.gamesPropri + '</span><span class="ps-game-sep">-</span><span class="ps-game-dx">' + match.gamesAvversari + '</span>'
+                            : 'VS') +
+                        '  </div>' +
                         '  <div class="ps-coppia-dx">' +
                         '    <div class="ps-sq-nome" style="color: ' + coloreAvversario + ';">' + nomeAvversarioColore + '</div>' +
                         '    <div class="ps-coppia-nomi">' + avvHtml + '</div>' +
