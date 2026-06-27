@@ -1504,6 +1504,9 @@
                     var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
                     var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
                     var badgeText = isVittoria ? 'Win' : 'Loss';
+                    if (match.gamesPropri != null && match.gamesAvversari != null) {
+                        badgeText += ' ' + match.gamesPropri + '-' + match.gamesAvversari;
+                    }
 
                     var coloreProprio = getTeamColorForMaster(match.squadraPropria.colore);
                     var coloreAvversario = getTeamColorForMaster(match.squadraAvversaria.colore);

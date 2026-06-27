@@ -4508,7 +4508,9 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
                 tc.turno_numero,
                 tc.nome_turno,
                 sc1.colore as colore_squadra1,
-                sc2.colore as colore_squadra2
+                sc2.colore as colore_squadra2,
+                i.games_squadra1,
+                i.games_squadra2
             FROM risultati_dettaglio rd
             JOIN incontri i ON rd.incontro_id = i.id
             JOIN turni_configurazione tc ON i.turno_id = tc.id
@@ -4538,6 +4540,9 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
             // Avversario nella stessa posizione
             const avversarioStessaPos = nellaSquadra1 ? row.giocatore_squadra2 : row.giocatore_squadra1;
 
+            const gamesPropri = nellaSquadra1 ? row.games_squadra1 : row.games_squadra2;
+            const gamesAvversari = nellaSquadra1 ? row.games_squadra2 : row.games_squadra1;
+
             // Cerca il compagno: altra riga di risultati_dettaglio con stesso incontro_id
             const compagnoResult = await db.query(`
                 SELECT posizione, giocatore_squadra1, giocatore_squadra2
@@ -4563,6 +4568,8 @@ app.get('/api/storico-giocatore/:nomeGiocatore', async (req, res) => {
                 nomeTurno: row.nome_turno,
                 posizioni: row.posizione + (compagnoPosizione ? ' + ' + compagnoPosizione : ''),
                 risultato: risultato,
+                gamesPropri: gamesPropri,
+                gamesAvversari: gamesAvversari,
                 puntiAssegnati: row.punti_assegnati,
                 squadraPropria: {
                     colore: coloreProprio,
