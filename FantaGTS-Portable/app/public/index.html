@@ -4352,7 +4352,19 @@
                 var diffTxt = (diff > 0 ? '+' : '') + diff;
                 var diffCol = diff > 0 ? '#48bb78' : (diff < 0 ? '#f56565' : '#a0aec0');
 
-                html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';">';
+                var gObj = {
+                    nome: g.nome_giocatore,
+                    colore: g.colore,
+                    posizione: g.posizione,
+                    punti: g.punti_fatti,
+                    vittorie: g.vittorie,
+                    sconfitte: g.sconfitte,
+                    totalePartite: g.totale_partite,
+                    percentualeVittoria: g.percentuale_vittoria
+                };
+                var gJson = encodeURIComponent(JSON.stringify(gObj));
+
+                html += '<div class="stats-giocatore-card" style="border-left-color: ' + colore + ';" onclick="mostraDettaglioGiocatore(decodeURIComponent(\'' + gJson + '\'))">';
                 html += '  <div class="stats-giocatore-info">';
                 html += '    <div class="stats-giocatore-nome">' + (i + 1) + '. ' + g.nome_giocatore + '</div>';
                 html += '    <div class="stats-giocatore-dettagli">' + g.posizione + ' - ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + '</div>';

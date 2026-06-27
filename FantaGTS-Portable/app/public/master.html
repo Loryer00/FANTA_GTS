@@ -618,9 +618,9 @@
             align-items: center;
         }
 
-            .drag-handle:active {
-                cursor: grabbing;
-            }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
 
         .sq-selezionabile {
             padding: 6px 14px;
@@ -634,15 +634,254 @@
             border: 2px solid transparent;
         }
 
-            .sq-selezionabile.selezionata {
-                opacity: 1;
-                border-color: #4299e1;
-                transform: scale(1.05);
+        .sq-selezionabile.selezionata {
+            opacity: 1;
+            border-color: #4299e1;
+            transform: scale(1.05);
+        }
+
+        .sq-selezionabile:hover {
+            opacity: 0.8;
+        }
+
+        .popup-stats-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .popup-stats {
+            background: #1a202c;
+            border: 1px solid rgba(66,153,225,0.4);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 370px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .ps-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .ps-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .ps-nome {
+            font-weight: bold;
+            font-size: 16px;
+            color: #e2e8f0;
+        }
+
+        .ps-dettaglio {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 3px;
+        }
+
+        .ps-stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ps-stat-box {
+            flex: 1;
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 10px 8px;
+            text-align: center;
+        }
+
+        .ps-stat-val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .ps-stat-label {
+            font-size: 10px;
+            color: #a0aec0;
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ps-barra-wrap {
+            margin-bottom: 16px;
+        }
+
+        .ps-barra-label {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ps-barra {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .ps-barra-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .ps-storico-title {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ps-match {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+            .ps-match:last-child {
+                border-bottom: none;
             }
 
-            .sq-selezionabile:hover {
-                opacity: 0.8;
+        .ps-match-top {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ps-match-turno {
+            font-size: 12px;
+            color: #a0aec0;
+            font-weight: bold;
+        }
+
+        .ps-match-pos {
+            font-size: 11px;
+            color: #4a5568;
+            flex: 1;
+            text-align: center;
+        }
+
+        .ps-result-badge {
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 3px 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ps-result-win {
+            background: rgba(72,187,120,0.25);
+            color: #48bb78;
+        }
+
+        .ps-result-loss {
+            background: rgba(245,101,101,0.25);
+            color: #f56565;
+        }
+
+        .ps-match-wrapper {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .ps-wrapper-win {
+            border: 2px solid #48bb78;
+            background: rgba(72,187,120,0.05);
+        }
+
+        .ps-wrapper-loss {
+            border: 2px solid #f56565;
+            background: rgba(245,101,101,0.05);
+        }
+
+        .ps-coppia-sx {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .ps-coppia-dx {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            text-align: right;
+        }
+
+        .ps-coppia-nomi {
+            color: #e2e8f0;
+        }
+
+            .ps-coppia-nomi .tu {
+                color: #63b3ed;
+                font-weight: bold;
             }
+
+        .ps-sq-nome {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ps-match-vs {
+            width: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #4a5568;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .ps-close-hint {
+            text-align: center;
+            font-size: 11px;
+            color: #4a5568;
+            margin-top: 14px;
+        }
+
+        .ps-loading {
+            text-align: center;
+            padding: 30px;
+            color: #a0aec0;
+        }
+
 
     </style>
 
@@ -1203,6 +1442,125 @@
             header.appendChild(warningBanner);
         }
 
+        async function mostraDettaglioGiocatore(jsonStr) {
+            var vecchio = document.getElementById('popup-stats-overlay');
+            if (vecchio) vecchio.remove();
+
+            var g = JSON.parse(jsonStr);
+            var colore = getTeamColorForMaster(g.colore);
+            var percColore = g.percentualeVittoria >= 60 ? '#48bb78' : g.percentualeVittoria >= 40 ? '#ecc94b' : '#f56565';
+
+            var overlay = document.createElement('div');
+            overlay.id = 'popup-stats-overlay';
+            overlay.className = 'popup-stats-overlay';
+
+            overlay.innerHTML = '<div class="popup-stats">' +
+                '<div class="ps-header">' +
+                '  <div class="ps-badge" style="background: ' + colore + '33; color: ' + colore + ';">' + g.posizione + '</div>' +
+                '  <div>' +
+                '    <div class="ps-nome">' + g.nome + '</div>' +
+                '    <div class="ps-dettaglio">Squadra ' + g.colore.charAt(0).toUpperCase() + g.colore.slice(1) + ' | ' + g.punti + ' pt totali</div>' +
+                '  </div>' +
+                '</div>' +
+                '<div class="ps-stats-row">' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: #48bb78;">' + g.vittorie + '</div><div class="ps-stat-label">Vittorie</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: #f56565;">' + g.sconfitte + '</div><div class="ps-stat-label">Sconfitte</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val">' + g.totalePartite + '</div><div class="ps-stat-label">Giocate</div></div>' +
+                '  <div class="ps-stat-box"><div class="ps-stat-val" style="color: ' + percColore + ';">' + g.percentualeVittoria + '%</div><div class="ps-stat-label">Win rate</div></div>' +
+                '</div>' +
+                '<div class="ps-barra-wrap">' +
+                '  <div class="ps-barra-label"><span>Rendimento</span><span style="color: ' + percColore + ';">' + g.percentualeVittoria + '%</span></div>' +
+                '  <div class="ps-barra"><div class="ps-barra-fill" style="width: ' + g.percentualeVittoria + '%; background: ' + percColore + ';"></div></div>' +
+                '</div>' +
+                '<div class="ps-storico-title">Storico incontri</div>' +
+                '<div id="ps-storico-container" class="ps-loading">Caricamento storico...</div>' +
+                '<div class="ps-close-hint">Tocca fuori per chiudere</div>' +
+                '</div>';
+
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) overlay.remove();
+            });
+
+            document.body.appendChild(overlay);
+
+            try {
+                var configId = configurazioneCorrente || 'default';
+
+                var storicoResp = await fetch('/api/storico-giocatore/' + encodeURIComponent(g.nome) + '?configurazione=' + configId);
+                if (!storicoResp.ok) throw new Error('Errore caricamento storico');
+
+                var storicoData = await storicoResp.json();
+                var container = document.getElementById('ps-storico-container');
+
+                if (!storicoData.storico || storicoData.storico.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #a0aec0; font-size: 12px;">Nessun incontro completato</p>';
+                    return;
+                }
+
+                var storicoHtml = '';
+
+                storicoData.storico.forEach(function (match) {
+                    var isVittoria = match.risultato === 'vittoria';
+                    var wrapperClass = isVittoria ? 'ps-wrapper-win' : 'ps-wrapper-loss';
+                    var badgeClass = isVittoria ? 'ps-result-win' : 'ps-result-loss';
+                    var badgeText = isVittoria ? 'Win' : 'Loss';
+
+                    var coloreProprio = getTeamColorForMaster(match.squadraPropria.colore);
+                    var coloreAvversario = getTeamColorForMaster(match.squadraAvversaria.colore);
+
+                    var nomeProprioColore = match.squadraPropria.colore.charAt(0).toUpperCase() + match.squadraPropria.colore.slice(1);
+                    var nomeAvversarioColore = match.squadraAvversaria.colore.charAt(0).toUpperCase() + match.squadraAvversaria.colore.slice(1);
+
+                    var g1Proprio = match.squadraPropria.giocatore1;
+                    var g2Proprio = match.squadraPropria.giocatore2;
+                    var g1Avv = match.squadraAvversaria.giocatore1;
+                    var g2Avv = match.squadraAvversaria.giocatore2;
+
+                    var formatGiocatore = function (gioc) {
+                        if (!gioc.nome) return '';
+                        var cls = (gioc.nome === g.nome) ? ' class="tu"' : '';
+                        return '<span' + cls + '>' + gioc.nome + '</span> (' + gioc.posizione + ')';
+                    };
+
+                    var proprioHtml = formatGiocatore(g1Proprio);
+                    if (g2Proprio.nome) proprioHtml += '<br>' + formatGiocatore(g2Proprio);
+
+                    var avvHtml = formatGiocatore(g1Avv);
+                    if (g2Avv.nome) avvHtml += '<br>' + formatGiocatore(g2Avv);
+
+                    storicoHtml += '<div class="ps-match">' +
+                        '<div class="ps-match-top">' +
+                        '  <div class="ps-match-turno">Turno ' + match.turnoNumero + '</div>' +
+                        '  <div class="ps-match-pos">' + match.posizioni + '</div>' +
+                        '  <div class="ps-result-badge ' + badgeClass + '">' + badgeText + '</div>' +
+                        '</div>' +
+                        '<div class="ps-match-wrapper ' + wrapperClass + '">' +
+                        '  <div class="ps-coppia-sx">' +
+                        '    <div class="ps-sq-nome" style="color: ' + coloreProprio + ';">' + nomeProprioColore + '</div>' +
+                        '    <div class="ps-coppia-nomi">' + proprioHtml + '</div>' +
+                        '  </div>' +
+                        '  <div class="ps-match-vs">VS</div>' +
+                        '  <div class="ps-coppia-dx">' +
+                        '    <div class="ps-sq-nome" style="color: ' + coloreAvversario + ';">' + nomeAvversarioColore + '</div>' +
+                        '    <div class="ps-coppia-nomi">' + avvHtml + '</div>' +
+                        '  </div>' +
+                        '</div>' +
+                        '</div>';
+                });
+
+                container.innerHTML = storicoHtml;
+                container.className = '';
+
+            } catch (error) {
+                console.error('Errore caricamento storico:', error);
+                var container = document.getElementById('ps-storico-container');
+                if (container) {
+                    container.innerHTML = '<p style="text-align: center; color: #f56565; font-size: 12px;">Errore nel caricamento dello storico</p>';
+                    container.className = '';
+                }
+            }
+        }
+
         async function mostraClassificaGiocatori() {
             if (!configurazioneCorrente) {
                 showNotification('Nessuna configurazione attiva', 'error');
@@ -1250,6 +1608,20 @@
                 var listaDiv = document.createElement('div');
                 container.appendChild(listaDiv);
 
+                function buildGiocatoreJson(g) {
+                    var gObj = {
+                        nome: g.nome_giocatore,
+                        colore: g.colore,
+                        posizione: g.posizione,
+                        punti: g.punti_fatti,
+                        vittorie: g.vittorie,
+                        sconfitte: g.sconfitte,
+                        totalePartite: g.totale_partite,
+                        percentualeVittoria: g.percentuale_vittoria
+                    };
+                    return encodeURIComponent(JSON.stringify(gObj));
+                }
+
                 function renderLista(filtro) {
                     filtro = (filtro || '').trim().toLowerCase();
                     var html = '';
@@ -1261,7 +1633,8 @@
 
                         top3.forEach(function (g, i) {
                             var colore = getTeamColorForMaster(g.colore);
-                            html += '<div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ' + colore + '; display: flex; align-items: center; gap: 12px;">';
+                            var gJson = buildGiocatoreJson(g);
+                            html += '<div onclick="mostraDettaglioGiocatore(decodeURIComponent(\'' + gJson + '\'))" style="cursor: pointer; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ' + colore + '; display: flex; align-items: center; gap: 12px;">';
                             html += '  <div style="font-size: 1.5em;">' + medaglie[i] + '</div>';
                             html += '  <div style="flex: 1;">';
                             html += '    <div style="font-weight: bold; color: #e2e8f0;">' + g.nome_giocatore + '</div>';
@@ -1286,8 +1659,9 @@
                             data.giocatori.slice(3).forEach(function (g, i) {
                                 var colore = getTeamColorForMaster(g.colore);
                                 var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
+                                var gJson = buildGiocatoreJson(g);
 
-                                html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
+                                html += '<div onclick="mostraDettaglioGiocatore(decodeURIComponent(\'' + gJson + '\'))" style="cursor: pointer; display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
                                 html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + (i + 4) + '</div>';
                                 html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
                                 html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
@@ -1314,8 +1688,9 @@
                                 var colore = getTeamColorForMaster(g.colore);
                                 var percColore = g.percentuale_vittoria >= 60 ? '#48bb78' : g.percentuale_vittoria >= 40 ? '#ecc94b' : '#f56565';
                                 var pos = data.giocatori.indexOf(g) + 1;
+                                var gJson = buildGiocatoreJson(g);
 
-                                html += '<div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
+                                html += '<div onclick="mostraDettaglioGiocatore(decodeURIComponent(\'' + gJson + '\'))" style="cursor: pointer; display: flex; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 10px;">';
                                 html += '  <div style="color: #a0aec0; min-width: 30px; text-align: center;">' + pos + '</div>';
                                 html += '  <div style="width: 8px; height: 8px; border-radius: 50%; background: ' + colore + ';"></div>';
                                 html += '  <div style="flex: 1; font-size: 0.9em; color: #e2e8f0;">' + g.nome_giocatore + ' <span style="color: #a0aec0; font-size: 0.85em;">(' + g.posizione + ')</span></div>';
