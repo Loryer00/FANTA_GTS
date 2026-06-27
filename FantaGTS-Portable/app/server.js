@@ -4688,23 +4688,16 @@ app.post('/api/set-vincitore', async (req, res) => {
     try {
         const { incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati } = req.body;
 
-        // Verifica se esiste già un risultato per questa posizione
-        const existing = await db.query("SELECT id FROM risultati_dettaglio WHERE incontro_id = $1 AND posizione = $2",
-            [incontro_id, posizione]);
-
-        if (existing.rows.length > 0) {
-            // Aggiorna esistente
-            await db.query(`UPDATE risultati_dettaglio 
-                SET vincitore = $1, giocatore_squadra1 = $2, giocatore_squadra2 = $3, punti_assegnati = $4
-                WHERE incontro_id = $5 AND posizione = $6`,
-                [vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati, incontro_id, posizione]);
-        } else {
-            // Inserisci nuovo
-            await db.query(`INSERT INTO risultati_dettaglio 
-                (incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati)
-                VALUES ($1, $2, $3, $4, $5, $6)`,
-                [incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati]);
-        }
+        await db.query(`INSERT INTO risultati_dettaglio 
+            (incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (incontro_id, posizione)
+            DO UPDATE SET 
+                vincitore = EXCLUDED.vincitore,
+                giocatore_squadra1 = EXCLUDED.giocatore_squadra1,
+                giocatore_squadra2 = EXCLUDED.giocatore_squadra2,
+                punti_assegnati = EXCLUDED.punti_assegnati`,
+            [incontro_id, posizione, vincitore, giocatore_squadra1, giocatore_squadra2, punti_assegnati]);
 
         res.json({ message: 'Vincitore impostato con successo' });
     } catch (err) {
