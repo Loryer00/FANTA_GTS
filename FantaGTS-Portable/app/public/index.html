@@ -2056,6 +2056,7 @@
         let datiPartecipantiCache = [];
         let nomeSessioneCorrente = '';
         let sessioneOggetto = null;
+        let mieiSlot = new Set();
 
         const STORAGE_KEYS = {
             PLAYER_DATA: 'fantagts_player_data',
@@ -3331,6 +3332,14 @@
 
                 // Recupera i colori delle squadre ancora in gioco (per sbiadire le altre)
                 await caricaColoriSquadreAttive();
+
+                // Registra gli slot posseduti (colore + posizione) per l'evidenziazione incontri
+                mieiSlot = new Set();
+                squadra.forEach(g => {
+                    if (g.colore && g.posizione) {
+                        mieiSlot.add((g.colore + '|' + g.posizione).toLowerCase());
+                    }
+                });
 
                 // Popola le card con i giocatori
                 squadra.forEach(giocatore => {
@@ -4645,9 +4654,16 @@
                     const nomeG2Pos1 = nomeReale(incontro.pos1, false) || (rosterG2Pos1 ? rosterG2Pos1.nome : '');
                     const nomeG2Pos2 = nomeReale(incontro.pos2, false) || (rosterG2Pos2 ? rosterG2Pos2.nome : '');
 
-                    // Controlla se un mio giocatore gioca in questo incontro
-                    const nomiIncontro = [nomeG1Pos1, nomeG1Pos2, nomeG2Pos1, nomeG2Pos2];
-                    const hasMioGiocatore = nomiIncontro.some(nome => nome && miei.has(nome));
+                    // Evidenzia in base allo SLOT posseduto (colore squadra + posizione),
+                    // non in base al nome del giocatore: cosi resta corretto anche quando
+                    // un giocatore e' stato usato come sostituto in un'altra casella
+                    const slotIncontro = [
+                        gruppo.squadra1.colore + '|' + incontro.pos1,
+                        gruppo.squadra1.colore + '|' + incontro.pos2,
+                        gruppo.squadra2.colore + '|' + incontro.pos1,
+                        gruppo.squadra2.colore + '|' + incontro.pos2
+                    ];
+                    const hasMioGiocatore = slotIncontro.some(s => mieiSlot.has(s.toLowerCase()));
                     const classMio = hasMioGiocatore ? ' mio-giocatore' : '';
 
                     // Punteggio coppia: associa i game al lato giusto (sq1 = gruppo.squadra1)
@@ -4739,9 +4755,11 @@
                 }
             });
 
-            // Funzione per evidenziare il nome se e' un mio giocatore
-            function evidenziaNome(nome) {
-                if (mieiGiocatori.has(nome)) {
+            // Evidenzia il nome se possiedo quella casella (colore squadra + posizione),
+            // non in base al nome del giocatore
+            function evidenziaSlot(nome, colore, posizione) {
+                const chiave = (colore + '|' + posizione).toLowerCase();
+                if (mieiSlot.has(chiave)) {
                     return '<span style="color: #63b3ed; font-weight: bold;">' + nome + '</span>';
                 }
                 return nome;
@@ -4769,16 +4787,16 @@
                 <div class="popup-incontro">
                     <div class="popup-titolo">${pos1} + ${pos2}</div>
                     <div class="popup-coppia">
-                        <div class="popup-squadra" style="background: ${color1}30; border: 1px solid ${color1};">
+                       <div class="popup-squadra" style="background: ${color1}30; border: 1px solid ${color1};">
                             <div class="nome-squadra" style="color: ${color1};">${sq1Colore.toUpperCase()}</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq1G1)} (${pos1})</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq1G2)} (${pos2})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaSlot(sq1G1, sq1Colore, pos1)} (${pos1})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaSlot(sq1G2, sq1Colore, pos2)} (${pos2})</div>
                         </div>
                         <div class="popup-vs">VS</div>
                         <div class="popup-squadra" style="background: ${color2}30; border: 1px solid ${color2};">
                             <div class="nome-squadra" style="color: ${color2};">${sq2Colore.toUpperCase()}</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq2G1)} (${pos1})</div>
-                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaNome(sq2G2)} (${pos2})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaSlot(sq2G1, sq2Colore, pos1)} (${pos1})</div>
+                            <div class="nome-giocatore" style="color: #e2e8f0;">${evidenziaSlot(sq2G2, sq2Colore, pos2)} (${pos2})</div>
                         </div>
                     </div>
                     ${punteggiHtml}
