@@ -840,6 +840,7 @@
             flex-wrap: nowrap;
             gap: 6px;
             overflow-x: auto;
+            justify-content: center;
         }
 
         .incontro-mini {
@@ -4622,19 +4623,30 @@
 
                 // Aggiungi mini card per ogni incontro
                 gruppo.incontri.forEach(incontro => {
-                    // Trova i nomi dei giocatori
-                    const g1Pos1 = gruppo.squadra1.giocatori.find(g => g.posizione === incontro.pos1);
-                    const g1Pos2 = gruppo.squadra1.giocatori.find(g => g.posizione === incontro.pos2);
-                    const g2Pos1 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos1);
-                    const g2Pos2 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos2);
+                    // Nomi dal roster ATTUALE (riflette le sostituzioni)
+                    const rosterG1Pos1 = gruppo.squadra1.giocatori.find(g => g.posizione === incontro.pos1);
+                    const rosterG1Pos2 = gruppo.squadra1.giocatori.find(g => g.posizione === incontro.pos2);
+                    const rosterG2Pos1 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos1);
+                    const rosterG2Pos2 = gruppo.squadra2.giocatori.find(g => g.posizione === incontro.pos2);
+
+                    // Nomi REALI di chi ha giocato quel turno (da risultati_dettaglio)
+                    const reali = incontro.giocatori_reali || null;
+                    // gruppo.squadra1 puo' corrispondere a incontro.squadra1 oppure essere invertito
+                    const sq1EGruppo1 = (incontro.squadra1 === gruppo.squadra1.numero);
+
+                    function nomeReale(posizione, latoGruppo1) {
+                        if (!reali || !reali[posizione]) return null;
+                        const lato = (latoGruppo1 === sq1EGruppo1) ? 'squadra1' : 'squadra2';
+                        return reali[posizione][lato] || null;
+                    }
+
+                    const nomeG1Pos1 = nomeReale(incontro.pos1, true) || (rosterG1Pos1 ? rosterG1Pos1.nome : '');
+                    const nomeG1Pos2 = nomeReale(incontro.pos2, true) || (rosterG1Pos2 ? rosterG1Pos2.nome : '');
+                    const nomeG2Pos1 = nomeReale(incontro.pos1, false) || (rosterG2Pos1 ? rosterG2Pos1.nome : '');
+                    const nomeG2Pos2 = nomeReale(incontro.pos2, false) || (rosterG2Pos2 ? rosterG2Pos2.nome : '');
 
                     // Controlla se un mio giocatore gioca in questo incontro
-                    const nomiIncontro = [
-                        g1Pos1 ? g1Pos1.nome : '',
-                        g1Pos2 ? g1Pos2.nome : '',
-                        g2Pos1 ? g2Pos1.nome : '',
-                        g2Pos2 ? g2Pos2.nome : ''
-                    ];
+                    const nomiIncontro = [nomeG1Pos1, nomeG1Pos2, nomeG2Pos1, nomeG2Pos2];
                     const hasMioGiocatore = nomiIncontro.some(nome => nome && miei.has(nome));
                     const classMio = hasMioGiocatore ? ' mio-giocatore' : '';
 
@@ -4644,10 +4656,10 @@
 
                     const dataAttr = `data-sq1-colore="${gruppo.squadra1.colore}" ` +
                         `data-sq2-colore="${gruppo.squadra2.colore}" ` +
-                        `data-sq1-g1="${g1Pos1 ? g1Pos1.nome : 'N/A'}" ` +
-                        `data-sq1-g2="${g1Pos2 ? g1Pos2.nome : 'N/A'}" ` +
-                        `data-sq2-g1="${g2Pos1 ? g2Pos1.nome : 'N/A'}" ` +
-                        `data-sq2-g2="${g2Pos2 ? g2Pos2.nome : 'N/A'}" ` +
+                        `data-sq1-g1="${nomeG1Pos1 || 'N/A'}" ` +
+                        `data-sq1-g2="${nomeG1Pos2 || 'N/A'}" ` +
+                        `data-sq2-g1="${nomeG2Pos1 || 'N/A'}" ` +
+                        `data-sq2-g2="${nomeG2Pos2 || 'N/A'}" ` +
                         `data-games1="${g1Games != null ? g1Games : ''}" ` +
                         `data-games2="${g2Games != null ? g2Games : ''}" ` +
                         `data-pos1="${incontro.pos1}" ` +

@@ -2433,6 +2433,31 @@ app.get('/api/incontri-turno/:turnoId', async (req, res) => {
             [turnoId, configurazione]
         );
 
+        // Aggiunge i giocatori REALI che hanno giocato ogni incontro (da risultati_dettaglio),
+        // cosi da mostrare chi ha effettivamente giocato quel turno anche dopo le sostituzioni
+        const idIncontri = result.rows.map(r => r.id);
+        if (idIncontri.length > 0) {
+            const dettaglio = await db.query(
+                `SELECT incontro_id, posizione, giocatore_squadra1, giocatore_squadra2
+                 FROM risultati_dettaglio
+                 WHERE incontro_id = ANY($1)`,
+                [idIncontri]
+            );
+
+            const mappaGiocatori = {};
+            dettaglio.rows.forEach(d => {
+                if (!mappaGiocatori[d.incontro_id]) mappaGiocatori[d.incontro_id] = {};
+                mappaGiocatori[d.incontro_id][d.posizione] = {
+                    squadra1: d.giocatore_squadra1,
+                    squadra2: d.giocatore_squadra2
+                };
+            });
+
+            result.rows.forEach(r => {
+                r.giocatori_reali = mappaGiocatori[r.id] || null;
+            });
+        }
+
         console.log(`✅ Caricati ${result.rows.length} incontri per turno ${turnoId}, configurazione: ${configurazione}`);
         res.json(result.rows);
     } catch (err) {
